@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mother Portal - Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+<aside class="sidebar">
+    <button class="sidebar-close">
+        <i class="fas fa-times"></i>
+    </button>
+    <div class="logo">
+        <i class="fas fa-heartbeat"></i>
+        <span>MamaCare</span>
+    </div>
+    <nav class="nav-menu">
+        <a href="index.html" class="nav-item active" data-tooltip="Dashboard">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="tests.html" class="nav-item" data-tooltip="Tests Upload">
+            <i class="fas fa-flask"></i>
+            <span>Tests Upload</span>
+        </a>
+        <a href="products.html" class="nav-item" data-tooltip="Product Safety">
+            <i class="fas fa-barcode"></i>
+            <span>Product Safety</span>
+        </a>
+        <a href="places.html" class="nav-item" data-tooltip="My Places">
+            <i class="fas fa-map-marker-alt"></i>
+            <span>My Places</span>
+        </a>
+        <a href="appointments.html" class="nav-item" data-tooltip="Appointments">
+            <i class="fas fa-calendar-check"></i>
+            <span>Appointments</span>
+        </a>
+        <a href="chatbot.html" class="nav-item" data-tooltip="Chatbot">
+            <i class="fas fa-robot"></i>
+            <span>Chatbot</span>
+        </a>
+        <a href="community.html" class="nav-item" data-tooltip="Community">
+            <i class="fas fa-users"></i>
+            <span>Community</span>
+        </a>
+        <a href="medical-history.html" class="nav-item" data-tooltip="Medical History">
+            <i class="fas fa-history"></i>
+            <span>Medical History</span>
+        </a>
+        <a href="alerts.html" class="nav-item" data-tooltip="Alerts">
+                    <i class="fas fa-bell"></i>
+                    <span>Alerts</span>
+                </a>
+        <a href="profile.html" class="nav-item" data-tooltip="My Profile">
+            <i class="fas fa-user"></i>
+            <span>My Profile</span>
+        </a>
+    </nav>
+    <div class="sidebar-footer">
+        <a href="#" class="nav-item" data-tooltip="Logout">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Logout</span>
+        </a>
+    </div>
+</aside>
+
+<!-- Sidebar Toggle Button (will be created by JS, but you can add manually) -->
+<button class="sidebar-toggle">
+    <i class="fas fa-chevron-left"></i>
+</button>
+
+<!-- Sidebar Overlay (for mobile) -->
+<div class="sidebar-overlay"></div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <h1>Welcome, Sarah! 👋</h1>
+                    <p>Here's your pregnancy journey overview</p>
+                </div>
+                <div class="header-right">
+                    <div class="notification">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge">3</span>
+                    </div>
+                    <div class="profile">
+                        <img src="https://img.freepik.com/free-psd/portrait-woman-wearing-hijab_23-2150945115.jpg?t=st=1765809397~exp=1765812997~hmac=3a0f5380a8654b0ab467fef42c27dae769a70acb5bd0eba3cbf169de91bcc9d0&w=1060" alt="Profile">
+                        <span>Sarah Ahmed</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Pregnancy Progress -->
+            <section class="pregnancy-progress">
+                <div class="progress-card">
+                    <div class="progress-info">
+                        <h3>Pregnancy Progress</h3>
+                        <p>Week <span class="week-number">24</span> of 40</p>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" style="width: 60%;"></div>
+                    </div>
+                    <div class="progress-details">
+                        <span><i class="fas fa-calendar"></i> Due Date: Aug 15, 2025</span>
+                        <span><i class="fas fa-baby"></i> 2nd Trimester</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Stats Cards -->
+            <section class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #e8f5e9;">
+                        <i class="fas fa-weight" style="color: #4caf50;"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h4>Weight</h4>
+                        <p class="stat-value">68 kg</p>
+                        <span class="stat-change positive">+2kg this month</span>
+                    </div>
+                </div>
+                <div class="stat-card clickable" onclick="document.querySelector('.blood-pressure-section').scrollIntoView({behavior: 'smooth'})">
+                    <div class="stat-icon" style="background: #e3f2fd;">
+                        <i class="fas fa-heartbeat" style="color: #2196f3;"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h4>Blood Pressure</h4>
+                        <p class="stat-value">120/80</p>
+                        <span class="stat-change positive">Normal</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #fff3e0;">
+                        <i class="fas fa-flask" style="color: #ff9800;"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h4>Last Test</h4>
+                        <p class="stat-value">CBC</p>
+                        <span class="stat-change">2 days ago</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #fce4ec;">
+                        <i class="fas fa-calendar-alt" style="color: #e91e63;"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h4>Next Appointment</h4>
+                        <p class="stat-value">Mar 20</p>
+                        <span class="stat-change">Dr. Ahmed</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Recent Activity & Alerts -->
+            <section class="dashboard-grid">
+                <div class="card recent-activity">
+                    <div class="card-header">
+                        <h3><i class="fas fa-history"></i> Recent Activity</h3>
+                        <a href="/medical-history.html">View All</a>
+                    </div>
+                    <div class="activity-list">
+                        <div class="activity-item">
+                            <div class="activity-icon" style="background: #e3f2fd;">
+                                <i class="fas fa-heartbeat" style="color: #2196f3;"></i>
+                            </div>
+                            <div class="activity-info">
+                                <h4>Blood Pressure Recorded</h4>
+                                <p>120/80 mmHg - Normal</p>
+                            </div>
+                            <span class="activity-time">Just now</span>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon" style="background: #e8f5e9;">
+                                <i class="fas fa-flask" style="color: #4caf50;"></i>
+                            </div>
+                            <div class="activity-info">
+                                <h4>CBC Test Uploaded</h4>
+                                <p>AI Analysis Complete</p>
+                            </div>
+                            <span class="activity-time">2 hours ago</span>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon" style="background: #f3e5f5;">
+                                <i class="fas fa-baby" style="color: #9c27b0;"></i>
+                            </div>
+                            <div class="activity-info">
+                                <h4>Ultrasound Analyzed</h4>
+                                <p>No anomalies detected</p>
+                            </div>
+                            <span class="activity-time">Yesterday</span>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon" style="background: #fff3e0;">
+                                <i class="fas fa-user-md" style="color: #ff9800;"></i>
+                            </div>
+                            <div class="activity-info">
+                                <h4>Doctor Approved</h4>
+                                <p>Dr. Ahmed is now following you</p>
+                            </div>
+                            <span class="activity-time">3 days ago</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card alerts-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-bell"></i> Health Alerts</h3>
+                        <a href="#">View All</a>
+                    </div>
+                    <div class="alerts-list">
+                        <div class="alert-item warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <div class="alert-info">
+                                <h4>Low Hemoglobin Detected</h4>
+                                <p>Consider iron supplements</p>
+                            </div>
+                        </div>
+                        <div class="alert-item info">
+                            <i class="fas fa-info-circle"></i>
+                            <div class="alert-info">
+                                <h4>Upcoming Appointment</h4>
+                                <p>Tomorrow at 10:00 AM</p>
+                            </div>
+                        </div>
+                        <div class="alert-item success">
+                            <i class="fas fa-check-circle"></i>
+                            <div class="alert-info">
+                                <h4>Blood Pressure Normal</h4>
+                                <p>Keep up the great care!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Blood Pressure Input Section -->
+            <section class="blood-pressure-section">
+                <div class="card bp-card">
+                    <div class="bp-header">
+                        <div class="bp-title">
+                            <i class="fas fa-heartbeat"></i>
+                            <h3>Blood Pressure Tracker</h3>
+                        </div>
+                        <span class="bp-date">Today, March 18, 2025</span>
+                    </div>
+                    
+                    <div class="bp-input-container">
+                        <div class="bp-input-group">
+                            <label for="systolic">Systolic (Top Number)</label>
+                            <div class="bp-input-wrapper">
+                                <input type="number" id="systolic" class="bp-input" placeholder="120" min="70" max="200">
+                                <span class="bp-unit">mmHg</span>
+                            </div>
+                            <span class="bp-hint">Normal: 90-120</span>
+                        </div>
+                        
+                        <div class="bp-divider">
+                            <span>/</span>
+                        </div>
+                        
+                        <div class="bp-input-group">
+                            <label for="diastolic">Diastolic (Bottom Number)</label>
+                            <div class="bp-input-wrapper">
+                                <input type="number" id="diastolic" class="bp-input" placeholder="80" min="40" max="130">
+                                <span class="bp-unit">mmHg</span>
+                            </div>
+                            <span class="bp-hint">Normal: 60-80</span>
+                        </div>
+                        
+                        <div class="bp-input-group pulse-group">
+                            <label for="pulse">Pulse (Optional)</label>
+                            <div class="bp-input-wrapper">
+                                <input type="number" id="pulse" class="bp-input" placeholder="72" min="40" max="200">
+                                <span class="bp-unit">BPM</span>
+                            </div>
+                            <span class="bp-hint">Normal: 60-100</span>
+                        </div>
+                    </div>
+
+                    <div class="bp-actions">
+                        <button class="btn btn-primary" id="saveBP">
+                            <i class="fas fa-save"></i> Save Reading
+                        </button>
+                    </div>
+
+                    <!-- BP Result Display (shows after saving) -->
+                    <div class="bp-result" id="bpResult" style="display: none;">
+                        <div class="bp-result-header">
+                            <div class="bp-reading">
+                                <span class="bp-value" id="bpValue">120/80</span>
+                                <span class="bp-label">mmHg</span>
+                            </div>
+                            <div class="bp-status" id="bpStatus">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Normal</span>
+                            </div>
+                        </div>
+                        <div class="bp-message" id="bpMessage">
+                            Your blood pressure is within the normal range. Keep up the great work!
+                        </div>
+                    </div>
+
+                    <!-- BP History -->
+                    <div class="bp-history">
+                        <h4><i class="fas fa-history"></i> Recent Readings</h4>
+                        <div class="bp-history-list">
+                            <div class="bp-history-item">
+                                <div class="bp-history-date">
+                                    <span class="day">17</span>
+                                    <span class="month">Mar</span>
+                                </div>
+                                <div class="bp-history-reading">
+                                    <span class="reading">118/76</span>
+                                    <span class="time">9:30 AM</span>
+                                </div>
+                                <div class="bp-history-status normal">
+                                    <i class="fas fa-check-circle"></i>
+                                    Normal
+                                </div>
+                            </div>
+                            <div class="bp-history-item">
+                                <div class="bp-history-date">
+                                    <span class="day">16</span>
+                                    <span class="month">Mar</span>
+                                </div>
+                                <div class="bp-history-reading">
+                                    <span class="reading">122/82</span>
+                                    <span class="time">10:15 AM</span>
+                                </div>
+                                <div class="bp-history-status normal">
+                                    <i class="fas fa-check-circle"></i>
+                                    Normal
+                                </div>
+                            </div>
+                            <div class="bp-history-item">
+                                <div class="bp-history-date">
+                                    <span class="day">15</span>
+                                    <span class="month">Mar</span>
+                                </div>
+                                <div class="bp-history-reading">
+                                    <span class="reading">135/88</span>
+                                    <span class="time">8:45 AM</span>
+                                </div>
+                                <div class="bp-history-status elevated">
+                                    <i class="fas fa-exclamation-circle"></i>
+                                    Elevated
+                                </div>
+                            </div>
+                            <div class="bp-history-item">
+                                <div class="bp-history-date">
+                                    <span class="day">14</span>
+                                    <span class="month">Mar</span>
+                                </div>
+                                <div class="bp-history-reading">
+                                    <span class="reading">115/75</span>
+                                    <span class="time">9:00 AM</span>
+                                </div>
+                                <div class="bp-history-status normal">
+                                    <i class="fas fa-check-circle"></i>
+                                    Normal
+                                </div>
+                            </div>
+                        </div>
+                        <a href="#" class="view-all-link">View Full History →</a>
+                    </div>
+                </div>
+
+                <!-- BP Chart Card -->
+                <div class="card bp-chart-card">
+                    <h3><i class="fas fa-chart-line"></i> Weekly Trend</h3>
+                    <div class="bp-chart">
+                        <div class="chart-bars">
+                            <div class="chart-bar-group">
+                                <div class="bar systolic" style="height: 60%;" data-value="118"></div>
+                                <div class="bar diastolic" style="height: 40%;" data-value="76"></div>
+                                <span class="bar-label">Mon</span>
+                            </div>
+                            <div class="chart-bar-group">
+                                <div class="bar systolic" style="height: 62%;" data-value="120"></div>
+                                <div class="bar diastolic" style="height: 42%;" data-value="78"></div>
+                                <span class="bar-label">Tue</span>
+                            </div>
+                            <div class="chart-bar-group">
+                                <div class="bar systolic" style="height: 65%;" data-value="125"></div>
+                                <div class="bar diastolic" style="height: 44%;" data-value="82"></div>
+                                <span class="bar-label">Wed</span>
+                            </div>
+                            <div class="chart-bar-group">
+                                <div class="bar systolic elevated" style="height: 70%;" data-value="135"></div>
+                                <div class="bar diastolic elevated" style="height: 48%;" data-value="88"></div>
+                                <span class="bar-label">Thu</span>
+                            </div>
+                            <div class="chart-bar-group">
+                                <div class="bar systolic" style="height: 61%;" data-value="119"></div>
+                                <div class="bar diastolic" style="height: 41%;" data-value="77"></div>
+                                <span class="bar-label">Fri</span>
+                            </div>
+                            <div class="chart-bar-group">
+                                <div class="bar systolic" style="height: 63%;" data-value="122"></div>
+                                <div class="bar diastolic" style="height: 43%;" data-value="80"></div>
+                                <span class="bar-label">Sat</span>
+                            </div>
+                            <div class="chart-bar-group today">
+                                <div class="bar systolic" style="height: 60%;" data-value="120"></div>
+                                <div class="bar diastolic" style="height: 40%;" data-value="80"></div>
+                                <span class="bar-label">Today</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chart-legend">
+                        <span><i class="fas fa-square systolic"></i> Systolic</span>
+                        <span><i class="fas fa-square diastolic"></i> Diastolic</span>
+                    </div>
+                    <div class="bp-summary">
+                        <div class="summary-item">
+                            <span class="label">Average</span>
+                            <span class="value">122/80 mmHg</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Highest</span>
+                            <span class="value warning">135/88 mmHg</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Lowest</span>
+                            <span class="value">115/75 mmHg</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="js/main.js"></script>
+    <script src="js/bloodpressure.js"></script>
+</body>
+</html>

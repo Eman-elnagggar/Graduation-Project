@@ -1,0 +1,260 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mother Portal - My Places</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+<aside class="sidebar">
+    <button class="sidebar-close">
+        <i class="fas fa-times"></i>
+    </button>
+    <div class="logo">
+        <i class="fas fa-heartbeat"></i>
+        <span>MamaCare</span>
+    </div>
+    <nav class="nav-menu">
+        <a href="index.html" class="nav-item" data-tooltip="Dashboard">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="tests.html" class="nav-item" data-tooltip="Tests Upload">
+            <i class="fas fa-flask"></i>
+            <span>Tests Upload</span>
+        </a>
+        <a href="products.html" class="nav-item" data-tooltip="Product Safety">
+            <i class="fas fa-barcode"></i>
+            <span>Product Safety</span>
+        </a>
+        <a href="places.html" class="nav-item active" data-tooltip="My Places">
+            <i class="fas fa-map-marker-alt"></i>
+            <span>My Places</span>
+        </a>
+        <a href="appointments.html" class="nav-item" data-tooltip="Appointments">
+            <i class="fas fa-calendar-check"></i>
+            <span>Appointments</span>
+        </a>
+        <a href="chatbot.html" class="nav-item" data-tooltip="Chatbot">
+            <i class="fas fa-robot"></i>
+            <span>Chatbot</span>
+        </a>
+        <a href="community.html" class="nav-item" data-tooltip="Community">
+            <i class="fas fa-users"></i>
+            <span>Community</span>
+        </a>
+        <a href="medical-history.html" class="nav-item" data-tooltip="Medical History">
+            <i class="fas fa-history"></i>
+            <span>Medical History</span>
+        </a>
+        <a href="alerts.html" class="nav-item" data-tooltip="Alerts">
+                    <i class="fas fa-bell"></i>
+                    <span>Alerts</span>
+                </a>
+        <a href="profile.html" class="nav-item" data-tooltip="My Profile">
+            <i class="fas fa-user"></i>
+            <span>My Profile</span>
+        </a>
+    </nav>
+    <div class="sidebar-footer">
+        <a href="#" class="nav-item" data-tooltip="Logout">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Logout</span>
+        </a>
+    </div>
+</aside>
+
+<!-- Sidebar Toggle Button (will be created by JS, but you can add manually) -->
+<button class="sidebar-toggle">
+    <i class="fas fa-chevron-left"></i>
+</button>
+
+<!-- Sidebar Overlay (for mobile) -->
+<div class="sidebar-overlay"></div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="header">
+                <div class="header-left">
+                    <h1>My Places 📍</h1>
+                    <p>Manage your healthcare locations</p>
+                </div>
+                <div class="header-right">
+                    <div class="notification">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge">3</span>
+                    </div>
+                    <div class="profile">
+                        <img src="https://img.freepik.com/free-psd/portrait-woman-wearing-hijab_23-2150945115.jpg?t=st=1765809397~exp=1765812997~hmac=3a0f5380a8654b0ab467fef42c27dae769a70acb5bd0eba3cbf169de91bcc9d0&w=1060" alt="Profile">
+                        <span>Sarah Ahmed</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Add New Place -->
+            <section class="add-place-section">
+                <div class="card">
+                    <h3><i class="fas fa-plus-circle"></i> Add New Place</h3>
+                    <form class="place-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="placeName">Place Name *</label>
+                                <input type="text" id="placeName" class="form-input" placeholder="e.g., City Hospital">
+                            </div>
+                            <div class="form-group">
+                                <label for="placeType">Place Type *</label>
+                                <select id="placeType" class="form-select">
+                                    <option value="">Select Type</option>
+                                    <option value="hospital">Hospital</option>
+                                    <option value="clinic">Clinic</option>
+                                    <option value="lab">Laboratory</option>
+                                    <option value="pharmacy">Pharmacy</option>
+                                    <option value="imaging">Imaging Center</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="placeAddress">Address *</label>
+                                <input type="text" id="placeAddress" class="form-input" placeholder="Full address">
+                            </div>
+                            <div class="form-group">
+                                <label for="placePhone">Phone Number</label>
+                                <input type="tel" id="placePhone" class="form-input" placeholder="+20 xxx xxx xxxx">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="placeNotes">Notes</label>
+                            <textarea id="placeNotes" class="form-textarea" placeholder="Any additional information..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Place Image</label>
+                            <div class="image-upload-zone">
+                                <i class="fas fa-image"></i>
+                                <p>Click to upload image</p>
+                                <input type="file" accept="image/*" hidden>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary">Cancel</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Place
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- My Places List -->
+            <section class="places-list">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-list"></i> My Saved Places</h3>
+                        <div class="filter-group">
+                            <select class="form-select-sm">
+                                <option value="">All Types</option>
+                                <option value="hospital">Hospitals</option>
+                                <option value="clinic">Clinics</option>
+                                <option value="lab">Labs</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="places-grid">
+                        <!-- Place Card 1 -->
+                        <div class="place-card">
+                            <div class="place-image">
+                                <img src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=300&h=200&fit=crop" alt="Hospital">
+                                <span class="place-type-badge hospital">Hospital</span>
+                            </div>
+                            <div class="place-info">
+                                <h4>City Medical Center</h4>
+                                <p class="place-address">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    123 Healthcare St, Cairo
+                                </p>
+                                <p class="place-phone">
+                                    <i class="fas fa-phone"></i>
+                                    +20 123 456 7890
+                                </p>
+                            </div>
+                            <div class="place-actions">
+                                <button class="btn btn-sm btn-outline">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button class="btn btn-sm btn-outline danger">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Place Card 2 -->
+                        <div class="place-card">
+                            <div class="place-image">
+                                <img src="https://images.unsplash.com/photo-1551190822-a9333d879b1f?w=300&h=200&fit=crop" alt="Lab">
+                                <span class="place-type-badge lab">Laboratory</span>
+                            </div>
+                            <div class="place-info">
+                                <h4>Alpha Diagnostics Lab</h4>
+                                <p class="place-address">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    456 Lab Avenue, Giza
+                                </p>
+                                <p class="place-phone">
+                                    <i class="fas fa-phone"></i>
+                                    +20 987 654 3210
+                                </p>
+                            </div>
+                            <div class="place-actions">
+                                <button class="btn btn-sm btn-outline">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button class="btn btn-sm btn-outline danger">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Place Card 3 -->
+                        <div class="place-card">
+                            <div class="place-image">
+                                <img src="https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=300&h=200&fit=crop" alt="Clinic">
+                                <span class="place-type-badge clinic">Clinic</span>
+                            </div>
+                            <div class="place-info">
+                                <h4>Women's Health Clinic</h4>
+                                <p class="place-address">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    789 Wellness Rd, Alexandria
+                                </p>
+                                <p class="place-phone">
+                                    <i class="fas fa-phone"></i>
+                                    +20 111 222 3333
+                                </p>
+                            </div>
+                            <div class="place-actions">
+                                <button class="btn btn-sm btn-outline">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button class="btn btn-sm btn-outline danger">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="js/main.js"></script>
+</body>
+</html>

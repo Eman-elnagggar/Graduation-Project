@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mother Portal - Community</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+<aside class="sidebar">
+    <button class="sidebar-close">
+        <i class="fas fa-times"></i>
+    </button>
+    <div class="logo">
+        <i class="fas fa-heartbeat"></i>
+        <span>MamaCare</span>
+    </div>
+    <nav class="nav-menu">
+        <a href="index.html" class="nav-item" data-tooltip="Dashboard">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="tests.html" class="nav-item" data-tooltip="Tests Upload">
+            <i class="fas fa-flask"></i>
+            <span>Tests Upload</span>
+        </a>
+        <a href="products.html" class="nav-item" data-tooltip="Product Safety">
+            <i class="fas fa-barcode"></i>
+            <span>Product Safety</span>
+        </a>
+        <a href="places.html" class="nav-item" data-tooltip="My Places">
+            <i class="fas fa-map-marker-alt"></i>
+            <span>My Places</span>
+        </a>
+        <a href="appointments.html" class="nav-item" data-tooltip="Appointments">
+            <i class="fas fa-calendar-check"></i>
+            <span>Appointments</span>
+        </a>
+        <a href="chatbot.html" class="nav-item" data-tooltip="Chatbot">
+            <i class="fas fa-robot"></i>
+            <span>Chatbot</span>
+        </a>
+        <a href="community.html" class="nav-item active" data-tooltip="Community">
+            <i class="fas fa-users"></i>
+            <span>Community</span>
+        </a>
+        <a href="medical-history.html" class="nav-item" data-tooltip="Medical History">
+            <i class="fas fa-history"></i>
+            <span>Medical History</span>
+        </a>
+        <a href="alerts.html" class="nav-item" data-tooltip="Alerts">
+                    <i class="fas fa-bell"></i>
+                    <span>Alerts</span>
+                </a>
+        <a href="profile.html" class="nav-item" data-tooltip="My Profile">
+            <i class="fas fa-user"></i>
+            <span>My Profile</span>
+        </a>
+    </nav>
+    <div class="sidebar-footer">
+        <a href="#" class="nav-item" data-tooltip="Logout">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Logout</span>
+        </a>
+    </div>
+</aside>
+
+<!-- Sidebar Toggle Button (will be created by JS, but you can add manually) -->
+<button class="sidebar-toggle">
+    <i class="fas fa-chevron-left"></i>
+</button>
+
+<!-- Sidebar Overlay (for mobile) -->
+<div class="sidebar-overlay"></div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="header">
+                <div class="header-left">
+                    <h1>Community 👩‍👩‍👧‍👦</h1>
+                    <p>Connect with other expecting mothers</p>
+                </div>
+                <div class="header-right">
+                    <div class="notification">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge">3</span>
+                    </div>
+                    <div class="profile">
+                        <img src="https://img.freepik.com/free-psd/portrait-woman-wearing-hijab_23-2150945115.jpg?t=st=1765809397~exp=1765812997~hmac=3a0f5380a8654b0ab467fef42c27dae769a70acb5bd0eba3cbf169de91bcc9d0&w=1060" alt="Profile">
+                        <span>Sarah Ahmed</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Create Post -->
+            <section class="create-post">
+                <div class="card">
+                    <div class="post-input-container">
+                        <img src="https://img.freepik.com/free-psd/portrait-woman-wearing-hijab_23-2150945115.jpg?t=st=1765809397~exp=1765812997~hmac=3a0f5380a8654b0ab467fef42c27dae769a70acb5bd0eba3cbf169de91bcc9d0&w=1060" alt="Profile" class="post-avatar">
+                        <input type="text" class="post-input" placeholder="Share your thoughts, ask questions...">
+                    </div>
+                    <div class="post-actions">
+                        <button class="post-action-btn">
+                            <i class="fas fa-image"></i> Photo
+                        </button>
+                        <button class="post-action-btn">
+                            <i class="fas fa-poll"></i> Poll
+                        </button>
+                        <button class="post-action-btn">
+                            <i class="fas fa-question-circle"></i> Question
+                        </button>
+                        <button class="btn btn-primary">Post</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Community Feed -->
+            <section class="community-feed">
+                <!-- Post 1 -->
+                <div class="card post-card">
+                    <div class="post-header">
+                        <img src="https://i.pravatar.cc/40?img=20" alt="User">
+                        <div class="post-user-info">
+                            <h4>Mona Ibrahim</h4>
+                            <span class="post-meta">Week 28 • 2 hours ago</span>
+                        </div>
+                        <button class="post-menu-btn">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                    </div>
+                    <div class="post-content">
+                        <p>Just had my glucose test today! 🍬 Was nervous but it went well. Any tips for managing the wait for results? The suspense is killing me! 😅</p>
+                    </div>
+                    <div class="post-stats">
+                        <span><i class="fas fa-heart"></i> 24 likes</span>
+                        <span><i class="fas fa-comment"></i> 8 comments</span>
+                    </div>
+                    <div class="post-footer">
+                        <button class="post-btn">
+                            <i class="far fa-heart"></i> Like
+                        </button>
+                        <button class="post-btn">
+                            <i class="far fa-comment"></i> Comment
+                        </button>
+                        <button class="post-btn">
+                            <i class="far fa-share-square"></i> Share
+                        </button>
+                    </div>
+                    <!-- Comments -->
+                    <div class="comments-section">
+                        <div class="comment">
+                            <img src="https://i.pravatar.cc/30?img=15" alt="User">
+                            <div class="comment-content">
+                                <h5>Fatma Ali</h5>
+                                <p>Don't worry! Mine came back fine. Try to distract yourself with something fun 💕</p>
+                            </div>
+                        </div>
+                        <div class="comment">
+                            <img src="https://i.pravatar.cc/30?img=22" alt="User">
+                            <div class="comment-content">
+                                <h5>Nour Hassan</h5>
+                                <p>The waiting is the hardest part! Sending positive vibes your way ✨</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Post 2 -->
+                <div class="card post-card">
+                    <div class="post-header">
+                        <img src="https://i.pravatar.cc/40?img=30" alt="User">
+                        <div class="post-user-info">
+                            <h4>Layla Omar</h4>
+                            <span class="post-meta">Week 32 • 5 hours ago</span>
+                        </div>
+                        <button class="post-menu-btn">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                    </div>
+                    <div class="post-content">
+                        <p>Finally finished setting up the nursery! 🎨🍼 Can't believe we're almost there. Here's a sneak peek:</p>
+                        <div class="post-image">
+                            <img src="https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=600&h=400&fit=crop" alt="Nursery">
+                        </div>
+                    </div>
+                    <div class="post-stats">
+                        <span><i class="fas fa-heart"></i> 89 likes</span>
+                        <span><i class="fas fa-comment"></i> 23 comments</span>
+                    </div>
+                    <div class="post-footer">
+                        <button class="post-btn active">
+                            <i class="fas fa-heart"></i> Liked
+                        </button>
+                        <button class="post-btn">
+                            <i class="far fa-comment"></i> Comment
+                        </button>
+                        <button class="post-btn">
+                            <i class="far fa-share-square"></i> Share
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Post 3 - Poll -->
+                <div class="card post-card">
+                    <div class="post-header">
+                        <img src="https://i.pravatar.cc/40?img=35" alt="User">
+                        <div class="post-user-info">
+                            <h4>Hana Mahmoud</h4>
+                            <span class="post-meta">Week 20 • Yesterday</span>
+                        </div>
+                        <button class="post-menu-btn">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                    </div>
+                    <div class="post-content">
+                        <p>Quick poll: What's your go-to pregnancy snack? 🍿</p>
+                        <div class="poll-container">
+                            <div class="poll-option" style="--percent: 45%;">
+                                <span class="poll-text">Fruits 🍎</span>
+                                <span class="poll-percent">45%</span>
+                            </div>
+                            <div class="poll-option" style="--percent: 30%;">
+                                <span class="poll-text">Nuts & Seeds 🥜</span>
+                                <span class="poll-percent">30%</span>
+                            </div>
+                            <div class="poll-option" style="--percent: 15%;">
+                                <span class="poll-text">Yogurt 🥛</span>
+                                <span class="poll-percent">15%</span>
+                            </div>
+                            <div class="poll-option" style="--percent: 10%;">
+                                <span class="poll-text">Ice cream 🍦</span>
+                                <span class="poll-percent">10%</span>
+                            </div>
+                        </div>
+                        <span class="poll-meta">156 votes • 2 days left</span>
+                    </div>
+                    <div class="post-footer">
+                        <button class="post-btn">
+                            <i class="far fa-heart"></i> Like
+                        </button>
+                        <button class="post-btn">
+                            <i class="far fa-comment"></i> Comment
+                        </button>
+                        <button class="post-btn">
+                            <i class="far fa-share-square"></i> Share
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Right Sidebar -->
+        <aside class="right-sidebar">
+            <div class="card">
+                <h4><i class="fas fa-fire"></i> Trending Topics</h4>
+                <ul class="trending-list">
+                    <li><a href="#">#ThirdTrimester</a></li>
+                    <li><a href="#">#NurseryIdeas</a></li>
+                    <li><a href="#">#HealthyPregnancy</a></li>
+                    <li><a href="#">#BabyNames</a></li>
+                    <li><a href="#">#FirstTimeMom</a></li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4><i class="fas fa-user-plus"></i> Suggested Connections</h4>
+                <div class="suggested-users">
+                    <div class="suggested-user">
+                        <img src="https://i.pravatar.cc/40?img=28" alt="User">
+                        <div class="user-info">
+                            <h5>Amira Khaled</h5>
+                            <span>Week 26</span>
+                        </div>
+                        <button class="btn btn-sm">Follow</button>
+                    </div>
+                    <div class="suggested-user">
+                        <img src="https://i.pravatar.cc/40?img=32" alt="User">
+                        <div class="user-info">
+                            <h5>Dina Youssef</h5>
+                            <span>Week 30</span>
+                        </div>
+                        <button class="btn btn-sm">Follow</button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+    <script src="js/main.js"></script>
+</body>
+</html>

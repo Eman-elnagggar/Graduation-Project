@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mother Portal - My Profile</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+<aside class="sidebar">
+    <button class="sidebar-close">
+        <i class="fas fa-times"></i>
+    </button>
+    <div class="logo">
+        <i class="fas fa-heartbeat"></i>
+        <span>MamaCare</span>
+    </div>
+    <nav class="nav-menu">
+        <a href="index.html" class="nav-item" data-tooltip="Dashboard">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="tests.html" class="nav-item" data-tooltip="Tests Upload">
+            <i class="fas fa-flask"></i>
+            <span>Tests Upload</span>
+        </a>
+        <a href="products.html" class="nav-item" data-tooltip="Product Safety">
+            <i class="fas fa-barcode"></i>
+            <span>Product Safety</span>
+        </a>
+        <a href="places.html" class="nav-item" data-tooltip="My Places">
+            <i class="fas fa-map-marker-alt"></i>
+            <span>My Places</span>
+        </a>
+        <a href="appointments.html" class="nav-item" data-tooltip="Appointments">
+            <i class="fas fa-calendar-check"></i>
+            <span>Appointments</span>
+        </a>
+        <a href="chatbot.html" class="nav-item" data-tooltip="Chatbot">
+            <i class="fas fa-robot"></i>
+            <span>Chatbot</span>
+        </a>
+        <a href="community.html" class="nav-item" data-tooltip="Community">
+            <i class="fas fa-users"></i>
+            <span>Community</span>
+        </a>
+        <a href="medical-history.html" class="nav-item" data-tooltip="Medical History">
+            <i class="fas fa-history"></i>
+            <span>Medical History</span>
+        </a>
+        <a href="alerts.html" class="nav-item" data-tooltip="Alerts">
+                    <i class="fas fa-bell"></i>
+                    <span>Alerts</span>
+                </a>
+        <a href="profile.html" class="nav-item active" data-tooltip="My Profile">
+            <i class="fas fa-user"></i>
+            <span>My Profile</span>
+        </a>
+    </nav>
+    <div class="sidebar-footer">
+        <a href="#" class="nav-item" data-tooltip="Logout">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Logout</span>
+        </a>
+    </div>
+</aside>
+
+<!-- Sidebar Toggle Button (will be created by JS, but you can add manually) -->
+<button class="sidebar-toggle">
+    <i class="fas fa-chevron-left"></i>
+</button>
+
+<!-- Sidebar Overlay (for mobile) -->
+<div class="sidebar-overlay"></div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="header">
+                <div class="header-left">
+                    <h1>My Profile 👤</h1>
+                    <p>Manage your personal and medical information</p>
+                </div>
+                <div class="header-right">
+                    <div class="notification">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge">3</span>
+                    </div>
+                    <div class="profile">
+                        <img src="https://img.freepik.com/free-psd/portrait-woman-wearing-hijab_23-2150945115.jpg?t=st=1765809397~exp=1765812997~hmac=3a0f5380a8654b0ab467fef42c27dae769a70acb5bd0eba3cbf169de91bcc9d0&w=1060" alt="Profile">
+                        <span>Sarah Ahmed</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Profile Header Card -->
+            <section class="profile-header-section">
+                <div class="card profile-header-card">
+                    <div class="profile-cover">
+                        <div class="cover-overlay"></div>
+                    </div>
+                    <div class="profile-header-content">
+                        <div class="profile-avatar-container">
+                            <img src="https://img.freepik.com/free-psd/portrait-woman-wearing-hijab_23-2150945115.jpg?t=st=1765809397~exp=1765812997~hmac=3a0f5380a8654b0ab467fef42c27dae769a70acb5bd0eba3cbf169de91bcc9d0&w=1060" alt="Profile" class="profile-avatar-large">
+                            <button class="avatar-edit-btn">
+                                <i class="fas fa-camera"></i>
+                            </button>
+                        </div>
+                        <div class="profile-header-info">
+                            <h2>Sarah Ahmed</h2>
+                            <p class="profile-email"><i class="fas fa-envelope"></i> sarah.ahmed@email.com</p>
+                            <div class="profile-badges">
+                                <span class="profile-badge pregnancy">
+                                    <i class="fas fa-baby"></i> Week 24
+                                </span>
+                                <span class="profile-badge trimester">
+                                    <i class="fas fa-calendar"></i> 2nd Trimester
+                                </span>
+                                <span class="profile-badge due-date">
+                                    <i class="fas fa-clock"></i> Due: Aug 15, 2025
+                                </span>
+                            </div>
+                        </div>
+                        <div class="profile-header-actions">
+                            <button class="btn btn-primary" id="editProfileBtn">
+                                <i class="fas fa-edit"></i> Edit Profile
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Profile Tabs -->
+            <section class="profile-tabs-section">
+                <div class="profile-tabs">
+                    <button class="profile-tab active" data-tab="personal">
+                        <i class="fas fa-user"></i> Personal Info
+                    </button>
+                    <button class="profile-tab" data-tab="pregnancy">
+                        <i class="fas fa-baby-carriage"></i> Pregnancy Details
+                    </button>
+                    <button class="profile-tab" data-tab="medical">
+                        <i class="fas fa-notes-medical"></i> Medical History
+                    </button>
+                    <button class="profile-tab" data-tab="lifestyle">
+                        <i class="fas fa-heart"></i> Lifestyle
+                    </button>
+                    <button class="profile-tab" data-tab="security">
+                        <i class="fas fa-lock"></i> Security
+                    </button>
+                </div>
+            </section>
+
+            <!-- Tab Contents -->
+            <section class="profile-content">
+                
+                <!-- Personal Information Tab -->
+                <div class="tab-content active" id="personal-tab">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-user"></i> Personal Information</h3>
+                            <button class="btn btn-sm btn-outline" id="editPersonalBtn">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                        </div>
+                        
+                        <form class="profile-form" id="personalForm">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="firstName">First Name *</label>
+                                    <input type="text" id="firstName" class="form-input" value="Sarah" disabled>
+                                </div>
+                                <div class="form-group">
+                                    <label for="lastName">Last Name *</label>
+                                    <input type="text" id="lastName" class="form-input" value="Ahmed" disabled>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="email">Email Address *</label>
+                                    <input type="email" id="email" class="form-input" value="sarah.ahmed@email.com" disabled>
+                                </div>
+                                <div class="form-group">
+                                    <label for="phone">Phone Number</label>
+                                    <input type="tel" id="phone" class="form-input" value="+20 123 456 7890" disabled>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="dateOfBirth">Date of Birth</label>
+                                    <input type="date" id="dateOfBirth" class="form-input" value="1995-03-15" disabled>
+                                </div>
+                                <div class="form-group">
+                                    <label for="age">Age</label>
+                                    <input type="text" id="age" class="form-input" value="29 years" disabled readonly>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="address">Address</label>
+                                    <input type="text" id="address" class="form-input" value="123 Health Street, Cairo, Egypt" disabled>
+                                </div>
+                            </div>
+
+                            <div class="form-actions" id="personalActions" style="display: none;">
+                                <button type="button" class="btn btn-secondary" id="cancelPersonal">Cancel</button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Body Measurements -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-ruler"></i> Body Measurements</h3>
+                            <button class="btn btn-sm btn-outline" id="editMeasurementsBtn">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                        </div>
+                        
+                        <form class="profile-form" id="measurementsForm">
+                            <div class="form-row three-columns">
+                                <div class="form-group">
+                                    <label for="weight">Weight (kg) *</label>
+                                    <div class="input-with-unit">
+                                        <input type="number" id="weight" class="form-input" value="68" step="0.1" disabled>
+                                        <span class="unit">kg</span>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="height">Height (cm) *</label>
+                                    <div class="input-with-unit">
+                                        <input type="number" id="height" class="form-input" value="165" disabled>
+                                        <span class="unit">cm</span>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="bmi">BMI (Calculated)</label>
+                                    <div class="input-with-status">
+                                        <input type="text" id="bmi" class="form-input" value="25.0" disabled readonly>
+                                        <span class="status-indicator normal">Normal</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-actions" id="measurementsActions" style="display: none;">
+                                <button type="button" class="btn btn-secondary" id="cancelMeasurements">Cancel</button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Pregnancy Details Tab -->
+                <div class="tab-content" id="pregnancy-tab">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-baby-carriage"></i> Current Pregnancy</h3>
+                            <button class="btn btn-sm btn-outline" id="editPregnancyBtn">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                        </div>
+
+                        <!-- Pregnancy Progress Visual -->
+                        <div class="pregnancy-visual">
+                            <div class="pregnancy-timeline">
+                                <div class="timeline-progress" style="width: 60%;"></div>
+                                <div class="timeline-marker" style="left: 60%;">
+                                    <span class="marker-label">Week 24</span>
+                                </div>
+                            </div>
+                            <div class="trimester-labels">
+                                <span>1st Trimester</span>
+                                <span>2nd Trimester</span>
+                                <span>3rd Trimester</span>
+                            </div>
+                        </div>
+                        
+                        <form class="profile-form" id="pregnancyForm">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="pregnancyDate">Date of Pregnancy (LMP) *</label>
+                                    <input type="date" id="pregnancyDate" class="form-input" value="2024-09-01" disabled>
+                                    <span class="form-hint">Last Menstrual Period date</span>
+                                </div>
+                                <div class="form-group">
+                                    <label for="gestationalWeeks">Gestational Weeks (Calculated)</label>
+                                    <div class="calculated-field">
+                                        <span class="calculated-value">24 weeks</span>
+                                        <span class="calculated-detail">+ 3 days</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="dueDate">Estimated Due Date</label>
+                                    <div class="calculated-field">
+                                        <span class="calculated-value">August 15, 2025</span>
+                                        <span class="calculated-detail">112 days remaining</span>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="trimester">Current Trimester</label>
+                                    <div class="calculated-field">
+                                        <span class="calculated-value">2nd Trimester</span>
+                                        <span class="calculated-detail">Weeks 13-27</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-actions" id="pregnancyActions" style="display: none;">
+                                <button type="button" class="btn btn-secondary" id="cancelPregnancy">Cancel</button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Pregnancy History -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-history"></i> Pregnancy History</h3>
+                            <button class="btn btn-sm btn-outline" id="editHistoryBtn">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                        </div>
+                        
+                        <form class="profile-form" id="historyForm">
+                            <div class="form-group">
+                                <label>Is this your first pregnancy? *</label>
+                                <div class="radio-group">
+                                    <label class="radio-option">
+                                        <input type="radio" name="firstPregnancy" value="yes" disabled>
+                                        <span class="radio-label">Yes</span>
+                                    </label>
+                                    <label class="radio-option">
+                                        <input type="radio" name="firstPregnancy" value="no" checked disabled>
+                                        <span class="radio-label">No</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Shows when "No" is selected -->
+                            <div class="conditional-section" id="previousPregnancySection">
+                                <div class="form-row three-columns">
+                                    <div class="form-group">
+                                        <label for="previousPregnancies">Previous Pregnancies</label>
+                                        <input type="number" id="previousPregnancies" class="form-input" value="2" min="0" disabled>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="abortions">Abortions/Miscarriages</label>
+                                        <input type="number" id="abortions" class="form-input" value="0" min="0" disabled>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="livebirths">Live Births</label>
+                                        <input type="number" id="livebirths" class="form-input" value="2" min="0" disabled>
+                                    </div>
+                                </div>
+
+                                <!-- Previous Births Summary -->
+                                <div class="previous-births-summary">
+                                    <h4>Previous Births</h4>
+                                    <div class="birth-cards">
+                                        <div class="birth-card">
+                                            <div class="birth-icon">
+                                                <i class="fas fa-baby"></i>
+                                            </div>
+                                            <div class="birth-info">
+                                                <h5>First Child</h5>
+                                                <p>Born: March 2020</p>
+                                                <p>Gender: Boy</p>
+                                                <p>Delivery: Normal</p>
+                                            </div>
+                                        </div>
+                                        <div class="birth-card">
+                                            <div class="birth-icon">
+                                                <i class="fas fa-baby"></i>
+                                            </div>
+                                            <div class="birth-info">
+                                                <h5>Second Child</h5>
+                                                <p>Born: July 2022</p>
+                                                <p>Gender: Girl</p>
+                                                <p>Delivery: Normal</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-actions" id="historyActions" style="display: none;">
+                                <button type="button" class="btn btn-secondary" id="cancelHistory">Cancel</button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Medical History Tab -->
+                <div class="tab-content" id="medical-tab">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-heartbeat"></i> Blood Pressure Status</h3>
+                            <button class="btn btn-sm btn-outline" id="editBPBtn">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                        </div>
+                        
+                        <form class="profile-form" id="bpForm">
+                            <div class="form-group">
+                                <label>Do you have blood pressure issues? *</label>
+                                <div class="radio-group">
+                                    <label class="radio-option">
+                                        <input type="radio" name="bloodPressure" value="yes" disabled>
+                                        <span class="radio-label">Yes</span>
+                                    </label>
+                                    <label class="radio-option">
+                                        <input type="radio" name="bloodPressure" value="no" checked disabled>
+                                        <span class="radio-label">No</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Shows when "Yes" is selected -->
+                            <div class="conditional-section" id="bpDetailsSection" style="display: none;">
+                                <div class="form-group">
+                                    <label for="bpType">Type of Blood Pressure Issue</label>
+                                    <select id="bpType" class="form-select" disabled>
+                                        <option value="">Select type</option>
+                                        <option value="high">High Blood Pressure (Hypertension)</option>
+                                        <option value="low">Low Blood Pressure (Hypotension)</option>
+                                        <option value="gestational">Gestational Hypertension</option>
+                                        <option value="preeclampsia">Pre-eclampsia</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="bpMedication">Current Medication (if any)</label>
+                                    <input type="text" id="bpMedication" class="form-input" placeholder="Enter medication name" disabled>
+                                </div>
+                            </div>
+
+                            <div class="form-actions" id="bpActions" style="display: none;">
+                                <button type="button" class="btn btn-secondary" id="cancelBP">Cancel</button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Chronic/Mental Health Medications -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-pills"></i> Chronic & Mental Health Medications</h3>
+                            <button class="btn btn-sm btn-outline" id="editMedsBtn">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                        </div>
+                        
+                        <form class="profile-form" id="medsForm">
+                            <div class="form-group">
+                                <label>Are you taking any chronic or mental health medications? *</label>
+                                <div class="radio-group">
+                                    <label class="radio-option">
+                                        <input type="radio" name="takingMeds" value="yes" checked disabled>
+                                        <span class="radio-label">Yes</span>
+                                    </label>
+                                    <label class="radio-option">
+                                        <input type="radio" name="takingMeds" value="no" disabled>
+                                        <span class="radio-label">No</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Medication List -->
+                            <div class="conditional-section" id="medicationListSection">
+                                <div class="medication-list">
+                                    <!-- Medication 1 -->
+                                    <div class="medication-card">
+                                        <div class="medication-header">
+                                            <div class="medication-icon">
+                                                <i class="fas fa-capsules"></i>
+                                            </div>
+                                            <div class="medication-title">
+                                                <h4>Levothyroxine</h4>
+                                                <span class="medication-type">Thyroid Medication</span>
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-outline danger medication-remove" style="display: none;">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                        <div class="medication-details">
+                                            <div class="detail-row">
+                                                <span class="detail-label">Active Ingredient:</span>
+                                                <span class="detail-value">Levothyroxine Sodium</span>
+                                            </div>
+                                            <div class="detail-row">
+                                                <span class="detail-label">Reason:</span>
+                                                <span class="detail-value">Hypothyroidism</span>
+                                            </div>
+                                            <div class="detail-row">
+                                                <span class="detail-label">Dosage:</span>
+                                                <span class="detail-value">50 mcg per day</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Medication 2 -->
+                                    <div class="medication-card">
+                                        <div class="medication-header">
+                                            <div class="medication-icon">
+                                                <i class="fas fa-capsules"></i>
+                                            </div>
+                                            <div class="medication-title">
+                                                <h4>Sertraline</h4>
+                                                <span class="medication-type">Mental Health</span>
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-outline danger medication-remove" style="display: none;">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                        <div class="medication-details">
+                                            <div class="detail-row">
+                                                <span class="detail-label">Active Ingredient:</span>
+                                                <span class="detail-value">Sertraline Hydrochloride</span>
+                                            </div>
+                                            <div class="detail-row">
+                                                <span class="detail-label">Reason:</span>
+                                                <span class="detail-value">Anxiety Management</span>
+                                            </div>
+                                            <div class="detail-row">
+                                                <span class="detail-label">Dosage:</span>
+                                                <span class="detail-value">25 mg per day</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Add Medication Form (hidden by default) -->
+                                <div class="add-medication-form" id="addMedicationForm" style="display: none;">
+                                    <h4><i class="fas fa-plus-circle"></i> Add New Medication</h4>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="medName">Medication Name *</label>
+                                            <input type="text" id="medName" class="form-input" placeholder="e.g., Metformin">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="medType">Type</label>
+                                            <select id="medType" class="form-select">
+                                                <option value="">Select type</option>
+                                                <option value="chronic">Chronic Disease</option>
+                                                <option value="mental">Mental Health</option>
+                                                <option value="thyroid">Thyroid</option>
+                                                <option value="diabetes">Diabetes</option>
+                                                <option value="heart">Heart/Cardiac</option>
+                                                <option value="other">Other</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="activeIngredient">Active Ingredient/Factor</label>
+                                            <input type="text" id="activeIngredient" class="form-input" placeholder="e.g., Metformin HCl">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="medReason">Reason for Taking *</label>
+                                            <input type="text" id="medReason" class="form-input" placeholder="e.g., Type 2 Diabetes">
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="medDosage">Dosage (mg per day) *</label>
+                                            <div class="input-with-unit">
+                                                <input type="number" id="medDosage" class="form-input" placeholder="500">
+                                                <span class="unit">mg/day</span>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="medFrequency">Frequency</label>
+                                            <select id="medFrequency" class="form-select">
+                                                <option value="once">Once daily</option>
+                                                <option value="twice">Twice daily</option>
+                                                <option value="three">Three times daily</option>
+                                                <option value="asneeded">As needed</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="form-actions">
+                                        <button type="button" class="btn btn-secondary" id="cancelAddMed">Cancel</button>
+                                        <button type="button" class="btn btn-primary" id="saveMed">
+                                            <i class="fas fa-plus"></i> Add Medication
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <button type="button" class="btn btn-outline add-medication-btn" id="showAddMedForm" style="display: none;">
+                                    <i class="fas fa-plus"></i> Add Another Medication
+                                </button>
+                            </div>
+
+                            <div class="form-actions" id="medsActions" style="display: none;">
+                                <button type="button" class="btn btn-secondary" id="cancelMeds">Cancel</button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Lifestyle Tab -->
+                <div class="tab-content" id="lifestyle-tab">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-smoking-ban"></i> Lifestyle & Habits</h3>
+                            <button class="btn btn-sm btn-outline" id="editLifestyleBtn">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                        </div>
+                        
+                        <form class="profile-form" id="lifestyleForm">
+                            <!-- Smoking -->
+                            <div class="lifestyle-item">
+                                <div class="lifestyle-icon warning">
+                                    <i class="fas fa-smoking"></i>
+                                </div>
+                                <div class="lifestyle-content">
+                                    <h4>Smoking</h4>
+                                    <p>Do you smoke cigarettes or use tobacco products?</p>
+                                    <div class="radio-group inline">
+                                        <label class="radio-option">
+                                            <input type="radio" name="smoking" value="yes" disabled>
+                                            <span class="radio-label">Yes</span>
+                                        </label>
+                                        <label class="radio-option">
+                                            <input type="radio" name="smoking" value="no" checked disabled>
+                                            <span class="radio-label">No</span>
+                                        </label>
+                                        <label class="radio-option">
+                                            <input type="radio" name="smoking" value="quit" disabled>
+                                            <span class="radio-label">Quit recently</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="lifestyle-status safe">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Safe</span>
+                                </div>
+                            </div>
+
+                            <!-- Alcohol -->
+                            <div class="lifestyle-item">
+                                <div class="lifestyle-icon warning">
+                                    <i class="fas fa-wine-glass-alt"></i>
+                                </div>
+                                <div class="lifestyle-content">
+                                    <h4>Alcohol Consumption</h4>
+                                    <p>Do you consume alcoholic beverages?</p>
+                                    <div class="radio-group inline">
+                                        <label class="radio-option">
+                                            <input type="radio" name="alcohol" value="yes" disabled>
+                                            <span class="radio-label">Yes</span>
+                                        </label>
+                                        <label class="radio-option">
+                                            <input type="radio" name="alcohol" value="no" checked disabled>
+                                            <span class="radio-label">No</span>
+                                        </label>
+                                        <label class="radio-option">
+                                            <input type="radio" name="alcohol" value="occasionally" disabled>
+                                            <span class="radio-label">Occasionally</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="lifestyle-status safe">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Safe</span>
+                                </div>
+                            </div>
+
+                            <!-- Drugs (Toxic Substances) -->
+                            <div class="lifestyle-item">
+                                <div class="lifestyle-icon danger">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <div class="lifestyle-content">
+                                    <h4>Toxic Substances / Drugs (مخدرات)</h4>
+                                    <p>Have you used any recreational drugs or toxic substances?</p>
+                                    <div class="radio-group inline">
+                                        <label class="radio-option">
+                                            <input type="radio" name="drugs" value="yes" disabled>
+                                            <span class="radio-label">Yes</span>
+                                        </label>
+                                        <label class="radio-option">
+                                            <input type="radio" name="drugs" value="no" checked disabled>
+                                            <span class="radio-label">No</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <!-- Shows when "Yes" is selected -->
+                                    <div class="conditional-inline" id="drugDetailsSection" style="display: none;">
+                                        <div class="form-group">
+                                            <label for="drugDuration">Duration of Use (months)</label>
+                                            <div class="input-with-unit">
+                                                <input type="number" id="drugDuration" class="form-input" placeholder="0" min="0" disabled>
+                                                <span class="unit">months</span>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="drugType">Type of Substance (optional)</label>
+                                            <input type="text" id="drugType" class="form-input" placeholder="Specify if comfortable" disabled>
+                                        </div>
+                                        <div class="warning-message">
+                                            <i class="fas fa-info-circle"></i>
+                                            <p>This information is confidential and helps your doctor provide better care. Please be honest for your safety and your baby's health.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="lifestyle-status safe">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Safe</span>
+                                </div>
+                            </div>
+
+                            <div class="form-actions" id="lifestyleActions" style="display: none;">
+                                <button type="button" class="btn btn-secondary" id="cancelLifestyle">Cancel</button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Health Tips Based on Lifestyle -->
+                    <div class="card tips-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-lightbulb"></i> Personalized Health Tips</h3>
+                        </div>
+                        <div class="tips-list">
+                            <div class="tip-item">
+                                <div class="tip-icon">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div class="tip-content">
+                                    <h4>Great lifestyle choices!</h4>
+                                    <p>You're smoke-free and alcohol-free. This is excellent for your baby's development. Keep it up!</p>
+                                </div>
+                            </div>
+                            <div class="tip-item">
+                                <div class="tip-icon">
+                                    <i class="fas fa-apple-alt"></i>
+                                </div>
+                                <div class="tip-content">
+                                    <h4>Nutrition Reminder</h4>
+                                    <p>Remember to take your prenatal vitamins daily and maintain a balanced diet rich in iron and folic acid.</p>
+                                </div>
+                            </div>
+                            <div class="tip-item">
+                                <div class="tip-icon">
+                                    <i class="fas fa-walking"></i>
+                                </div>
+                                <div class="tip-content">
+                                    <h4>Stay Active</h4>
+                                    <p>Light exercise like walking or prenatal yoga for 30 minutes daily can help maintain a healthy pregnancy.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Security Tab -->
+                <div class="tab-content" id="security-tab">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-lock"></i> Change Password</h3>
+                        </div>
+                        
+                        <form class="profile-form" id="passwordForm">
+                            <div class="form-group">
+                                <label for="currentPassword">Current Password *</label>
+                                <div class="password-input-wrapper">
+                                    <input type="password" id="currentPassword" class="form-input" placeholder="Enter current password">
+                                    <button type="button" class="password-toggle">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="newPassword">New Password *</label>
+                                    <div class="password-input-wrapper">
+                                        <input type="password" id="newPassword" class="form-input" placeholder="Enter new password">
+                                        <button type="button" class="password-toggle">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                    <div class="password-strength" id="passwordStrength">
+                                        <div class="strength-bar">
+                                            <div class="strength-fill" style="width: 0%;"></div>
+                                        </div>
+                                        <span class="strength-label">Password strength</span>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="confirmPassword">Confirm New Password *</label>
+                                    <div class="password-input-wrapper">
+                                        <input type="password" id="confirmPassword" class="form-input" placeholder="Confirm new password">
+                                        <button type="button" class="password-toggle">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="password-requirements">
+                                <h4>Password Requirements:</h4>
+                                <ul>
+                                    <li id="req-length"><i class="fas fa-circle"></i> At least 8 characters</li>
+                                    <li id="req-upper"><i class="fas fa-circle"></i> One uppercase letter</li>
+                                    <li id="req-lower"><i class="fas fa-circle"></i> One lowercase letter</li>
+                                    <li id="req-number"><i class="fas fa-circle"></i> One number</li>
+                                    <li id="req-special"><i class="fas fa-circle"></i> One special character (!@#$%^&*)</li>
+                                </ul>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-lock"></i> Update Password
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Account Settings -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-user-cog"></i> Account Settings</h3>
+                        </div>
+                        
+                        <div class="settings-list">
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h4>Email Notifications</h4>
+                                    <p>Receive email updates about appointments and test results</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h4>SMS Notifications</h4>
+                                    <p>Receive text messages for appointment reminders</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h4>Two-Factor Authentication</h4>
+                                    <p>Add an extra layer of security to your account</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h4>Data Sharing with Doctors</h4>
+                                    <p>Allow approved doctors to view your medical data</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Danger Zone -->
+                    <div class="card danger-zone">
+                        <div class="card-header">
+                            <h3><i class="fas fa-exclamation-triangle"></i> Danger Zone</h3>
+                        </div>
+                        <div class="danger-actions">
+                            <div class="danger-item">
+                                <div class="danger-info">
+                                    <h4>Download My Data</h4>
+                                    <p>Download a copy of all your personal and medical data</p>
+                                </div>
+                                <button class="btn btn-outline">
+                                    <i class="fas fa-download"></i> Download
+                                </button>
+                            </div>
+                            <div class="danger-item">
+                                <div class="danger-info">
+                                    <h4>Delete Account</h4>
+                                    <p>Permanently delete your account and all associated data</p>
+                                </div>
+                                <button class="btn btn-danger">
+                                    <i class="fas fa-trash"></i> Delete Account
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="js/main.js"></script>
+    <script src="js/profile.js"></script>
+</body>
+</html>
