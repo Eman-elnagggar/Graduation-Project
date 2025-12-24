@@ -1,0 +1,34 @@
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\bin\Debug\net8.0\appsettings.Development.json
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\bin\Debug\net8.0\appsettings.json
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\bin\Debug\net8.0\Graduation Project.staticwebassets.runtime.json
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\bin\Debug\net8.0\Graduation Project.staticwebassets.endpoints.json
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\bin\Debug\net8.0\Graduation Project.exe
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\bin\Debug\net8.0\Graduation Project.deps.json
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\bin\Debug\net8.0\Graduation Project.runtimeconfig.json
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\bin\Debug\net8.0\Graduation Project.dll
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\bin\Debug\net8.0\Graduation Project.pdb
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\obj\Debug\net8.0\rpswa.dswa.cache.json
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\obj\Debug\net8.0\Graduation Project.GeneratedMSBuildEditorConfig.editorconfig
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\obj\Debug\net8.0\Graduation Project.AssemblyInfoInputs.cache
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\obj\Debug\net8.0\Graduation Project.AssemblyInfo.cs
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\obj\Debug\net8.0\Graduation Project.csproj.CoreCompileInputs.cache
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\obj\Debug\net8.0\Graduation Project.MvcApplicationPartsAssemblyInfo.cache
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\obj\Debug\net8.0\Graduation Project.RazorAssemblyInfo.cache
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\obj\Debug\net8.0\Graduation Project.RazorAssemblyInfo.cs
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\obj\Debug\net8.0\Graduation Project.sourcelink.json
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\obj\Debug\net8.0\rjimswa.dswa.cache.json
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\obj\Debug\net8.0\rjsmrazor.dswa.cache.json
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\obj\Debug\net8.0\rjsmcshtml.dswa.cache.json
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\obj\Debug\net8.0\scopedcss\Views\Shared\_Layout.cshtml.rz.scp.css
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\obj\Debug\net8.0\scopedcss\bundle\Graduation Project.styles.css
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\obj\Debug\net8.0\scopedcss\projectbundle\Graduation Project.bundle.scp.css
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\obj\Debug\net8.0\staticwebassets.build.json
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\obj\Debug\net8.0\staticwebassets.build.json.cache
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\obj\Debug\net8.0\staticwebassets.development.json
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\obj\Debug\net8.0\staticwebassets.build.endpoints.json
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\obj\Debug\net8.0\Graduation Project.dll
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\obj\Debug\net8.0\refint\Graduation Project.dll
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\obj\Debug\net8.0\Graduation Project.pdb
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\obj\Debug\net8.0\Graduation Project.genruntimeconfig.cache
+E:\Studing\Graduation project\GitHub\Graduation Project\Graduation Project\obj\Debug\net8.0\ref\Graduation Project.dll
