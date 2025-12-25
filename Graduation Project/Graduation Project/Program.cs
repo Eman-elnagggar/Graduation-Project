@@ -1,3 +1,6 @@
+using Graduation_Project.Data;
+using Microsoft.EntityFrameworkCore;
+
 namespace Graduation_Project
 {
     public class Program
@@ -8,6 +11,10 @@ namespace Graduation_Project
 
             // Add services to the container.
             builder.Services.AddControllersWithViews();
+
+            //For Database Connection
+            builder.Services.AddDbContext<AppDbContext>(options =>
+                    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
             var app = builder.Build();
 
