@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mother Portal - Book Appointment</title>
+    <link rel="stylesheet" href="css/patient-style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <button class="sidebar-close">
+          <i class="fas fa-times"></i>
+        </button>
+        <div class="logo">
+          <i class="fas fa-heartbeat"></i>
+          <span>MamaCare</span>
+          <span class="portal-badge">Patient</span>
+        </div>
+        <nav class="nav-menu">
+          <a href="index.html" class="nav-item" data-tooltip="Dashboard">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+          </a>
+          <a href="tests.html" class="nav-item" data-tooltip="Tests Upload">
+            <i class="fas fa-flask"></i>
+            <span>Tests Upload</span>
+          </a>
+          <a
+            href="products.html"
+            class="nav-item"
+            data-tooltip="Product Safety"
+          >
+            <i class="fas fa-barcode"></i>
+            <span>Product Safety</span>
+          </a>
+          <a href="places.html" class="nav-item" data-tooltip="My Places">
+            <i class="fas fa-map-marker-alt"></i>
+            <span>My Places</span>
+          </a>
+          <a
+            href="appointments.html"
+            class="nav-item active"
+            data-tooltip="Appointments"
+          >
+            <i class="fas fa-calendar-check"></i>
+            <span>Appointments</span>
+          </a>
+          <a href="chatbot.html" class="nav-item" data-tooltip="Chatbot">
+            <i class="fas fa-robot"></i>
+            <span>Chatbot</span>
+          </a>
+          <a href="community.html" class="nav-item" data-tooltip="Community">
+            <i class="fas fa-users"></i>
+            <span>Community</span>
+          </a>
+          <a
+            href="medical-history.html"
+            class="nav-item"
+            data-tooltip="Medical History"
+          >
+            <i class="fas fa-history"></i>
+            <span>Medical History</span>
+          </a>
+          <a href="alerts.html" class="nav-item" data-tooltip="Alerts">
+            <i class="fas fa-bell"></i>
+            <span>Alerts</span>
+          </a>
+          <a href="profile.html" class="nav-item" data-tooltip="My Profile">
+            <i class="fas fa-user"></i>
+            <span>My Profile</span>
+          </a>
+        </nav>
+        <div class="sidebar-footer">
+          <a href="#" class="nav-item" data-tooltip="Logout">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Logout</span>
+          </a>
+        </div>
+      </aside>
+
+      <!-- Sidebar Toggle Button -->
+      <button class="sidebar-toggle">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+
+      <!-- Sidebar Overlay (for mobile) -->
+      <div class="sidebar-overlay"></div>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <header class="header">
+          <div class="header-left">
+            <button
+              class="btn btn-outline"
+              onclick="window.location.href = 'appointments.html'"
+              style="margin-right: 16px"
+            >
+              <i class="fas fa-arrow-left"></i> Back to Appointments
+            </button>
+            <div>
+              <h1>Book New Appointment 📅</h1>
+              <p>Find and schedule an appointment with your doctor</p>
+            </div>
+          </div>
+          <div class="header-right">
+            <div class="notification">
+              <i class="fas fa-bell"></i>
+              <span class="badge">3</span>
+            </div>
+            <div class="profile">
+              <img
+                src="https://img.freepik.com/free-psd/portrait-woman-wearing-hijab_23-2150945115.jpg?t=st=1765809397~exp=1765812997~hmac=3a0f5380a8654b0ab467fef42c27dae769a70acb5bd0eba3cbf169de91bcc9d0&w=1060"
+                alt="Profile"
+              />
+              <span>Sarah Ahmed</span>
+            </div>
+          </div>
+        </header>
+
+        <!-- Booking Progress -->
+        <div class="booking-progress">
+          <div class="progress-step active" data-step="1">
+            <div class="step-icon"><i class="fas fa-user-md"></i></div>
+            <div class="step-info">
+              <span class="step-label">Step 1</span>
+              <span class="step-title">Select Doctor</span>
+            </div>
+          </div>
+          <div class="progress-line"></div>
+          <div class="progress-step" data-step="2">
+            <div class="step-icon"><i class="fas fa-calendar"></i></div>
+            <div class="step-info">
+              <span class="step-label">Step 2</span>
+              <span class="step-title">Choose Date</span>
+            </div>
+          </div>
+          <div class="progress-line"></div>
+          <div class="progress-step" data-step="3">
+            <div class="step-icon"><i class="fas fa-clock"></i></div>
+            <div class="step-info">
+              <span class="step-label">Step 3</span>
+              <span class="step-title">Pick Time</span>
+            </div>
+          </div>
+          <div class="progress-line"></div>
+          <div class="progress-step" data-step="4">
+            <div class="step-icon"><i class="fas fa-check"></i></div>
+            <div class="step-info">
+              <span class="step-label">Step 4</span>
+              <span class="step-title">Confirm</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Booking Steps Content -->
+        <section class="book-appointment-page">
+          <div class="card">
+            <!-- Step 1: Select Doctor -->
+            <div class="booking-step" id="step1">
+              <h4 class="step-title">
+                <span class="step-number">1</span>
+                Find & Select a Doctor
+              </h4>
+
+              <!-- Doctor Search & Filters -->
+              <div class="doctor-search-section">
+                <div class="search-bar">
+                  <i class="fas fa-search"></i>
+                  <input
+                    type="text"
+                    id="doctorSearch"
+                    class="search-input"
+                    placeholder="Search by doctor name, specialty, or location..."
+                  />
+                </div>
+                <div class="search-filters">
+                  <select id="specialtyFilter" class="filter-select">
+                    <option value="">All Specialties</option>
+                    <option value="gynecologist">
+                      Gynecologist & Obstetrician
+                    </option>
+                    <option value="radiologist">
+                      Radiologist - Fetal Imaging
+                    </option>
+                    <option value="high-risk">High-Risk Pregnancy</option>
+                    <option value="maternal-fetal">
+                      Maternal-Fetal Medicine
+                    </option>
+                  </select>
+                  <select id="locationFilter" class="filter-select">
+                    <option value="">All Locations</option>
+                    <option value="city-medical">City Medical Center</option>
+                    <option value="womens-health">Women's Health Clinic</option>
+                    <option value="national">National Hospital</option>
+                    <option value="alpha">Alpha Medical Center</option>
+                  </select>
+                  <select id="availabilityFilter" class="filter-select">
+                    <option value="">Any Time</option>
+                    <option value="today">Available Today</option>
+                    <option value="tomorrow">Available Tomorrow</option>
+                    <option value="week">This Week</option>
+                  </select>
+                  <button class="btn btn-sm btn-outline" id="clearFilters">
+                    <i class="fas fa-times"></i> Clear
+                  </button>
+                </div>
+              </div>
+
+              <div class="doctors-selection" id="doctorsSelection">
+                <!-- Doctor 1 -->
+                <div
+                  class="doctor-select-card"
+                  data-doctor="dr-ahmed"
+                  data-name="Ahmed Hassan"
+                  data-specialty="gynecologist"
+                  data-location="city-medical"
+                  data-availability="tomorrow"
+                >
+                  <div class="doctor-avatar">
+                    <img
+                      src="https://img.freepik.com/free-photo/portrait-experienced-professional-therapist-with-stethoscope-looking-camera_1098-19305.jpg?t=st=1765809077~exp=1765812677~hmac=be81a6fe53e2561db9d3f9389b929dee6512330a6a4b5126b6066c7c3044029f&w=1060"
+                      alt="Dr. Ahmed Hassan"
+                    />
+                    <span class="online-status"></span>
+                  </div>
+                  <div class="doctor-details">
+                    <h4>Dr. Ahmed Hassan</h4>
+                    <p class="specialty">
+                      <i class="fas fa-stethoscope"></i> Gynecologist &
+                      Obstetrician
+                    </p>
+                    <p class="experience">
+                      <i class="fas fa-briefcase"></i> 15 years experience
+                    </p>
+                    <p class="location">
+                      <i class="fas fa-map-marker-alt"></i> City Medical Center
+                    </p>
+                    <div class="doctor-rating">
+                      <i class="fas fa-star"></i>
+                      <i class="fas fa-star"></i>
+                      <i class="fas fa-star"></i>
+                      <i class="fas fa-star"></i>
+                      <i class="fas fa-star-half-alt"></i>
+                      <span>(4.8 - 156 reviews)</span>
+                    </div>
+                  </div>
+                  <div class="doctor-availability">
+                    <span class="next-available">Next Available:</span>
+                    <span class="available-date">Tomorrow, 9:00 AM</span>
+                    <span class="consultation-fee">Fee: 300 EGP</span>
+                  </div>
+                  <div class="select-indicator">
+                    <i class="fas fa-check-circle"></i>
+                  </div>
+                </div>
+
+                <!-- Doctor 2 -->
+                <div
+                  class="doctor-select-card"
+                  data-doctor="dr-sara"
+                  data-name="Sara Mohamed"
+                  data-specialty="radiologist"
+                  data-location="womens-health"
+                  data-availability="week"
+                >
+                  <div class="doctor-avatar">
+                    <img
+                      src="https://img.freepik.com/free-photo/female-doctor-hospital-with-stethoscope_23-2148827774.jpg?t=st=1765809127~exp=1765812727~hmac=6a455590c772adb3dd3c3ff019a5128736665ed9cf2e08f81b42c8fa7001a096&w=1060"
+                      alt="Dr. Sara Mohamed"
+                    />
+                    <span class="online-status"></span>
+                  </div>
+                  <div class="doctor-details">
+                    <h4>Dr. Sara Mohamed</h4>
+                    <p class="specialty">
+                      <i class="fas fa-stethoscope"></i> Radiologist - Fetal
+                      Imaging
+                    </p>
+                    <p class="experience">
+                      <i class="fas fa-briefcase"></i> 10 years experience
+                    </p>
+                    <p class="location">
+                      <i class="fas fa-map-marker-alt"></i> Women's Health
+                      Clinic
+                    </p>
+                    <div class="doctor-rating">
+                      <i class="fas fa-star"></i>
+                      <i class="fas fa-star"></i>
+                      <i class="fas fa-star"></i>
+                      <i class="fas fa-star"></i>
+                      <i class="fas fa-star"></i>
+                      <span>(5.0 - 89 reviews)</span>
+                    </div>
+                  </div>
+                  <div class="doctor-availability">
+                    <span class="next-available">Next Available:</span>
+                    <span class="available-date">Mar 25, 10:30 AM</span>
+                    <span class="consultation-fee">Fee: 400 EGP</span>
+                  </div>
+                  <div class="select-indicator">
+                    <i class="fas fa-check-circle"></i>
+                  </div>
+                </div>
+
+                <!-- Doctor 3 -->
+                <div
+                  class="doctor-select-card"
+                  data-doctor="dr-khaled"
+                  data-name="Khaled Ali"
+                  data-specialty="high-risk"
+                  data-location="national"
+                  data-availability="week"
+                >
+                  <div class="doctor-avatar">
+                    <img
+                      src="https://img.freepik.com/free-photo/portrait-confident-male-doctor_171337-1490.jpg?t=st=1765809155~exp=1765812755~hmac=b2dba777da4951ab1011da86d8e943ad0c2e7be78e2165824f0877f0cc076bf1&w=1060"
+                      alt="Dr. Khaled Ali"
+                    />
+                    <span class="online-status offline"></span>
+                  </div>
+                  <div class="doctor-details">
+                    <h4>Dr. Khaled Ali</h4>
+                    <p class="specialty">
+                      <i class="fas fa-stethoscope"></i> High-Risk Pregnancy
+                      Specialist
+                    </p>
+                    <p class="experience">
+                      <i class="fas fa-briefcase"></i> 20 years experience
+                    </p>
+                    <p class="location">
+                      <i class="fas fa-map-marker-alt"></i> National Hospital
+                    </p>
+                    <div class="doctor-rating">
+                      <i class="fas fa-star"></i>
+                      <i class="fas fa-star"></i>
+                      <i class="fas fa-star"></i>
+                      <i class="fas fa-star"></i>
+                      <i class="far fa-star"></i>
+                      <span>(4.2 - 210 reviews)</span>
+                    </div>
+                  </div>
+                  <div class="doctor-availability">
+                    <span class="next-available">Next Available:</span>
+                    <span class="available-date">Mar 27, 3:00 PM</span>
+                    <span class="consultation-fee">Fee: 500 EGP</span>
+                  </div>
+                  <div class="select-indicator">
+                    <i class="fas fa-check-circle"></i>
+                  </div>
+                </div>
+
+                <!-- Doctor 4 -->
+                <div
+                  class="doctor-select-card"
+                  data-doctor="dr-mona"
+                  data-name="Mona Ibrahim"
+                  data-specialty="maternal-fetal"
+                  data-location="alpha"
+                  data-availability="tomorrow"
+                >
+                  <div class="doctor-avatar">
+                    <img
+                      src="https://img.freepik.com/premium-photo/serious-confident-blonde-girl-doc-qualified-therapist_274222-24834.jpg?w=1060"
+                      alt="Dr. Mona Ibrahim"
+                    />
+                    <span class="online-status"></span>
+                  </div>
+                  <div class="doctor-details">
+                    <h4>Dr. Mona Ibrahim</h4>
+                    <p class="specialty">
+                      <i class="fas fa-stethoscope"></i> Maternal-Fetal Medicine
+                    </p>
+                    <p class="experience">
+                      <i class="fas fa-briefcase"></i> 12 years experience
+                    </p>
+                    <p class="location">
+                      <i class="fas fa-map-marker-alt"></i> Alpha Medical Center
+                    </p>
+                    <div class="doctor-rating">
+                      <i class="fas fa-star"></i>
+                      <i class="fas fa-star"></i>
+                      <i class="fas fa-star"></i>
+                      <i class="fas fa-star"></i>
+                      <i class="fas fa-star-half-alt"></i>
+                      <span>(4.7 - 134 reviews)</span>
+                    </div>
+                  </div>
+                  <div class="doctor-availability">
+                    <span class="next-available">Next Available:</span>
+                    <span class="available-date">Tomorrow, 11:00 AM</span>
+                    <span class="consultation-fee">Fee: 350 EGP</span>
+                  </div>
+                  <div class="select-indicator">
+                    <i class="fas fa-check-circle"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 2: Select Date -->
+            <div class="booking-step" id="step2" style="display: none">
+              <h4 class="step-title">
+                <span class="step-number">2</span>
+                Select Date
+              </h4>
+              <div class="selected-doctor-mini">
+                <img
+                  src="https://img.freepik.com/free-photo/portrait-experienced-professional-therapist-with-stethoscope-looking-camera_1098-19305.jpg?t=st=1765809077~exp=1765812677~hmac=be81a6fe53e2561db9d3f9389b929dee6512330a6a4b5126b6066c7c3044029f&w=1060"
+                  alt="Doctor"
+                />
+                <span>Dr. Ahmed Hassan</span>
+                <button class="btn btn-sm" id="changeDoctor">Change</button>
+              </div>
+              <div class="calendar-container">
+                <div class="calendar-header">
+                  <button class="calendar-nav" id="prevMonth">
+                    <i class="fas fa-chevron-left"></i>
+                  </button>
+                  <h4 id="currentMonth">March 2025</h4>
+                  <button class="calendar-nav" id="nextMonth">
+                    <i class="fas fa-chevron-right"></i>
+                  </button>
+                </div>
+                <div class="calendar-weekdays">
+                  <span>Sun</span>
+                  <span>Mon</span>
+                  <span>Tue</span>
+                  <span>Wed</span>
+                  <span>Thu</span>
+                  <span>Fri</span>
+                  <span>Sat</span>
+                </div>
+                <div class="calendar-days">
+                  <span class="day disabled">23</span>
+                  <span class="day disabled">24</span>
+                  <span class="day disabled">25</span>
+                  <span class="day disabled">26</span>
+                  <span class="day disabled">27</span>
+                  <span class="day disabled">28</span>
+                  <span class="day calendar-date">1</span>
+                  <span class="day calendar-date">2</span>
+                  <span class="day calendar-date available">3</span>
+                  <span class="day calendar-date available">4</span>
+                  <span class="day calendar-date available">5</span>
+                  <span class="day calendar-date available">6</span>
+                  <span class="day calendar-date">7</span>
+                  <span class="day calendar-date">8</span>
+                  <span class="day calendar-date">9</span>
+                  <span class="day calendar-date available selected">10</span>
+                  <span class="day calendar-date available">11</span>
+                  <span class="day calendar-date available">12</span>
+                  <span class="day calendar-date available">13</span>
+                  <span class="day calendar-date">14</span>
+                  <span class="day calendar-date">15</span>
+                  <span class="day calendar-date">16</span>
+                  <span class="day calendar-date available">17</span>
+                  <span class="day calendar-date available">18</span>
+                  <span class="day calendar-date available">19</span>
+                  <span class="day calendar-date available">20</span>
+                  <span class="day calendar-date">21</span>
+                  <span class="day calendar-date">22</span>
+                  <span class="day calendar-date">23</span>
+                  <span class="day calendar-date available">24</span>
+                  <span class="day calendar-date available">25</span>
+                  <span class="day calendar-date available">26</span>
+                  <span class="day calendar-date available">27</span>
+                  <span class="day calendar-date">28</span>
+                  <span class="day calendar-date">29</span>
+                  <span class="day calendar-date">30</span>
+                  <span class="day calendar-date available">31</span>
+                </div>
+                <div class="calendar-legend">
+                  <span><i class="fas fa-circle available"></i> Available</span>
+                  <span><i class="fas fa-circle selected"></i> Selected</span>
+                  <span
+                    ><i class="fas fa-circle disabled"></i> Unavailable</span
+                  >
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 3: Select Time -->
+            <div class="booking-step" id="step3" style="display: none">
+              <h4 class="step-title">
+                <span class="step-number">3</span>
+                Select Time Slot
+              </h4>
+              <div class="selected-date-mini">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Monday, March 10, 2025</span>
+                <button class="btn btn-sm" id="changeDate">Change</button>
+              </div>
+              <div class="time-slots-container">
+                <div class="time-period">
+                  <h5><i class="fas fa-sun"></i> Morning</h5>
+                  <div class="time-slots">
+                    <button class="time-slot available">09:00 AM</button>
+                    <button class="time-slot available">09:30 AM</button>
+                    <button class="time-slot booked" disabled>10:00 AM</button>
+                    <button class="time-slot available selected">
+                      10:30 AM
+                    </button>
+                    <button class="time-slot available">11:00 AM</button>
+                    <button class="time-slot booked" disabled>11:30 AM</button>
+                  </div>
+                </div>
+                <div class="time-period">
+                  <h5><i class="fas fa-cloud-sun"></i> Afternoon</h5>
+                  <div class="time-slots">
+                    <button class="time-slot available">01:00 PM</button>
+                    <button class="time-slot available">01:30 PM</button>
+                    <button class="time-slot available">02:00 PM</button>
+                    <button class="time-slot booked" disabled>02:30 PM</button>
+                    <button class="time-slot available">03:00 PM</button>
+                    <button class="time-slot available">03:30 PM</button>
+                  </div>
+                </div>
+                <div class="time-period">
+                  <h5><i class="fas fa-moon"></i> Evening</h5>
+                  <div class="time-slots">
+                    <button class="time-slot available">05:00 PM</button>
+                    <button class="time-slot available">05:30 PM</button>
+                    <button class="time-slot booked" disabled>06:00 PM</button>
+                    <button class="time-slot available">06:30 PM</button>
+                    <button class="time-slot available">07:00 PM</button>
+                    <button class="time-slot booked" disabled>07:30 PM</button>
+                  </div>
+                </div>
+              </div>
+              <div class="slot-legend">
+                <span><i class="fas fa-square available"></i> Available</span>
+                <span><i class="fas fa-square selected"></i> Selected</span>
+                <span><i class="fas fa-square booked"></i> Booked</span>
+              </div>
+            </div>
+
+            <!-- Step 4: Confirm -->
+            <div class="booking-step" id="step4" style="display: none">
+              <h4 class="step-title">
+                <span class="step-number">4</span>
+                Appointment Details & Confirm
+              </h4>
+
+              <div class="appointment-type-section">
+                <label>Appointment Type</label>
+                <div class="appointment-types">
+                  <div class="type-option selected">
+                    <i class="fas fa-hospital"></i>
+                    <span>In-Person Visit</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="visitReason">Reason for Visit</label>
+                <select id="visitReason" class="form-select">
+                  <option value="">Select reason</option>
+                  <option value="checkup">Regular Checkup</option>
+                  <option value="ultrasound">Ultrasound Scan</option>
+                  <option value="followup">Follow-up Visit</option>
+                  <option value="concern">Specific Concern</option>
+                  <option value="emergency">Urgent Consultation</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="additionalNotes">Additional Notes (Optional)</label>
+                <textarea
+                  id="additionalNotes"
+                  class="form-textarea"
+                  placeholder="Any symptoms or concerns you'd like to discuss..."
+                ></textarea>
+              </div>
+
+              <!-- Booking Summary -->
+              <div class="booking-summary">
+                <h5><i class="fas fa-receipt"></i> Booking Summary</h5>
+                <div class="summary-content">
+                  <div class="summary-row">
+                    <span class="label">Doctor:</span>
+                    <span class="value">Dr. Ahmed Hassan</span>
+                  </div>
+                  <div class="summary-row">
+                    <span class="label">Specialty:</span>
+                    <span class="value">Gynecologist & Obstetrician</span>
+                  </div>
+                  <div class="summary-row">
+                    <span class="label">Date:</span>
+                    <span class="value">Monday, March 10, 2025</span>
+                  </div>
+                  <div class="summary-row">
+                    <span class="label">Time:</span>
+                    <span class="value">10:30 AM</span>
+                  </div>
+                  <div class="summary-row">
+                    <span class="label">Location:</span>
+                    <span class="value">City Medical Center, Room 205</span>
+                  </div>
+                  <div class="summary-row">
+                    <span class="label">Type:</span>
+                    <span class="value">In-Person Visit</span>
+                  </div>
+                  <div class="summary-row total">
+                    <span class="label">Consultation Fee:</span>
+                    <span class="value">300 EGP</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="booking-navigation">
+              <button
+                class="btn btn-outline"
+                id="prevStep"
+                style="display: none"
+              >
+                <i class="fas fa-arrow-left"></i> Previous
+              </button>
+              <button class="btn btn-primary" id="nextStep">
+                Next <i class="fas fa-arrow-right"></i>
+              </button>
+              <button
+                class="btn btn-success"
+                id="confirmBooking"
+                style="display: none"
+              >
+                <i class="fas fa-check"></i> Confirm Booking
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="../shared/js/shared.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/book-appointment.js"></script>
+  </body>
+</html>

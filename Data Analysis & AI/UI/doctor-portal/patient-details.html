@@ -1,0 +1,1078 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Patient Details - MamaCare Doctor Portal</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="css/doctor-style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <!-- Sidebar -->
+      <aside class="sidebar" id="sidebar">
+        <button class="sidebar-close" id="sidebarClose">
+          <i class="fas fa-times"></i>
+        </button>
+        <div class="logo">
+          <i class="fas fa-user-md"></i>
+          <span>MamaCare</span>
+          <span class="portal-badge">Doctor</span>
+        </div>
+        <nav class="nav-menu">
+          <a href="index.html" class="nav-item" data-tooltip="Dashboard">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+          </a>
+          <a href="schedule.html" class="nav-item" data-tooltip="My Schedule">
+            <i class="fas fa-calendar-alt"></i>
+            <span>My Schedule</span>
+          </a>
+          <a href="patients.html" class="nav-item active" data-tooltip="My Patients">
+            <i class="fas fa-users"></i>
+            <span>My Patients</span>
+          </a>
+          <a href="chat.html" class="nav-item" data-tooltip="Messages">
+            <i class="fas fa-comments"></i>
+            <span>Messages</span>
+          </a>
+          <a href="clinic-team.html" class="nav-item" data-tooltip="Clinic Team">
+            <i class="fas fa-user-nurse"></i>
+            <span>Clinic Team</span>
+          </a>
+          <a href="analytics.html" class="nav-item" data-tooltip="Analytics">
+            <i class="fas fa-chart-line"></i>
+            <span>Analytics</span>
+          </a>
+          <a href="profile.html" class="nav-item" data-tooltip="My Profile">
+            <i class="fas fa-user-cog"></i>
+            <span>My Profile</span>
+          </a>
+        </nav>
+        <div class="sidebar-footer">
+          <a href="../patient-portal/index.html" class="nav-item" data-tooltip="Back to Patient Portal">
+            <i class="fas fa-exchange-alt"></i>
+            <span>Patient Portal</span>
+          </a>
+        </div>
+      </aside>
+
+      <!-- Sidebar Toggle Button -->
+      <button class="sidebar-toggle">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Top Bar -->
+      <header class="top-bar">
+        <button class="menu-toggle" id="menuToggle">
+          <i class="fas fa-bars"></i>
+        </button>
+        <div class="breadcrumb">
+          <a href="patients.html">My Patients</a>
+          <i class="fas fa-chevron-right"></i>
+          <span id="patientNameBreadcrumb">Patient Details</span>
+        </div>
+        <div class="top-bar-actions">
+          <button class="notification-btn" id="notificationBtn">
+            <i class="fas fa-bell"></i>
+            <span class="badge" id="notificationBadge">3</span>
+          </button>
+          <div class="user-menu">
+            <img
+              src="../images/doctor-avatar.png"
+              alt="Doctor"
+              onerror="
+                this.src =
+                  'https://ui-avatars.com/api/?name=Dr+Sarah&background=0077b6&color=fff'
+              "
+            />
+            <span id="doctorName">Dr. Sarah</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Notifications Panel -->
+      <div class="notifications-panel" id="notificationsPanel">
+        <div class="notifications-header">
+          <h3>Notifications</h3>
+          <button class="mark-all-read">Mark all as read</button>
+        </div>
+        <div class="notifications-list" id="notificationsList">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Page Content -->
+      <div class="page-content">
+        <!-- Patient Header -->
+        <div class="patient-header-card">
+          <div class="patient-header-main">
+            <div class="patient-avatar-large">
+              <img
+                id="patientAvatar"
+                src=""
+                alt="Patient"
+                onerror="
+                  this.src =
+                    'https://ui-avatars.com/api/?name=Patient&background=e91e8c&color=fff'
+                "
+              />
+              <span class="risk-indicator" id="riskIndicator"></span>
+            </div>
+            <div class="patient-header-info">
+              <h1 id="patientName">Loading...</h1>
+              <div class="patient-meta">
+                <span
+                  ><i class="fas fa-calendar-alt"></i>
+                  <span id="patientAge">--</span> years old</span
+                >
+                <span
+                  ><i class="fas fa-baby"></i>
+                  <span id="gestationalAge">--</span> weeks pregnant</span
+                >
+                <span
+                  ><i class="fas fa-calendar-check"></i> EDD:
+                  <span id="eddDate">--</span></span
+                >
+              </div>
+              <div class="patient-tags">
+                <span class="tag" id="trimesterTag">-- Trimester</span>
+                <span class="tag" id="riskTag">-- Risk</span>
+              </div>
+            </div>
+          </div>
+          <div class="patient-header-actions">
+            <button class="btn btn-primary" onclick="openChatWithPatient()">
+              <i class="fas fa-comment-medical"></i> Send Message
+            </button>
+            <button class="btn btn-outline" onclick="scheduleAppointment()">
+              <i class="fas fa-calendar-plus"></i> Schedule Visit
+            </button>
+            <button class="btn btn-outline" id="addNoteBtn">
+              <i class="fas fa-sticky-note"></i> Add Note
+            </button>
+            <button class="btn btn-outline" onclick="openUploadTestModal()">
+              <i class="fas fa-flask"></i> Upload Test
+            </button>
+            <button class="btn btn-outline" onclick="openPrescriptionModal()">
+              <i class="fas fa-prescription"></i> Write Prescription
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="patient-quick-stats">
+          <div class="stat-card">
+            <div class="stat-icon bp">
+              <i class="fas fa-heartbeat"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value" id="lastBP">--/--</span>
+              <span class="stat-label">Last Blood Pressure</span>
+              <span class="stat-date" id="bpDate">--</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon sugar">
+              <i class="fas fa-tint"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value" id="lastSugar">-- mg/dL</span>
+              <span class="stat-label">Last Blood Sugar</span>
+              <span class="stat-date" id="sugarDate">--</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon weight">
+              <i class="fas fa-weight"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value" id="lastWeight">-- kg</span>
+              <span class="stat-label">Current Weight</span>
+              <span class="stat-date" id="weightDate">--</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon appointment">
+              <i class="fas fa-calendar-check"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value" id="nextApptDate">--</span>
+              <span class="stat-label">Next Appointment</span>
+              <span class="stat-date" id="nextApptTime">--</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <div class="detail-tabs">
+          <button class="detail-tab active" data-tab="overview">
+            <i class="fas fa-chart-pie"></i> Overview
+          </button>
+          <button class="detail-tab" data-tab="vitals">
+            <i class="fas fa-heartbeat"></i> Vitals History
+          </button>
+          <button class="detail-tab" data-tab="tests">
+            <i class="fas fa-flask"></i> Tests & Results
+          </button>
+          <button class="detail-tab" data-tab="appointments">
+            <i class="fas fa-calendar-alt"></i> Appointments
+          </button>
+          <button class="detail-tab" data-tab="notes">
+            <i class="fas fa-sticky-note"></i> Clinical Notes
+          </button>
+          <button class="detail-tab" data-tab="prescriptions">
+            <i class="fas fa-prescription"></i> Prescriptions
+          </button>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tab-content active">
+          <!-- Overview Tab -->
+          <div class="tab-pane active" id="overviewTab">
+            <div class="overview-grid">
+              <!-- Pregnancy Progress -->
+              <div class="detail-card pregnancy-progress">
+                <div class="card-header">
+                  <h3><i class="fas fa-baby"></i> Pregnancy Progress</h3>
+                </div>
+                <div class="card-body">
+                  <div class="progress-visual">
+                    <div class="trimester-bar">
+                      <div class="trimester t1">T1</div>
+                      <div class="trimester t2">T2</div>
+                      <div class="trimester t3">T3</div>
+                      <div
+                        class="progress-marker"
+                        id="progressMarker"
+                        style="left: 0%"
+                      ></div>
+                    </div>
+                    <div class="week-display">
+                      <span class="current-week" id="currentWeek">Week --</span>
+                      <span class="days-remaining" id="daysRemaining"
+                        >-- days to go</span
+                      >
+                    </div>
+                  </div>
+                  <div class="milestone-info">
+                    <h4>Current Development</h4>
+                    <p id="developmentInfo">
+                      Loading development information...
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Medical Info -->
+              <div class="detail-card medical-info">
+                <div class="card-header">
+                  <h3>
+                    <i class="fas fa-notes-medical"></i> Medical Information
+                  </h3>
+                </div>
+                <div class="card-body">
+                  <div class="info-group">
+                    <label>Blood Type</label>
+                    <span id="bloodType">--</span>
+                  </div>
+                  <div class="info-group">
+                    <label>Pre-pregnancy Weight</label>
+                    <span id="preWeight">-- kg</span>
+                  </div>
+                  <div class="info-group">
+                    <label>Height</label>
+                    <span id="height">-- cm</span>
+                  </div>
+                  <div class="info-group">
+                    <label>Gravida/Para</label>
+                    <span id="gravidaPara">G-- P--</span>
+                  </div>
+                  <div class="info-group">
+                    <label>Known Allergies</label>
+                    <span id="allergies">None reported</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Risk Factors -->
+              <div class="detail-card risk-factors">
+                <div class="card-header">
+                  <h3>
+                    <i class="fas fa-exclamation-triangle"></i> Risk Factors
+                  </h3>
+                </div>
+                <div class="card-body">
+                  <ul class="risk-list" id="riskList">
+                    <li class="risk-item medium">
+                      <i class="fas fa-exclamation-circle"></i>
+                      <span>Gestational hypertension risk</span>
+                    </li>
+                    <li class="risk-item low">
+                      <i class="fas fa-exclamation-circle"></i>
+                      <span>Previous cesarean delivery</span>
+                    </li>
+                    <li class="risk-item medium">
+                      <i class="fas fa-exclamation-circle"></i>
+                      <span>Borderline gestational diabetes</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- Recent Activity -->
+              <div class="detail-card recent-activity">
+                <div class="card-header">
+                  <h3><i class="fas fa-history"></i> Recent Activity</h3>
+                </div>
+                <div class="card-body">
+                  <div class="activity-timeline" id="activityTimeline">
+                    <div class="activity-item">
+                      <div class="activity-icon vitals">
+                        <i class="fas fa-heartbeat"></i>
+                      </div>
+                      <div class="activity-content">
+                        <p>Blood pressure recorded: 130/85</p>
+                        <span class="activity-time">2h ago</span>
+                      </div>
+                    </div>
+                    <div class="activity-item">
+                      <div class="activity-icon message">
+                        <i class="fas fa-comment-medical"></i>
+                      </div>
+                      <div class="activity-content">
+                        <p>Sent message about diet recommendations</p>
+                        <span class="activity-time">1d ago</span>
+                      </div>
+                    </div>
+                    <div class="activity-item">
+                      <div class="activity-icon appointment">
+                        <i class="fas fa-calendar-check"></i>
+                      </div>
+                      <div class="activity-content">
+                        <p>Completed routine checkup visit</p>
+                        <span class="activity-time">4d ago</span>
+                      </div>
+                    </div>
+                    <div class="activity-item">
+                      <div class="activity-icon test">
+                        <i class="fas fa-flask"></i>
+                      </div>
+                      <div class="activity-content">
+                        <p>Lab results received: Complete Blood Count</p>
+                        <span class="activity-time">5d ago</span>
+                      </div>
+                    </div>
+                    <div class="activity-item">
+                      <div class="activity-icon note">
+                        <i class="fas fa-sticky-note"></i>
+                      </div>
+                      <div class="activity-content">
+                        <p>Added clinical note about glucose levels</p>
+                        <span class="activity-time">12d ago</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Vitals History Tab -->
+          <div class="tab-pane" id="vitalsTab">
+            <div class="vitals-section">
+              <div class="vitals-chart-controls">
+                <select id="vitalType" class="filter-select">
+                  <option value="bp">Blood Pressure</option>
+                  <option value="sugar">Blood Sugar</option>
+                  <option value="weight">Weight</option>
+                </select>
+                <select id="vitalPeriod" class="filter-select">
+                  <option value="7">Last 7 Days</option>
+                  <option value="30">Last 30 Days</option>
+                  <option value="90">Last 3 Months</option>
+                  <option value="all">All Time</option>
+                </select>
+              </div>
+              <div class="vitals-chart-container">
+                <div class="demo-chart" id="vitalsChart">
+                  <p class="demo-notice">
+                    <i class="fas fa-chart-line"></i> Interactive chart would
+                    display here in production
+                  </p>
+                  <div class="sample-chart-visual"></div>
+                </div>
+              </div>
+              <div class="vitals-table-section">
+                <h4>Recorded Values</h4>
+                <table class="vitals-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Time</th>
+                      <th>Value</th>
+                      <th>Status</th>
+                      <th>Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody id="vitalsTableBody">
+                    <tr>
+                      <td>Jan 20</td>
+                      <td>09:30 AM</td>
+                      <td>130/85</td>
+                      <td><span class="status-badge elevated">Elevated</span></td>
+                      <td>Slightly elevated - monitoring</td>
+                    </tr>
+                    <tr>
+                      <td>Jan 15</td>
+                      <td>10:00 AM</td>
+                      <td>128/82</td>
+                      <td><span class="status-badge elevated">Elevated</span></td>
+                      <td>Monitor closely</td>
+                    </tr>
+                    <tr>
+                      <td>Jan 08</td>
+                      <td>09:15 AM</td>
+                      <td>125/80</td>
+                      <td><span class="status-badge normal">Normal</span></td>
+                      <td>Normal range</td>
+                    </tr>
+                    <tr>
+                      <td>Jan 01</td>
+                      <td>11:00 AM</td>
+                      <td>122/78</td>
+                      <td><span class="status-badge normal">Normal</span></td>
+                      <td>Normal</td>
+                    </tr>
+                    <tr>
+                      <td>Dec 25</td>
+                      <td>09:45 AM</td>
+                      <td>120/76</td>
+                      <td><span class="status-badge normal">Normal</span></td>
+                      <td>Normal</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tests Tab -->
+          <div class="tab-pane" id="testsTab">
+            <div class="tests-section">
+              <div class="tests-header">
+                <h4>Lab Tests & Results</h4>
+                <button class="btn btn-sm btn-primary" id="orderTestBtn">
+                  <i class="fas fa-plus"></i> Order Test
+                </button>
+              </div>
+              <div class="tests-list" id="testsList">
+                <div class="test-card completed">
+                  <div class="test-header">
+                    <div class="test-info">
+                      <h4>Complete Blood Count</h4>
+                      <span class="test-date">Jan 18, 2026</span>
+                    </div>
+                    <span class="test-status completed">Completed</span>
+                  </div>
+                  <div class="test-body">
+                    <p class="test-result-simple"><strong>Result:</strong> Normal - All values within range</p>
+                  </div>
+                  <div class="test-footer">
+                    <button class="btn btn-sm btn-outline"><i class="fas fa-eye"></i> View Full Results</button>
+                    <button class="btn btn-sm btn-outline"><i class="fas fa-download"></i> Download</button>
+                  </div>
+                </div>
+                <div class="test-card completed">
+                  <div class="test-header">
+                    <div class="test-info">
+                      <h4>Gestational Diabetes Screen</h4>
+                      <span class="test-date">Jan 10, 2026</span>
+                    </div>
+                    <span class="test-status completed">Completed</span>
+                  </div>
+                  <div class="test-body">
+                    <p class="test-result-simple"><strong>Result:</strong> Borderline - Retest recommended</p>
+                  </div>
+                  <div class="test-footer">
+                    <button class="btn btn-sm btn-outline"><i class="fas fa-eye"></i> View Full Results</button>
+                    <button class="btn btn-sm btn-outline"><i class="fas fa-download"></i> Download</button>
+                  </div>
+                </div>
+                <div class="test-card scheduled">
+                  <div class="test-header">
+                    <div class="test-info">
+                      <h4>Non-Stress Test</h4>
+                      <span class="test-date">Jan 24, 2026</span>
+                    </div>
+                    <span class="test-status scheduled">Scheduled</span>
+                  </div>
+                  <div class="test-body">
+                    <p class="pending-notice">Results pending...</p>
+                  </div>
+                </div>
+                <div class="test-card scheduled">
+                  <div class="test-header">
+                    <div class="test-info">
+                      <h4>Group B Strep Test</h4>
+                      <span class="test-date">Jan 28, 2026</span>
+                    </div>
+                    <span class="test-status scheduled">Scheduled</span>
+                  </div>
+                  <div class="test-body">
+                    <p class="pending-notice">Results pending...</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Appointments Tab -->
+          <div class="tab-pane" id="appointmentsTab">
+            <div class="appointments-section">
+              <div class="appointments-header">
+                <div class="appointment-filters">
+                  <button class="filter-btn active" data-filter="upcoming">
+                    Upcoming
+                  </button>
+                  <button class="filter-btn" data-filter="past">
+                    Past Visits
+                  </button>
+                  <button class="filter-btn" data-filter="all">All</button>
+                </div>
+                <button
+                  class="btn btn-sm btn-primary"
+                  onclick="scheduleAppointment()"
+                >
+                  <i class="fas fa-plus"></i> Schedule Visit
+                </button>
+              </div>
+              <div class="appointments-list" id="appointmentsList">
+                <div class="appointment-history-card upcoming">
+                  <div class="appt-date-col">
+                    <span class="appt-month">Jan</span>
+                    <span class="appt-day">24</span>
+                    <span class="appt-year">2026</span>
+                  </div>
+                  <div class="appt-details-col">
+                    <h4>Non-Stress Test</h4>
+                    <p><i class="fas fa-clock"></i> 10:00 AM</p>
+                    <p class="appt-notes">Bring previous reports</p>
+                  </div>
+                  <div class="appt-status-col">
+                    <span class="appt-status-tag upcoming">Upcoming</span>
+                  </div>
+                </div>
+                <div class="appointment-history-card completed">
+                  <div class="appt-date-col">
+                    <span class="appt-month">Jan</span>
+                    <span class="appt-day">18</span>
+                    <span class="appt-year">2026</span>
+                  </div>
+                  <div class="appt-details-col">
+                    <h4>Routine Checkup</h4>
+                    <p><i class="fas fa-clock"></i> 11:00 AM</p>
+                    <p class="appt-notes">Blood pressure monitoring. Discussed diet changes.</p>
+                  </div>
+                  <div class="appt-status-col">
+                    <span class="appt-status-tag completed">Completed</span>
+                  </div>
+                </div>
+                <div class="appointment-history-card completed">
+                  <div class="appt-date-col">
+                    <span class="appt-month">Jan</span>
+                    <span class="appt-day">10</span>
+                    <span class="appt-year">2026</span>
+                  </div>
+                  <div class="appt-details-col">
+                    <h4>Glucose Screening</h4>
+                    <p><i class="fas fa-clock"></i> 9:00 AM</p>
+                    <p class="appt-notes">Fasting test performed</p>
+                  </div>
+                  <div class="appt-status-col">
+                    <span class="appt-status-tag completed">Completed</span>
+                  </div>
+                </div>
+                <div class="appointment-history-card completed">
+                  <div class="appt-date-col">
+                    <span class="appt-month">Dec</span>
+                    <span class="appt-day">28</span>
+                    <span class="appt-year">2025</span>
+                  </div>
+                  <div class="appt-details-col">
+                    <h4>Ultrasound</h4>
+                    <p><i class="fas fa-clock"></i> 2:00 PM</p>
+                    <p class="appt-notes">Baby in breech position. Will monitor.</p>
+                  </div>
+                  <div class="appt-status-col">
+                    <span class="appt-status-tag completed">Completed</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Notes Tab -->
+          <div class="tab-pane" id="notesTab">
+            <div class="notes-section">
+              <div class="notes-header">
+                <h4>Clinical Notes</h4>
+                <button class="btn btn-sm btn-primary" id="addNoteBtn2">
+                  <i class="fas fa-plus"></i> Add Note
+                </button>
+              </div>
+              <div class="notes-list" id="notesList">
+                <div class="note-card visit">
+                  <div class="note-header">
+                    <span class="note-type visit">
+                      <i class="fas fa-stethoscope"></i> Visit Summary
+                    </span>
+                    <span class="note-date">January 20, 2026</span>
+                  </div>
+                  <div class="note-content">
+                    <p>Blood pressure slightly elevated at 130/85. Recommended dietary changes including reduced sodium intake and increased monitoring. Patient advised to rest more and avoid stress.</p>
+                  </div>
+                  <div class="note-footer">
+                    <span class="note-author">By Dr. Ahmed Hassan</span>
+                  </div>
+                </div>
+                <div class="note-card visit">
+                  <div class="note-header">
+                    <span class="note-type visit">
+                      <i class="fas fa-stethoscope"></i> Visit Summary
+                    </span>
+                    <span class="note-date">January 18, 2026</span>
+                  </div>
+                  <div class="note-content">
+                    <p>Week 31 checkup completed. Baby measuring on track. Discussed birth plan options. Patient prefers natural delivery if possible.</p>
+                  </div>
+                  <div class="note-footer">
+                    <span class="note-author">By Dr. Ahmed Hassan</span>
+                  </div>
+                </div>
+                <div class="note-card followup">
+                  <div class="note-header">
+                    <span class="note-type followup">
+                      <i class="fas fa-clock"></i> Follow-up
+                    </span>
+                    <span class="note-date">January 10, 2026</span>
+                  </div>
+                  <div class="note-content">
+                    <p>Glucose screening showed borderline results. Scheduled follow-up GTT. Discussed dietary modifications.</p>
+                  </div>
+                  <div class="note-footer">
+                    <span class="note-author">By Dr. Ahmed Hassan</span>
+                  </div>
+                </div>
+                <div class="note-card alert">
+                  <div class="note-header">
+                    <span class="note-type alert">
+                      <i class="fas fa-exclamation-triangle"></i> Alert
+                    </span>
+                    <span class="note-date">December 28, 2025</span>
+                  </div>
+                  <div class="note-content">
+                    <p>Baby in breech position at 28 weeks. Will continue monitoring. Discussed potential for version procedure if position doesn't change.</p>
+                  </div>
+                  <div class="note-footer">
+                    <span class="note-author">By Dr. Ahmed Hassan</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Prescriptions Tab -->
+          <div class="tab-pane" id="prescriptionsTab">
+            <div class="detail-card">
+              <div class="card-header">
+                <h3><i class="fas fa-prescription"></i> Prescriptions</h3>
+                <button class="btn btn-sm btn-primary" onclick="openPrescriptionModal()">
+                  <i class="fas fa-plus"></i> New Prescription
+                </button>
+              </div>
+              <div class="prescriptions-list" id="prescriptionsList">
+                <!-- Demo prescription 1 -->
+                <div class="prescription-card">
+                  <div class="prescription-header">
+                    <div class="prescription-info">
+                      <span class="prescription-date"><i class="fas fa-calendar"></i> January 18, 2026</span>
+                      <span class="prescription-status active"><i class="fas fa-check-circle"></i> Active</span>
+                    </div>
+                    <div class="prescription-actions">
+                      <button class="btn-icon" onclick="viewPrescription('rx_1')" title="View">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button class="btn-icon" onclick="printSavedPrescription('rx_1')" title="Print">
+                        <i class="fas fa-print"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="prescription-medications">
+                    <div class="medication-item">
+                      <span class="med-name">Prenatal Vitamins</span>
+                      <span class="med-details">1 tablet • Once daily • 30 days</span>
+                    </div>
+                    <div class="medication-item">
+                      <span class="med-name">Iron Supplement (Ferrous Sulfate)</span>
+                      <span class="med-details">325mg • Once daily • 30 days</span>
+                    </div>
+                  </div>
+                  <div class="prescription-footer">
+                    <span class="prescription-prescriber"><i class="fas fa-user-md"></i> Dr. Ahmed Hassan</span>
+                    <span class="prescription-refills"><i class="fas fa-redo"></i> 3 refills remaining</span>
+                  </div>
+                </div>
+
+                <!-- Demo prescription 2 -->
+                <div class="prescription-card">
+                  <div class="prescription-header">
+                    <div class="prescription-info">
+                      <span class="prescription-date"><i class="fas fa-calendar"></i> January 10, 2026</span>
+                      <span class="prescription-status active"><i class="fas fa-check-circle"></i> Active</span>
+                    </div>
+                    <div class="prescription-actions">
+                      <button class="btn-icon" onclick="viewPrescription('rx_2')" title="View">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button class="btn-icon" onclick="printSavedPrescription('rx_2')" title="Print">
+                        <i class="fas fa-print"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="prescription-medications">
+                    <div class="medication-item">
+                      <span class="med-name">Metformin</span>
+                      <span class="med-details">500mg • Twice daily with meals • 30 days</span>
+                    </div>
+                  </div>
+                  <div class="prescription-footer">
+                    <span class="prescription-prescriber"><i class="fas fa-user-md"></i> Dr. Ahmed Hassan</span>
+                    <span class="prescription-refills"><i class="fas fa-redo"></i> 2 refills remaining</span>
+                  </div>
+                </div>
+
+                <!-- Demo prescription 3 - Completed -->
+                <div class="prescription-card completed">
+                  <div class="prescription-header">
+                    <div class="prescription-info">
+                      <span class="prescription-date"><i class="fas fa-calendar"></i> December 15, 2025</span>
+                      <span class="prescription-status completed"><i class="fas fa-check-double"></i> Completed</span>
+                    </div>
+                    <div class="prescription-actions">
+                      <button class="btn-icon" onclick="viewPrescription('rx_3')" title="View">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button class="btn-icon" onclick="printSavedPrescription('rx_3')" title="Print">
+                        <i class="fas fa-print"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="prescription-medications">
+                    <div class="medication-item">
+                      <span class="med-name">Ondansetron (Zofran)</span>
+                      <span class="med-details">4mg • As needed for nausea • 14 days</span>
+                    </div>
+                  </div>
+                  <div class="prescription-footer">
+                    <span class="prescription-prescriber"><i class="fas fa-user-md"></i> Dr. Ahmed Hassan</span>
+                    <span class="prescription-refills"><i class="fas fa-redo"></i> No refills</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Add Note Modal -->
+    <div class="modal-overlay" id="noteModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>Add Clinical Note</h3>
+          <button class="modal-close" onclick="closeNoteModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="noteForm">
+            <div class="form-group">
+              <label>Note Type</label>
+              <select id="noteType" required>
+                <option value="general">General Note</option>
+                <option value="visit">Visit Summary</option>
+                <option value="phone">Phone Consultation</option>
+                <option value="alert">Alert/Warning</option>
+                <option value="followup">Follow-up Required</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Note Content</label>
+              <textarea
+                id="noteContent"
+                rows="6"
+                placeholder="Enter your clinical notes..."
+                required
+              ></textarea>
+            </div>
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="notePrivate" />
+                <span>Mark as private (not visible to patient)</span>
+              </label>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="closeNoteModal()">
+            Cancel
+          </button>
+          <button class="btn btn-primary" onclick="saveNote()">
+            Save Note
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload Test Modal for AI Analysis -->
+    <div class="modal-overlay" id="uploadTestModal">
+      <div class="modal modal-lg">
+        <div class="modal-header">
+          <h3><i class="fas fa-flask"></i> Upload Test for AI Analysis</h3>
+          <button class="modal-close" onclick="closeUploadTestModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Test Type</label>
+            <select id="testTypeSelect">
+              <option value="">Select test type...</option>
+              <option value="cbc">Complete Blood Count (CBC)</option>
+              <option value="lipid">Lipid Panel</option>
+              <option value="metabolic">Metabolic Panel</option>
+              <option value="thyroid">Thyroid Function</option>
+              <option value="liver">Liver Function Tests</option>
+              <option value="kidney">Kidney Function Tests</option>
+              <option value="glucose">Blood Glucose / HbA1c</option>
+              <option value="urinalysis">Urinalysis</option>
+              <option value="xray">X-Ray</option>
+              <option value="mri">MRI Scan</option>
+              <option value="ct">CT Scan</option>
+              <option value="ecg">ECG / EKG</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <div class="upload-zone" id="uploadZone">
+            <div class="upload-icon">
+              <i class="fas fa-cloud-upload-alt"></i>
+            </div>
+            <h3>Drag & Drop your test results here</h3>
+            <p>or click to browse files</p>
+            <p class="upload-hint">Supported formats: PDF, JPG, PNG, DICOM (Max 10MB)</p>
+            <input type="file" id="testFileInput" accept=".pdf,.jpg,.jpeg,.png,.dcm" hidden />
+          </div>
+
+          <div id="uploadedFileInfo" class="uploaded-file-info" style="display: none;">
+            <i class="fas fa-file-medical"></i>
+            <span id="uploadedFileName"></span>
+            <button class="btn-icon" onclick="removeUploadedFile()">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+
+          <!-- AI Analysis Results Section -->
+          <div class="ai-results" id="aiResultsSection" style="display: none;">
+            <div class="card-header">
+              <h3><i class="fas fa-robot"></i> AI Analysis Results</h3>
+            </div>
+            <div class="results-content" id="resultsContent">
+              <div class="ai-summary" id="aiSummary">
+                <!-- Summary will be populated by JS -->
+              </div>
+              <table class="results-table">
+                <thead>
+                  <tr>
+                    <th>Variable</th>
+                    <th>Value</th>
+                    <th>Normal Range</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="resultsTableBody">
+                  <!-- Results will be populated by JS -->
+                </tbody>
+              </table>
+              <div class="ai-recommendations" id="aiRecommendations">
+                <!-- Recommendations will be populated by JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="closeUploadTestModal()">
+            Cancel
+          </button>
+          <button class="btn btn-primary" id="analyzeTestBtn" onclick="analyzeTest()" disabled>
+            <i class="fas fa-brain"></i> Analyze with AI
+          </button>
+          <button class="btn btn-primary" id="saveTestResultBtn" onclick="saveTestToPatient()" style="display: none;">
+            <i class="fas fa-save"></i> Save to Patient Record
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Write Prescription Modal -->
+    <div class="modal-overlay" id="prescriptionModal">
+      <div class="modal modal-lg">
+        <div class="modal-header">
+          <h3><i class="fas fa-prescription"></i> Write Prescription</h3>
+          <button class="modal-close" onclick="closePrescriptionModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="prescriptionForm">
+            <div class="prescription-patient-info">
+              <p><strong>Patient:</strong> <span id="rxPatientName">Sarah Johnson</span></p>
+              <p><strong>Date:</strong> <span id="rxDate"></span></p>
+            </div>
+
+            <div id="medicationsList">
+              <div class="medication-entry" data-index="0">
+                <div class="medication-header">
+                  <h4>Medication #1</h4>
+                  <button type="button" class="btn-icon remove-medication" onclick="removeMedication(0)" style="display: none;">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Medication Name *</label>
+                    <input type="text" class="medication-name" placeholder="e.g., Metformin" required />
+                  </div>
+                  <div class="form-group">
+                    <label>Dosage *</label>
+                    <input type="text" class="medication-dosage" placeholder="e.g., 500mg" required />
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Frequency *</label>
+                    <select class="medication-frequency" required>
+                      <option value="">Select frequency...</option>
+                      <option value="once-daily">Once daily</option>
+                      <option value="twice-daily">Twice daily</option>
+                      <option value="three-daily">Three times daily</option>
+                      <option value="four-daily">Four times daily</option>
+                      <option value="as-needed">As needed (PRN)</option>
+                      <option value="every-4-hours">Every 4 hours</option>
+                      <option value="every-6-hours">Every 6 hours</option>
+                      <option value="every-8-hours">Every 8 hours</option>
+                      <option value="weekly">Weekly</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Duration *</label>
+                    <input type="text" class="medication-duration" placeholder="e.g., 30 days, 2 weeks" required />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Route of Administration</label>
+                  <select class="medication-route">
+                    <option value="oral">Oral</option>
+                    <option value="topical">Topical</option>
+                    <option value="injection">Injection</option>
+                    <option value="inhalation">Inhalation</option>
+                    <option value="sublingual">Sublingual</option>
+                    <option value="rectal">Rectal</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Special Instructions</label>
+                  <textarea class="medication-instructions" rows="2" placeholder="e.g., Take with food, Avoid alcohol..."></textarea>
+                </div>
+              </div>
+            </div>
+
+            <button type="button" class="btn btn-outline add-medication-btn" onclick="addMedication()">
+              <i class="fas fa-plus"></i> Add Another Medication
+            </button>
+
+            <hr style="margin: 20px 0; border-color: var(--border-color);">
+
+            <div class="form-group">
+              <label>General Notes / Instructions for Patient</label>
+              <textarea id="rxGeneralNotes" rows="3" placeholder="Additional instructions or notes for the patient..."></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Refills Allowed</label>
+              <select id="rxRefills">
+                <option value="0">No refills</option>
+                <option value="1">1 refill</option>
+                <option value="2">2 refills</option>
+                <option value="3">3 refills</option>
+                <option value="5">5 refills</option>
+                <option value="12">12 refills (1 year)</option>
+              </select>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="closePrescriptionModal()">
+            Cancel
+          </button>
+          <button class="btn btn-outline" onclick="previewPrescription()">
+            <i class="fas fa-eye"></i> Preview
+          </button>
+          <button class="btn btn-primary" onclick="savePrescription()">
+            <i class="fas fa-check"></i> Save Prescription
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Prescription Preview Modal -->
+    <div class="modal-overlay" id="prescriptionPreviewModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h3><i class="fas fa-file-prescription"></i> Prescription Preview</h3>
+          <button class="modal-close" onclick="closePrescriptionPreview()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="prescription-preview" id="prescriptionPreviewContent">
+            <!-- Preview content will be populated by JS -->
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="closePrescriptionPreview()">
+            Back to Edit
+          </button>
+          <button class="btn btn-primary" onclick="printPrescription()">
+            <i class="fas fa-print"></i> Print
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="../shared/js/shared.js"></script>
+    <script src="js/shared.js"></script>
+    <script src="js/patient-details.js"></script>
+  </body>
+</html>

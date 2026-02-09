@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Assistant Portal - Clinic Invitations</title>
+    <link rel="stylesheet" href="css/assistant-style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <button class="sidebar-close">
+          <i class="fas fa-times"></i>
+        </button>
+        <div class="logo">
+          <i class="fas fa-user-nurse"></i>
+          <span>MamaCare</span>
+          <span class="portal-badge">Assistant</span>
+        </div>
+        <nav class="nav-menu">
+          <a href="index.html" class="nav-item" data-tooltip="Dashboard">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+          </a>
+          <a
+            href="appointments.html"
+            class="nav-item"
+            data-tooltip="Appointments"
+          >
+            <i class="fas fa-calendar-alt"></i>
+            <span>Appointments</span>
+          </a>
+          <a
+            href="availability.html"
+            class="nav-item"
+            data-tooltip="Manage Availability"
+          >
+            <i class="fas fa-clock"></i>
+            <span>Availability</span>
+          </a>
+          <a
+            href="clinic-requests.html"
+            class="nav-item active"
+            data-tooltip="Clinic Invitations"
+          >
+            <i class="fas fa-user-md"></i>
+            <span>Clinic Invitations</span>
+          </a>
+        </nav>
+        <div class="sidebar-footer">
+          <a
+            href="../patient-portal/index.html"
+            class="nav-item"
+            data-tooltip="Back to Patient Portal"
+          >
+            <i class="fas fa-exchange-alt"></i>
+            <span>Patient Portal</span>
+          </a>
+          <a href="#" class="nav-item" data-tooltip="Logout">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Logout</span>
+          </a>
+        </div>
+      </aside>
+
+      <!-- Sidebar Toggle Button -->
+      <button class="sidebar-toggle">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+
+      <!-- Sidebar Overlay (for mobile) -->
+      <div class="sidebar-overlay"></div>
+
+      <!-- Notifications Panel -->
+      <div class="notifications-panel">
+        <div class="notifications-header">
+          <h3><i class="fas fa-bell"></i> Notifications</h3>
+          <button class="close-notifications btn-sm">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="notifications-body">
+          <!-- Notifications will be rendered by JS -->
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <!-- Header -->
+        <header class="header">
+          <div class="header-left">
+            <h1>Clinic Invitations</h1>
+            <p>Manage your clinic connections</p>
+          </div>
+          <div class="header-right">
+            <div class="notification">
+              <i class="fas fa-bell"></i>
+              <span class="badge">3</span>
+            </div>
+            <div class="profile">
+              <img
+                src="https://img.freepik.com/free-photo/female-doctor-hospital-with-stethoscope_23-2148827776.jpg?w=740"
+                alt="Profile"
+              />
+              <span>Layla Mohamed</span>
+            </div>
+          </div>
+        </header>
+
+        <!-- Your Assistant ID -->
+        <section class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-id-card"></i> Your Assistant ID</h3>
+          </div>
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 16px;
+              padding: 20px;
+              background: var(--bg-primary);
+              border-radius: var(--radius-md);
+            "
+          >
+            <div style="flex: 1">
+              <p style="color: var(--text-secondary); margin-bottom: 8px">
+                Share this ID with doctors who want to add you to their clinic:
+              </p>
+              <div style="display: flex; align-items: center; gap: 12px">
+                <code
+                  style="
+                    font-size: 1.5rem;
+                    font-weight: 700;
+                    color: var(--assistant-primary);
+                    background: var(--bg-white);
+                    padding: 12px 20px;
+                    border-radius: var(--radius-md);
+                    border: 2px dashed var(--assistant-primary);
+                  "
+                  id="assistantIdDisplay"
+                  >asst_001</code
+                >
+                <button
+                  class="btn btn-sm btn-primary"
+                  onclick="copyAssistantId()"
+                >
+                  <i class="fas fa-copy"></i> Copy
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Pending Invitations -->
+        <section class="card">
+          <div class="card-header">
+            <h3>
+              <i class="fas fa-envelope-open-text"></i> Pending Invitations
+            </h3>
+            <span class="status-badge pending" id="pendingCount"
+              >0 pending</span
+            >
+          </div>
+          <div id="pendingInvitationsList">
+            <!-- Pending invitations will be rendered by JS -->
+          </div>
+        </section>
+
+        <!-- Connected Clinics -->
+        <section class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-hospital"></i> Connected Clinics</h3>
+          </div>
+          <div class="team-grid" id="connectedClinicsList">
+            <!-- Connected clinics will be rendered by JS -->
+          </div>
+        </section>
+
+        <!-- Info Box -->
+        <section class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-info-circle"></i> How It Works</h3>
+          </div>
+          <div
+            style="
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+              gap: 24px;
+            "
+          >
+            <div style="text-align: center; padding: 20px">
+              <div
+                style="
+                  width: 60px;
+                  height: 60px;
+                  border-radius: 50%;
+                  background: #ede9fe;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  margin: 0 auto 16px;
+                "
+              >
+                <i
+                  class="fas fa-paper-plane"
+                  style="font-size: 1.5rem; color: var(--assistant-primary)"
+                ></i>
+              </div>
+              <h4 style="margin-bottom: 8px">1. Receive Invitation</h4>
+              <p style="color: var(--text-secondary); font-size: 0.9rem">
+                Doctors send you an invitation using your Assistant ID
+              </p>
+            </div>
+            <div style="text-align: center; padding: 20px">
+              <div
+                style="
+                  width: 60px;
+                  height: 60px;
+                  border-radius: 50%;
+                  background: #e8f5e9;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  margin: 0 auto 16px;
+                "
+              >
+                <i
+                  class="fas fa-check-circle"
+                  style="font-size: 1.5rem; color: var(--success)"
+                ></i>
+              </div>
+              <h4 style="margin-bottom: 8px">2. Accept or Decline</h4>
+              <p style="color: var(--text-secondary); font-size: 0.9rem">
+                Review the invitation and choose to accept or decline
+              </p>
+            </div>
+            <div style="text-align: center; padding: 20px">
+              <div
+                style="
+                  width: 60px;
+                  height: 60px;
+                  border-radius: 50%;
+                  background: #e3f2fd;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  margin: 0 auto 16px;
+                "
+              >
+                <i
+                  class="fas fa-calendar-check"
+                  style="font-size: 1.5rem; color: var(--info)"
+                ></i>
+              </div>
+              <h4 style="margin-bottom: 8px">3. Manage Appointments</h4>
+              <p style="color: var(--text-secondary); font-size: 0.9rem">
+                Once connected, manage the doctor's appointments and
+                availability
+              </p>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="../shared/js/shared.js"></script>
+    <script src="js/shared.js"></script>
+    <script src="js/clinic-requests.js"></script>
+  </body>
+</html>
