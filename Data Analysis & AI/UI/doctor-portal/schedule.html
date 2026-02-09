@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Schedule - MamaCare Doctor Portal</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="css/doctor-style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <!-- Sidebar -->
+      <aside class="sidebar" id="sidebar">
+        <button class="sidebar-close" id="sidebarClose">
+          <i class="fas fa-times"></i>
+        </button>
+        <div class="logo">
+          <i class="fas fa-user-md"></i>
+          <span>MamaCare</span>
+          <span class="portal-badge">Doctor</span>
+        </div>
+        <nav class="nav-menu">
+          <a href="index.html" class="nav-item" data-tooltip="Dashboard">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+          </a>
+          <a href="schedule.html" class="nav-item active" data-tooltip="My Schedule">
+            <i class="fas fa-calendar-alt"></i>
+            <span>My Schedule</span>
+          </a>
+          <a href="patients.html" class="nav-item" data-tooltip="My Patients">
+            <i class="fas fa-users"></i>
+            <span>My Patients</span>
+          </a>
+          <a href="chat.html" class="nav-item" data-tooltip="Messages">
+            <i class="fas fa-comments"></i>
+            <span>Messages</span>
+          </a>
+          <a href="clinic-team.html" class="nav-item" data-tooltip="Clinic Team">
+            <i class="fas fa-user-nurse"></i>
+            <span>Clinic Team</span>
+          </a>
+          <a href="analytics.html" class="nav-item" data-tooltip="Analytics">
+            <i class="fas fa-chart-line"></i>
+            <span>Analytics</span>
+          </a>
+          <a href="profile.html" class="nav-item" data-tooltip="My Profile">
+            <i class="fas fa-user-cog"></i>
+            <span>My Profile</span>
+          </a>
+        </nav>
+        <div class="sidebar-footer">
+          <a href="../patient-portal/index.html" class="nav-item" data-tooltip="Back to Patient Portal">
+            <i class="fas fa-exchange-alt"></i>
+            <span>Patient Portal</span>
+          </a>
+        </div>
+      </aside>
+
+      <!-- Sidebar Toggle Button -->
+      <button class="sidebar-toggle">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Top Bar -->
+      <header class="top-bar">
+        <button class="menu-toggle" id="menuToggle">
+          <i class="fas fa-bars"></i>
+        </button>
+        <h1 class="page-title">My Schedule</h1>
+        <div class="top-bar-actions">
+          <button class="notification-btn" id="notificationBtn">
+            <i class="fas fa-bell"></i>
+            <span class="badge" id="notificationBadge">3</span>
+          </button>
+          <div class="user-menu">
+            <img
+              src="../images/doctor-avatar.png"
+              alt="Doctor"
+              onerror="
+                this.src =
+                  'https://ui-avatars.com/api/?name=Dr+Sarah&background=0077b6&color=fff'
+              "
+            />
+            <span id="doctorName">Dr. Sarah</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Notifications Panel -->
+      <div class="notifications-panel" id="notificationsPanel">
+        <div class="notifications-header">
+          <h3>Notifications</h3>
+          <button class="mark-all-read">Mark all as read</button>
+        </div>
+        <div class="notifications-list" id="notificationsList">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Page Content -->
+      <div class="page-content">
+        <div class="page-header">
+          <div>
+            <h1>My Schedule</h1>
+            <p>View and manage your appointments</p>
+          </div>
+          <div class="header-actions">
+            <button class="btn btn-outline" id="syncCalendarBtn">
+              <i class="fas fa-sync"></i> Sync Calendar
+            </button>
+          </div>
+        </div>
+
+        <div class="schedule-container">
+          <!-- Calendar Section -->
+          <div class="schedule-calendar">
+            <div class="calendar-header">
+              <button class="calendar-nav" id="prevMonth">
+                <i class="fas fa-chevron-left"></i>
+              </button>
+              <h3 id="currentMonthYear">January 2025</h3>
+              <button class="calendar-nav" id="nextMonth">
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+            <div class="calendar-grid">
+              <div class="calendar-weekdays">
+                <span>Sun</span>
+                <span>Mon</span>
+                <span>Tue</span>
+                <span>Wed</span>
+                <span>Thu</span>
+                <span>Fri</span>
+                <span>Sat</span>
+              </div>
+              <div class="calendar-days" id="calendarDays">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Day Schedule -->
+          <div class="day-schedule">
+            <div class="day-schedule-header">
+              <h3 id="selectedDateTitle">Today's Schedule</h3>
+              <span class="appointment-count" id="appointmentCount"
+                >0 appointments</span
+              >
+            </div>
+            <div class="schedule-timeline" id="scheduleTimeline">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script src="../shared/js/shared.js"></script>
+    <script src="js/shared.js"></script>
+    <script src="js/schedule.js"></script>
+  </body>
+</html>

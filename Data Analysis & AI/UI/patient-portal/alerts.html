@@ -1,0 +1,879 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mother Portal - Alerts & Notifications</title>
+    <link rel="stylesheet" href="css/patient-style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <button class="sidebar-close">
+          <i class="fas fa-times"></i>
+        </button>
+        <div class="logo">
+          <i class="fas fa-heartbeat"></i>
+          <span>MamaCare</span>
+          <span class="portal-badge">Patient</span>
+        </div>
+        <nav class="nav-menu">
+          <a href="index.html" class="nav-item" data-tooltip="Dashboard">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+          </a>
+          <a href="tests.html" class="nav-item" data-tooltip="Tests Upload">
+            <i class="fas fa-flask"></i>
+            <span>Tests Upload</span>
+          </a>
+          <a
+            href="products.html"
+            class="nav-item"
+            data-tooltip="Product Safety"
+          >
+            <i class="fas fa-barcode"></i>
+            <span>Product Safety</span>
+          </a>
+          <a href="places.html" class="nav-item" data-tooltip="My Places">
+            <i class="fas fa-map-marker-alt"></i>
+            <span>My Places</span>
+          </a>
+          <a
+            href="appointments.html"
+            class="nav-item"
+            data-tooltip="Appointments"
+          >
+            <i class="fas fa-calendar-check"></i>
+            <span>Appointments</span>
+          </a>
+          <a href="chatbot.html" class="nav-item" data-tooltip="Chatbot">
+            <i class="fas fa-robot"></i>
+            <span>Chatbot</span>
+          </a>
+          <a href="community.html" class="nav-item" data-tooltip="Community">
+            <i class="fas fa-users"></i>
+            <span>Community</span>
+          </a>
+          <a
+            href="medical-history.html"
+            class="nav-item"
+            data-tooltip="Medical History"
+          >
+            <i class="fas fa-history"></i>
+            <span>Medical History</span>
+          </a>
+          <a href="alerts.html" class="nav-item active" data-tooltip="Alerts">
+            <i class="fas fa-bell"></i>
+            <span>Alerts</span>
+          </a>
+          <a href="profile.html" class="nav-item" data-tooltip="My Profile">
+            <i class="fas fa-user"></i>
+            <span>My Profile</span>
+          </a>
+        </nav>
+        <div class="sidebar-footer">
+          <a href="#" class="nav-item" data-tooltip="Logout">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Logout</span>
+          </a>
+        </div>
+      </aside>
+
+      <!-- Sidebar Toggle Button (will be created by JS, but you can add manually) -->
+      <button class="sidebar-toggle">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+
+      <!-- Sidebar Overlay (for mobile) -->
+      <div class="sidebar-overlay"></div>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <header class="header">
+          <div class="header-left">
+            <h1>Alerts & Notifications 🔔</h1>
+            <p>Stay informed about your health and appointments</p>
+          </div>
+          <div class="header-right">
+            <div class="notification">
+              <i class="fas fa-bell"></i>
+              <span class="badge">5</span>
+            </div>
+            <div class="profile">
+              <img
+                src="https://img.freepik.com/free-psd/portrait-woman-wearing-hijab_23-2150945115.jpg?t=st=1765809397~exp=1765812997~hmac=3a0f5380a8654b0ab467fef42c27dae769a70acb5bd0eba3cbf169de91bcc9d0&w=1060"
+                alt="Profile"
+              />
+              <span>Sarah Ahmed</span>
+            </div>
+          </div>
+        </header>
+
+        <!-- Alert Stats -->
+        <section class="alert-stats">
+          <div class="alert-stat-card critical">
+            <div class="stat-icon">
+              <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-number">2</span>
+              <span class="stat-label">Critical</span>
+            </div>
+          </div>
+          <div class="alert-stat-card warning">
+            <div class="stat-icon">
+              <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-number">3</span>
+              <span class="stat-label">Warnings</span>
+            </div>
+          </div>
+          <div class="alert-stat-card info">
+            <div class="stat-icon">
+              <i class="fas fa-info-circle"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-number">8</span>
+              <span class="stat-label">Info</span>
+            </div>
+          </div>
+          <div class="alert-stat-card success">
+            <div class="stat-icon">
+              <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-number">12</span>
+              <span class="stat-label">Resolved</span>
+            </div>
+          </div>
+          <div class="alert-stat-card unread">
+            <div class="stat-icon">
+              <i class="fas fa-envelope"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-number">5</span>
+              <span class="stat-label">Unread</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Quick Actions -->
+        <section class="alert-actions">
+          <div class="card">
+            <div class="actions-row">
+              <div class="filter-tabs">
+                <button class="filter-tab active" data-filter="all">
+                  All <span class="count">25</span>
+                </button>
+                <button class="filter-tab" data-filter="unread">
+                  Unread <span class="count">5</span>
+                </button>
+                <button class="filter-tab" data-filter="health">
+                  Health <span class="count">8</span>
+                </button>
+                <button class="filter-tab" data-filter="doctor">
+                  Doctor <span class="count">6</span>
+                </button>
+                <button class="filter-tab" data-filter="appointment">
+                  Appointments <span class="count">4</span>
+                </button>
+                <button class="filter-tab" data-filter="system">
+                  System <span class="count">7</span>
+                </button>
+              </div>
+              <div class="action-buttons">
+                <button class="btn btn-outline btn-sm" id="markAllRead">
+                  <i class="fas fa-check-double"></i> Mark All Read
+                </button>
+                <button class="btn btn-outline btn-sm" id="clearResolved">
+                  <i class="fas fa-trash-alt"></i> Clear Resolved
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Alerts List -->
+        <section class="alerts-list-section">
+          <!-- Critical Alerts -->
+          <div class="alert-group" data-priority="critical">
+            <div class="group-header">
+              <h3><i class="fas fa-exclamation-circle"></i> Critical Alerts</h3>
+              <span class="group-count">2 alerts</span>
+            </div>
+
+            <!-- Critical Alert 1 - Health Risk -->
+            <div
+              class="alert-card critical unread"
+              data-type="health"
+              data-status="unread"
+            >
+              <div class="alert-priority-indicator"></div>
+              <div class="alert-icon">
+                <i class="fas fa-heartbeat"></i>
+              </div>
+              <div class="alert-content">
+                <div class="alert-header">
+                  <h4>High Blood Pressure Detected</h4>
+                  <span class="alert-time">2 hours ago</span>
+                </div>
+                <p class="alert-message">
+                  Your blood pressure reading of <strong>145/95 mmHg</strong> is
+                  significantly elevated. This requires immediate attention.
+                  Please rest and contact your doctor.
+                </p>
+                <div class="alert-details">
+                  <div class="detail-item">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Reading: 145/95 mmHg (Stage 2 Hypertension)</span>
+                  </div>
+                  <div class="detail-item">
+                    <i class="fas fa-clock"></i>
+                    <span>Recorded: Today at 8:30 AM</span>
+                  </div>
+                </div>
+                <div class="alert-recommendations">
+                  <h5><i class="fas fa-lightbulb"></i> Recommendations:</h5>
+                  <ul>
+                    <li>Lie down and rest for 15-30 minutes</li>
+                    <li>Avoid salt and caffeine</li>
+                    <li>Re-check blood pressure after resting</li>
+                    <li>Contact your doctor if it remains high</li>
+                  </ul>
+                </div>
+                <div class="alert-actions">
+                  <button class="btn btn-primary btn-sm">
+                    <i class="fas fa-phone"></i> Call Doctor
+                  </button>
+                  <button class="btn btn-outline btn-sm">
+                    <i class="fas fa-redo"></i> Re-check BP
+                  </button>
+                  <button class="btn btn-ghost btn-sm mark-read">
+                    <i class="fas fa-check"></i> Mark as Read
+                  </button>
+                </div>
+              </div>
+              <button class="alert-dismiss" title="Dismiss">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+
+            <!-- Critical Alert 2 - Test Result -->
+            <div
+              class="alert-card critical unread"
+              data-type="health"
+              data-status="unread"
+            >
+              <div class="alert-priority-indicator"></div>
+              <div class="alert-icon">
+                <i class="fas fa-flask"></i>
+              </div>
+              <div class="alert-content">
+                <div class="alert-header">
+                  <h4>Low Hemoglobin Alert - Severe Anemia Risk</h4>
+                  <span class="alert-time">5 hours ago</span>
+                </div>
+                <p class="alert-message">
+                  Your CBC test shows hemoglobin level of
+                  <strong>9.5 g/dL</strong>, which is significantly below normal
+                  range. This indicates moderate to severe anemia requiring
+                  medical attention.
+                </p>
+                <div class="alert-details">
+                  <div class="detail-item">
+                    <i class="fas fa-tint"></i>
+                    <span>Hemoglobin: 9.5 g/dL (Normal: 12-16 g/dL)</span>
+                  </div>
+                  <div class="detail-item">
+                    <i class="fas fa-hospital"></i>
+                    <span>Test: CBC at Alpha Diagnostics Lab</span>
+                  </div>
+                </div>
+                <div class="alert-actions">
+                  <button class="btn btn-primary btn-sm">
+                    <i class="fas fa-calendar-plus"></i> Book Appointment
+                  </button>
+                  <button class="btn btn-outline btn-sm">
+                    <i class="fas fa-file-medical"></i> View Full Report
+                  </button>
+                  <button class="btn btn-ghost btn-sm mark-read">
+                    <i class="fas fa-check"></i> Mark as Read
+                  </button>
+                </div>
+              </div>
+              <button class="alert-dismiss" title="Dismiss">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Warning Alerts -->
+          <div class="alert-group" data-priority="warning">
+            <div class="group-header">
+              <h3><i class="fas fa-exclamation-triangle"></i> Warnings</h3>
+              <span class="group-count">3 alerts</span>
+            </div>
+
+            <!-- Warning Alert 1 - Appointment Reminder -->
+            <div
+              class="alert-card warning unread"
+              data-type="appointment"
+              data-status="unread"
+            >
+              <div class="alert-priority-indicator"></div>
+              <div class="alert-icon">
+                <i class="fas fa-calendar-alt"></i>
+              </div>
+              <div class="alert-content">
+                <div class="alert-header">
+                  <h4>Upcoming Appointment Tomorrow</h4>
+                  <span class="alert-time">Today</span>
+                </div>
+                <p class="alert-message">
+                  Reminder: You have a prenatal checkup scheduled with
+                  <strong>Dr. Ahmed Hassan</strong> tomorrow at
+                  <strong>10:00 AM</strong>.
+                </p>
+                <div class="alert-details">
+                  <div class="detail-item">
+                    <i class="fas fa-user-md"></i>
+                    <span>Dr. Ahmed Hassan - Gynecologist</span>
+                  </div>
+                  <div class="detail-item">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>City Medical Center, Room 205</span>
+                  </div>
+                  <div class="detail-item">
+                    <i class="fas fa-clock"></i>
+                    <span>March 19, 2025 at 10:00 AM</span>
+                  </div>
+                </div>
+                <div class="alert-actions">
+                  <button class="btn btn-primary btn-sm">
+                    <i class="fas fa-check"></i> Confirm
+                  </button>
+                  <button class="btn btn-outline btn-sm">
+                    <i class="fas fa-calendar-times"></i> Reschedule
+                  </button>
+                  <button class="btn btn-ghost btn-sm">
+                    <i class="fas fa-directions"></i> Get Directions
+                  </button>
+                </div>
+              </div>
+              <button class="alert-dismiss" title="Dismiss">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+
+            <!-- Warning Alert 2 - Elevated BP -->
+            <div
+              class="alert-card warning"
+              data-type="health"
+              data-status="read"
+            >
+              <div class="alert-priority-indicator"></div>
+              <div class="alert-icon">
+                <i class="fas fa-heartbeat"></i>
+              </div>
+              <div class="alert-content">
+                <div class="alert-header">
+                  <h4>Blood Pressure Slightly Elevated</h4>
+                  <span class="alert-time">Yesterday</span>
+                </div>
+                <p class="alert-message">
+                  Your blood pressure reading of <strong>130/85 mmHg</strong> is
+                  slightly above normal. Continue monitoring and try to reduce
+                  stress.
+                </p>
+                <div class="alert-details">
+                  <div class="detail-item resolved">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Status: Resolved - BP returned to normal</span>
+                  </div>
+                </div>
+                <div class="alert-actions">
+                  <button class="btn btn-ghost btn-sm">
+                    <i class="fas fa-chart-line"></i> View History
+                  </button>
+                </div>
+              </div>
+              <button class="alert-dismiss" title="Dismiss">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+
+            <!-- Warning Alert 3 - Missed Medication -->
+            <div
+              class="alert-card warning unread"
+              data-type="health"
+              data-status="unread"
+            >
+              <div class="alert-priority-indicator"></div>
+              <div class="alert-icon">
+                <i class="fas fa-pills"></i>
+              </div>
+              <div class="alert-content">
+                <div class="alert-header">
+                  <h4>Medication Reminder</h4>
+                  <span class="alert-time">6 hours ago</span>
+                </div>
+                <p class="alert-message">
+                  You haven't logged your iron supplement intake today. Regular
+                  iron supplementation is important for managing your anemia.
+                </p>
+                <div class="alert-actions">
+                  <button class="btn btn-primary btn-sm">
+                    <i class="fas fa-check"></i> Log Now
+                  </button>
+                  <button class="btn btn-outline btn-sm">
+                    <i class="fas fa-clock"></i> Remind Later
+                  </button>
+                </div>
+              </div>
+              <button class="alert-dismiss" title="Dismiss">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Doctor Approvals & Requests -->
+          <div class="alert-group" data-priority="info">
+            <div class="group-header">
+              <h3><i class="fas fa-user-md"></i> Doctor Requests</h3>
+              <span class="group-count">3 alerts</span>
+            </div>
+
+            <!-- Doctor Request - Pending -->
+            <div
+              class="alert-card info unread"
+              data-type="doctor"
+              data-status="unread"
+            >
+              <div class="alert-priority-indicator"></div>
+              <div class="alert-icon">
+                <i class="fas fa-user-plus"></i>
+              </div>
+              <div class="alert-content">
+                <div class="alert-header">
+                  <h4>New Doctor Request</h4>
+                  <span class="alert-time">1 hour ago</span>
+                </div>
+                <p class="alert-message">
+                  <strong>Dr. Sara Mohamed</strong> (Radiologist) has requested
+                  access to your medical profile for fetal imaging consultation.
+                </p>
+                <div class="doctor-request-card">
+                  <img
+                    src="https://i.pravatar.cc/60?img=25"
+                    alt="Dr. Sara Mohamed"
+                  />
+                  <div class="doctor-info">
+                    <h5>Dr. Sara Mohamed</h5>
+                    <p>Radiologist - Fetal Imaging Specialist</p>
+                    <p><i class="fas fa-hospital"></i> Women's Health Clinic</p>
+                    <div class="doctor-rating">
+                      <i class="fas fa-star"></i>
+                      <i class="fas fa-star"></i>
+                      <i class="fas fa-star"></i>
+                      <i class="fas fa-star"></i>
+                      <i class="fas fa-star"></i>
+                      <span>(5.0 - 89 reviews)</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="request-note">
+                  <i class="fas fa-quote-left"></i>
+                  <p>
+                    "Referred by Dr. Ahmed Hassan for detailed fetal ultrasound
+                    assessment."
+                  </p>
+                </div>
+                <div class="alert-actions">
+                  <button class="btn btn-success btn-sm">
+                    <i class="fas fa-check"></i> Approve
+                  </button>
+                  <button class="btn btn-danger btn-sm">
+                    <i class="fas fa-times"></i> Decline
+                  </button>
+                  <button class="btn btn-ghost btn-sm">
+                    <i class="fas fa-info-circle"></i> View Profile
+                  </button>
+                </div>
+              </div>
+              <button class="alert-dismiss" title="Dismiss">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+
+            <!-- Doctor Approved -->
+            <div
+              class="alert-card success"
+              data-type="doctor"
+              data-status="read"
+            >
+              <div class="alert-priority-indicator"></div>
+              <div class="alert-icon">
+                <i class="fas fa-user-check"></i>
+              </div>
+              <div class="alert-content">
+                <div class="alert-header">
+                  <h4>Doctor Request Approved</h4>
+                  <span class="alert-time">3 days ago</span>
+                </div>
+                <p class="alert-message">
+                  You approved <strong>Dr. Ahmed Hassan</strong>'s request. He
+                  is now your primary care physician and can access your medical
+                  records.
+                </p>
+                <div class="doctor-mini-card approved">
+                  <img
+                    src="https://i.pravatar.cc/40?img=12"
+                    alt="Dr. Ahmed Hassan"
+                  />
+                  <div>
+                    <strong>Dr. Ahmed Hassan</strong>
+                    <span>Gynecologist & Obstetrician</span>
+                  </div>
+                  <span class="status-badge active">Active</span>
+                </div>
+                <div class="alert-actions">
+                  <button class="btn btn-ghost btn-sm">
+                    <i class="fas fa-calendar-plus"></i> Book Appointment
+                  </button>
+                  <button class="btn btn-ghost btn-sm">
+                    <i class="fas fa-comment"></i> Send Message
+                  </button>
+                </div>
+              </div>
+              <button class="alert-dismiss" title="Dismiss">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+
+            <!-- Doctor Note -->
+            <div class="alert-card info" data-type="doctor" data-status="read">
+              <div class="alert-priority-indicator"></div>
+              <div class="alert-icon">
+                <i class="fas fa-comment-medical"></i>
+              </div>
+              <div class="alert-content">
+                <div class="alert-header">
+                  <h4>New Note from Dr. Ahmed Hassan</h4>
+                  <span class="alert-time">2 days ago</span>
+                </div>
+                <p class="alert-message">
+                  Your doctor has added a new note to your medical record
+                  regarding your recent checkup.
+                </p>
+                <div class="doctor-note-preview">
+                  <p>
+                    "Patient is progressing well. Week 24 checkup completed.
+                    Iron supplements prescribed for mild anemia. Schedule
+                    follow-up ultrasound in 2 weeks."
+                  </p>
+                </div>
+                <div class="alert-actions">
+                  <button class="btn btn-ghost btn-sm">
+                    <i class="fas fa-file-medical-alt"></i> View Full Note
+                  </button>
+                </div>
+              </div>
+              <button class="alert-dismiss" title="Dismiss">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Informational Alerts -->
+          <div class="alert-group" data-priority="info">
+            <div class="group-header">
+              <h3><i class="fas fa-info-circle"></i> Information</h3>
+              <span class="group-count">5 alerts</span>
+            </div>
+
+            <!-- Test Results Ready -->
+            <div class="alert-card info" data-type="health" data-status="read">
+              <div class="alert-priority-indicator"></div>
+              <div class="alert-icon">
+                <i class="fas fa-file-medical"></i>
+              </div>
+              <div class="alert-content">
+                <div class="alert-header">
+                  <h4>Test Results Ready</h4>
+                  <span class="alert-time">Yesterday</span>
+                </div>
+                <p class="alert-message">
+                  Your <strong>Urinalysis</strong> test results are now
+                  available. All values are within normal range.
+                </p>
+                <div class="test-result-preview">
+                  <div class="result-item">
+                    <span>Protein</span>
+                    <span class="value normal">Negative ✓</span>
+                  </div>
+                  <div class="result-item">
+                    <span>Glucose</span>
+                    <span class="value normal">Negative ✓</span>
+                  </div>
+                  <div class="result-item">
+                    <span>Leukocytes</span>
+                    <span class="value normal">Negative ✓</span>
+                  </div>
+                </div>
+                <div class="alert-actions">
+                  <button class="btn btn-ghost btn-sm">
+                    <i class="fas fa-file-alt"></i> View Full Report
+                  </button>
+                </div>
+              </div>
+              <button class="alert-dismiss" title="Dismiss">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+
+            <!-- Pregnancy Milestone -->
+            <div
+              class="alert-card milestone"
+              data-type="system"
+              data-status="read"
+            >
+              <div class="alert-priority-indicator"></div>
+              <div class="alert-icon">
+                <i class="fas fa-baby"></i>
+              </div>
+              <div class="alert-content">
+                <div class="alert-header">
+                  <h4>🎉 Week 24 Milestone!</h4>
+                  <span class="alert-time">3 days ago</span>
+                </div>
+                <p class="alert-message">
+                  Congratulations! You've reached <strong>Week 24</strong> of
+                  your pregnancy. Your baby is now the size of an ear of corn
+                  and weighs about 600 grams!
+                </p>
+                <div class="milestone-info">
+                  <div class="milestone-icon">
+                    <span>🌽</span>
+                  </div>
+                  <div class="milestone-details">
+                    <h5>What's happening this week:</h5>
+                    <ul>
+                      <li>Baby's lungs are developing rapidly</li>
+                      <li>Baby can now hear your voice</li>
+                      <li>Taste buds are forming</li>
+                      <li>Regular sleep patterns beginning</li>
+                    </ul>
+                  </div>
+                </div>
+                <div class="alert-actions">
+                  <button class="btn btn-ghost btn-sm">
+                    <i class="fas fa-book-open"></i> Read More
+                  </button>
+                  <button class="btn btn-ghost btn-sm">
+                    <i class="fas fa-share"></i> Share
+                  </button>
+                </div>
+              </div>
+              <button class="alert-dismiss" title="Dismiss">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+
+            <!-- AI Analysis Complete -->
+            <div class="alert-card info" data-type="system" data-status="read">
+              <div class="alert-priority-indicator"></div>
+              <div class="alert-icon">
+                <i class="fas fa-robot"></i>
+              </div>
+              <div class="alert-content">
+                <div class="alert-header">
+                  <h4>AI Analysis Complete</h4>
+                  <span class="alert-time">4 days ago</span>
+                </div>
+                <p class="alert-message">
+                  Your ultrasound image has been analyzed. No anomalies
+                  detected. Fetal development appears normal for gestational
+                  age.
+                </p>
+                <div class="ai-result-summary">
+                  <div class="confidence-meter">
+                    <div class="meter-fill" style="width: 98%"></div>
+                    <span>98% Confidence</span>
+                  </div>
+                  <p class="ai-note">
+                    AI-assisted analysis reviewed by qualified medical
+                    professionals
+                  </p>
+                </div>
+                <div class="alert-actions">
+                  <button class="btn btn-ghost btn-sm">
+                    <i class="fas fa-image"></i> View Analysis
+                  </button>
+                </div>
+              </div>
+              <button class="alert-dismiss" title="Dismiss">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+
+            <!-- Tip of the Day -->
+            <div class="alert-card tip" data-type="system" data-status="read">
+              <div class="alert-priority-indicator"></div>
+              <div class="alert-icon">
+                <i class="fas fa-lightbulb"></i>
+              </div>
+              <div class="alert-content">
+                <div class="alert-header">
+                  <h4>💡 Health Tip of the Day</h4>
+                  <span class="alert-time">Today</span>
+                </div>
+                <p class="alert-message">
+                  <strong>Stay hydrated!</strong> Drinking 8-10 glasses of water
+                  daily helps maintain amniotic fluid levels and supports your
+                  baby's development. It also helps prevent urinary tract
+                  infections, which are common during pregnancy.
+                </p>
+                <div class="alert-actions">
+                  <button class="btn btn-ghost btn-sm">
+                    <i class="fas fa-thumbs-up"></i> Helpful
+                  </button>
+                  <button class="btn btn-ghost btn-sm">
+                    <i class="fas fa-share"></i> Share
+                  </button>
+                </div>
+              </div>
+              <button class="alert-dismiss" title="Dismiss">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+
+            <!-- System Update -->
+            <div
+              class="alert-card system"
+              data-type="system"
+              data-status="read"
+            >
+              <div class="alert-priority-indicator"></div>
+              <div class="alert-icon">
+                <i class="fas fa-cog"></i>
+              </div>
+              <div class="alert-content">
+                <div class="alert-header">
+                  <h4>Profile Updated Successfully</h4>
+                  <span class="alert-time">5 days ago</span>
+                </div>
+                <p class="alert-message">
+                  Your profile information has been updated. Changes to your
+                  medical history have been saved and synced with your doctor's
+                  records.
+                </p>
+                <div class="alert-actions">
+                  <button class="btn btn-ghost btn-sm">
+                    <i class="fas fa-user"></i> View Profile
+                  </button>
+                </div>
+              </div>
+              <button class="alert-dismiss" title="Dismiss">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Success/Resolved Alerts -->
+          <div class="alert-group collapsed" data-priority="success">
+            <div class="group-header collapsible" id="resolvedHeader">
+              <h3><i class="fas fa-check-circle"></i> Resolved Alerts</h3>
+              <div class="group-header-right">
+                <span class="group-count">8 alerts</span>
+                <i class="fas fa-chevron-down collapse-icon"></i>
+              </div>
+            </div>
+            <div
+              class="group-content"
+              id="resolvedContent"
+              style="display: none"
+            >
+              <!-- Resolved Alert 1 -->
+              <div
+                class="alert-card success"
+                data-type="health"
+                data-status="resolved"
+              >
+                <div class="alert-priority-indicator"></div>
+                <div class="alert-icon">
+                  <i class="fas fa-check"></i>
+                </div>
+                <div class="alert-content">
+                  <div class="alert-header">
+                    <h4>Blood Pressure Normalized</h4>
+                    <span class="alert-time">1 week ago</span>
+                  </div>
+                  <p class="alert-message">
+                    Your previously elevated blood pressure has returned to
+                    normal levels.
+                  </p>
+                  <div class="resolved-info">
+                    <span class="resolved-badge"
+                      ><i class="fas fa-check-circle"></i> Resolved on March 12,
+                      2025</span
+                    >
+                  </div>
+                </div>
+                <button class="alert-dismiss" title="Dismiss">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+
+              <!-- Resolved Alert 2 -->
+              <div
+                class="alert-card success"
+                data-type="appointment"
+                data-status="resolved"
+              >
+                <div class="alert-priority-indicator"></div>
+                <div class="alert-icon">
+                  <i class="fas fa-check"></i>
+                </div>
+                <div class="alert-content">
+                  <div class="alert-header">
+                    <h4>Appointment Completed</h4>
+                    <span class="alert-time">1 week ago</span>
+                  </div>
+                  <p class="alert-message">
+                    Your prenatal checkup with Dr. Ahmed Hassan was completed
+                    successfully.
+                  </p>
+                  <div class="resolved-info">
+                    <span class="resolved-badge"
+                      ><i class="fas fa-check-circle"></i> Completed on March
+                      11, 2025</span
+                    >
+                  </div>
+                </div>
+                <button class="alert-dismiss" title="Dismiss">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Load More -->
+        <div class="load-more">
+          <button class="btn btn-outline" id="loadMoreAlerts">
+            <i class="fas fa-ellipsis-h"></i> Load More Alerts
+          </button>
+        </div>
+      </main>
+    </div>
+    <script src="../shared/js/shared.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/alerts.js"></script>
+  </body>
+</html>
