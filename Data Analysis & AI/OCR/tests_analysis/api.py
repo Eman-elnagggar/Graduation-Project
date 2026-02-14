@@ -49,4 +49,6 @@ async def confirm_results(data: ConfirmRequest):
         final_data = consistancy.consistancy_data(data.test_type, data.edited_values)
         return final_data 
     except Exception as e:
+
         return {"error": str(e)}
+
