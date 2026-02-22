@@ -1,0 +1,466 @@
+﻿@model Graduation_Project.ViewModels.AlertsViewModel
+@{
+    Layout = "~/Views/Shared/_PatientLayout.cshtml";
+    ViewData["Title"] = "Alerts & Notifications";
+    ViewData["PatientId"]  = Model.Patient.PatientID;
+    ViewData["ActivePage"] = "Alerts";
+
+    // "danger" (AlertTypes.Danger) and "critical" both map to the Critical group
+    var criticalAlerts = Model.Alerts.Where(a =>
+        a.AlertType?.ToLower() == "danger" ||
+        a.AlertType?.ToLower() == "critical").ToList();
+    var warningAlerts  = Model.Alerts.Where(a => a.AlertType?.ToLower() == "warning").ToList();
+    var infoAlerts     = Model.Alerts.Where(a =>
+        a.AlertType?.ToLower() != "danger"   &&
+        a.AlertType?.ToLower() != "critical" &&
+        a.AlertType?.ToLower() != "warning").ToList();
+}
+
+@section Head {
+    @Html.AntiForgeryToken()
+}
+
+<!-- Header -->
+<header class="header">
+    <div class="header-left">
+        <h1>Alerts &amp; Notifications 🔔</h1>
+        <p>Stay informed about your health and appointments</p>
+    </div>
+    <div class="header-right">
+        <div class="notification">
+            <i class="fas fa-bell"></i>
+            @if (Model.UnreadCount > 0)
+            {
+                <span class="badge" id="headerBadge">@Model.UnreadCount</span>
+            }
+            else
+            {
+                <span class="badge" id="headerBadge" style="display:none">0</span>
+            }
+        </div>
+        <div class="profile">
+            <i class="fas fa-user-circle" style="font-size:2rem;color:#1BAEBE"></i>
+            <span>@Model.UserName</span>
+        </div>
+    </div>
+</header>
+
+<!-- ── Alert Stats ────────────────────────────────────────────── -->
+<section class="alert-stats">
+    <div class="alert-stat-card critical">
+        <div class="stat-icon"><i class="fas fa-exclamation-circle"></i></div>
+        <div class="stat-info">
+            <span class="stat-number" id="statCritical">@Model.CriticalCount</span>
+            <span class="stat-label">Critical</span>
+        </div>
+    </div>
+    <div class="alert-stat-card warning">
+        <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+        <div class="stat-info">
+            <span class="stat-number" id="statWarning">@Model.WarningCount</span>
+            <span class="stat-label">Warnings</span>
+        </div>
+    </div>
+    <div class="alert-stat-card info">
+        <div class="stat-icon"><i class="fas fa-info-circle"></i></div>
+        <div class="stat-info">
+            <span class="stat-number" id="statInfo">@Model.InfoCount</span>
+            <span class="stat-label">Info</span>
+        </div>
+    </div>
+    <div class="alert-stat-card unread">
+        <div class="stat-icon"><i class="fas fa-envelope"></i></div>
+        <div class="stat-info">
+            <span class="stat-number" id="statUnread">@Model.UnreadCount</span>
+            <span class="stat-label">Unread</span>
+        </div>
+    </div>
+</section>
+
+<!-- ── Quick Actions ─────────────────────────────────────────── -->
+<section class="alert-actions-bar">
+    <div class="card">
+        <div class="actions-row">
+            <div class="filter-tabs">
+                <button class="filter-tab active" data-filter="all">
+                    All <span class="count">@Model.TotalCount</span>
+                </button>
+                <button class="filter-tab" data-filter="unread">
+                    Unread <span class="count" id="unreadTabCount">@Model.UnreadCount</span>
+                </button>
+                <button class="filter-tab" data-filter="critical">
+                    Critical <span class="count">@Model.CriticalCount</span>
+                </button>
+                <button class="filter-tab" data-filter="warning">
+                    Warnings <span class="count">@Model.WarningCount</span>
+                </button>
+                <button class="filter-tab" data-filter="info">
+                    Info <span class="count">@Model.InfoCount</span>
+                </button>
+            </div>
+            <div class="action-buttons">
+                <button class="btn btn-outline btn-sm" id="markAllRead">
+                    <i class="fas fa-check-double"></i> Mark All Read
+                </button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── Alerts List ───────────────────────────────────────────── -->
+<section class="alerts-list-section" id="alertsList">
+
+    @if (!Model.Alerts.Any())
+    {
+        <div class="card" style="text-align:center;padding:3rem;">
+            <i class="fas fa-bell-slash" style="font-size:3rem;color:#cbd5e1;margin-bottom:1rem;display:block"></i>
+            <h3 style="color:#64748b">No alerts yet</h3>
+            <p style="color:#94a3b8">You're all clear! Alerts will appear here when your health data needs attention.</p>
+        </div>
+    }
+    else
+    {
+        @if (criticalAlerts.Any())
+        {
+            <div class="alert-group" id="group-critical">
+                <div class="group-header">
+                    <h3><i class="fas fa-exclamation-circle" style="color:#ef4444"></i> Critical Alerts</h3>
+                    <span class="group-count">@criticalAlerts.Count alert@(criticalAlerts.Count != 1 ? "s" : "")</span>
+                </div>
+                @foreach (var alert in criticalAlerts)
+                {
+                    <div class="alert-card critical @(alert.IsRead ? "" : "unread")"
+                         data-alert-id="@alert.AlertID"
+                         data-patient-id="@Model.Patient.PatientID"
+                         data-type="critical"
+                         data-status="@(alert.IsRead ? "read" : "unread")">
+                        <div class="alert-priority-indicator"></div>
+                        <div class="alert-icon"><i class="fas fa-heartbeat"></i></div>
+                        <div class="alert-content">
+                            <div class="alert-header">
+                                <h4>@alert.Title</h4>
+                                <span class="alert-time" title="@alert.DateCreated.ToString("MMM dd, yyyy h:mm tt")">
+                                    @FormatRelativeTime(alert.DateCreated)
+                                </span>
+                            </div>
+                            <p class="alert-message">@alert.Message</p>
+                            <div class="alert-meta">
+                                <span class="alert-date"><i class="fas fa-clock"></i> @alert.DateCreated.ToString("MMM dd, yyyy h:mm tt")</span>
+                                @if (!alert.IsRead) { <span class="unread-dot"></span> }
+                            </div>
+                            <div class="alert-actions">
+                                @if (!alert.IsRead)
+                                {
+                                    <button class="btn btn-ghost btn-sm mark-read-btn">
+                                        <i class="fas fa-check"></i> Mark as Read
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        @if (warningAlerts.Any())
+        {
+            <div class="alert-group" id="group-warning">
+                <div class="group-header">
+                    <h3><i class="fas fa-exclamation-triangle" style="color:#f59e0b"></i> Warnings</h3>
+                    <span class="group-count">@warningAlerts.Count alert@(warningAlerts.Count != 1 ? "s" : "")</span>
+                </div>
+                @foreach (var alert in warningAlerts)
+                {
+                    <div class="alert-card warning @(alert.IsRead ? "" : "unread")"
+                         data-alert-id="@alert.AlertID"
+                         data-patient-id="@Model.Patient.PatientID"
+                         data-type="warning"
+                         data-status="@(alert.IsRead ? "read" : "unread")">
+                        <div class="alert-priority-indicator"></div>
+                        <div class="alert-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="alert-content">
+                            <div class="alert-header">
+                                <h4>@alert.Title</h4>
+                                <span class="alert-time" title="@alert.DateCreated.ToString("MMM dd, yyyy h:mm tt")">
+                                    @FormatRelativeTime(alert.DateCreated)
+                                </span>
+                            </div>
+                            <p class="alert-message">@alert.Message</p>
+                            <div class="alert-meta">
+                                <span class="alert-date"><i class="fas fa-clock"></i> @alert.DateCreated.ToString("MMM dd, yyyy h:mm tt")</span>
+                                @if (!alert.IsRead) { <span class="unread-dot"></span> }
+                            </div>
+                            <div class="alert-actions">
+                                @if (!alert.IsRead)
+                                {
+                                    <button class="btn btn-ghost btn-sm mark-read-btn">
+                                        <i class="fas fa-check"></i> Mark as Read
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        @if (infoAlerts.Any())
+        {
+            <div class="alert-group" id="group-info">
+                <div class="group-header">
+                    <h3><i class="fas fa-info-circle" style="color:#3b82f6"></i> Information</h3>
+                    <span class="group-count">@infoAlerts.Count alert@(infoAlerts.Count != 1 ? "s" : "")</span>
+                </div>
+                @foreach (var alert in infoAlerts)
+                {
+                    <div class="alert-card info @(alert.IsRead ? "" : "unread")"
+                         data-alert-id="@alert.AlertID"
+                         data-patient-id="@Model.Patient.PatientID"
+                         data-type="info"
+                         data-status="@(alert.IsRead ? "read" : "unread")">
+                        <div class="alert-priority-indicator"></div>
+                        <div class="alert-icon"><i class="fas fa-info-circle"></i></div>
+                        <div class="alert-content">
+                            <div class="alert-header">
+                                <h4>@alert.Title</h4>
+                                <span class="alert-time" title="@alert.DateCreated.ToString("MMM dd, yyyy h:mm tt")">
+                                    @FormatRelativeTime(alert.DateCreated)
+                                </span>
+                            </div>
+                            <p class="alert-message">@alert.Message</p>
+                            <div class="alert-meta">
+                                <span class="alert-date"><i class="fas fa-clock"></i> @alert.DateCreated.ToString("MMM dd, yyyy h:mm tt")</span>
+                                @if (!alert.IsRead) { <span class="unread-dot"></span> }
+                            </div>
+                            <div class="alert-actions">
+                                @if (!alert.IsRead)
+                                {
+                                    <button class="btn btn-ghost btn-sm mark-read-btn">
+                                        <i class="fas fa-check"></i> Mark as Read
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    }
+
+</section>
+
+@section Scripts {
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const patientId   = @Model.Patient.PatientID;
+    const antiForgery = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? "";
+
+    // ── Filter tabs ─────────────────────────────────────────────────
+    const filterTabs  = document.querySelectorAll(".filter-tab");
+    const alertCards  = document.querySelectorAll(".alert-card");
+    const alertGroups = document.querySelectorAll(".alert-group");
+
+    filterTabs.forEach(tab => {
+        tab.addEventListener("click", function () {
+            filterTabs.forEach(t => t.classList.remove("active"));
+            this.classList.add("active");
+            filterAlerts(this.dataset.filter);
+        });
+    });
+
+    function filterAlerts(filter) {
+        alertCards.forEach(card => {
+            const type   = card.dataset.type   ?? "";
+            const status = card.dataset.status ?? "";
+            let show = false;
+            switch (filter) {
+                case "all":      show = true; break;
+                case "unread":   show = status === "unread"; break;
+                case "critical": show = type === "critical"; break;
+                case "warning":  show = type === "warning"; break;
+                case "info":     show = type !== "critical" && type !== "warning"; break;
+                default:         show = true;
+            }
+            card.style.display = show ? "flex" : "none";
+        });
+
+        alertGroups.forEach(group => {
+            const hasVisible = Array.from(group.querySelectorAll(".alert-card"))
+                                    .some(c => c.style.display !== "none");
+            group.style.display = hasVisible ? "block" : "none";
+        });
+    }
+
+    // ── Mark single alert as read ────────────────────────────────────
+    document.addEventListener("click", function (e) {
+        const btn = e.target.closest(".mark-read-btn");
+        if (!btn) return;
+        const card    = btn.closest(".alert-card");
+        const alertId = card?.dataset.alertId;
+        if (!alertId) return;
+
+        fetch("/Patient/MarkAlertRead", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: `alertId=${alertId}&patientId=${patientId}&__RequestVerificationToken=${encodeURIComponent(antiForgery)}`
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                card.classList.remove("unread");
+                card.dataset.status = "read";
+                btn.remove();
+                card.querySelector(".unread-dot")?.remove();
+                updateCounts();
+                showNotification("Alert marked as read", "success");
+            }
+        });
+    });
+
+    // ── Mark ALL as read ─────────────────────────────────────────────
+    document.getElementById("markAllRead")?.addEventListener("click", function () {
+        fetch("/Patient/MarkAllAlertsRead", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: `patientId=${patientId}&__RequestVerificationToken=${encodeURIComponent(antiForgery)}`
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                document.querySelectorAll(".alert-card.unread").forEach(card => {
+                    card.classList.remove("unread");
+                    card.dataset.status = "read";
+                    card.querySelector(".mark-read-btn")?.remove();
+                    card.querySelector(".unread-dot")?.remove();
+                });
+                updateCounts();
+                showNotification("All alerts marked as read", "success");
+            }
+        });
+    });
+
+    function updateCounts() {
+        const all      = document.querySelectorAll(".alert-card").length;
+        const unread   = document.querySelectorAll(".alert-card.unread").length;
+        const critical = document.querySelectorAll(".alert-card[data-type='critical']").length;
+        const warning  = document.querySelectorAll(".alert-card[data-type='warning']").length;
+        const info     = all - critical - warning;
+
+        setEl("statCritical", critical);
+        setEl("statWarning",  warning);
+        setEl("statInfo",     info);
+        setEl("statUnread",   unread);
+        setEl("unreadTabCount", unread);
+
+        const badge = document.getElementById("headerBadge");
+        if (badge) {
+            badge.textContent = unread;
+            badge.style.display = unread > 0 ? "flex" : "none";
+        }
+
+        document.querySelectorAll(".filter-tab").forEach(tab => {
+            const countEl = tab.querySelector(".count");
+            if (!countEl) return;
+            switch (tab.dataset.filter) {
+                case "all":      countEl.textContent = all;      break;
+                case "unread":   countEl.textContent = unread;   break;
+                case "critical": countEl.textContent = critical; break;
+                case "warning":  countEl.textContent = warning;  break;
+                case "info":     countEl.textContent = info;     break;
+            }
+        });
+    }
+
+    function setEl(id, val) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+    }
+
+    function showNotification(message, type = "info") {
+        const existing = document.querySelector(".global-notification");
+        if (existing) existing.remove();
+
+        const n = document.createElement("div");
+        n.className = `global-notification ${type}`;
+        const icons = { success: "fa-check-circle", error: "fa-exclamation-circle", warning: "fa-exclamation-triangle", info: "fa-info-circle" };
+        n.innerHTML = `<i class="fas ${icons[type] ?? icons.info}"></i><span>${message}</span>
+                       <button class="notification-close"><i class="fas fa-times"></i></button>`;
+        document.body.appendChild(n);
+        n.querySelector(".notification-close").addEventListener("click", () => n.remove());
+        setTimeout(() => n.remove(), 4000);
+    }
+});
+</script>
+
+<style>
+    .alert-stats { display:flex; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem; }
+    .alert-stat-card { display:flex; align-items:center; gap:.9rem; background:#fff; border-radius:14px; padding:1rem 1.4rem; box-shadow:0 2px 8px rgba(0,0,0,.06); flex:1; min-width:130px; }
+    .alert-stat-card .stat-icon { width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; }
+    .alert-stat-card.critical .stat-icon { background:#ffebee; color:#ef4444; }
+    .alert-stat-card.warning  .stat-icon { background:#fff3e0; color:#f59e0b; }
+    .alert-stat-card.info     .stat-icon { background:#e3f2fd; color:#3b82f6; }
+    .alert-stat-card.unread   .stat-icon { background:#f3e5f5; color:#9c27b0; }
+    .stat-info { display:flex; flex-direction:column; }
+    .stat-number { font-size:1.6rem; font-weight:700; color:#1e293b; line-height:1; }
+    .stat-label  { font-size:.78rem; color:#64748b; }
+
+    .alert-actions-bar .card { padding:.85rem 1.2rem; margin-bottom:1.5rem; }
+    .actions-row { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.75rem; }
+    .filter-tabs { display:flex; flex-wrap:wrap; gap:.5rem; }
+    .filter-tab  { padding:.4rem .9rem; border-radius:20px; border:1px solid #e2e8f0; background:#f8fafc; font-size:.83rem; cursor:pointer; font-weight:500; color:#475569; transition:all .2s; }
+    .filter-tab.active { background:#1BAEBE; color:#fff; border-color:#1BAEBE; }
+    .filter-tab .count { background:rgba(0,0,0,.1); border-radius:20px; padding:.05rem .45rem; font-size:.72rem; margin-left:.3rem; }
+    .filter-tab.active .count { background:rgba(255,255,255,.25); }
+    .action-buttons { display:flex; gap:.5rem; }
+
+    .alerts-list-section { display:flex; flex-direction:column; gap:1.5rem; }
+    .alert-group { display:flex; flex-direction:column; gap:.85rem; }
+    .group-header { display:flex; align-items:center; justify-content:space-between; padding:.5rem 0; margin-bottom:.25rem; }
+    .group-header h3 { margin:0; font-size:.95rem; display:flex; align-items:center; gap:.5rem; color:#1e293b; }
+    .group-count { font-size:.8rem; color:#94a3b8; background:#f1f5f9; padding:.2rem .6rem; border-radius:20px; }
+
+    .alert-card { display:flex; gap:1rem; background:#fff; border-radius:14px; padding:1.1rem 1.2rem; box-shadow:0 2px 8px rgba(0,0,0,.05); border:1px solid #f1f5f9; position:relative; overflow:hidden; transition:box-shadow .2s; }
+    .alert-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.1); }
+    .alert-card.unread { background:#fafeff; border-left:none; }
+    .alert-priority-indicator { position:absolute; left:0; top:0; bottom:0; width:4px; border-radius:14px 0 0 14px; }
+    .alert-card.critical .alert-priority-indicator { background:#ef4444; }
+    .alert-card.warning  .alert-priority-indicator { background:#f59e0b; }
+    .alert-card.info     .alert-priority-indicator { background:#3b82f6; }
+
+    .alert-icon { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:.95rem; }
+    .alert-card.critical .alert-icon { background:#ffebee; color:#ef4444; }
+    .alert-card.warning  .alert-icon { background:#fff3e0; color:#f59e0b; }
+    .alert-card.info     .alert-icon { background:#e3f2fd; color:#3b82f6; }
+
+    .alert-content { flex:1; }
+    .alert-header  { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:.4rem; }
+    .alert-header h4 { margin:0; font-size:.93rem; color:#1e293b; }
+    .alert-time    { font-size:.78rem; color:#94a3b8; white-space:nowrap; margin-left:.5rem; }
+    .alert-message { font-size:.88rem; color:#475569; margin:.4rem 0 .6rem; line-height:1.5; }
+    .alert-meta    { display:flex; align-items:center; gap:.75rem; margin-bottom:.6rem; }
+    .alert-date    { font-size:.78rem; color:#94a3b8; display:flex; align-items:center; gap:.3rem; }
+    .unread-dot    { width:8px; height:8px; border-radius:50%; background:#1BAEBE; flex-shrink:0; }
+    .alert-actions { display:flex; gap:.5rem; flex-wrap:wrap; }
+
+    .global-notification { position:fixed; top:1.5rem; right:1.5rem; padding:.9rem 1.2rem; border-radius:12px; display:flex; align-items:center; gap:.75rem; font-weight:500; z-index:9999; box-shadow:0 4px 12px rgba(0,0,0,.12); animation:slideInRight .3s ease; }
+    .global-notification.success { background:#e8f5e9; color:#2e7d32; border:1px solid #a5d6a7; }
+    .global-notification.info    { background:#e3f2fd; color:#1565c0; border:1px solid #90caf9; }
+    .global-notification.error   { background:#ffebee; color:#c62828; border:1px solid #ef9a9a; }
+    .notification-close { background:none; border:none; cursor:pointer; color:inherit; opacity:.7; padding:2px 4px; }
+
+    @@keyframes slideInRight { from { opacity:0; transform:translateX(80px); } to { opacity:1; transform:translateX(0); } }
+    @@keyframes fadeOut       { from { opacity:1; }                             to { opacity:0; transform:scale(.97); } }
+</style>
+}
+
+@functions {
+    string FormatRelativeTime(DateTime dt)
+    {
+        var diff = DateTime.Now - dt;
+        if (diff.TotalMinutes < 1)  return "Just now";
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}m ago";
+        if (diff.TotalHours   < 24) return $"{(int)diff.TotalHours}h ago";
+        if (diff.TotalDays    < 7)  return $"{(int)diff.TotalDays}d ago";
+        return dt.ToString("MMM dd, yyyy");
+    }
+}

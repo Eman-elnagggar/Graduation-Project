@@ -1,6 +1,7 @@
 ﻿using Graduation_Project.Data;
 using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Graduation_Project.Repository
 {
@@ -29,5 +30,12 @@ namespace Graduation_Project.Repository
         }
 
         public void Save() => _context.SaveChanges();
+
+        public IEnumerable<Models.MedicalHistory> GetByPatientId(int patientId) =>
+            _context.MedicalHistories
+                .Where(h => h.PatientID == patientId)
+                .Include(h => h.Doctor).ThenInclude(d => d.User)
+                .OrderByDescending(h => h.DateRecorded)
+                .ToList();
     }
 }

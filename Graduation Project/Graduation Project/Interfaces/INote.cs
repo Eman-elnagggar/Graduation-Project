@@ -10,5 +10,6 @@ namespace Graduation_Project.Interfaces
         void Update(Note note);
         void Delete(int id);
         void Save();
+        IEnumerable<Note> GetByPatientId(int patientId);
     }
 }

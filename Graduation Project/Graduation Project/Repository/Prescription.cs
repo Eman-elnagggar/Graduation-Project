@@ -1,6 +1,7 @@
 ﻿using Graduation_Project.Data;
 using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Graduation_Project.Repository
 {
@@ -29,5 +30,13 @@ namespace Graduation_Project.Repository
         }
 
         public void Save() => _context.SaveChanges();
+
+        public IEnumerable<Prescription> GetByPatientId(int patientId) =>
+            _context.Prescriptions
+                .Where(p => p.PatientID == patientId)
+                .Include(p => p.Doctor).ThenInclude(d => d.User)
+                .Include(p => p.Items)
+                .OrderByDescending(p => p.PrescriptionDate)
+                .ToList();
     }
 }

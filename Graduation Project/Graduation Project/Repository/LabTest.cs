@@ -29,5 +29,18 @@ namespace Graduation_Project.Repository
         }
 
         public void Save() => _context.SaveChanges();
+
+        public IEnumerable<LabTest> GetLabTestsByPatientId(int patientId)
+        {
+            return _context.LabTests.Where(lt => lt.PatientID == patientId).ToList();
+        }
+
+        public LabTest GetLastLabTestByPatientId(int patientId)
+        {
+            return _context.LabTests
+                .Where(lt => lt.PatientID == patientId)
+                .OrderByDescending(lt => lt.UploadDate)
+                .FirstOrDefault();
+        }
     }
 }

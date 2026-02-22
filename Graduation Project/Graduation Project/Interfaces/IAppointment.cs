@@ -10,5 +10,7 @@ namespace Graduation_Project.Interfaces
         void Update(Appointment appointment);
         void Delete(int id);
         void Save();
+        Appointment GetNextAppointmentForPatient(int patientId);
+        IEnumerable<Appointment> GetByPatientId(int patientId);
     }
 }

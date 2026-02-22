@@ -10,5 +10,6 @@ namespace Graduation_Project.Interfaces
         void Update(Prescription prescription);
         void Delete(int id);
         void Save();
+        IEnumerable<Prescription> GetByPatientId(int patientId);
     }
 }

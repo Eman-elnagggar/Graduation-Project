@@ -6,6 +6,7 @@ namespace Graduation_Project.Interfaces
     {
         IEnumerable<Alert> GetAll();
         Alert GetById(int id);
+        IEnumerable<Alert> GetByPatientId(int patientId);
         void Add(Alert alert);
         void Update(Alert alert);
         void Delete(int id);

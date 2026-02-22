@@ -1,0 +1,628 @@
+﻿@model Graduation_Project.ViewModels.MedicalHistoryViewModel
+@{
+    Layout = "~/Views/Shared/_PatientLayout.cshtml";
+    ViewData["Title"] = "Medical History";
+    ViewData["PatientId"]  = Model.Patient.PatientID;
+    ViewData["ActivePage"] = "MedicalHistory";
+    // Group entries by calendar date for section headers
+    var groups = Model.TimelineEntries
+        .GroupBy(e => e.DateTime.Date)
+        .OrderByDescending(g => g.Key)
+        .ToList();
+}
+
+<!-- Header -->
+<header class="header">
+    <div class="header-left">
+        <h1>Medical History 📋</h1>
+        <p>Your complete pregnancy journey and medical records</p>
+    </div>
+    <div class="header-right">
+        <div class="notification">
+            <i class="fas fa-bell"></i>
+            @if (Model.AlertCount > 0)
+            {
+                <span class="badge">@Model.AlertCount</span>
+            }
+        </div>
+        <div class="profile">
+            <i class="fas fa-user-circle" style="font-size:2rem;color:#1BAEBE"></i>
+            <span>@Model.UserName</span>
+        </div>
+    </div>
+</header>
+
+<!-- ── Quick Stats ─────────────────────────────────────────── -->
+<section class="history-stats">
+    <div class="history-stat-card">
+        <div class="stat-icon lab"><i class="fas fa-flask"></i></div>
+        <div class="stat-details">
+            <span class="stat-number">@Model.LabTestCount</span>
+            <span class="stat-label">Lab Tests</span>
+        </div>
+    </div>
+    <div class="history-stat-card">
+        <div class="stat-icon ultrasound"><i class="fas fa-baby"></i></div>
+        <div class="stat-details">
+            <span class="stat-number">@Model.UltrasoundCount</span>
+            <span class="stat-label">Ultrasounds</span>
+        </div>
+    </div>
+    <div class="history-stat-card">
+        <div class="stat-icon appointment"><i class="fas fa-calendar-check"></i></div>
+        <div class="stat-details">
+            <span class="stat-number">@Model.AppointmentCount</span>
+            <span class="stat-label">Appointments</span>
+        </div>
+    </div>
+    <div class="history-stat-card">
+        <div class="stat-icon bp"><i class="fas fa-heartbeat"></i></div>
+        <div class="stat-details">
+            <span class="stat-number">@Model.BloodPressureCount</span>
+            <span class="stat-label">BP Readings</span>
+        </div>
+    </div>
+    <div class="history-stat-card">
+        <div class="stat-icon alert"><i class="fas fa-bell"></i></div>
+        <div class="stat-details">
+            <span class="stat-number">@Model.AlertCount</span>
+            <span class="stat-label">Alerts</span>
+        </div>
+    </div>
+</section>
+
+<!-- ── Filters & Search ────────────────────────────────────── -->
+<section class="history-filters">
+    <div class="card">
+        <div class="filters-row">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search medical records…" id="historySearch" />
+            </div>
+            <div class="filter-group">
+                <label>Event Type:</label>
+                <select id="eventTypeFilter" class="form-select-sm">
+                    <option value="all">All Events</option>
+                    <option value="lab-test">Lab Tests</option>
+                    <option value="ultrasound">Ultrasounds</option>
+                    <option value="appointment">Appointments</option>
+                    <option value="bp-reading">Blood Pressure</option>
+                    <option value="blood-sugar">Blood Sugar</option>
+                    <option value="alert">Alerts</option>
+                    <option value="doctor-note">Doctor Notes</option>
+                    <option value="medication">Medications</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Status:</label>
+                <select id="statusFilter" class="form-select-sm">
+                    <option value="all">All Status</option>
+                    <option value="normal">Normal</option>
+                    <option value="attention">Needs Attention</option>
+                    <option value="critical">Critical</option>
+                </select>
+            </div>
+            <button class="btn btn-outline btn-sm" id="clearFilters">
+                <i class="fas fa-times"></i> Clear
+            </button>
+            <button class="btn btn-primary btn-sm" id="exportHistory">
+                <i class="fas fa-download"></i> Export
+            </button>
+        </div>
+        <div class="results-count" id="resultsCount"></div>
+    </div>
+</section>
+
+<!-- ── Timeline ────────────────────────────────────────────── -->
+<section class="history-timeline">
+    @if (!Model.TimelineEntries.Any())
+    {
+        <div class="card" style="text-align:center;padding:3rem;">
+            <i class="fas fa-history" style="font-size:3rem;color:#cbd5e1;margin-bottom:1rem;display:block"></i>
+            <h3 style="color:#64748b">No medical records yet</h3>
+            <p style="color:#94a3b8">Records will appear here as you add health data.</p>
+        </div>
+    }
+    else
+    {
+        <div class="timeline-container" id="timelineContainer">
+            @foreach (var group in groups)
+            {
+                string dayLabel;
+                if (group.Key == DateTime.Today) dayLabel = "Today";
+                else if (group.Key == DateTime.Today.AddDays(-1)) dayLabel = "Yesterday";
+                else dayLabel = group.Key.ToString("ddd");
+
+                <div class="timeline-date-group">
+                    <div class="date-header">
+                        <span class="date-badge @(group.Key == DateTime.Today ? "today" : "")">@dayLabel</span>
+                        <span class="date-full">@group.Key.ToString("MMMM dd, yyyy")</span>
+                    </div>
+
+                    @foreach (var entry in group.OrderByDescending(e => e.DateTime))
+                    {
+                        string markerClass = entry.EventType switch
+                        {
+                            "bp-reading"   => "bp",
+                            "blood-sugar"  => "bs",
+                            "lab-test"     => "lab",
+                            "ultrasound"   => "ultrasound",
+                            "appointment"  => "appointment",
+                            "alert"        => "alert",
+                            "doctor-note"  => "doctor",
+                            "medication"   => "medication",
+                            _              => "system"
+                        };
+
+                        string icon = entry.EventType switch
+                        {
+                            "bp-reading"   => "fas fa-heartbeat",
+                            "blood-sugar"  => "fas fa-tint",
+                            "lab-test"     => "fas fa-flask",
+                            "ultrasound"   => "fas fa-baby",
+                            "appointment"  => "fas fa-calendar-check",
+                            "alert"        => "fas fa-exclamation-triangle",
+                            "doctor-note"  => "fas fa-user-md",
+                            "medication"   => "fas fa-pills",
+                            _              => "fas fa-circle"
+                        };
+
+                        string contentClass = entry.Status == "critical" ? "timeline-content warning"
+                                                    : entry.Status == "attention" ? "timeline-content warning"
+                                                    : "timeline-content";
+
+                        <div class="timeline-item"
+                             data-type="@entry.EventType"
+                             data-status="@entry.Status"
+                             data-text="@(entry.Title + " " + entry.SubTitle + " " + entry.DoctorName)">
+
+                            <div class="timeline-marker @markerClass">
+                                <i class="@icon"></i>
+                            </div>
+
+                            <div class="@contentClass">
+                                <div class="timeline-header">
+                                    <h4>@entry.Title</h4>
+                                    <span class="timeline-time">@entry.DateTime.ToString("h:mm tt")</span>
+                                </div>
+
+                                <div class="timeline-body">
+
+                                    @* ── Blood Pressure ── *@
+                                    @if (entry.BloodPressure != null)
+                                    {
+                                        string badgeClass = entry.Status == "critical" ? "status-badge critical"
+                                                          : entry.Status == "attention" ? "status-badge elevated"
+                                                          : "status-badge normal";
+                                        string badgeText = entry.Status == "critical" ? "Critical"
+                                                         : entry.Status == "attention" ? "Elevated"
+                                                         : "Normal";
+                                        <div class="reading-display">
+                                            <span class="reading-value">@entry.BloodPressure.BloodPressure</span>
+                                            <span class="reading-unit">mmHg</span>
+                                            <span class="@badgeClass">@badgeText</span>
+                                        </div>
+                                        if (entry.BloodPressure.MeasurementTime != null)
+                                        {
+                                            <p class="timeline-description" style="margin-top:.4rem">
+                                                <i class="fas fa-clock" style="margin-right:.3rem"></i>@entry.BloodPressure.MeasurementTime
+                                            </p>
+                                        }
+                                    }
+
+                                    @* ── Blood Sugar ── *@
+                                    @if (entry.BloodSugar != null)
+                                    {
+                                        string badgeClass = entry.Status == "critical" ? "status-badge critical"
+                                                          : entry.Status == "attention" ? "status-badge elevated"
+                                                          : "status-badge normal";
+                                        string badgeText = entry.Status == "critical" ? "Critical"
+                                                         : entry.Status == "attention" ? "High"
+                                                         : "Normal";
+                                        <div class="reading-display">
+                                            <span class="reading-value">@entry.BloodSugar.BloodSugar</span>
+                                            <span class="reading-unit">mg/dL</span>
+                                            <span class="@badgeClass">@badgeText</span>
+                                        </div>
+                                        if (entry.BloodSugar.MeasurementTime != null)
+                                        {
+                                            <p class="timeline-description" style="margin-top:.4rem">
+                                                <i class="fas fa-clock" style="margin-right:.3rem"></i>@entry.BloodSugar.MeasurementTime
+                                            </p>
+                                        }
+                                    }
+
+                                    @* ── Lab Test ── *@
+                                    @if (entry.LabTest != null)
+                                    {
+                                        <div class="test-summary">
+                                            <div class="test-item">
+                                                <span class="test-name">Test Type</span>
+                                                <span class="test-value normal">@entry.LabTest.TestType</span>
+                                            </div>
+                                            <div class="test-item">
+                                                <span class="test-name">Uploaded</span>
+                                                <span class="test-value normal">@entry.LabTest.UploadDate.ToString("MMM dd, yyyy")</span>
+                                            </div>
+                                        </div>
+                                        @if (!string.IsNullOrWhiteSpace(entry.LabTest.AI_AnalysisJSON))
+                                        {
+                                            <div class="ai-analysis">
+                                                <div class="ai-badge"><i class="fas fa-robot"></i> AI Analysis</div>
+                                                <p>Analysis available – view full report for details.</p>
+                                            </div>
+                                        }
+                                    }
+
+                                    @* ── Ultrasound ── *@
+                                    @if (entry.Ultrasound != null)
+                                    {
+                                        <div class="ultrasound-results">
+                                            <div class="ai-analysis @(string.IsNullOrWhiteSpace(entry.Ultrasound.DetectedAnomaly) ? "success" : "")">
+                                                <div class="ai-badge"><i class="fas fa-robot"></i> AI Analysis</div>
+                                                <p>
+                                                    @(string.IsNullOrWhiteSpace(entry.Ultrasound.DetectedAnomaly)
+                                                        ? "No anomalies detected. Fetal development appears normal."
+                                                        : entry.Ultrasound.DetectedAnomaly)
+                                                </p>
+                                            </div>
+                                            @if (!string.IsNullOrWhiteSpace(entry.Ultrasound.DoctorComments))
+                                            {
+                                                <p class="timeline-description" style="margin-top:.5rem">
+                                                    <strong>Doctor:</strong> @entry.Ultrasound.DoctorComments
+                                                </p>
+                                            }
+                                        </div>
+                                    }
+
+                                    @* ── Appointment ── *@
+                                    @if (entry.Appointment != null)
+                                    {
+                                        <div class="appointment-details">
+                                            @if (!string.IsNullOrWhiteSpace(entry.DoctorName))
+                                            {
+                                                <div class="detail-item">
+                                                    <i class="fas fa-user-md"></i>
+                                                    <span>@entry.DoctorName</span>
+                                                </div>
+                                            }
+                                            @if (!string.IsNullOrWhiteSpace(entry.ClinicName))
+                                            {
+                                                <div class="detail-item">
+                                                    <i class="fas fa-map-marker-alt"></i>
+                                                    <span>@entry.ClinicName</span>
+                                                </div>
+                                            }
+                                            <div class="detail-item">
+                                                <i class="fas fa-clock"></i>
+                                                <span>@entry.Appointment.Time.ToString(@"hh\:mm")</span>
+                                            </div>
+                                        </div>
+                                        bool isPast = entry.Appointment.Date < DateTime.Now;
+                                        <div style="margin-top:.5rem">
+                                            <span class="status-badge @(isPast ? "completed" : "normal")">
+                                                <i class="fas @(isPast ? "fa-check" : "fa-clock")"></i>
+                                                @(isPast ? "Completed" : "Upcoming")
+                                            </span>
+                                        </div>
+                                    }
+
+                                    @* ── Alert ── *@
+                                    @if (entry.Alert != null)
+                                    {
+                                        <div class="alert-content">
+                                            <div class="alert-message">
+                                                <i class="fas fa-info-circle"></i>
+                                                <p>@entry.Alert.Message</p>
+                                            </div>
+                                            <div style="margin-top:.5rem">
+                                                <span class="status-badge @(entry.Alert.IsRead ? "completed" : "elevated")">
+                                                    @(entry.Alert.IsRead ? "Read" : "Unread")
+                                                </span>
+                                                <span class="status-badge" style="margin-left:.4rem">@entry.Alert.AlertType</span>
+                                            </div>
+                                        </div>
+                                    }
+
+                                    @* ── Doctor Note ── *@
+                                    @if (entry.DoctorNote != null)
+                                    {
+                                        <div class="note-content">
+                                            <p>"@entry.DoctorNote.Content"</p>
+                                        </div>
+                                    }
+
+                                    @* ── Prescription / Medication ── *@
+                                    @if (entry.Prescription != null)
+                                    {
+                                        <div class="medication-info">
+                                            <div class="med-icon"><i class="fas fa-capsules"></i></div>
+                                            <div class="med-details">
+                                                @if (entry.Prescription.Items != null && entry.Prescription.Items.Any())
+                                                {
+                                                    foreach (var item in entry.Prescription.Items)
+                                                    {
+                                                        <div style="margin-bottom:.4rem">
+                                                            <h5 style="margin:0">@item.MedicineName</h5>
+                                                            <p style="margin:.1rem 0">@item.Dosage · @item.Frequency</p>
+                                                            @if (!string.IsNullOrWhiteSpace(item.Instructions))
+                                                            {
+                                                                <span class="med-reason">@item.Instructions</span>
+                                                            }
+                                                        </div>
+                                                    }
+                                                }
+                                                else if (!string.IsNullOrWhiteSpace(entry.Prescription.Notes))
+                                                {
+                                                    <p>@entry.Prescription.Notes</p>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+
+                                </div><!-- /.timeline-body -->
+
+                                <div class="timeline-footer">
+                                    @if (!string.IsNullOrWhiteSpace(entry.DoctorName) && entry.Appointment == null)
+                                    {
+                                        <span class="recorded-by">
+                                            <i class="fas fa-user-md"></i> @entry.DoctorName
+                                        </span>
+                                    }
+                                    else if (entry.BloodPressure != null || entry.BloodSugar != null)
+                                    {
+                                        <span class="recorded-by">
+                                            <i class="fas fa-user"></i> Self-recorded
+                                        </span>
+                                    }
+                                    else if (entry.Alert != null)
+                                    {
+                                        <span class="recorded-by">
+                                            <i class="fas fa-robot"></i> AI System
+                                        </span>
+                                    }
+                                </div>
+                            </div><!-- /.timeline-content -->
+                        </div><!-- /.timeline-item -->
+                    }
+                </div><!-- /.timeline-date-group -->
+            }
+        </div><!-- /#timelineContainer -->
+    }
+</section>
+
+@section Scripts {
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const searchInput     = document.getElementById("historySearch");
+    const eventTypeFilter = document.getElementById("eventTypeFilter");
+    const statusFilter    = document.getElementById("statusFilter");
+    const clearBtn        = document.getElementById("clearFilters");
+    const exportBtn       = document.getElementById("exportHistory");
+    const resultsCount    = document.getElementById("resultsCount");
+
+    function getItems() {
+        return document.querySelectorAll(".timeline-item");
+    }
+
+    function filterTimeline() {
+        const search    = (searchInput?.value ?? "").toLowerCase();
+        const eventType = eventTypeFilter?.value ?? "all";
+        const status    = statusFilter?.value    ?? "all";
+        let visible = 0;
+
+        getItems().forEach(item => {
+            const t  = (item.dataset.type   ?? "").toLowerCase();
+            const s  = (item.dataset.status ?? "").toLowerCase();
+            const tx = (item.dataset.text   ?? "").toLowerCase();
+
+            const matchSearch    = !search    || tx.includes(search);
+            const matchEventType = eventType === "all" || t === eventType;
+            const matchStatus    = status    === "all" || s === status;
+
+            const show = matchSearch && matchEventType && matchStatus;
+            item.style.display = show ? "flex" : "none";
+            if (show) visible++;
+        });
+
+        document.querySelectorAll(".timeline-date-group").forEach(g => {
+            const hasVisible = Array.from(g.querySelectorAll(".timeline-item"))
+                                    .some(i => i.style.display !== "none");
+            g.style.display = hasVisible ? "block" : "none";
+        });
+
+        if (resultsCount)
+            resultsCount.textContent = `${visible} record${visible !== 1 ? "s" : ""} found`;
+    }
+
+    searchInput?.addEventListener("input",  debounce(filterTimeline, 250));
+    eventTypeFilter?.addEventListener("change", filterTimeline);
+    statusFilter?.addEventListener("change",    filterTimeline);
+
+    clearBtn?.addEventListener("click", () => {
+        if (searchInput)     searchInput.value     = "";
+        if (eventTypeFilter) eventTypeFilter.value = "all";
+        if (statusFilter)    statusFilter.value    = "all";
+        filterTimeline();
+    });
+
+    exportBtn?.addEventListener("click", showExportModal);
+
+    filterTimeline();
+
+    function debounce(fn, ms) {
+        let t;
+        return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+    }
+
+    function showExportModal() {
+        const modal = document.createElement("div");
+        modal.className = "export-modal";
+        modal.innerHTML = `
+            <div class="modal-overlay"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-download"></i> Export Medical History</h3>
+                    <button class="modal-close"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <p>Choose the format to export your medical history:</p>
+                    <div class="export-options">
+                        <label class="export-option">
+                            <input type="radio" name="exportFormat" value="pdf" checked>
+                            <div class="option-content">
+                                <i class="fas fa-file-pdf"></i>
+                                <span>PDF Document</span>
+                                <small>Best for printing and sharing</small>
+                            </div>
+                        </label>
+                        <label class="export-option">
+                            <input type="radio" name="exportFormat" value="excel">
+                            <div class="option-content">
+                                <i class="fas fa-file-excel"></i>
+                                <span>Excel Spreadsheet</span>
+                                <small>Best for data analysis</small>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary modal-cancel">Cancel</button>
+                    <button class="btn btn-primary modal-export">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+
+        modal.querySelector(".modal-close").addEventListener("click", () => modal.remove());
+        modal.querySelector(".modal-cancel").addEventListener("click", () => modal.remove());
+        modal.querySelector(".modal-overlay").addEventListener("click", () => modal.remove());
+        modal.querySelector(".modal-export").addEventListener("click", function () {
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting…';
+            setTimeout(() => { modal.remove(); showNotification("Exported successfully!", "success"); }, 1500);
+        });
+    }
+
+    function showNotification(msg, type = "info") {
+        const n = document.createElement("div");
+        n.className = `global-notification ${type}`;
+        n.innerHTML = `<i class="fas fa-check-circle"></i><span>${msg}</span>
+                       <button class="notification-close"><i class="fas fa-times"></i></button>`;
+        document.body.appendChild(n);
+        n.querySelector(".notification-close").addEventListener("click", () => n.remove());
+        setTimeout(() => n.remove(), 4000);
+    }
+});
+</script>
+
+<style>
+    .history-stats { display:flex; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem; }
+    .history-stat-card { display:flex; align-items:center; gap:.9rem; background:#fff; border-radius:14px; padding:1rem 1.4rem; box-shadow:0 2px 8px rgba(0,0,0,.06); flex:1; min-width:140px; }
+    .stat-icon { width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; }
+    .stat-icon.lab        { background:#e8f5e9; color:#4caf50; }
+    .stat-icon.ultrasound { background:#f3e5f5; color:#9c27b0; }
+    .stat-icon.appointment{ background:#fff3e0; color:#ff9800; }
+    .stat-icon.bp         { background:#e3f2fd; color:#2196f3; }
+    .stat-icon.alert      { background:#fce4ec; color:#e91e63; }
+    .stat-number { font-size:1.6rem; font-weight:700; color:#1e293b; line-height:1; }
+    .stat-label  { font-size:.78rem; color:#64748b; }
+    .stat-details{ display:flex; flex-direction:column; }
+
+    .history-filters .card { padding:1rem 1.25rem; }
+    .filters-row { display:flex; flex-wrap:wrap; align-items:center; gap:.75rem; }
+    .search-box  { display:flex; align-items:center; gap:.5rem; background:#f1f5f9; border-radius:8px; padding:.45rem .85rem; flex:1; min-width:180px; }
+    .search-box input { border:none; background:transparent; outline:none; font-size:.9rem; width:100%; }
+    .filter-group{ display:flex; align-items:center; gap:.4rem; }
+    .filter-group label { font-size:.83rem; color:#64748b; white-space:nowrap; }
+    .form-select-sm { border:1px solid #e2e8f0; border-radius:8px; padding:.35rem .65rem; font-size:.83rem; background:#fff; cursor:pointer; }
+    .results-count { margin-top:.6rem; font-size:.83rem; color:#64748b; }
+
+    .timeline-container { display:flex; flex-direction:column; gap:1.5rem; }
+    .date-header { display:flex; align-items:center; gap:.75rem; margin-bottom:.9rem; }
+    .date-badge  { background:#e2e8f0; color:#475569; font-size:.78rem; font-weight:600; padding:.25rem .65rem; border-radius:20px; }
+    .date-badge.today { background:#1BAEBE; color:#fff; }
+    .date-full   { font-size:.85rem; color:#94a3b8; }
+
+    .timeline-item { display:flex; gap:1rem; margin-bottom:1rem; }
+    .timeline-marker { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:.25rem; font-size:.95rem; }
+    .timeline-marker.bp          { background:#e3f2fd; color:#2196f3; }
+    .timeline-marker.bs          { background:#fce4ec; color:#e91e63; }
+    .timeline-marker.lab         { background:#e8f5e9; color:#4caf50; }
+    .timeline-marker.ultrasound  { background:#f3e5f5; color:#9c27b0; }
+    .timeline-marker.appointment { background:#fff3e0; color:#ff9800; }
+    .timeline-marker.alert       { background:#ffebee; color:#f44336; }
+    .timeline-marker.doctor      { background:#e8eaf6; color:#3f51b5; }
+    .timeline-marker.medication  { background:#e0f7fa; color:#00bcd4; }
+    .timeline-marker.system      { background:#f1f5f9; color:#64748b; }
+
+    .timeline-content { flex:1; background:#fff; border-radius:14px; padding:1rem 1.2rem; box-shadow:0 2px 8px rgba(0,0,0,.05); border:1px solid #f1f5f9; }
+    .timeline-content.warning { border-left:4px solid #f59e0b; background:#fffbeb; }
+    .timeline-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:.6rem; }
+    .timeline-header h4 { margin:0; font-size:.95rem; color:#1e293b; }
+    .timeline-time   { font-size:.78rem; color:#94a3b8; }
+    .timeline-footer { display:flex; align-items:center; justify-content:space-between; margin-top:.75rem; padding-top:.6rem; border-top:1px solid #f1f5f9; }
+    .recorded-by     { font-size:.78rem; color:#94a3b8; display:flex; align-items:center; gap:.35rem; }
+
+    .reading-display { display:flex; align-items:baseline; gap:.5rem; }
+    .reading-value   { font-size:1.4rem; font-weight:700; color:#1e293b; }
+    .reading-unit    { font-size:.8rem; color:#64748b; }
+
+    .status-badge         { font-size:.73rem; font-weight:600; padding:.2rem .6rem; border-radius:20px; display:inline-flex; align-items:center; gap:.3rem; }
+    .status-badge.normal  { background:#e8f5e9; color:#2e7d32; }
+    .status-badge.elevated{ background:#fff3e0; color:#e65100; }
+    .status-badge.critical{ background:#ffebee; color:#c62828; }
+    .status-badge.completed{ background:#e8f5e9; color:#2e7d32; }
+
+    .test-summary       { display:flex; flex-wrap:wrap; gap:.5rem; }
+    .test-item          { display:flex; flex-direction:column; background:#f8fafc; border-radius:8px; padding:.4rem .7rem; min-width:100px; }
+    .test-name          { font-size:.72rem; color:#94a3b8; }
+    .test-value         { font-size:.9rem; font-weight:600; color:#1e293b; }
+    .test-value.normal  { color:#2e7d32; }
+    .test-value.low     { color:#c62828; }
+
+    .ai-analysis        { background:#f0f9ff; border-radius:10px; padding:.65rem .9rem; margin-top:.5rem; }
+    .ai-analysis.success{ background:#f0fdf4; }
+    .ai-badge           { display:inline-flex; align-items:center; gap:.35rem; font-size:.78rem; font-weight:600; color:#0284c7; margin-bottom:.3rem; }
+    .ai-analysis.success .ai-badge { color:#16a34a; }
+
+    .appointment-details{ display:flex; flex-direction:column; gap:.35rem; }
+    .detail-item        { display:flex; align-items:center; gap:.5rem; font-size:.88rem; color:#475569; }
+
+    .alert-message      { display:flex; gap:.6rem; align-items:flex-start; }
+    .alert-message i    { color:#f59e0b; margin-top:.15rem; }
+
+    .note-content       { font-style:italic; color:#475569; line-height:1.6; }
+
+    .medication-info    { display:flex; gap:.9rem; align-items:flex-start; }
+    .med-icon           { width:38px; height:38px; background:#e0f7fa; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#00bcd4; flex-shrink:0; }
+    .med-details h5     { margin:0 0 .15rem; font-size:.9rem; }
+    .med-details p      { margin:0; font-size:.83rem; color:#64748b; }
+    .med-reason         { font-size:.78rem; color:#94a3b8; }
+
+    .export-modal { position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; }
+    .modal-overlay{ position:absolute; inset:0; background:rgba(0,0,0,.45); }
+    .modal-content{ position:relative; background:#fff; border-radius:16px; max-width:480px; width:90%; overflow:hidden; animation:modalIn .25s ease; }
+    .modal-header { display:flex; justify-content:space-between; align-items:center; padding:1.1rem 1.4rem; border-bottom:1px solid #e2e8f0; }
+    .modal-header h3 { margin:0; font-size:1rem; display:flex; align-items:center; gap:.5rem; }
+    .modal-close  { background:none; border:none; font-size:1.1rem; cursor:pointer; color:#64748b; }
+    .modal-body   { padding:1.4rem; }
+    .modal-footer { display:flex; gap:.75rem; justify-content:flex-end; padding:1rem 1.4rem; border-top:1px solid #e2e8f0; background:#f8fafc; }
+    .export-options { display:flex; flex-direction:column; gap:.75rem; margin:1rem 0; }
+    .export-option  { cursor:pointer; }
+    .export-option input { display:none; }
+    .export-option .option-content { display:flex; align-items:center; gap:.9rem; padding:.9rem 1rem; border:2px solid #e2e8f0; border-radius:10px; transition:border-color .2s; }
+    .export-option input:checked + .option-content { border-color:#1BAEBE; background:rgba(27,174,190,.04); }
+    .export-option .option-content i  { font-size:1.4rem; color:#1BAEBE; }
+    .export-option .option-content span { font-weight:500; }
+    .export-option .option-content small{ display:block; font-size:.75rem; color:#94a3b8; }
+
+    .global-notification { position:fixed; top:1.5rem; right:1.5rem; padding:.9rem 1.2rem; border-radius:12px; display:flex; align-items:center; gap:.75rem; font-weight:500; z-index:9999; box-shadow:0 4px 12px rgba(0,0,0,.12); }
+    .global-notification.success { background:#e8f5e9; color:#2e7d32; border:1px solid #a5d6a7; }
+    .global-notification.info    { background:#e3f2fd; color:#1565c0; border:1px solid #90caf9; }
+    .notification-close { background:none; border:none; cursor:pointer; color:inherit; opacity:.7; padding:2px 4px; }
+
+    @@keyframes modalIn { from { opacity:0; transform:translateY(-18px); } to { opacity:1; transform:translateY(0); } }
+</style>
+}
+

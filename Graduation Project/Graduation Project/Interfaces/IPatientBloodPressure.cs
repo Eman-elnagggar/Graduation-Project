@@ -10,5 +10,7 @@ namespace Graduation_Project.Interfaces
         void Update(PatientBloodPressure patientBloodPressure);
         void Delete(int id);
         void Save();
+        PatientBloodPressure GetLastBloodPressureValue(int patientId);
+        IEnumerable<PatientBloodPressure> GetRecentByPatientId(int patientId, int count = 10);
     }
 }

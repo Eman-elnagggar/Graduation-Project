@@ -1,6 +1,7 @@
 ﻿using Graduation_Project.Data;
 using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Graduation_Project.Repository
 {
@@ -15,7 +16,10 @@ namespace Graduation_Project.Repository
 
         public IEnumerable<Patient> GetAll() => _context.Patients.ToList();
 
-        public Patient GetById(int id) => _context.Patients.Find(id);
+        public Patient GetById(int id) =>
+            _context.Patients
+                    .Include(p => p.User)
+                    .FirstOrDefault(p => p.PatientID == id);
 
         public void Add(Patient patient) => _context.Patients.Add(patient);
 

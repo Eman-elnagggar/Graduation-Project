@@ -1,5 +1,7 @@
 using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
+using Graduation_Project.Services;
+using Graduation_Project.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Graduation_Project.Controllers
@@ -7,25 +9,530 @@ namespace Graduation_Project.Controllers
     public class PatientController : Controller
     {
         private readonly IPatient _patientRepository;
+        private readonly IPatientBloodPressure _patientBloodPressure;
+        private readonly IPatientBloodSugar _patientBloodSugar;
+        private readonly ILabTest _labTest;
+        private readonly IAppointment _appointment;
+        private readonly IUltrasoundImage _ultrasoundImage;
+        private readonly IAlert _alertRepository;
+        private readonly AlertService _alertService;
+        private readonly INote _noteRepository;
+        private readonly IPrescription _prescriptionRepository;
+        private readonly IMedicalHistory _medicalHistoryRepository;
 
-        public PatientController(IPatient patientRepository)
+        public PatientController(
+            IPatient patientRepository,
+            IPatientBloodPressure patientBloodPressure,
+            IPatientBloodSugar patientBloodSugar,
+            ILabTest labTest,
+            IAppointment appointment,
+            IUltrasoundImage ultrasoundImage,
+            IAlert alertRepository,
+            AlertService alertService,
+            INote noteRepository,
+            IPrescription prescriptionRepository,
+            IMedicalHistory medicalHistoryRepository)
         {
             _patientRepository = patientRepository;
+            _patientBloodPressure = patientBloodPressure;
+            _patientBloodSugar = patientBloodSugar;
+            _labTest = labTest;
+            _appointment = appointment;
+            _ultrasoundImage = ultrasoundImage;
+            _alertRepository = alertRepository;
+            _alertService = alertService;
+            _noteRepository = noteRepository;
+            _prescriptionRepository = prescriptionRepository;
+            _medicalHistoryRepository = medicalHistoryRepository;
         }
 
-        public IActionResult Index()
+        public IActionResult Index(int id)
         {
-            throw new NotImplementedException();
+            var patient = _patientRepository.GetById(id);
+            if (patient == null)
+                return NotFound();
+
+            // Calculate current pregnancy week
+            int currentWeek = 0;
+            if (patient.DateOfPregnancy.HasValue)
+            {
+                int daysSinceStart = (int)(DateTime.Today - patient.DateOfPregnancy.Value.Date).TotalDays;
+                currentWeek = Math.Clamp(daysSinceStart / 7, 0, 40);
+            }
+            else if (patient.GestationalWeeks > 0)
+            {
+                currentWeek = Math.Clamp(patient.GestationalWeeks, 0, 40);
+            }
+
+            // Calculate due date (280 days = 40 weeks from start)
+            string dueDate = patient.DateOfPregnancy.HasValue
+                ? patient.DateOfPregnancy.Value.AddDays(280).ToString("MMM dd, yyyy")
+                : "N/A";
+
+            // Fetch latest health readings
+            var lastBP   = _patientBloodPressure.GetLastBloodPressureValue(id);
+            var lastBS   = _patientBloodSugar.GetLastBloodSugarValue(id);
+            var lastLab  = _labTest.GetLastLabTestByPatientId(id);
+            var nextAppt = _appointment.GetNextAppointmentForPatient(id);
+
+            // Fetch recent readings for the tracker panels
+            var recentBPReadings = _patientBloodPressure.GetRecentByPatientId(id, 10).ToList();
+            var recentBSReadings = _patientBloodSugar.GetRecentByPatientId(id, 10).ToList();
+
+            // Evaluate patient data and persist any new critical alerts.
+            // Pass ALL recent readings so every abnormal value generates an alert,
+            // not just whichever reading happens to be "last".
+            _alertService.EvaluateAndSaveAlerts(id, patient, recentBPReadings, recentBSReadings, lastLab, nextAppt);
+
+            // Load unread alerts for the dashboard (most recent 5)
+            var healthAlerts = _alertRepository
+                .GetByPatientId(id)
+                .Where(a => !a.IsRead)
+                .Take(5)
+                .ToList();
+
+            // Build recent activity feed
+            var activities = new List<RecentActivityItem>();
+
+            if (lastBP != null)
+            {
+                activities.Add(new RecentActivityItem
+                {
+                    Title = "Blood Pressure Recorded",
+                    Description = $"{lastBP.BloodPressure} mmHg",
+                    DateTime = lastBP.DateTime,
+                    IconClass = "fas fa-heartbeat",
+                    IconBgColor = "#e3f2fd",
+                    IconColor = "#2196f3"
+                });
+            }
+
+            if (lastBS != null)
+            {
+                activities.Add(new RecentActivityItem
+                {
+                    Title = "Blood Sugar Recorded",
+                    Description = $"{lastBS.BloodSugar} mg/dL",
+                    DateTime = lastBS.DateTime,
+                    IconClass = "fas fa-tint",
+                    IconBgColor = "#fce4ec",
+                    IconColor = "#e91e63"
+                });
+            }
+
+            if (lastLab != null)
+            {
+                activities.Add(new RecentActivityItem
+                {
+                    Title = $"{lastLab.TestType} Test Uploaded",
+                    Description = "AI Analysis Complete",
+                    DateTime = lastLab.UploadDate,
+                    IconClass = "fas fa-flask",
+                    IconBgColor = "#e8f5e9",
+                    IconColor = "#4caf50"
+                });
+            }
+
+            var lastUltrasound = _ultrasoundImage.GetLastUltrasoundByPatientId(id);
+            if (lastUltrasound != null)
+            {
+                activities.Add(new RecentActivityItem
+                {
+                    Title = "Ultrasound Analyzed",
+                    Description = string.IsNullOrWhiteSpace(lastUltrasound.DetectedAnomaly)
+                        ? "No anomalies detected"
+                        : lastUltrasound.DetectedAnomaly,
+                    DateTime = lastUltrasound.UploadDate,
+                    IconClass = "fas fa-baby",
+                    IconBgColor = "#f3e5f5",
+                    IconColor = "#9c27b0"
+                });
+            }
+
+            if (nextAppt != null)
+            {
+                activities.Add(new RecentActivityItem
+                {
+                    Title = "Upcoming Appointment",
+                    Description = $"Dr. {nextAppt.Doctor?.User?.FirstName} - {nextAppt.Date:MMM dd, yyyy}",
+                    DateTime = nextAppt.Date,
+                    IconClass = "fas fa-calendar-check",
+                    IconBgColor = "#fff3e0",
+                    IconColor = "#ff9800"
+                });
+            }
+
+            // Sort by most recent first, keep top 5
+            activities = activities
+                .OrderByDescending(a => a.DateTime)
+                .Take(5)
+                .ToList();
+
+            var viewModel = new PatientDashboardViewModel
+            {
+                Patient = patient,
+                UserName = patient.User?.FirstName ?? "Patient",
+                PregnancyWeek = currentWeek,
+                PregnancyProgressPercent = (int)Math.Round(currentWeek / 40.0 * 100),
+                Trimester = currentWeek <= 13 ? "1st Trimester"
+                          : currentWeek <= 26 ? "2nd Trimester"
+                          : "3rd Trimester",
+                DueDate = dueDate,
+                LastBloodPressureValue = lastBP?.BloodPressure ?? "N/A",
+                LastBloodSugarValue = lastBS?.BloodSugar ?? 0,
+                LastLabTest = lastLab,
+                NextAppointment = nextAppt,
+                RecentBloodPressureReadings = recentBPReadings,
+                RecentBloodSugarReadings = recentBSReadings,
+                RecentActivities = activities,
+                HealthAlerts = healthAlerts
+            };
+
+            return View(viewModel);
         }
 
-        public IActionResult Details(int id)
+        // ---------------------------------------------------------------
+        // POST: /Patient/SaveBloodPressure
+        // ---------------------------------------------------------------
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult SaveBloodPressure(int patientId, string systolic, string diastolic, string? pulse, string? measurementTime)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrWhiteSpace(systolic) || string.IsNullOrWhiteSpace(diastolic))
+                return BadRequest(new { success = false, message = "Systolic and diastolic values are required." });
+
+            var reading = new PatientBloodPressure
+            {
+                PatientID = patientId,
+                BloodPressure = $"{systolic}/{diastolic}",
+                DateTime = DateTime.Now,
+                MeasurementTime = measurementTime
+            };
+
+            _patientBloodPressure.Add(reading);
+            _patientBloodPressure.Save();
+
+            // Evaluate and persist alerts for the new reading immediately
+            var patient = _patientRepository.GetById(patientId);
+            if (patient != null)
+            {
+                var lastBS   = _patientBloodSugar.GetLastBloodSugarValue(patientId);
+                var lastLab  = _labTest.GetLastLabTestByPatientId(patientId);
+                var nextAppt = _appointment.GetNextAppointmentForPatient(patientId);
+                _alertService.EvaluateAndSaveAlerts(patientId, patient, reading, lastBS, lastLab, nextAppt);
+            }
+
+            return Json(new
+            {
+                success = true,
+                id = reading.ID,
+                bloodPressure = reading.BloodPressure,
+                dateTime = reading.DateTime.ToString("MMM dd, yyyy hh:mm tt"),
+                day = reading.DateTime.Day.ToString(),
+                month = reading.DateTime.ToString("MMM"),
+                time = reading.DateTime.ToString("h:mm tt"),
+                measurementTime = reading.MeasurementTime
+            });
         }
 
-        public IActionResult Create()
+        // ---------------------------------------------------------------
+        // POST: /Patient/SaveBloodSugar
+        // ---------------------------------------------------------------
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult SaveBloodSugar(int patientId, double bloodSugar, string? measurementTime)
         {
-            throw new NotImplementedException();
+            if (bloodSugar <= 0)
+                return BadRequest(new { success = false, message = "Blood sugar value is required." });
+
+            var reading = new PatientBloodSugar
+            {
+                PatientID = patientId,
+                BloodSugar = bloodSugar,
+                DateTime = DateTime.Now,
+                MeasurementTime = measurementTime
+            };
+
+            _patientBloodSugar.Add(reading);
+            _patientBloodSugar.Save();
+
+            // Evaluate and persist alerts for the new reading immediately
+            var patient = _patientRepository.GetById(patientId);
+            if (patient != null)
+            {
+                var lastBP  = _patientBloodPressure.GetLastBloodPressureValue(patientId);
+                var lastLab = _labTest.GetLastLabTestByPatientId(patientId);
+                var nextAppt = _appointment.GetNextAppointmentForPatient(patientId);
+                _alertService.EvaluateAndSaveAlerts(patientId, patient, lastBP, reading, lastLab, nextAppt);
+            }
+
+            return Json(new
+            {
+                success = true,
+                id = reading.ID,
+                bloodSugar = reading.BloodSugar,
+                dateTime = reading.DateTime.ToString("MMM dd, yyyy hh:mm tt"),
+                day = reading.DateTime.Day.ToString(),
+                month = reading.DateTime.ToString("MMM"),
+                time = reading.DateTime.ToString("h:mm tt"),
+                measurementTime = reading.MeasurementTime
+            });
+        }
+
+        public IActionResult MedicalHistory(int id)
+        {
+            var patient = _patientRepository.GetById(id);
+            if (patient == null)
+                return NotFound();
+
+            // ?? collect all record sets ??????????????????????????????????
+            var bpReadings    = _patientBloodPressure.GetRecentByPatientId(id, 200).ToList();
+            var bsReadings    = _patientBloodSugar.GetRecentByPatientId(id, 200).ToList();
+            var labTests      = _labTest.GetLabTestsByPatientId(id).ToList();
+            var ultrasounds   = _ultrasoundImage.GetUltrasoundsByPatientId(id).ToList();
+            var appointments  = _appointment.GetByPatientId(id).ToList();
+            var alerts        = _alertRepository.GetByPatientId(id).ToList();
+            var notes         = _noteRepository.GetByPatientId(id).ToList();
+            var prescriptions = _prescriptionRepository.GetByPatientId(id).ToList();
+
+            // ?? build flat timeline ??????????????????????????????????????
+            var entries = new List<MedicalHistoryEntry>();
+
+            foreach (var bp in bpReadings)
+            {
+                var parts = bp.BloodPressure?.Split('/');
+                string status = "normal";
+                if (parts?.Length == 2 &&
+                    int.TryParse(parts[0], out int sys) &&
+                    int.TryParse(parts[1], out int dia))
+                {
+                    if (sys >= 160 || dia >= 110) status = "critical";
+                    else if (sys >= 140 || dia >= 90) status = "attention";
+                }
+
+                entries.Add(new MedicalHistoryEntry
+                {
+                    DateTime     = bp.DateTime,
+                    EventType    = "bp-reading",
+                    Status       = status,
+                    Title        = "Blood Pressure Reading",
+                    SubTitle     = $"{bp.BloodPressure} mmHg{(bp.MeasurementTime != null ? $" · {bp.MeasurementTime}" : "")}",
+                    BloodPressure = bp
+                });
+            }
+
+            foreach (var bs in bsReadings)
+            {
+                string status = bs.BloodSugar >= 200 ? "critical"
+                              : bs.BloodSugar >= 140 ? "attention"
+                              : "normal";
+
+                entries.Add(new MedicalHistoryEntry
+                {
+                    DateTime  = bs.DateTime,
+                    EventType = "blood-sugar",
+                    Status    = status,
+                    Title     = "Blood Sugar Reading",
+                    SubTitle  = $"{bs.BloodSugar} mg/dL{(bs.MeasurementTime != null ? $" · {bs.MeasurementTime}" : "")}",
+                    BloodSugar = bs
+                });
+            }
+
+            foreach (var lab in labTests)
+            {
+                entries.Add(new MedicalHistoryEntry
+                {
+                    DateTime  = lab.UploadDate,
+                    EventType = "lab-test",
+                    Status    = "normal",
+                    Title     = $"{lab.TestType} Test",
+                    SubTitle  = "AI Analysis Available",
+                    LabTest   = lab
+                });
+            }
+
+            foreach (var us in ultrasounds)
+            {
+                bool hasAnomaly = !string.IsNullOrWhiteSpace(us.DetectedAnomaly);
+                entries.Add(new MedicalHistoryEntry
+                {
+                    DateTime  = us.UploadDate,
+                    EventType = "ultrasound",
+                    Status    = hasAnomaly ? "attention" : "normal",
+                    Title     = "Ultrasound Scan",
+                    SubTitle  = hasAnomaly ? us.DetectedAnomaly : "No anomalies detected",
+                    DoctorName = us.Doctor?.User != null
+                        ? $"Dr. {us.Doctor.User.FirstName} {us.Doctor.User.LastName}"
+                        : null,
+                    Ultrasound = us
+                });
+            }
+
+            foreach (var appt in appointments)
+            {
+                bool isPast = appt.Date < DateTime.Now;
+                entries.Add(new MedicalHistoryEntry
+                {
+                    DateTime   = appt.Date,
+                    EventType  = "appointment",
+                    Status     = "normal",
+                    Title      = isPast ? "Appointment – Completed" : "Upcoming Appointment",
+                    DoctorName = appt.Doctor?.User != null
+                        ? $"Dr. {appt.Doctor.User.FirstName} {appt.Doctor.User.LastName}"
+                        : null,
+                    ClinicName  = appt.Clinic?.Name,
+                    Appointment = appt
+                });
+            }
+
+            foreach (var alert in alerts)
+            {
+                string status = alert.AlertType?.ToLower() is "danger" or "critical" ? "critical"
+                              : alert.AlertType?.ToLower() == "warning" ? "attention"
+                              : "normal";
+
+                entries.Add(new MedicalHistoryEntry
+                {
+                    DateTime  = alert.DateCreated,
+                    EventType = "alert",
+                    Status    = status,
+                    Title     = alert.Title,
+                    SubTitle  = alert.Message,
+                    Alert     = alert
+                });
+            }
+
+            foreach (var note in notes)
+            {
+                entries.Add(new MedicalHistoryEntry
+                {
+                    DateTime   = note.CreatedDate,
+                    EventType  = "doctor-note",
+                    Status     = "normal",
+                    Title      = "Doctor's Note",
+                    SubTitle   = note.Content?.Length > 120
+                        ? note.Content[..120] + "…"
+                        : note.Content,
+                    DoctorName = note.Doctor?.User != null
+                        ? $"Dr. {note.Doctor.User.FirstName} {note.Doctor.User.LastName}"
+                        : null,
+                    DoctorNote = note
+                });
+            }
+
+            foreach (var rx in prescriptions)
+            {
+                int itemCount = rx.Items?.Count ?? 0;
+                entries.Add(new MedicalHistoryEntry
+                {
+                    DateTime     = rx.PrescriptionDate,
+                    EventType    = "medication",
+                    Status       = "normal",
+                    Title        = "Prescription Issued",
+                    SubTitle     = itemCount > 0
+                        ? $"{itemCount} medication{(itemCount != 1 ? "s" : "")} prescribed"
+                        : rx.Notes,
+                    DoctorName   = rx.Doctor?.User != null
+                        ? $"Dr. {rx.Doctor.User.FirstName} {rx.Doctor.User.LastName}"
+                        : null,
+                    Prescription = rx
+                });
+            }
+
+            // ?? sort newest-first ????????????????????????????????????????
+            entries = entries.OrderByDescending(e => e.DateTime).ToList();
+
+            var viewModel = new MedicalHistoryViewModel
+            {
+                Patient            = patient,
+                UserName           = patient.User?.FirstName ?? "Patient",
+                TimelineEntries    = entries,
+                LabTestCount       = labTests.Count,
+                UltrasoundCount    = ultrasounds.Count,
+                AppointmentCount   = appointments.Count,
+                BloodPressureCount = bpReadings.Count,
+                AlertCount         = alerts.Count
+            };
+
+            return View(viewModel);
+        }
+
+        public IActionResult Alerts(int id)
+        {
+            var patient = _patientRepository.GetById(id);
+            if (patient == null)
+                return NotFound();
+
+            var alerts = _alertRepository
+                .GetByPatientId(id)
+                .OrderByDescending(a => a.DateCreated)
+                .ToList();
+
+            var viewModel = new AlertsViewModel
+            {
+                Patient  = patient,
+                UserName = patient.User?.FirstName ?? "Patient",
+                Alerts   = alerts
+            };
+
+            return View(viewModel);
+        }
+
+        // ---------------------------------------------------------------
+        // POST: /Patient/MarkAlertRead
+        // ---------------------------------------------------------------
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult MarkAlertRead(int alertId, int patientId)
+        {
+            var alert = _alertRepository.GetById(alertId);
+            if (alert == null || alert.PatientID != patientId)
+                return Json(new { success = false });
+
+            alert.IsRead = true;
+            _alertRepository.Update(alert);
+            _alertRepository.Save();
+
+            return Json(new { success = true });
+        }
+
+        // ---------------------------------------------------------------
+        // POST: /Patient/MarkAllAlertsRead
+        // ---------------------------------------------------------------
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult MarkAllAlertsRead(int patientId)
+        {
+            var unread = _alertRepository
+                .GetByPatientId(patientId)
+                .Where(a => !a.IsRead)
+                .ToList();
+
+            foreach (var a in unread)
+            {
+                a.IsRead = true;
+                _alertRepository.Update(a);
+            }
+            _alertRepository.Save();
+
+            return Json(new { success = true, count = unread.Count });
+        }
+
+        // ---------------------------------------------------------------
+        // POST: /Patient/DeleteAlert
+        // ---------------------------------------------------------------
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult DeleteAlert(int alertId, int patientId)
+        {
+            var alert = _alertRepository.GetById(alertId);
+            if (alert == null || alert.PatientID != patientId)
+                return Json(new { success = false });
+
+            _alertRepository.Delete(alertId);
+            _alertRepository.Save();
+
+            return Json(new { success = true });
         }
 
         [HttpPost]

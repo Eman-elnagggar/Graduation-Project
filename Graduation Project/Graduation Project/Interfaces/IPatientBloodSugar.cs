@@ -10,5 +10,7 @@ namespace Graduation_Project.Interfaces
         void Update(PatientBloodSugar patientBloodSugar);
         void Delete(int id);
         void Save();
+        PatientBloodSugar GetLastBloodSugarValue(int patientId);
+        IEnumerable<PatientBloodSugar> GetRecentByPatientId(int patientId, int count = 10);
     }
 }
