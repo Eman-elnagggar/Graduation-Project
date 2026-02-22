@@ -3,7 +3,7 @@ import uuid
 import shutil
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import JSONResponse
-
+import uvicorn
 from main import run_ocr
 
 app = FastAPI(title="Product Ingredients Analyzer API")
@@ -68,3 +68,7 @@ async def analyze_text(text: str = Form(...)):
                 "error": str(e)
             }
         )
+    
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=7860)
