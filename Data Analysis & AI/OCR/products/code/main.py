@@ -3,15 +3,20 @@ import comapre_ingredients as compare
 from display import display
 import os
 
-def run_ocr(image_path):
-    if not os.path.exists(image_path):
-        return {"error":"File not found"}
+def run_ocr(request_state,request_data):
+    text=""
+    if request_state=='image':
+      if not os.path.exists(request_data):
+          return {"error":"File not found"}
     
-    print("Loading...")
+      print("Loading...")
 
-    ocr_object=model.product_ocr(image_path)
-    text=ocr_object.robust_ocr()
-    # print(text)
+      ocr_object=model.product_ocr(request_data)
+      text=ocr_object.robust_ocr()
+      # print(text)
+    elif request_state=='text':
+        text=request_data
+
     if text=="":
         return [None],[None]
     
@@ -21,6 +26,7 @@ def run_ocr(image_path):
     return status,explained_text
 
 
-if __name__=='__main__':
-    image_path=input("Path: ")
+# if __name__=='__main__':
+    # request_state,request_data=process_request(input("Request_data: "))
+    # image_path=input("Path: ")
     # print(run_ocr(image_path))
