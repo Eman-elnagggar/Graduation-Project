@@ -1,15 +1,12 @@
 fastapi==0.110.0
 uvicorn[standard]==0.27.1
 python-multipart==0.0.9
-
-pillow==10.2.0
 numpy==1.26.4
 pandas==2.2.1
 opencv-python-headless==4.9.0.80
-
-python-doctr[torch]==0.8.1
-torch==2.2.1
-torchvision==0.17.1
-
 thefuzz[speedup]==0.22.1
 rapidfuzz==3.6.1
+python-doctr[torch]==0.8.1
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.2.1
+torchvision==0.17.1
