@@ -4,7 +4,7 @@ from thefuzz import fuzz
 class compare_ingredients:
     def __init__(self,text):
         self.__text=text
-        self.__df=pd.read_csv(r"D:\lenovo\EMAN\1.1.1 Graduation\Graduation-Project\Data Analysis & AI\OCR\products\ingredients.csv")
+        self.__df=pd.read_csv("ingredients.csv")
         self.__found_ingredients = {
             'risky':{'ingredients':[],'match_score':[]},
             'avoid':{'ingredients':[],'match_score':[]}

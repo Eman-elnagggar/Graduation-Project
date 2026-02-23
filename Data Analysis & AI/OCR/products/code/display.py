@@ -4,8 +4,10 @@ def display(extracted_ingradients)->list:
     risky_score=extracted_ingradients['risky']['match_score']
     avoid_list=extracted_ingradients['avoid']['ingredients']
     avoid_score=extracted_ingradients['avoid']['match_score']
+
     explained_text=[]
     status =[]
+
     if not risky_list and  not avoid_list:
         explained_text.append("According to our database, the ingredients in this product are not harmful, but if you have any doubts, it is best to consult a pharmacist or doctor.")
         status.append('safe')
