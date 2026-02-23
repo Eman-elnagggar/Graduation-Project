@@ -1,0 +1,69 @@
+UID -> index
+Index of Multiple Deprivation Rank -> مؤشر الحرمان بسيتخدم للتحديد الحاله جايه من منطقه فقيره ولا لا
+IMD Decile -> تقسيم للمؤشر السابق
+AgeAtStartOfSpell-> Age of the mom in the start of caring
+WeightMeasured
+Height
+Body Mass Index at Booking -> weight/(height)^2
+Obese? -> overweight
+Ethnicity -> العرق
+Risk Factors -> is there is any factor cause GMD (text column) خاص بالوزن والعرق
+AntenatalMedicalFactors -> عوامل الخطر بس خاصه بالطب
+PreviousObstetricHistory -. ماذا حدث في الحمل قبل الحمل الحالي
+Parity -> عدد الولادات السابقه
+Gravida -> عدد مرات الحمل السابقه
+Glucoselevelblood -> سكر صايم
+GlucoseToleranceTest -> الجراء المتخد مع السكر الصايم
+Glucoselevel0minblood -> مستوي الجلكوز عند الدقيقه 0
+Glucoselevel120minblood -> بعد ساعتين
+Gestational Diabetes -> تشخيص الحمل
+
+FolicAcidDose -> جرعه ال folic acid المتخده من بدايه الحمل 
+5 mg (أو 5000 mcg):
+
+هذه تسمى "الجرعة العالية". ولا يتم وصفها إلا لنساء لديهن "عوامل خطر" معينة.
+
+لماذا تهمنا "الجرعة العالية" (5 mg) في ملف سكري الحمل؟
+الأطباء يصفون جرعة 5 mg من حمض الفوليك في الحالات التالية:
+
+إذا كانت الأم تعاني من السمنة (BMI > 30).
+
+إذا كانت الأم مصابة بـ السكري (نوع أول أو ثانٍ) قبل الحمل.
+
+إذا كان هناك تاريخ عائلي لعيوب الأنبوب العصبي.
+
+SystolicBloodPressureCuff -. الرقم العلوي للضغط
+Diastolic Blood Pressure -> الرقم السفلي للضغط
+VitaminDlevelblood -> مستوي vitamin D
+O_Thyroidfunctionblood -> حاله الغده
+Delivery_Outcome -> النهايه الخاصه بالحمل
+OnsetofLabourMethod -> كيف بدأت عمليه الولاده
+Spontaneous (تلقائي):
+Induced (تحريض/طلق صناعي)
+No Labour (Pre-labour CS)
+Contraction frequency prior to delivery -> معدل الانقباضات كل 10 دقائق
+PrimaryIndicationforCaesarean -> السبب الرئيسي لاجراء عمليه قيصريه
+Category Caesarean Section -> درجه الاستعجال في العمليه القيصريه
+Cat1-> immidiate action
+cat2 -> urgant
+cat3 -> Scheduled/Early
+cat4 -> Elective
+
+EstimatedTotalBloodLoss -> معدل النقص في الدم
+Gestation -> عمر الحمل وقت وقوع الولاده(اسابيع)
+
+Severely Premature? -> هل ولد في مرحله مبكره واحتاج للرعايه
+Gestation (Days) -> بالايام
+Gestation at booking (Weeks) -> عدد الاسابيع في اول زياره رسميه
+No_Of_previous_Csections -> عدد الولادات القيصريه السابقه
+BabyBirthWeight
+Presence of meconium (ملوش لازمه)
+BW Centile -> وزن الطفل بنسبه مئويه
+Shoulder Dystocia -> عصر ولاده الكتف
+SCBU admission (Yes/NO) -> الاحتياج للعنايه المركزه
+LOS mother after delivery -> مده الاقامه بعد الولاده
+Sex -> جنس المولود
+Still_Birth -> live or death
+TotalApgarScoreat1minutes -> اختبار النجاه الاول للطفل
+Maternity_Month -> شهر الولاده
+
