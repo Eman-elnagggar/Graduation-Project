@@ -18,12 +18,12 @@ def run_ocr(request_state,request_data):
         text=request_data
 
     if text=="":
-        return [None],[None]
+        return [None]
     
     comapre_object=compare.compare_ingredients(text)
     founded_ingredients=comapre_object.analyze_ingredients()
-    status,explained_text=display(founded_ingredients)
-    return status,explained_text
+    results=display(founded_ingredients)
+    return results
 
 
 # if __name__=='__main__':

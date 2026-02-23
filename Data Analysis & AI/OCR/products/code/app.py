@@ -24,14 +24,13 @@ async def analyze_image(image: UploadFile = File(...)):
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(image.file, buffer)
 
-        status, explained_text = run_ocr("image", file_path)
+        results = run_ocr("image", file_path)
 
         os.remove(file_path)
 
         return JSONResponse(
             content={
-                "status": status,
-                "explained_text": explained_text
+                "results":results
             }
         )
 
@@ -51,12 +50,11 @@ async def analyze_text(text: str = Form(...)):
         if not text.strip():
             raise HTTPException(status_code=400, detail="Text cannot be empty")
 
-        status, explained_text = run_ocr("text", text)
+        results = run_ocr("text", text)
 
         return JSONResponse(
             content={
-                "status": status,
-                "explained_text": explained_text
+                "results":results
             }
         )
 
