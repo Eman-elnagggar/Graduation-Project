@@ -35,8 +35,8 @@ def label_row(row_dict):
     diagnoses = []
     # Rename Hb -> HGB for rule compatibility
     row_dict = row_dict.copy()
-    row_dict['HGB'] = row_dict.pop('Hb')
-    row_dict['PLT'] = row_dict['PLATELETS']
+    # row_dict['HGB'] = row_dict.pop('Hb')
+    # row_dict['PLT'] = row_dict['PLATELETS']
 
     # Apply rules
     if row_dict['WBC'] < 4.0: diagnoses.append('Leukopenia')
@@ -47,17 +47,17 @@ def label_row(row_dict):
     if row_dict['PLT'] > 400: diagnoses.append('Thrombocytosis')
     if row_dict['MCV'] < 80: diagnoses.append('Microcytosis')
     if row_dict['MCV'] > 100: diagnoses.append('Macrocytosis')
-    if row_dict['RDW'] > 15.0: diagnoses.append('Elevated RDW')
-    if row_dict['Neutrophils'] < 2.5: diagnoses.append('Neutropenia')
-    if row_dict['Neutrophils'] > 7.0: diagnoses.append('Neutrophilia')
+    # if row_dict['RDW'] > 15.0: diagnoses.append('Elevated RDW')
+    # if row_dict['Neutrophils'] < 2.5: diagnoses.append('Neutropenia')
+    # if row_dict['Neutrophils'] > 7.0: diagnoses.append('Neutrophilia')
     if row_dict['Lymphocytes'] < 1.0: diagnoses.append('Lymphopenia')
     if row_dict['Lymphocytes'] > 4.8: diagnoses.append('Lymphocytosis')
-    if row_dict['Monocytes'] < 0.2: diagnoses.append('Monocytopenia')
-    if row_dict['Monocytes'] > 0.8: diagnoses.append('Monocytosis')
-    if row_dict['Eosinophils'] > 0.5: diagnoses.append('Eosinophilia')
-    if row_dict['Basophils'] > 0.2: diagnoses.append('Basophilia')
-    if row_dict['MCV'] < 80.0 and row_dict['RDW'] > 15.0:
-        diagnoses.append('Probable Iron Deficiency Anemia (IDA)')
+    # if row_dict['Monocytes'] < 0.2: diagnoses.append('Monocytopenia')
+    # if row_dict['Monocytes'] > 0.8: diagnoses.append('Monocytosis')
+    # if row_dict['Eosinophils'] > 0.5: diagnoses.append('Eosinophilia')
+    # if row_dict['Basophils'] > 0.2: diagnoses.append('Basophilia')
+    # if row_dict['MCV'] < 80.0 and row_dict['RDW'] > 15.0:
+    #     diagnoses.append('Probable Iron Deficiency Anemia (IDA)')
     return diagnoses
 
 # Generate multi-label y from rules
