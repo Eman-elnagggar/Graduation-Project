@@ -1,5 +1,5 @@
 @{
-    var patientId  = ViewData["PatientId"]  as int? ?? 0;
+    var patientId = ViewData["PatientId"] as int? ?? 0;
     var activePage = ViewData["ActivePage"] as string ?? "";
 }
 
@@ -22,7 +22,8 @@
         <a href="#" class="nav-item @(activePage == "Products" ? "active" : "")" data-tooltip="Product Safety">
             <i class="fas fa-barcode"></i><span>Product Safety</span>
         </a>
-        <a href="#" class="nav-item @(activePage == "Places" ? "active" : "")" data-tooltip="My Places">
+        <a href="/Patient/Places/@patientId"
+           class="nav-item @(activePage == "Places" ? "active" : "")" data-tooltip="My Places">
             <i class="fas fa-map-marker-alt"></i><span>My Places</span>
         </a>
         <a href="#" class="nav-item @(activePage == "Appointments" ? "active" : "")" data-tooltip="Appointments">

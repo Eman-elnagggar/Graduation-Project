@@ -19,6 +19,7 @@ namespace Graduation_Project.Controllers
         private readonly INote _noteRepository;
         private readonly IPrescription _prescriptionRepository;
         private readonly IMedicalHistory _medicalHistoryRepository;
+        private readonly IPlace _placeRepository;
 
         public PatientController(
             IPatient patientRepository,
@@ -31,7 +32,8 @@ namespace Graduation_Project.Controllers
             AlertService alertService,
             INote noteRepository,
             IPrescription prescriptionRepository,
-            IMedicalHistory medicalHistoryRepository)
+            IMedicalHistory medicalHistoryRepository,
+            IPlace placeRepository)
         {
             _patientRepository = patientRepository;
             _patientBloodPressure = patientBloodPressure;
@@ -44,6 +46,7 @@ namespace Graduation_Project.Controllers
             _noteRepository = noteRepository;
             _prescriptionRepository = prescriptionRepository;
             _medicalHistoryRepository = medicalHistoryRepository;
+            _placeRepository = placeRepository;
         }
 
         public IActionResult Index(int id)
@@ -70,9 +73,9 @@ namespace Graduation_Project.Controllers
                 : "N/A";
 
             // Fetch latest health readings
-            var lastBP   = _patientBloodPressure.GetLastBloodPressureValue(id);
-            var lastBS   = _patientBloodSugar.GetLastBloodSugarValue(id);
-            var lastLab  = _labTest.GetLastLabTestByPatientId(id);
+            var lastBP = _patientBloodPressure.GetLastBloodPressureValue(id);
+            var lastBS = _patientBloodSugar.GetLastBloodSugarValue(id);
+            var lastLab = _labTest.GetLastLabTestByPatientId(id);
             var nextAppt = _appointment.GetNextAppointmentForPatient(id);
 
             // Fetch recent readings for the tracker panels
@@ -216,8 +219,8 @@ namespace Graduation_Project.Controllers
             var patient = _patientRepository.GetById(patientId);
             if (patient != null)
             {
-                var lastBS   = _patientBloodSugar.GetLastBloodSugarValue(patientId);
-                var lastLab  = _labTest.GetLastLabTestByPatientId(patientId);
+                var lastBS = _patientBloodSugar.GetLastBloodSugarValue(patientId);
+                var lastLab = _labTest.GetLastLabTestByPatientId(patientId);
                 var nextAppt = _appointment.GetNextAppointmentForPatient(patientId);
                 _alertService.EvaluateAndSaveAlerts(patientId, patient, reading, lastBS, lastLab, nextAppt);
             }
@@ -260,7 +263,7 @@ namespace Graduation_Project.Controllers
             var patient = _patientRepository.GetById(patientId);
             if (patient != null)
             {
-                var lastBP  = _patientBloodPressure.GetLastBloodPressureValue(patientId);
+                var lastBP = _patientBloodPressure.GetLastBloodPressureValue(patientId);
                 var lastLab = _labTest.GetLastLabTestByPatientId(patientId);
                 var nextAppt = _appointment.GetNextAppointmentForPatient(patientId);
                 _alertService.EvaluateAndSaveAlerts(patientId, patient, lastBP, reading, lastLab, nextAppt);
@@ -286,13 +289,13 @@ namespace Graduation_Project.Controllers
                 return NotFound();
 
             // ?? collect all record sets ??????????????????????????????????
-            var bpReadings    = _patientBloodPressure.GetRecentByPatientId(id, 200).ToList();
-            var bsReadings    = _patientBloodSugar.GetRecentByPatientId(id, 200).ToList();
-            var labTests      = _labTest.GetLabTestsByPatientId(id).ToList();
-            var ultrasounds   = _ultrasoundImage.GetUltrasoundsByPatientId(id).ToList();
-            var appointments  = _appointment.GetByPatientId(id).ToList();
-            var alerts        = _alertRepository.GetByPatientId(id).ToList();
-            var notes         = _noteRepository.GetByPatientId(id).ToList();
+            var bpReadings = _patientBloodPressure.GetRecentByPatientId(id, 200).ToList();
+            var bsReadings = _patientBloodSugar.GetRecentByPatientId(id, 200).ToList();
+            var labTests = _labTest.GetLabTestsByPatientId(id).ToList();
+            var ultrasounds = _ultrasoundImage.GetUltrasoundsByPatientId(id).ToList();
+            var appointments = _appointment.GetByPatientId(id).ToList();
+            var alerts = _alertRepository.GetByPatientId(id).ToList();
+            var notes = _noteRepository.GetByPatientId(id).ToList();
             var prescriptions = _prescriptionRepository.GetByPatientId(id).ToList();
 
             // ?? build flat timeline ??????????????????????????????????????
@@ -312,11 +315,11 @@ namespace Graduation_Project.Controllers
 
                 entries.Add(new MedicalHistoryEntry
                 {
-                    DateTime     = bp.DateTime,
-                    EventType    = "bp-reading",
-                    Status       = status,
-                    Title        = "Blood Pressure Reading",
-                    SubTitle     = $"{bp.BloodPressure} mmHg{(bp.MeasurementTime != null ? $" · {bp.MeasurementTime}" : "")}",
+                    DateTime = bp.DateTime,
+                    EventType = "bp-reading",
+                    Status = status,
+                    Title = "Blood Pressure Reading",
+                    SubTitle = $"{bp.BloodPressure} mmHg{(bp.MeasurementTime != null ? $" · {bp.MeasurementTime}" : "")}",
                     BloodPressure = bp
                 });
             }
@@ -329,11 +332,11 @@ namespace Graduation_Project.Controllers
 
                 entries.Add(new MedicalHistoryEntry
                 {
-                    DateTime  = bs.DateTime,
+                    DateTime = bs.DateTime,
                     EventType = "blood-sugar",
-                    Status    = status,
-                    Title     = "Blood Sugar Reading",
-                    SubTitle  = $"{bs.BloodSugar} mg/dL{(bs.MeasurementTime != null ? $" · {bs.MeasurementTime}" : "")}",
+                    Status = status,
+                    Title = "Blood Sugar Reading",
+                    SubTitle = $"{bs.BloodSugar} mg/dL{(bs.MeasurementTime != null ? $" · {bs.MeasurementTime}" : "")}",
                     BloodSugar = bs
                 });
             }
@@ -342,12 +345,12 @@ namespace Graduation_Project.Controllers
             {
                 entries.Add(new MedicalHistoryEntry
                 {
-                    DateTime  = lab.UploadDate,
+                    DateTime = lab.UploadDate,
                     EventType = "lab-test",
-                    Status    = "normal",
-                    Title     = $"{lab.TestType} Test",
-                    SubTitle  = "AI Analysis Available",
-                    LabTest   = lab
+                    Status = "normal",
+                    Title = $"{lab.TestType} Test",
+                    SubTitle = "AI Analysis Available",
+                    LabTest = lab
                 });
             }
 
@@ -356,11 +359,11 @@ namespace Graduation_Project.Controllers
                 bool hasAnomaly = !string.IsNullOrWhiteSpace(us.DetectedAnomaly);
                 entries.Add(new MedicalHistoryEntry
                 {
-                    DateTime  = us.UploadDate,
+                    DateTime = us.UploadDate,
                     EventType = "ultrasound",
-                    Status    = hasAnomaly ? "attention" : "normal",
-                    Title     = "Ultrasound Scan",
-                    SubTitle  = hasAnomaly ? us.DetectedAnomaly : "No anomalies detected",
+                    Status = hasAnomaly ? "attention" : "normal",
+                    Title = "Ultrasound Scan",
+                    SubTitle = hasAnomaly ? us.DetectedAnomaly : "No anomalies detected",
                     DoctorName = us.Doctor?.User != null
                         ? $"Dr. {us.Doctor.User.FirstName} {us.Doctor.User.LastName}"
                         : null,
@@ -373,14 +376,14 @@ namespace Graduation_Project.Controllers
                 bool isPast = appt.Date < DateTime.Now;
                 entries.Add(new MedicalHistoryEntry
                 {
-                    DateTime   = appt.Date,
-                    EventType  = "appointment",
-                    Status     = "normal",
-                    Title      = isPast ? "Appointment – Completed" : "Upcoming Appointment",
+                    DateTime = appt.Date,
+                    EventType = "appointment",
+                    Status = "normal",
+                    Title = isPast ? "Appointment – Completed" : "Upcoming Appointment",
                     DoctorName = appt.Doctor?.User != null
                         ? $"Dr. {appt.Doctor.User.FirstName} {appt.Doctor.User.LastName}"
                         : null,
-                    ClinicName  = appt.Clinic?.Name,
+                    ClinicName = appt.Clinic?.Name,
                     Appointment = appt
                 });
             }
@@ -393,12 +396,12 @@ namespace Graduation_Project.Controllers
 
                 entries.Add(new MedicalHistoryEntry
                 {
-                    DateTime  = alert.DateCreated,
+                    DateTime = alert.DateCreated,
                     EventType = "alert",
-                    Status    = status,
-                    Title     = alert.Title,
-                    SubTitle  = alert.Message,
-                    Alert     = alert
+                    Status = status,
+                    Title = alert.Title,
+                    SubTitle = alert.Message,
+                    Alert = alert
                 });
             }
 
@@ -406,11 +409,11 @@ namespace Graduation_Project.Controllers
             {
                 entries.Add(new MedicalHistoryEntry
                 {
-                    DateTime   = note.CreatedDate,
-                    EventType  = "doctor-note",
-                    Status     = "normal",
-                    Title      = "Doctor's Note",
-                    SubTitle   = note.Content?.Length > 120
+                    DateTime = note.CreatedDate,
+                    EventType = "doctor-note",
+                    Status = "normal",
+                    Title = "Doctor's Note",
+                    SubTitle = note.Content?.Length > 120
                         ? note.Content[..120] + "…"
                         : note.Content,
                     DoctorName = note.Doctor?.User != null
@@ -425,14 +428,14 @@ namespace Graduation_Project.Controllers
                 int itemCount = rx.Items?.Count ?? 0;
                 entries.Add(new MedicalHistoryEntry
                 {
-                    DateTime     = rx.PrescriptionDate,
-                    EventType    = "medication",
-                    Status       = "normal",
-                    Title        = "Prescription Issued",
-                    SubTitle     = itemCount > 0
+                    DateTime = rx.PrescriptionDate,
+                    EventType = "medication",
+                    Status = "normal",
+                    Title = "Prescription Issued",
+                    SubTitle = itemCount > 0
                         ? $"{itemCount} medication{(itemCount != 1 ? "s" : "")} prescribed"
                         : rx.Notes,
-                    DoctorName   = rx.Doctor?.User != null
+                    DoctorName = rx.Doctor?.User != null
                         ? $"Dr. {rx.Doctor.User.FirstName} {rx.Doctor.User.LastName}"
                         : null,
                     Prescription = rx
@@ -444,14 +447,14 @@ namespace Graduation_Project.Controllers
 
             var viewModel = new MedicalHistoryViewModel
             {
-                Patient            = patient,
-                UserName           = patient.User?.FirstName ?? "Patient",
-                TimelineEntries    = entries,
-                LabTestCount       = labTests.Count,
-                UltrasoundCount    = ultrasounds.Count,
-                AppointmentCount   = appointments.Count,
+                Patient = patient,
+                UserName = patient.User?.FirstName ?? "Patient",
+                TimelineEntries = entries,
+                LabTestCount = labTests.Count,
+                UltrasoundCount = ultrasounds.Count,
+                AppointmentCount = appointments.Count,
                 BloodPressureCount = bpReadings.Count,
-                AlertCount         = alerts.Count
+                AlertCount = alerts.Count
             };
 
             return View(viewModel);
@@ -470,9 +473,9 @@ namespace Graduation_Project.Controllers
 
             var viewModel = new AlertsViewModel
             {
-                Patient  = patient,
+                Patient = patient,
                 UserName = patient.User?.FirstName ?? "Patient",
-                Alerts   = alerts
+                Alerts = alerts
             };
 
             return View(viewModel);
@@ -535,11 +538,110 @@ namespace Graduation_Project.Controllers
             return Json(new { success = true });
         }
 
+        // ---------------------------------------------------------------
+        // GET: /Patient/Places/5
+        // ---------------------------------------------------------------
+        [HttpGet]
+        public IActionResult Places(int id)
+        {
+            var patient = _patientRepository.GetById(id);
+            if (patient == null)
+                return NotFound();
+
+            var places = _placeRepository.GetByPatientId(id).ToList();
+
+            var viewModel = new PlacesViewModel
+            {
+                Patient = patient,
+                UserName = patient.User?.FirstName ?? "Patient",
+                Places = places
+            };
+
+            return View(viewModel);
+        }
+
+        // ---------------------------------------------------------------
+        // POST: /Patient/Places  (form-POST kept as stub for future use)
+        // ---------------------------------------------------------------
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Create(Patient patient)
+        public IActionResult Places(Patient patient)
         {
             throw new NotImplementedException();
+        }
+
+        // ---------------------------------------------------------------
+        // POST: /Patient/SavePlace  (AJAX)
+        // ---------------------------------------------------------------
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult SavePlace(int patientId, string name, string type, string? address, string? phone)
+        {
+            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(type))
+                return BadRequest(new { success = false, message = "Name and type are required." });
+
+            var place = new Place
+            {
+                PatientID = patientId,
+                Name = name,
+                Type = type,
+                Address = address ?? string.Empty,
+                Phone = phone ?? string.Empty,
+                ImageURL = string.Empty
+            };
+
+            _placeRepository.Add(place);
+            _placeRepository.Save();
+
+            return Json(new
+            {
+                success = true,
+                id = place.PlaceID,
+                name = place.Name,
+                type = place.Type,
+                address = place.Address,
+                phone = place.Phone,
+                imageUrl = place.ImageURL
+            });
+        }
+
+        // ---------------------------------------------------------------
+        // POST: /Patient/UpdatePlace  (AJAX)
+        // ---------------------------------------------------------------
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult UpdatePlace(int placeId, int patientId, string name, string type, string? address, string? phone)
+        {
+            var place = _placeRepository.GetById(placeId);
+            if (place == null || place.PatientID != patientId)
+                return Json(new { success = false });
+
+            place.Name = name;
+            place.Type = type;
+            place.Address = address ?? string.Empty;
+            place.Phone = phone ?? string.Empty;
+
+            _placeRepository.Update(place);
+            _placeRepository.Save();
+
+            return Json(new { success = true });
+        }
+
+        // ---------------------------------------------------------------
+        // POST: /Patient/DeletePlace  (AJAX)
+        // ---------------------------------------------------------------
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult DeletePlace(int placeId, int patientId)
+        {
+            var place = _placeRepository.GetById(placeId);
+            if (place == null || place.PatientID != patientId)
+                return Json(new { success = false });
+
+            _placeRepository.Delete(placeId);
+            _placeRepository.Save();
+
+            return Json(new { success = true });
         }
 
         public IActionResult Edit(int id)

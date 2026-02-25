@@ -1,0 +1,429 @@
+﻿@model Graduation_Project.ViewModels.PlacesViewModel
+@{
+    Layout = "~/Views/Shared/_PatientLayout.cshtml";
+    ViewData["Title"] = "My Places";
+    ViewData["PatientId"] = Model.Patient.PatientID;
+    ViewData["ActivePage"] = "Places";
+}
+
+@section Head {
+    @Html.AntiForgeryToken()
+}
+
+<!-- Header -->
+<header class="header">
+    <div class="header-left">
+        <h1>My Places 📍</h1>
+        <p>Manage your healthcare locations</p>
+    </div>
+    <div class="header-right">
+        <div class="notification">
+            <i class="fas fa-bell"></i>
+        </div>
+        <div class="profile">
+            <i class="fas fa-user-circle" style="font-size:2rem;color:#1BAEBE"></i>
+            <span>@Model.UserName</span>
+        </div>
+    </div>
+</header>
+
+<!-- Add New Place -->
+<section class="add-place-section">
+    <div class="card">
+        <h3><i class="fas fa-plus-circle"></i> Add New Place</h3>
+        <form id="addPlaceForm" class="place-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="placeName">Place Name *</label>
+                    <input type="text" id="placeName" class="form-input" placeholder="e.g., City Hospital" required />
+                </div>
+                <div class="form-group">
+                    <label for="placeType">Place Type *</label>
+                    <select id="placeType" class="form-select" required>
+                        <option value="">Select Type</option>
+                        <option value="hospital">Hospital</option>
+                        <option value="clinic">Clinic</option>
+                        <option value="lab">Laboratory</option>
+                        <option value="pharmacy">Pharmacy</option>
+                        <option value="imaging">Imaging Center</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="placeAddress">Address</label>
+                    <input type="text" id="placeAddress" class="form-input" placeholder="Full address" />
+                </div>
+                <div class="form-group">
+                    <label for="placePhone">Phone Number</label>
+                    <input type="tel" id="placePhone" class="form-input" placeholder="+20 xxx xxx xxxx" />
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="cancelAddBtn" style="display:none">Cancel</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Save Place
+                </button>
+            </div>
+        </form>
+    </div>
+</section>
+
+<!-- My Places List -->
+<section class="places-list">
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-list"></i> My Saved Places</h3>
+            <div class="filter-group">
+                <select class="form-select-sm" id="typeFilter">
+                    <option value="">All Types</option>
+                    <option value="hospital">Hospitals</option>
+                    <option value="clinic">Clinics</option>
+                    <option value="lab">Laboratories</option>
+                    <option value="pharmacy">Pharmacies</option>
+                    <option value="imaging">Imaging Centers</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="places-grid" id="placesGrid">
+            @if (!Model.Places.Any())
+            {
+                <div id="emptyState" style="text-align:center;padding:3rem;width:100%">
+                    <i class="fas fa-map-marker-alt" style="font-size:3rem;color:#cbd5e1;margin-bottom:1rem;display:block"></i>
+                    <h3 style="color:#64748b">No places saved yet</h3>
+                    <p style="color:#94a3b8">Add your healthcare locations above to keep them handy.</p>
+                </div>
+            }
+            else
+            {
+                <div id="emptyState" style="display:none;text-align:center;padding:3rem;width:100%">
+                    <i class="fas fa-map-marker-alt" style="font-size:3rem;color:#cbd5e1;margin-bottom:1rem;display:block"></i>
+                    <h3 style="color:#64748b">No places found</h3>
+                    <p style="color:#94a3b8">Try a different filter.</p>
+                </div>
+
+                foreach (var place in Model.Places)
+                {
+                    <div class="place-card" data-place-id="@place.PlaceID" data-type="@place.Type?.ToLower()">
+                        <div class="place-image">
+                            @if (!string.IsNullOrWhiteSpace(place.ImageURL))
+                            {
+                                <img src="@place.ImageURL" alt="@place.Name" />
+                            }
+                            else
+                            {
+                                <div class="place-image-placeholder">
+                                    <i class="@GetPlaceIcon(place.Type)"></i>
+                                </div>
+                            }
+                            <span class="place-type-badge @place.Type?.ToLower()">@CapitalizeType(place.Type)</span>
+                        </div>
+                        <div class="place-info">
+                            <h4>@place.Name</h4>
+                            @if (!string.IsNullOrWhiteSpace(place.Address))
+                            {
+                                <p class="place-address">
+                                    <i class="fas fa-map-marker-alt"></i> @place.Address
+                                </p>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(place.Phone))
+                            {
+                                <p class="place-phone">
+                                    <i class="fas fa-phone"></i> @place.Phone
+                                </p>
+                            }
+                        </div>
+                        <div class="place-actions">
+                            <button class="btn btn-sm btn-outline edit-place-btn"
+                                    data-id="@place.PlaceID"
+                                    data-name="@place.Name"
+                                    data-type="@place.Type"
+                                    data-address="@place.Address"
+                                    data-phone="@place.Phone">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button class="btn btn-sm btn-outline danger delete-place-btn"
+                                    data-id="@place.PlaceID">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</section>
+
+<!-- Edit Modal -->
+<div id="editModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:16px;padding:2rem;width:100%;max-width:520px;margin:1rem;">
+        <h3 style="margin-bottom:1.2rem"><i class="fas fa-edit"></i> Edit Place</h3>
+        <input type="hidden" id="editPlaceId" />
+        <div class="form-row">
+            <div class="form-group">
+                <label>Place Name *</label>
+                <input type="text" id="editPlaceName" class="form-input" />
+            </div>
+            <div class="form-group">
+                <label>Place Type *</label>
+                <select id="editPlaceType" class="form-select">
+                    <option value="hospital">Hospital</option>
+                    <option value="clinic">Clinic</option>
+                    <option value="lab">Laboratory</option>
+                    <option value="pharmacy">Pharmacy</option>
+                    <option value="imaging">Imaging Center</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Address</label>
+                <input type="text" id="editPlaceAddress" class="form-input" />
+            </div>
+            <div class="form-group">
+                <label>Phone Number</label>
+                <input type="tel" id="editPlacePhone" class="form-input" />
+            </div>
+        </div>
+        <div class="form-actions" style="margin-top:1.2rem">
+            <button class="btn btn-secondary" id="closeEditModal">Cancel</button>
+            <button class="btn btn-primary" id="saveEditBtn"><i class="fas fa-save"></i> Save Changes</button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+
+            const patientId   = @Model.Patient.PatientID;
+            const antiForgery = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? "";
+
+            // ── Type filter ──────────────────────────────────────────────────
+            document.getElementById("typeFilter").addEventListener("change", function () {
+                const filter = this.value.toLowerCase();
+                const cards  = document.querySelectorAll(".place-card");
+                let visible  = 0;
+                cards.forEach(card => {
+                    const show = !filter || card.dataset.type === filter;
+                    card.style.display = show ? "" : "none";
+                    if (show) visible++;
+                });
+                document.getElementById("emptyState").style.display = visible === 0 ? "block" : "none";
+            });
+
+            // ── Add Place ────────────────────────────────────────────────────
+            document.getElementById("addPlaceForm").addEventListener("submit", function (e) {
+                e.preventDefault();
+                const name    = document.getElementById("placeName").value.trim();
+                const type    = document.getElementById("placeType").value;
+                const address = document.getElementById("placeAddress").value.trim();
+                const phone   = document.getElementById("placePhone").value.trim();
+
+                if (!name || !type) { showNotification("Name and type are required.", "warning"); return; }
+
+                fetch("/Patient/SavePlace", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: `patientId=${patientId}&name=${encodeURIComponent(name)}&type=${encodeURIComponent(type)}&address=${encodeURIComponent(address)}&phone=${encodeURIComponent(phone)}&__RequestVerificationToken=${encodeURIComponent(antiForgery)}`
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        this.reset();
+                        addPlaceCard(data);
+                        showNotification("Place saved successfully!", "success");
+                    }
+                })
+                .catch(() => showNotification("An error occurred. Please try again.", "error"));
+            });
+
+            // ── Delete Place ─────────────────────────────────────────────────
+            document.addEventListener("click", function (e) {
+                const btn = e.target.closest(".delete-place-btn");
+                if (!btn) return;
+                const placeId = btn.dataset.id;
+                if (!confirm("Are you sure you want to delete this place?")) return;
+
+                fetch("/Patient/DeletePlace", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: `placeId=${placeId}&patientId=${patientId}&__RequestVerificationToken=${encodeURIComponent(antiForgery)}`
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        btn.closest(".place-card").remove();
+                        showNotification("Place deleted.", "success");
+                        const cards = document.querySelectorAll(".place-card");
+                        if (cards.length === 0)
+                            document.getElementById("emptyState").style.display = "block";
+                    }
+                })
+                .catch(() => showNotification("An error occurred.", "error"));
+            });
+
+            // ── Open Edit Modal ──────────────────────────────────────────────
+            document.addEventListener("click", function (e) {
+                const btn = e.target.closest(".edit-place-btn");
+                if (!btn) return;
+                document.getElementById("editPlaceId").value      = btn.dataset.id;
+                document.getElementById("editPlaceName").value    = btn.dataset.name;
+                document.getElementById("editPlaceType").value    = btn.dataset.type;
+                document.getElementById("editPlaceAddress").value = btn.dataset.address;
+                document.getElementById("editPlacePhone").value   = btn.dataset.phone;
+                document.getElementById("editModal").style.display = "flex";
+            });
+
+            document.getElementById("closeEditModal").addEventListener("click", () => {
+                document.getElementById("editModal").style.display = "none";
+            });
+
+            document.getElementById("editModal").addEventListener("click", function (e) {
+                if (e.target === this) this.style.display = "none";
+            });
+
+            // ── Save Edit ────────────────────────────────────────────────────
+            document.getElementById("saveEditBtn").addEventListener("click", function () {
+                const placeId = document.getElementById("editPlaceId").value;
+                const name    = document.getElementById("editPlaceName").value.trim();
+                const type    = document.getElementById("editPlaceType").value;
+                const address = document.getElementById("editPlaceAddress").value.trim();
+                const phone   = document.getElementById("editPlacePhone").value.trim();
+
+                if (!name || !type) { showNotification("Name and type are required.", "warning"); return; }
+
+                fetch("/Patient/UpdatePlace", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: `placeId=${placeId}&patientId=${patientId}&name=${encodeURIComponent(name)}&type=${encodeURIComponent(type)}&address=${encodeURIComponent(address)}&phone=${encodeURIComponent(phone)}&__RequestVerificationToken=${encodeURIComponent(antiForgery)}`
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        const card = document.querySelector(`.place-card[data-place-id="${placeId}"]`);
+                        if (card) {
+                            card.dataset.type = type.toLowerCase();
+                            card.querySelector("h4").textContent = name;
+                            const addrEl = card.querySelector(".place-address");
+                            if (addrEl) addrEl.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${address}`;
+                            const phoneEl = card.querySelector(".place-phone");
+                            if (phoneEl) phoneEl.innerHTML = `<i class="fas fa-phone"></i> ${phone}`;
+                            const badge = card.querySelector(".place-type-badge");
+                            if (badge) { badge.className = `place-type-badge ${type.toLowerCase()}`; badge.textContent = capitalizeType(type); }
+                            // update edit button data attrs
+                            const editBtn = card.querySelector(".edit-place-btn");
+                            if (editBtn) { editBtn.dataset.name = name; editBtn.dataset.type = type; editBtn.dataset.address = address; editBtn.dataset.phone = phone; }
+                        }
+                        document.getElementById("editModal").style.display = "none";
+                        showNotification("Place updated successfully!", "success");
+                    }
+                })
+                .catch(() => showNotification("An error occurred.", "error"));
+            });
+
+            // ── Helpers ──────────────────────────────────────────────────────
+            function addPlaceCard(data) {
+                document.getElementById("emptyState").style.display = "none";
+                const grid = document.getElementById("placesGrid");
+                const icon = getPlaceIcon(data.type);
+                const card = document.createElement("div");
+                card.className = "place-card";
+                card.dataset.placeId = data.id;
+                card.dataset.type = data.type.toLowerCase();
+                card.innerHTML = `
+                    <div class="place-image">
+                        <div class="place-image-placeholder"><i class="${icon}"></i></div>
+                        <span class="place-type-badge ${data.type.toLowerCase()}">${capitalizeType(data.type)}</span>
+                    </div>
+                    <div class="place-info">
+                        <h4>${escHtml(data.name)}</h4>
+                        ${data.address ? `<p class="place-address"><i class="fas fa-map-marker-alt"></i> ${escHtml(data.address)}</p>` : ""}
+                        ${data.phone   ? `<p class="place-phone"><i class="fas fa-phone"></i> ${escHtml(data.phone)}</p>` : ""}
+                    </div>
+                    <div class="place-actions">
+                        <button class="btn btn-sm btn-outline edit-place-btn"
+                            data-id="${data.id}" data-name="${escAttr(data.name)}"
+                            data-type="${escAttr(data.type)}" data-address="${escAttr(data.address)}"
+                            data-phone="${escAttr(data.phone)}">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="btn btn-sm btn-outline danger delete-place-btn" data-id="${data.id}">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>`;
+                grid.appendChild(card);
+            }
+
+            function getPlaceIcon(type) {
+                const map = { hospital: "fas fa-hospital", clinic: "fas fa-clinic-medical", lab: "fas fa-flask", pharmacy: "fas fa-pills", imaging: "fas fa-x-ray" };
+                return map[(type ?? "").toLowerCase()] ?? "fas fa-map-marker-alt";
+            }
+
+            function capitalizeType(type) {
+                const map = { hospital: "Hospital", clinic: "Clinic", lab: "Laboratory", pharmacy: "Pharmacy", imaging: "Imaging Center" };
+                return map[(type ?? "").toLowerCase()] ?? type ?? "";
+            }
+
+            function escHtml(s) { const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; }
+            function escAttr(s) { return (s ?? "").replace(/"/g, "&quot;").replace(/'/g, "&#39;"); }
+
+            function showNotification(message, type = "info") {
+                const existing = document.querySelector(".global-notification");
+                if (existing) existing.remove();
+                const n = document.createElement("div");
+                n.className = `global-notification ${type}`;
+                const icons = { success: "fa-check-circle", error: "fa-exclamation-circle", warning: "fa-exclamation-triangle", info: "fa-info-circle" };
+                n.innerHTML = `<i class="fas ${icons[type] ?? icons.info}"></i><span>${message}</span>
+                               <button class="notification-close"><i class="fas fa-times"></i></button>`;
+                document.body.appendChild(n);
+                n.querySelector(".notification-close").addEventListener("click", () => n.remove());
+                setTimeout(() => n.remove(), 4000);
+            }
+        });
+    </script>
+
+    <style>
+        .place-image-placeholder {
+            display: flex; align-items: center; justify-content: center;
+            height: 100%; background: #f1f5f9; color: #94a3b8; font-size: 2.5rem;
+        }
+        .place-type-badge.hospital { background: #dbeafe; color: #1d4ed8; }
+        .place-type-badge.clinic   { background: #d1fae5; color: #065f46; }
+        .place-type-badge.lab      { background: #ede9fe; color: #5b21b6; }
+        .place-type-badge.pharmacy { background: #fef3c7; color: #92400e; }
+        .place-type-badge.imaging  { background: #fce7f3; color: #9d174d; }
+        .place-type-badge          { background: #f1f5f9; color: #475569; }
+
+        .global-notification { position:fixed; top:1.5rem; right:1.5rem; padding:.9rem 1.2rem; border-radius:12px; display:flex; align-items:center; gap:.75rem; font-weight:500; z-index:9999; box-shadow:0 4px 12px rgba(0,0,0,.12); animation:slideInRight .3s ease; }
+        .global-notification.success { background:#e8f5e9; color:#2e7d32; border:1px solid #a5d6a7; }
+        .global-notification.warning { background:#fff3e0; color:#e65100; border:1px solid #ffcc80; }
+        .global-notification.error   { background:#ffebee; color:#c62828; border:1px solid #ef9a9a; }
+        .global-notification.info    { background:#e3f2fd; color:#1565c0; border:1px solid #90caf9; }
+        .notification-close { background:none; border:none; cursor:pointer; color:inherit; opacity:.7; padding:2px 4px; }
+        @@keyframes slideInRight { from { opacity:0; transform:translateX(80px); } to { opacity:1; transform:translateX(0); } }
+    </style>
+}
+
+@functions {
+    string GetPlaceIcon(string? type) => (type ?? "").ToLower() switch
+    {
+        "hospital" => "fas fa-hospital",
+        "clinic" => "fas fa-clinic-medical",
+        "lab" => "fas fa-flask",
+        "pharmacy" => "fas fa-pills",
+        "imaging" => "fas fa-x-ray",
+        _ => "fas fa-map-marker-alt"
+    };
+
+    string CapitalizeType(string? type) => (type ?? "").ToLower() switch
+    {
+        "hospital" => "Hospital",
+        "clinic" => "Clinic",
+        "lab" => "Laboratory",
+        "pharmacy" => "Pharmacy",
+        "imaging" => "Imaging Center",
+        _ => type ?? ""
+    };
+}
