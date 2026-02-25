@@ -1,0 +1,2 @@
+['age', 'hb', 'rbc', 'wbc', 'platelets', 'lymp', 'mcv', 'mch', 'mchc',
+       'abs_lymp']
