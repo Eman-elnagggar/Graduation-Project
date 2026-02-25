@@ -8,7 +8,6 @@ document.addEventListener("DOMContentLoaded", function () {
     // Sidebar Toggle
     // ================================
     const sidebar = document.querySelector(".sidebar");
-    const mainContent = document.querySelector(".main-content");
 
     if (sidebar && sidebar.dataset.sidebarInitialized !== "true") {
         sidebar.dataset.sidebarInitialized = "true";
@@ -23,10 +22,6 @@ document.addEventListener("DOMContentLoaded", function () {
             sidebar.classList.add("collapsed");
             document.body.classList.add("sidebar-collapsed");
             if (toggleBtn) toggleBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
-            if (mainContent) {
-                mainContent.style.marginLeft = "80px";
-                mainContent.style.maxWidth = "calc(100% - 80px)";
-            }
         }
 
         // Toggle button
@@ -42,17 +37,9 @@ document.addEventListener("DOMContentLoaded", function () {
                     if (sidebar.classList.contains("collapsed")) {
                         if (icon) icon.className = "fas fa-chevron-right";
                         localStorage.setItem("sidebarCollapsed", "true");
-                        if (mainContent) {
-                            mainContent.style.marginLeft = "80px";
-                            mainContent.style.maxWidth = "calc(100% - 80px)";
-                        }
                     } else {
                         if (icon) icon.className = "fas fa-chevron-left";
                         localStorage.setItem("sidebarCollapsed", "false");
-                        if (mainContent) {
-                            mainContent.style.marginLeft = "260px";
-                            mainContent.style.maxWidth = "calc(100% - 260px)";
-                        }
                     }
                 }
             });
@@ -82,6 +69,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     if (overlay) overlay.classList.remove("active");
                     if (localStorage.getItem("sidebarCollapsed") === "true") {
                         sidebar.classList.add("collapsed");
+                        document.body.classList.add("sidebar-collapsed");
                         if (toggleBtn) toggleBtn.querySelector("i").className = "fas fa-chevron-right";
                     }
                 } else {

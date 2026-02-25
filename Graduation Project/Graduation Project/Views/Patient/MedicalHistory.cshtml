@@ -249,23 +249,94 @@
                                     @* ── Lab Test ── *@
                                     @if (entry.LabTest != null)
                                     {
-                                        <div class="mh-info-chips">
-                                            <div class="mh-info-chip">
-                                                <span class="mh-chip-label">Test Type</span>
-                                                <span class="mh-chip-value">@entry.LabTest.TestType</span>
+                                        bool hasAI = !string.IsNullOrWhiteSpace(entry.LabTest.AI_AnalysisJSON);
+                                        string labId = $"labReport_{entry.LabTest.LabTestID}";
+
+                                        <div class="mh-lab-card">
+                                            <!-- Coloured header band -->
+                                            <div class="mh-lab-header-band">
+                                                <div class="mh-lab-header-icon">
+                                                    <i class="fas fa-flask"></i>
+                                                </div>
+                                                <div class="mh-lab-header-info">
+                                                    <span class="mh-lab-test-type">@entry.LabTest.TestType</span>
+                                                    <span class="mh-lab-sub">Laboratory Test Result</span>
+                                                </div>
+                                                @if (hasAI)
+                                                {
+                                                    <span class="mh-lab-ai-badge"><i class="fas fa-robot"></i> AI Analysed</span>
+                                                }
                                             </div>
-                                            <div class="mh-info-chip">
-                                                <span class="mh-chip-label">Uploaded</span>
-                                                <span class="mh-chip-value">@entry.LabTest.UploadDate.ToString("MMM dd, yyyy")</span>
+
+                                            <!-- Body: info chips + AI preview -->
+                                            <div class="mh-lab-body">
+                                                <div class="mh-lab-info-grid">
+                                                    <div class="mh-lab-info-cell">
+                                                        <div class="mh-lab-info-icon"><i class="fas fa-vial"></i></div>
+                                                        <div>
+                                                            <span class="mh-lab-info-label">Test Type</span>
+                                                            <span class="mh-lab-info-value">@entry.LabTest.TestType</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="mh-lab-info-cell">
+                                                        <div class="mh-lab-info-icon"><i class="fas fa-calendar-alt"></i></div>
+                                                        <div>
+                                                            <span class="mh-lab-info-label">Uploaded</span>
+                                                            <span class="mh-lab-info-value">@entry.LabTest.UploadDate.ToString("MMM dd, yyyy")</span>
+                                                        </div>
+                                                    </div>
+                                                    @if (!string.IsNullOrWhiteSpace(entry.LabTest.ImagePath))
+                                                    {
+                                                        <div class="mh-lab-info-cell">
+                                                            <div class="mh-lab-info-icon"><i class="fas fa-image"></i></div>
+                                                            <div>
+                                                                <span class="mh-lab-info-label">Image</span>
+                                                                <span class="mh-lab-info-value">Available</span>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                </div>
+
+                                                @if (hasAI)
+                                                {
+                                                    <div class="mh-lab-ai-preview">
+                                                        <div class="mh-lab-ai-preview-top">
+                                                            <span class="mh-lab-ai-title"><i class="fas fa-robot"></i> AI Analysis Summary</span>
+                                                            <span class="mh-lab-ai-dot mh-lab-ai-dot-active"></span>
+                                                        </div>
+                                                        <p class="mh-lab-ai-preview-text">AI analysis is available for this test. Open the full report to view detailed findings and parameter breakdown.</p>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="mh-lab-ai-preview mh-lab-ai-preview-pending">
+                                                        <div class="mh-lab-ai-preview-top">
+                                                            <span class="mh-lab-ai-title"><i class="fas fa-hourglass-half"></i> AI Analysis</span>
+                                                        </div>
+                                                        <p class="mh-lab-ai-preview-text">Analysis not yet available for this test.</p>
+                                                    </div>
+                                                }
+
+                                                <!-- Action buttons -->
+                                                <div class="mh-lab-actions">
+                                                    <button class="mh-btn mh-btn-primary mh-lab-report-btn"
+                                                            data-labid="@entry.LabTest.LabTestID"
+                                                            data-testtype="@entry.LabTest.TestType"
+                                                            data-uploaddate="@entry.LabTest.UploadDate.ToString("MMMM dd, yyyy")"
+                                                            data-imagepath="@entry.LabTest.ImagePath"
+                                                            data-hasai="@hasAI.ToString().ToLower()"
+                                                            data-aijson="@(hasAI ? System.Web.HttpUtility.HtmlAttributeEncode(entry.LabTest.AI_AnalysisJSON) : "")">
+                                                        <i class="fas fa-file-medical-alt"></i> View Full Report
+                                                    </button>
+                                                    @if (!string.IsNullOrWhiteSpace(entry.LabTest.ImagePath))
+                                                    {
+                                                        <a href="/@entry.LabTest.ImagePath.TrimStart('/')" target="_blank" class="mh-btn mh-btn-ghost mh-lab-img-btn">
+                                                            <i class="fas fa-image"></i> View Image
+                                                        </a>
+                                                    }
+                                                </div>
                                             </div>
                                         </div>
-                                        @if (!string.IsNullOrWhiteSpace(entry.LabTest.AI_AnalysisJSON))
-                                        {
-                                            <div class="mh-ai-box">
-                                                <span class="mh-ai-label"><i class="fas fa-robot"></i> AI Analysis</span>
-                                                <p>Analysis available – view full report for details.</p>
-                                            </div>
-                                        }
                                     }
 
                                     @* ── Ultrasound ── *@
@@ -286,31 +357,64 @@
                                     @if (entry.Appointment != null)
                                     {
                                         bool isPast = entry.Appointment.Date < DateTime.Now;
-                                        <div class="mh-appt-details">
-                                            @if (!string.IsNullOrWhiteSpace(entry.DoctorName))
-                                            {
-                                                <div class="mh-appt-item">
-                                                    <div class="mh-appt-item-icon"><i class="fas fa-user-md"></i></div>
-                                                    <span>@entry.DoctorName</span>
+                                        string apptStatusClass = isPast ? "mh-appt-status-completed" : "mh-appt-status-upcoming";
+                                        string apptStatusIcon  = isPast ? "fa-check-circle" : "fa-hourglass-half";
+                                        string apptStatusText  = isPast ? "Completed" : "Upcoming";
+                                        string apptAccentClass = isPast ? "mh-appt-completed" : "mh-appt-upcoming";
+
+                                        <div class="mh-appt-card @apptAccentClass">
+                                            <!-- Header band -->
+                                            <div class="mh-appt-header-band">
+                                                <div class="mh-appt-doctor-avatar">
+                                                    <i class="fas fa-user-md"></i>
                                                 </div>
-                                            }
-                                            @if (!string.IsNullOrWhiteSpace(entry.ClinicName))
-                                            {
-                                                <div class="mh-appt-item">
-                                                    <div class="mh-appt-item-icon"><i class="fas fa-map-marker-alt"></i></div>
-                                                    <span>@entry.ClinicName</span>
+                                                <div class="mh-appt-header-info">
+                                                    <span class="mh-appt-doctor-name">
+                                                        @(string.IsNullOrWhiteSpace(entry.DoctorName) ? "Doctor" : entry.DoctorName)
+                                                    </span>
+                                                    <span class="mh-appt-specialty">General Practitioner</span>
                                                 </div>
-                                            }
-                                            <div class="mh-appt-item">
-                                                <div class="mh-appt-item-icon"><i class="fas fa-clock"></i></div>
-                                                <span>@entry.Appointment.Time.ToString(@"hh\:mm")</span>
+                                                <span class="mh-appt-status-pill @apptStatusClass">
+                                                    <i class="fas @apptStatusIcon"></i>
+                                                    @apptStatusText
+                                                </span>
                                             </div>
-                                        </div>
-                                        <div style="margin-top:.65rem">
-                                            <span class="mh-badge @(isPast ? "mh-badge-completed" : "mh-badge-upcoming")">
-                                                <i class="fas @(isPast ? "fa-check-circle" : "fa-clock")"></i>
-                                                @(isPast ? "Completed" : "Upcoming")
-                                            </span>
+
+                                            <!-- Body -->
+                                            <div class="mh-appt-body">
+                                                <div class="mh-appt-info-grid">
+                                                    @if (!string.IsNullOrWhiteSpace(entry.ClinicName))
+                                                    {
+                                                        <div class="mh-appt-info-cell">
+                                                            <div class="mh-appt-info-icon mh-appt-icon-clinic">
+                                                                <i class="fas fa-hospital"></i>
+                                                            </div>
+                                                            <div>
+                                                                <span class="mh-appt-info-label">Clinic</span>
+                                                                <span class="mh-appt-info-value">@entry.ClinicName</span>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                    <div class="mh-appt-info-cell">
+                                                        <div class="mh-appt-info-icon mh-appt-icon-time">
+                                                            <i class="fas fa-clock"></i>
+                                                        </div>
+                                                        <div>
+                                                            <span class="mh-appt-info-label">Time</span>
+                                                            <span class="mh-appt-info-value">@entry.Appointment.Time.ToString(@"hh\:mm")</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="mh-appt-info-cell">
+                                                        <div class="mh-appt-info-icon mh-appt-icon-date">
+                                                            <i class="fas fa-calendar-alt"></i>
+                                                        </div>
+                                                        <div>
+                                                            <span class="mh-appt-info-label">Date</span>
+                                                            <span class="mh-appt-info-value">@entry.Appointment.Date.ToString("MMM dd, yyyy")</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     }
 
@@ -957,6 +1061,151 @@ document.addEventListener("DOMContentLoaded", function () {
 }
 
 /* ─────────────────────────────────────────
+   MODERN APPOINTMENT CARD
+───────────────────────────────────────── */
+.mh-appt-card {
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1.5px solid var(--mh-border);
+    box-shadow: 0 4px 20px rgba(0,0,0,.07);
+    transition: transform .22s, box-shadow .22s;
+    margin-top: .1rem;
+    background: #fff;
+}
+.mh-appt-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 32px rgba(0,0,0,.12);
+}
+
+/* ── Upcoming variant ── */
+.mh-appt-upcoming { border-color: rgba(255,152,0,.35); }
+.mh-appt-upcoming .mh-appt-header-band {
+    background: linear-gradient(135deg, #ff9800, #fb8c00);
+}
+.mh-appt-upcoming .mh-appt-info-icon { background: rgba(255,152,0,.12); color: #e65100; }
+
+/* ── Completed variant ── */
+.mh-appt-completed { border-color: rgba(33,150,243,.3); }
+.mh-appt-completed .mh-appt-header-band {
+    background: linear-gradient(135deg, #2196f3, #1565c0);
+}
+.mh-appt-completed .mh-appt-info-icon { background: rgba(33,150,243,.12); color: #1565c0; }
+
+/* Header band */
+.mh-appt-header-band {
+    display: flex;
+    align-items: center;
+    gap: .85rem;
+    padding: .9rem 1.15rem;
+    position: relative;
+    overflow: hidden;
+}
+.mh-appt-header-band::after {
+    content: '\f073';
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    position: absolute;
+    right: -10px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 4.5rem;
+    color: rgba(255,255,255,.08);
+    pointer-events: none;
+}
+
+/* Doctor avatar */
+.mh-appt-doctor-avatar {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.22);
+    backdrop-filter: blur(4px);
+    border: 2px solid rgba(255,255,255,.45);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 1rem;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,.18);
+}
+
+/* Doctor name & specialty */
+.mh-appt-header-info {
+    display: flex; flex-direction: column;
+    flex: 1;
+}
+.mh-appt-doctor-name {
+    font-size: .95rem; font-weight: 700;
+    color: #fff; line-height: 1.2;
+}
+.mh-appt-specialty {
+    font-size: .73rem;
+    color: rgba(255,255,255,.78);
+    margin-top: .08rem;
+}
+
+/* Status pill */
+.mh-appt-status-pill {
+    display: inline-flex; align-items: center; gap: .35rem;
+    font-size: .7rem; font-weight: 700;
+    padding: .28rem .75rem; border-radius: 20px;
+    letter-spacing: .04em; white-space: nowrap;
+    border: 1.5px solid rgba(255,255,255,.4);
+    backdrop-filter: blur(4px);
+}
+.mh-appt-status-upcoming  { background: rgba(255,255,255,.22); color: #fff; }
+.mh-appt-status-completed { background: rgba(255,255,255,.22); color: #fff; }
+
+/* Body */
+.mh-appt-body {
+    padding: .9rem 1.15rem 1rem;
+    background: #fff;
+}
+
+/* Info grid */
+.mh-appt-info-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .6rem;
+}
+.mh-appt-info-cell {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    background: var(--mh-light);
+    border: 1px solid var(--mh-border);
+    border-radius: 12px;
+    padding: .55rem .9rem;
+    flex: 1;
+    min-width: 130px;
+    transition: border-color .2s, box-shadow .2s;
+}
+.mh-appt-info-cell:hover {
+    border-color: var(--mh-primary);
+    box-shadow: 0 0 0 3px rgba(27,174,190,.08);
+}
+.mh-appt-info-icon {
+    width: 32px; height: 32px;
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .8rem;
+    flex-shrink: 0;
+}
+.mh-appt-info-label {
+    display: block;
+    font-size: .67rem;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    line-height: 1;
+}
+.mh-appt-info-value {
+    display: block;
+    font-size: .88rem;
+    font-weight: 600;
+    color: var(--mh-text);
+    margin-top: .12rem;
+    line-height: 1.2;
+}
+
+/* ─────────────────────────────────────────
    ALERT CARD INNER  (replaces old mh-alert-box)
 ───────────────────────────────────────── */
 .mh-alert-card-inner {
@@ -1177,5 +1426,6 @@ document.addEventListener("DOMContentLoaded", function () {
 ───────────────────────────────────────── */
 @@keyframes mhModalIn  { from { opacity:0; transform:translateY(-20px) scale(.97); } to { opacity:1; transform:translateY(0) scale(1); } }
 @@keyframes mhSlideIn  { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+</style>
 }
 
