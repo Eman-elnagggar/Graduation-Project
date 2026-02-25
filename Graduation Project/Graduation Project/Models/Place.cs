@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Graduation_Project.Models
@@ -18,6 +19,7 @@ namespace Graduation_Project.Models
         public string ImageURL { get; set; }
 
         // Navigation
+        [ValidateNever]
         public virtual Patient Patient { get; set; }
     }
 }
