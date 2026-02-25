@@ -1,0 +1,56 @@
+@{
+    var patientId  = ViewData["PatientId"]  as int? ?? 0;
+    var activePage = ViewData["ActivePage"] as string ?? "";
+}
+
+<aside class="sidebar">
+    <button class="sidebar-close"><i class="fas fa-times"></i></button>
+    <div class="logo">
+        <i class="fas fa-heartbeat"></i>
+        <span>MamaCare</span>
+        <span class="portal-badge">Patient</span>
+    </div>
+    <nav class="nav-menu">
+        <a href="/Patient/Index/@patientId"
+           class="nav-item @(activePage == "Dashboard" ? "active" : "")"
+           data-tooltip="Dashboard">
+            <i class="fas fa-home"></i><span>Dashboard</span>
+        </a>
+        <a href="#" class="nav-item @(activePage == "Tests" ? "active" : "")" data-tooltip="Tests Upload">
+            <i class="fas fa-flask"></i><span>Tests Upload</span>
+        </a>
+        <a href="#" class="nav-item @(activePage == "Products" ? "active" : "")" data-tooltip="Product Safety">
+            <i class="fas fa-barcode"></i><span>Product Safety</span>
+        </a>
+        <a href="#" class="nav-item @(activePage == "Places" ? "active" : "")" data-tooltip="My Places">
+            <i class="fas fa-map-marker-alt"></i><span>My Places</span>
+        </a>
+        <a href="#" class="nav-item @(activePage == "Appointments" ? "active" : "")" data-tooltip="Appointments">
+            <i class="fas fa-calendar-check"></i><span>Appointments</span>
+        </a>
+        <a href="#" class="nav-item @(activePage == "Chatbot" ? "active" : "")" data-tooltip="Chatbot">
+            <i class="fas fa-robot"></i><span>Chatbot</span>
+        </a>
+        <a href="#" class="nav-item @(activePage == "Community" ? "active" : "")" data-tooltip="Community">
+            <i class="fas fa-users"></i><span>Community</span>
+        </a>
+        <a href="/Patient/MedicalHistory/@patientId"
+           class="nav-item @(activePage == "MedicalHistory" ? "active" : "")"
+           data-tooltip="Medical History">
+            <i class="fas fa-history"></i><span>Medical History</span>
+        </a>
+        <a href="/Patient/Alerts/@patientId"
+           class="nav-item @(activePage == "Alerts" ? "active" : "")"
+           data-tooltip="Alerts">
+            <i class="fas fa-bell"></i><span>Alerts</span>
+        </a>
+        <a href="#" class="nav-item @(activePage == "Profile" ? "active" : "")" data-tooltip="My Profile">
+            <i class="fas fa-user"></i><span>My Profile</span>
+        </a>
+    </nav>
+    <div class="sidebar-footer">
+        <a href="#" class="nav-item" data-tooltip="Logout">
+            <i class="fas fa-sign-out-alt"></i><span>Logout</span>
+        </a>
+    </div>
+</aside>

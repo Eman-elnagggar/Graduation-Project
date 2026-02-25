@@ -1,6 +1,7 @@
 ﻿using Graduation_Project.Data;
 using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Graduation_Project.Repository
 {
@@ -29,5 +30,20 @@ namespace Graduation_Project.Repository
         }
 
         public void Save() => _context.SaveChanges();
+
+        public UltrasoundImage GetLastUltrasoundByPatientId(int patientId)
+        {
+            return _context.UltrasoundImages
+                .Where(u => u.PatientID == patientId)
+                .OrderByDescending(u => u.UploadDate)
+                .FirstOrDefault();
+        }
+
+        public IEnumerable<UltrasoundImage> GetUltrasoundsByPatientId(int patientId) =>
+            _context.UltrasoundImages
+                .Where(u => u.PatientID == patientId)
+                .Include(u => u.Doctor).ThenInclude(d => d.User)
+                .OrderByDescending(u => u.UploadDate)
+                .ToList();
     }
 }

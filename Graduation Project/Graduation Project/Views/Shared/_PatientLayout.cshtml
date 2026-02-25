@@ -1,138 +1,33 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mother Portal - @ViewData["Title"]</title>
-    <link rel="stylesheet" href="~/css/patient-style.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    @RenderSection("Styles", required: false)
+    <title>@ViewData["Title"] - MamaCare</title>
+    <link rel="stylesheet" href="~/css/patient-style.css" asp-append-version="true" />
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    @await RenderSectionAsync("Head", required: false)
 </head>
 <body>
-    <div class="container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <button class="sidebar-close">
-                <i class="fas fa-times"></i>
-            </button>
-            <div class="logo">
-                <i class="fas fa-heartbeat"></i>
-                <span>MamaCare</span>
-                <span class="portal-badge">Patient</span>
-            </div>
-            <nav class="nav-menu">
-                <a asp-controller="Patient" asp-action="Index"
-                   class="nav-item @(ViewData["ActivePage"]?.ToString() == "Dashboard" ? "active" : "")"
-                   data-tooltip="Dashboard">
-                    <i class="fas fa-home"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a asp-controller="Patient" asp-action="Tests"
-                   class="nav-item @(ViewData["ActivePage"]?.ToString() == "Tests" ? "active" : "")"
-                   data-tooltip="Tests Upload">
-                    <i class="fas fa-flask"></i>
-                    <span>Tests Upload</span>
-                </a>
-                <a asp-controller="Patient" asp-action="Products"
-                   class="nav-item @(ViewData["ActivePage"]?.ToString() == "Products" ? "active" : "")"
-                   data-tooltip="Product Safety">
-                    <i class="fas fa-barcode"></i>
-                    <span>Product Safety</span>
-                </a>
-                <a asp-controller="Patient" asp-action="Places"
-                   class="nav-item @(ViewData["ActivePage"]?.ToString() == "Places" ? "active" : "")"
-                   data-tooltip="My Places">
-                    <i class="fas fa-map-marker-alt"></i>
-                    <span>My Places</span>
-                </a>
-                <a asp-controller="Patient" asp-action="Appointments"
-                   class="nav-item @(ViewData["ActivePage"]?.ToString() == "Appointments" ? "active" : "")"
-                   data-tooltip="Appointments">
-                    <i class="fas fa-calendar-check"></i>
-                    <span>Appointments</span>
-                </a>
-                <a asp-controller="Patient" asp-action="Chatbot"
-                   class="nav-item @(ViewData["ActivePage"]?.ToString() == "Chatbot" ? "active" : "")"
-                   data-tooltip="Chatbot">
-                    <i class="fas fa-robot"></i>
-                    <span>Chatbot</span>
-                </a>
-                <a asp-controller="Patient" asp-action="Community"
-                   class="nav-item @(ViewData["ActivePage"]?.ToString() == "Community" ? "active" : "")"
-                   data-tooltip="Community">
-                    <i class="fas fa-users"></i>
-                    <span>Community</span>
-                </a>
-                <a asp-controller="Patient" asp-action="MedicalHistory"
-                   class="nav-item @(ViewData["ActivePage"]?.ToString() == "MedicalHistory" ? "active" : "")"
-                   data-tooltip="Medical History">
-                    <i class="fas fa-history"></i>
-                    <span>Medical History</span>
-                </a>
-                <a asp-controller="Patient" asp-action="Alerts"
-                   class="nav-item @(ViewData["ActivePage"]?.ToString() == "Alerts" ? "active" : "")"
-                   data-tooltip="Alerts">
-                    <i class="fas fa-bell"></i>
-                    <span>Alerts</span>
-                </a>
-                <a asp-controller="Patient" asp-action="Profile"
-                   class="nav-item @(ViewData["ActivePage"]?.ToString() == "Profile" ? "active" : "")"
-                   data-tooltip="My Profile">
-                    <i class="fas fa-user"></i>
-                    <span>My Profile</span>
-                </a>
-            </nav>
-            <div class="sidebar-footer">
-                <a asp-controller="Auth" asp-action="Logout" class="nav-item" data-tooltip="Logout">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Logout</span>
-                </a>
-            </div>
-        </aside>
+<div class="container">
 
-        <!-- Sidebar Toggle Button -->
-        <button class="sidebar-toggle">
-            <i class="fas fa-chevron-left"></i>
-        </button>
+    @await Html.PartialAsync("_PatientSidebar")
 
-        <!-- Sidebar Overlay (for mobile) -->
-        <div class="sidebar-overlay"></div>
+    <!-- Sidebar Toggle Button -->
+    <button class="sidebar-toggle"><i class="fas fa-chevron-left"></i></button>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Header -->
-            <header class="header">
-                <div class="header-left">
-                    <h1>@ViewData["HeaderTitle"]</h1>
-                    <p>@ViewData["HeaderSubtitle"]</p>
-                </div>
-                <div class="header-right">
-                    <div class="notification">
-                        <i class="fas fa-bell"></i>
-                        <span class="badge" id="notificationBadge">0</span>
-                    </div>
-                    <div class="profile">
-                        @* TODO: Load profile image and name from authenticated user *@
-                        <img src="" alt="Profile" id="userProfileImage" />
-                        <span id="userName"></span>
-                    </div>
-                </div>
-            </header>
+    <!-- Sidebar Overlay (for mobile) -->
+    <div class="sidebar-overlay"></div>
 
-            <!-- Page Content -->
-            @RenderBody()
-        </main>
-    </div>
+    <!-- Main Content -->
+    <main class="main-content">
+        @RenderBody()
+    </main>
 
-    <script src="~/js/shared.js"></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            // Initialize shared sidebar functionality
-            if (typeof initSharedSidebar === "function") {
-                initSharedSidebar();
-            }
-        });
-    </script>
-    @RenderSection("Scripts", required: false)
+</div>
+
+<script src="~/js/shared.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

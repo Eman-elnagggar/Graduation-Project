@@ -1,22 +1,23 @@
 using Graduation_Project.Data;
 using Graduation_Project.Interfaces;
 using Graduation_Project.Repository;
+using Graduation_Project.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Graduation_Project
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
             builder.Services.AddControllersWithViews();
 
-            //For Database Connection
+            // Database Connection (single registration)
             builder.Services.AddDbContext<AppDbContext>(options =>
-                    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
             // Register Repositories
             builder.Services.AddScoped<IAIModel, AIModelRepository>();
@@ -51,10 +52,18 @@ namespace Graduation_Project
             builder.Services.AddScoped<IUser, UserRepository>();
             builder.Services.AddScoped<IWeightTracking, WeightTrackingRepository>();
 
-            builder.Services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+            // Register Services
+            builder.Services.AddScoped<AlertService>();
 
             var app = builder.Build();
+
+            // ?? Seed the database ????????????????????????????????????????
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                await DataSeeder.SeedAsync(db);
+            }
+            // ????????????????????????????????????????????????????????????
 
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())

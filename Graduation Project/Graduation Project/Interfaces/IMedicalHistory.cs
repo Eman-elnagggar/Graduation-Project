@@ -10,5 +10,6 @@ namespace Graduation_Project.Interfaces
         void Update(MedicalHistory medicalHistory);
         void Delete(int id);
         void Save();
+        IEnumerable<MedicalHistory> GetByPatientId(int patientId);
     }
 }

@@ -1,0 +1,714 @@
+/* ================================
+   Assistant Portal - Style Overrides
+   Imports shared styles and adds assistant-specific styling
+================================ */
+@import url("shared.css");
+
+/* ================================
+   Assistant Portal Variables
+================================ */
+:root {
+  --assistant-primary: #7c3aed;
+  --assistant-primary-dark: #6d28d9;
+  --assistant-accent: #a78bfa;
+}
+
+/* ================================
+   Logo & Branding
+================================ */
+.logo {
+  color: var(--assistant-primary);
+}
+
+.logo .portal-badge {
+  font-size: 0.6rem;
+  background: var(--assistant-primary);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-left: auto;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* ================================
+   Navigation Active State Override
+================================ */
+.nav-item.active {
+  background: linear-gradient(
+    135deg,
+    var(--assistant-primary),
+    var(--assistant-accent)
+  );
+}
+
+/* ================================
+   Progress Card Override
+================================ */
+.progress-card,
+.assistant-hero {
+  background: linear-gradient(
+    135deg,
+    var(--assistant-primary),
+    var(--assistant-accent)
+  );
+}
+
+/* ================================
+   Quick Stats Grid
+================================ */
+.quick-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.quick-stat-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+}
+
+.quick-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.quick-stat-card .stat-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.quick-stat-card .stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+.quick-stat-card .stat-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.quick-stat-card .stat-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* ================================
+   Appointment Request Cards
+================================ */
+.request-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.request-card {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  transition: all 0.2s;
+}
+
+.request-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.request-card.urgent {
+  border-left: 4px solid var(--danger);
+}
+
+.request-card .patient-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+}
+
+.request-card .request-info {
+  flex: 1;
+}
+
+.request-card .request-info h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.request-card .request-info .meta {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.request-card .request-info .request-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 0.85rem;
+}
+
+.request-card .request-info .request-details span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+}
+
+.request-card .request-info .request-details span i {
+  color: var(--assistant-primary);
+}
+
+.request-card .request-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+.appointment-actions-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
+/* ================================
+   Time Slots Management
+================================ */
+.slots-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.time-slot {
+  padding: 16px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  text-align: center;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.time-slot:hover {
+  border-color: var(--assistant-primary);
+}
+
+.time-slot.selected {
+  background: var(--assistant-primary);
+  color: white;
+}
+
+.time-slot.booked {
+  background: #ffebee;
+  color: var(--danger);
+  cursor: not-allowed;
+}
+
+.time-slot.blocked {
+  background: var(--bg-primary);
+  color: var(--text-muted);
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+
+.time-slot .time {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.time-slot .status {
+  font-size: 0.75rem;
+  margin-top: 4px;
+}
+
+/* ================================
+   Calendar View
+================================ */
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: auto;
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.calendar-nav:hover {
+  background: transparent;
+  color: inherit;
+}
+
+.calendar-nav button {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-color);
+  background: var(--bg-white);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.calendar-nav button:hover {
+  background: var(--assistant-primary);
+  color: white;
+  border-color: var(--assistant-primary);
+}
+
+.calendar-nav .current-month {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.calendar-day-header {
+  padding: 12px;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.calendar-day {
+  padding: 12px;
+  text-align: center;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 80px;
+}
+
+.calendar-day:hover {
+  background: var(--bg-primary);
+}
+
+.calendar-day.today {
+  background: rgba(124, 58, 237, 0.1);
+  border: 2px solid var(--assistant-primary);
+}
+
+.calendar-day.selected {
+  background: var(--assistant-primary);
+  color: white;
+}
+
+.calendar-day.other-month {
+  color: var(--text-muted);
+}
+
+.calendar-day .day-number {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.calendar-day .appointment-dots {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.calendar-day .appointment-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--assistant-primary);
+}
+
+.calendar-day.selected .appointment-dot {
+  background: white;
+}
+
+/* ================================
+   Clinic Requests Section
+================================ */
+.clinic-request-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  margin-bottom: 16px;
+}
+
+.clinic-request-card .doctor-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+}
+
+.clinic-request-card .request-info {
+  flex: 1;
+}
+
+.clinic-request-card .request-info h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.clinic-request-card .request-info p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.clinic-request-card .request-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ================================
+   Connected Clinics Section
+================================ */
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.team-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  text-align: center;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.team-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.team-card .avatar {
+  width: 88px;
+  height: 88px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+  border: 3px solid rgba(124, 58, 237, 0.15);
+  margin-bottom: 12px;
+}
+
+.team-card h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.team-card .role {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.status-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.status-dot::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.status-dot.online::before {
+  background: var(--success);
+}
+
+.status-dot.offline::before {
+  background: var(--danger);
+}
+
+/* ================================
+   Doctor Selection
+================================ */
+.doctor-selector {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.doctor-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.doctor-option:hover {
+  border-color: var(--assistant-primary);
+}
+
+.doctor-option.selected {
+  border-color: var(--assistant-primary);
+  background: rgba(124, 58, 237, 0.05);
+}
+
+.doctor-option img {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+}
+
+.doctor-option .doctor-info h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.doctor-option .doctor-info p {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* ================================
+   Notifications Panel
+================================ */
+.notifications-panel {
+  position: fixed;
+  top: 0;
+  right: -400px;
+  width: 400px;
+  height: 100vh;
+  background: var(--bg-white);
+  box-shadow: var(--shadow-lg);
+  z-index: 200;
+  transition: right 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.notifications-panel.open {
+  right: 0;
+}
+
+.notifications-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.notifications-header h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.notifications-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.notification-item {
+  display: flex;
+  gap: 14px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  margin-bottom: 8px;
+  background: var(--bg-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.notification-item:hover {
+  background: var(--bg-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.notification-item.unread {
+  border-left: 3px solid var(--assistant-primary);
+}
+
+.notification-item .notif-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.notification-item .notif-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-item .notif-content h4 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.notification-item .notif-content p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.notification-item .notif-time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ================================
+   Privacy Notice Banner
+================================ */
+.privacy-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: #e8f5e9;
+  border-radius: var(--radius-md);
+  margin-bottom: 24px;
+  border-left: 4px solid var(--success);
+}
+
+.privacy-notice i {
+  color: var(--success);
+  font-size: 1.2rem;
+}
+
+.privacy-notice p {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+/* ================================
+   Appointment Status Tags
+================================ */
+.appointment-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.appointment-status.confirmed {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.appointment-status.pending {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.appointment-status.modified {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.appointment-status.cancelled {
+  background: #ffebee;
+  color: #c62828;
+}
+
+/* ================================
+   Responsive Overrides
+================================ */
+@media (max-width: 768px) {
+  .quick-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .request-card {
+    flex-direction: column;
+  }
+
+  .request-card .request-actions {
+    flex-direction: row;
+    width: 100%;
+  }
+
+  .calendar-grid {
+    gap: 4px;
+  }
+
+  .calendar-day {
+    padding: 8px;
+    min-height: 60px;
+  }
+
+  .notifications-panel {
+    width: 100%;
+    right: -100%;
+  }
+
+  .doctor-selector {
+    flex-direction: column;
+  }
+
+  .doctor-option {
+    width: 100%;
+  }
+}

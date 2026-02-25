@@ -1,0 +1,856 @@
+﻿@model PatientDashboardViewModel
+@{
+    Layout = "~/Views/Shared/_PatientLayout.cshtml";
+    ViewData["Title"] = "Dashboard";
+    ViewData["PatientId"]  = Model.Patient.PatientID;
+    ViewData["ActivePage"] = "Dashboard";
+}
+
+@section Head {
+    <meta name="patient-id" content="@Model.Patient.PatientID" />
+    @Html.AntiForgeryToken()
+}
+
+<!-- Header -->
+<header class="header">
+    <div class="header-left">
+        <h1>Welcome, @Model.UserName! 👋</h1>
+        <p>Here's your pregnancy journey overview</p>
+    </div>
+    <div class="header-right">
+        <div class="notification">
+            <i class="fas fa-bell"></i>
+            <span class="badge">3</span>
+        </div>
+        <div class="profile">
+            <img src="https://img.freepik.com/free-psd/portrait-woman-wearing-hijab_23-2150945115.jpg?t=st=1765809397~exp=1765812997~hmac=3a0f5380a8654b0ab467fef42c27dae769a70acb5bd0eba3cbf169de91bcc9d0&w=1060"
+                 alt="Profile" />
+            <span>@Model.UserName</span>
+        </div>
+    </div>
+</header>
+
+<!-- Pregnancy Progress -->
+<section class="pregnancy-progress">
+    <div class="progress-card">
+        <div class="progress-info">
+            <h3>Pregnancy Progress</h3>
+            <p>Week <span class="week-number">@Model.PregnancyWeek</span> of 40</p>
+        </div>
+        <div class="progress-bar-container">
+            <div class="progress-bar" style="width: @(Model.PregnancyProgressPercent)%"></div>
+        </div>
+        <div class="progress-details">
+            <span><i class="fas fa-calendar"></i> Due Date: @Model.DueDate</span>
+            <span><i class="fas fa-baby"></i> @Model.Trimester</span>
+        </div>
+    </div>
+</section>
+
+<!-- Stats Cards -->
+<section class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #e8f5e9">
+            <i class="fas fa-weight" style="color: #4caf50"></i>
+        </div>
+        <div class="stat-info">
+            <h4>Weight</h4>
+            <p class="stat-value">@Model.Patient.WeightKg</p>
+            <span class="stat-change positive">+2kg this month</span>
+        </div>
+    </div>
+    <div class="stat-card"
+         onclick="document.querySelector('.health-tracker-section').scrollIntoView({ behavior: 'smooth' })">
+        <div class="stat-icon" style="background: #e3f2fd">
+            <i class="fas fa-heartbeat" style="color: #2196f3"></i>
+        </div>
+        <div class="stat-info">
+            <h4>Blood Pressure</h4>
+            <p class="stat-value" id="bpStatValue">@Model.LastBloodPressureValue</p>
+            <span class="stat-change positive" id="bpStatChange">Normal</span>
+        </div>
+    </div>
+    <div class="stat-card"
+         onclick="document.querySelector('.health-tracker-section').scrollIntoView({ behavior: 'smooth' })">
+        <div class="stat-icon" style="background: #fce4ec">
+            <i class="fas fa-tint" style="color: #e91e63"></i>
+        </div>
+        <div class="stat-info">
+            <h4>Blood Sugar</h4>
+            <p class="stat-value" id="bsStatValue">@Model.LastBloodSugarValue</p>
+            <span class="stat-change positive" id="bsStatChange">Normal</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #fff3e0">
+            <i class="fas fa-flask" style="color: #ff9800"></i>
+        </div>
+        <div class="stat-info">
+            <h4>Last Test</h4>
+            <p class="stat-value">@Model.LastLabTest?.TestType</p>
+            <span class="stat-change">@Model.LastLabTest?.UploadDate.ToString("MMM dd, yyyy")</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #fce4ec">
+            <i class="fas fa-calendar-alt" style="color: #e91e63"></i>
+        </div>
+        <div class="stat-info">
+            <h4>Next Appointment</h4>
+            <p class="stat-value">@Model.NextAppointment?.Date.ToString("MMM dd")</p>
+            <span class="stat-change">Dr. @Model.NextAppointment?.Doctor?.User?.FirstName</span>
+        </div>
+    </div>
+</section>
+
+<!-- Recent Activity & Alerts -->
+<section class="dashboard-grid">
+    <div class="card recent-activity">
+        <div class="card-header">
+            <h3><i class="fas fa-history"></i> Recent Activity</h3>
+            <a href="/Patient/MedicalHistory/@Model.Patient.PatientID">View All</a>
+        </div>
+        <div class="activity-list">
+            @if (Model.RecentActivities != null && Model.RecentActivities.Any())
+            {
+                @foreach (var activity in Model.RecentActivities)
+                {
+                    <div class="activity-item">
+                        <div class="activity-icon" style="background: @activity.IconBgColor">
+                            <i class="@activity.IconClass" style="color: @activity.IconColor"></i>
+                        </div>
+                        <div class="activity-info">
+                            <h4>@activity.Title</h4>
+                            <p>@activity.Description</p>
+                        </div>
+                        <span class="activity-time">@activity.RelativeTime</span>
+                    </div>
+                }
+            }
+            else
+            {
+                <p class="no-activity">No recent activity found.</p>
+            }
+        </div>
+    </div>
+
+    <div class="card alerts-card">
+        <div class="card-header">
+            <h3><i class="fas fa-bell"></i> Health Alerts</h3>
+            <a href="/Patient/Alerts/@Model.Patient.PatientID">View All</a>
+        </div>
+        <div class="alerts-list">
+            @if (Model.HealthAlerts != null && Model.HealthAlerts.Any())
+            {
+                @foreach (var alert in Model.HealthAlerts)
+                {
+                    var cssClass = alert.AlertType switch
+                    {
+                        "danger"  => "alert-item danger",
+                        "warning" => "alert-item warning",
+                        "info"    => "alert-item info",
+                        "success" => "alert-item success",
+                        _         => "alert-item info"
+                    };
+                    var iconClass = alert.AlertType switch
+                    {
+                        "danger"  => "fas fa-exclamation-circle",
+                        "warning" => "fas fa-exclamation-triangle",
+                        "info"    => "fas fa-info-circle",
+                        "success" => "fas fa-check-circle",
+                        _         => "fas fa-bell"
+                    };
+                    <div class="@cssClass">
+                        <i class="@iconClass"></i>
+                        <div class="alert-info">
+                            <h4>@alert.Title</h4>
+                            <p>@alert.Message</p>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="alert-item success">
+                    <i class="fas fa-check-circle"></i>
+                    <div class="alert-info">
+                        <h4>All Clear</h4>
+                        <p>No critical alerts at this time. Keep up the great care!</p>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<!-- Health Tracker Section with Tabs -->
+<section class="health-tracker-section">
+    <div class="tracker-tabs">
+        <button class="tab-btn active" data-tab="blood-pressure">
+            <i class="fas fa-heartbeat"></i>
+            <span>Blood Pressure</span>
+        </button>
+        <button class="tab-btn" data-tab="blood-sugar">
+            <i class="fas fa-tint"></i>
+            <span>Blood Sugar</span>
+        </button>
+    </div>
+
+    <!-- Blood Pressure Tab -->
+    <div class="tab-content active" id="blood-pressure-tab">
+        <div class="card bp-card">
+            <div class="bp-header">
+                <div class="bp-title">
+                    <i class="fas fa-heartbeat"></i>
+                    <h3>Blood Pressure Tracker</h3>
+                </div>
+                <span class="bp-date" id="bpTodayDate"></span>
+            </div>
+
+            <div class="bp-input-container">
+                <div class="bp-input-group">
+                    <label for="systolic">Systolic (Top Number)</label>
+                    <div class="bp-input-wrapper">
+                        <input type="number" id="systolic" class="bp-input" placeholder="120" min="70" max="200" />
+                        <span class="bp-unit">mmHg</span>
+                    </div>
+                    <span class="bp-hint">Normal: 90-120</span>
+                </div>
+
+                <div class="bp-divider"><span>/</span></div>
+
+                <div class="bp-input-group">
+                    <label for="diastolic">Diastolic (Bottom Number)</label>
+                    <div class="bp-input-wrapper">
+                        <input type="number" id="diastolic" class="bp-input" placeholder="80" min="40" max="130" />
+                        <span class="bp-unit">mmHg</span>
+                    </div>
+                    <span class="bp-hint">Normal: 60-80</span>
+                </div>
+
+                <div class="bp-input-group pulse-group">
+                    <label for="pulse">Pulse (Optional)</label>
+                    <div class="bp-input-wrapper">
+                        <input type="number" id="pulse" class="bp-input" placeholder="72" min="40" max="200" />
+                        <span class="bp-unit">BPM</span>
+                    </div>
+                    <span class="bp-hint">Normal: 60-100</span>
+                </div>
+
+                <div class="bp-input-group">
+                    <label for="bpMeasurementTime">When did you measure?</label>
+                    <select id="bpMeasurementTime" class="bs-select">
+                        <option value="Morning">Morning</option>
+                        <option value="Afternoon">Afternoon</option>
+                        <option value="Evening">Evening</option>
+                        <option value="Bedtime">Bedtime</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="bp-actions">
+                <button class="btn btn-primary" id="saveBP">
+                    <i class="fas fa-save"></i> Save Reading
+                </button>
+            </div>
+
+            <div class="bp-result" id="bpResult" style="display: none">
+                <div class="bp-result-header">
+                    <div class="bp-reading">
+                        <span class="bp-value" id="bpValue">120/80</span>
+                        <span class="bp-label">mmHg</span>
+                    </div>
+                    <div class="bp-status" id="bpStatus">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Normal</span>
+                    </div>
+                </div>
+                <div class="bp-message" id="bpMessage">
+                    Your blood pressure is within the normal range. Keep up the great work!
+                </div>
+            </div>
+
+            <div class="bp-history">
+                <h4><i class="fas fa-history"></i> Recent Readings</h4>
+                <div class="bp-history-list" id="bpHistoryList">
+                    @if (Model.RecentBloodPressureReadings != null && Model.RecentBloodPressureReadings.Any())
+                    {
+                        @foreach (var bp in Model.RecentBloodPressureReadings)
+                        {
+                            var parts = bp.BloodPressure?.Split('/');
+                            string bpStatusClass = "normal";
+                            string bpStatusLabel = "Normal";
+                            string bpStatusIcon = "fa-check-circle";
+                            if (parts != null && parts.Length == 2 &&
+                                int.TryParse(parts[0], out int sys) &&
+                                int.TryParse(parts[1], out int dia))
+                            {
+                                if (sys < 90 || dia < 60)        { bpStatusClass = "low";      bpStatusLabel = "Low";      bpStatusIcon = "fa-arrow-down"; }
+                                else if (sys <= 120 && dia <= 80) { bpStatusClass = "normal";   bpStatusLabel = "Normal";   bpStatusIcon = "fa-check-circle"; }
+                                else if (sys <= 139 || dia <= 89) { bpStatusClass = "elevated"; bpStatusLabel = "Elevated"; bpStatusIcon = "fa-exclamation-circle"; }
+                                else                               { bpStatusClass = "high";     bpStatusLabel = "High";     bpStatusIcon = "fa-exclamation-triangle"; }
+                            }
+                            <div class="bp-history-item">
+                                <div class="bp-history-date">
+                                    <span class="day">@bp.DateTime.Day</span>
+                                    <span class="month">@bp.DateTime.ToString("MMM")</span>
+                                </div>
+                                <div class="bp-history-reading">
+                                    <span class="reading">@bp.BloodPressure</span>
+                                    <span class="time">
+                                        @if (!string.IsNullOrWhiteSpace(bp.MeasurementTime))
+                                        {
+                                            @(bp.MeasurementTime + " - ")
+                                        }
+                                        @bp.DateTime.ToString("h:mm tt")
+                                    </span>
+                                </div>
+                                <div class="bp-history-status @bpStatusClass">
+                                    <i class="fas @bpStatusIcon"></i>
+                                    @bpStatusLabel
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="no-activity">No blood pressure readings recorded yet.</p>
+                    }
+                </div>
+                <a href="/Patient/MedicalHistory/@Model.Patient.PatientID" class="view-all-link">View Full History →</a>
+            </div>
+        </div>
+
+        <div class="card bp-chart-card">
+            <h3><i class="fas fa-chart-line"></i> Weekly Trend</h3>
+            <div class="bp-chart">
+                <div class="chart-bars">
+                    <div class="chart-bar-group">
+                        <div class="bar systolic" style="height: 60%" data-value="118"></div>
+                        <div class="bar diastolic" style="height: 40%" data-value="76"></div>
+                        <span class="bar-label">Mon</span>
+                    </div>
+                    <div class="chart-bar-group">
+                        <div class="bar systolic" style="height: 62%" data-value="120"></div>
+                        <div class="bar diastolic" style="height: 42%" data-value="78"></div>
+                        <span class="bar-label">Tue</span>
+                    </div>
+                    <div class="chart-bar-group">
+                        <div class="bar systolic" style="height: 65%" data-value="125"></div>
+                        <div class="bar diastolic" style="height: 44%" data-value="82"></div>
+                        <span class="bar-label">Wed</span>
+                    </div>
+                    <div class="chart-bar-group">
+                        <div class="bar systolic elevated" style="height: 70%" data-value="135"></div>
+                        <div class="bar diastolic elevated" style="height: 48%" data-value="88"></div>
+                        <span class="bar-label">Thu</span>
+                    </div>
+                    <div class="chart-bar-group">
+                        <div class="bar systolic" style="height: 61%" data-value="119"></div>
+                        <div class="bar diastolic" style="height: 41%" data-value="77"></div>
+                        <span class="bar-label">Fri</span>
+                    </div>
+                    <div class="chart-bar-group">
+                        <div class="bar systolic" style="height: 63%" data-value="122"></div>
+                        <div class="bar diastolic" style="height: 43%" data-value="80"></div>
+                        <span class="bar-label">Sat</span>
+                    </div>
+                    <div class="chart-bar-group today">
+                        <div class="bar systolic" style="height: 60%" data-value="120"></div>
+                        <div class="bar diastolic" style="height: 40%" data-value="80"></div>
+                        <span class="bar-label">Today</span>
+                    </div>
+                </div>
+            </div>
+            <div class="chart-legend">
+                <span><i class="fas fa-square systolic"></i> Systolic</span>
+                <span><i class="fas fa-square diastolic"></i> Diastolic</span>
+            </div>
+            <div class="bp-summary">
+                <div class="summary-item">
+                    <span class="label">Average</span>
+                    <span class="value">122/80 mmHg</span>
+                </div>
+                <div class="summary-item">
+                    <span class="label">Highest</span>
+                    <span class="value warning">135/88 mmHg</span>
+                </div>
+                <div class="summary-item">
+                    <span class="label">Lowest</span>
+                    <span class="value">115/75 mmHg</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End Blood Pressure Tab -->
+
+    <!-- Blood Sugar Tab -->
+    <div class="tab-content" id="blood-sugar-tab">
+        <div class="card bs-card">
+            <div class="bs-header">
+                <div class="bs-title">
+                    <i class="fas fa-tint"></i>
+                    <h3>Blood Sugar Tracker</h3>
+                </div>
+                <span class="bs-date" id="bsTodayDate"></span>
+            </div>
+
+            <div class="bs-input-container">
+                <div class="bs-input-group">
+                    <label for="bloodSugar">Blood Sugar Level</label>
+                    <div class="bs-input-wrapper">
+                        <input type="number" id="bloodSugar" class="bs-input" placeholder="95" min="40" max="400" />
+                        <span class="bs-unit">mg/dL</span>
+                    </div>
+                    <span class="bs-hint">Fasting: 70-100 | After meals: &lt;140</span>
+                </div>
+
+                <div class="bs-input-group">
+                    <label for="mealTime">When did you measure?</label>
+                    <select id="mealTime" class="bs-select">
+                        <option value="Fasting (Before breakfast)">Fasting (Before breakfast)</option>
+                        <option value="After Breakfast (2 hours)">After Breakfast (2 hours)</option>
+                        <option value="Before Lunch">Before Lunch</option>
+                        <option value="After Lunch (2 hours)">After Lunch (2 hours)</option>
+                        <option value="Before Dinner">Before Dinner</option>
+                        <option value="After Dinner (2 hours)">After Dinner (2 hours)</option>
+                        <option value="Bedtime">Bedtime</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="bs-actions">
+                <button class="btn btn-primary" id="saveBS">
+                    <i class="fas fa-save"></i> Save Reading
+                </button>
+            </div>
+
+            <div class="bs-result" id="bsResult" style="display: none">
+                <div class="bs-result-header">
+                    <div class="bs-reading">
+                        <span class="bs-value" id="bsValue">95</span>
+                        <span class="bs-label">mg/dL</span>
+                    </div>
+                    <div class="bs-status" id="bsStatus">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Normal</span>
+                    </div>
+                </div>
+                <div class="bs-message" id="bsMessage">
+                    Your blood sugar is within the normal range. Keep up the great work!
+                </div>
+            </div>
+
+            <div class="bs-history">
+                <h4><i class="fas fa-history"></i> Recent Readings</h4>
+                <div class="bs-history-list" id="bsHistoryList">
+                    @if (Model.RecentBloodSugarReadings != null && Model.RecentBloodSugarReadings.Any())
+                    {
+                        @foreach (var bs in Model.RecentBloodSugarReadings)
+                        {
+                            var isFasting = bs.MeasurementTime != null &&
+                                (bs.MeasurementTime.Contains("Fasting") ||
+                                 bs.MeasurementTime.Contains("Before Lunch") ||
+                                 bs.MeasurementTime.Contains("Before Dinner"));
+                            string bsStatusClass, bsStatusLabel, bsStatusIcon;
+                            if (bs.BloodSugar < 70)
+                            {
+                                bsStatusClass = "low"; bsStatusLabel = "Low"; bsStatusIcon = "fa-arrow-down";
+                            }
+                            else if (isFasting)
+                            {
+                                if (bs.BloodSugar <= 100)      { bsStatusClass = "normal";   bsStatusLabel = "Normal";   bsStatusIcon = "fa-check-circle"; }
+                                else if (bs.BloodSugar <= 125) { bsStatusClass = "elevated"; bsStatusLabel = "Elevated"; bsStatusIcon = "fa-exclamation-circle"; }
+                                else                            { bsStatusClass = "high";     bsStatusLabel = "High";     bsStatusIcon = "fa-exclamation-triangle"; }
+                            }
+                            else
+                            {
+                                if (bs.BloodSugar <= 140)      { bsStatusClass = "normal";   bsStatusLabel = "Normal";        bsStatusIcon = "fa-check-circle"; }
+                                else if (bs.BloodSugar <= 180) { bsStatusClass = "elevated"; bsStatusLabel = "Slightly High"; bsStatusIcon = "fa-exclamation-circle"; }
+                                else                            { bsStatusClass = "high";     bsStatusLabel = "High";          bsStatusIcon = "fa-exclamation-triangle"; }
+                            }
+                            <div class="bs-history-item">
+                                <div class="bs-history-date">
+                                    <span class="day">@bs.DateTime.Day</span>
+                                    <span class="month">@bs.DateTime.ToString("MMM")</span>
+                                </div>
+                                <div class="bs-history-reading">
+                                    <span class="reading">@bs.BloodSugar mg/dL</span>
+                                    <span class="time">
+                                        @if (!string.IsNullOrWhiteSpace(bs.MeasurementTime))
+                                        {
+                                            @(bs.MeasurementTime + " - ")
+                                        }
+                                        @bs.DateTime.ToString("h:mm tt")
+                                    </span>
+                                </div>
+                                <div class="bs-history-status @bsStatusClass">
+                                    <i class="fas @bsStatusIcon"></i>
+                                    @bsStatusLabel
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="no-activity">No blood sugar readings recorded yet.</p>
+                    }
+                </div>
+                <a href="#" class="view-all-link">View Full History →</a>
+            </div>
+        </div>
+
+        <div class="card bs-chart-card">
+            <h3><i class="fas fa-chart-line"></i> Weekly Trend</h3>
+            <div class="bs-chart">
+                <div class="chart-line">
+                    <div class="chart-point" style="bottom: 45%; left: 10%" data-value="90"></div>
+                    <div class="chart-point" style="bottom: 50%; left: 24%" data-value="95"></div>
+                    <div class="chart-point" style="bottom: 48%; left: 38%" data-value="92"></div>
+                    <div class="chart-point" style="bottom: 40%; left: 52%" data-value="88"></div>
+                    <div class="chart-point" style="bottom: 52%; left: 66%" data-value="98"></div>
+                    <div class="chart-point" style="bottom: 46%; left: 80%" data-value="91"></div>
+                    <div class="chart-point today" style="bottom: 48%; left: 94%" data-value="92"></div>
+                </div>
+                <div class="chart-labels">
+                    <span>Mon</span><span>Tue</span><span>Wed</span>
+                    <span>Thu</span><span>Fri</span><span>Sat</span><span>Today</span>
+                </div>
+            </div>
+            <div class="bs-summary">
+                <div class="summary-item">
+                    <span class="label">Average</span>
+                    <span class="value">92 mg/dL</span>
+                </div>
+                <div class="summary-item">
+                    <span class="label">Highest</span>
+                    <span class="value">98 mg/dL</span>
+                </div>
+                <div class="summary-item">
+                    <span class="label">Lowest</span>
+                    <span class="value">88 mg/dL</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End Blood Sugar Tab -->
+</section>
+
+@section Scripts {
+<script>
+    // ================================
+    // Shared helpers
+    // ================================
+    const PATIENT_ID = parseInt(document.querySelector('meta[name="patient-id"]').content, 10);
+    const ANTIFORGERY_TOKEN = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+    // Set today's date in tracker headers
+    (function () {
+        const opts = { year: 'numeric', month: 'long', day: 'numeric' };
+        const label = 'Today, ' + new Date().toLocaleDateString('en-US', opts);
+        const bpDate = document.getElementById('bpTodayDate');
+        const bsDate = document.getElementById('bsTodayDate');
+        if (bpDate) bpDate.textContent = label;
+        if (bsDate) bsDate.textContent = label;
+    })();
+
+    // ================================
+    // Mother Portal - Main JavaScript
+    // ================================
+    document.addEventListener("DOMContentLoaded", function () {
+        // Notification badge
+        document.querySelectorAll(".notification").forEach(n => {
+            n.addEventListener("click", function () {
+                const badge = this.querySelector(".badge");
+                if (badge) badge.style.display = "none";
+                window.showNotification && window.showNotification("Notifications panel coming soon!", "info");
+            });
+        });
+
+        // Button hover effects
+        document.querySelectorAll(".btn").forEach(btn => {
+            btn.addEventListener("mouseenter", function () { this.style.transform = "translateY(-2px)"; });
+            btn.addEventListener("mouseleave", function () { this.style.transform = "translateY(0)"; });
+        });
+
+        // Global notification helper
+        window.showNotification = function (message, type = "info") {
+            const existing = document.querySelector(".global-notification");
+            if (existing) existing.remove();
+            const notification = document.createElement("div");
+            notification.className = `global-notification ${type}`;
+            let icon = "fa-info-circle";
+            if (type === "success") icon = "fa-check-circle";
+            if (type === "error")   icon = "fa-exclamation-circle";
+            if (type === "warning") icon = "fa-exclamation-triangle";
+            notification.innerHTML = `<i class="fas ${icon}"></i><span>${message}</span><button class="notification-close"><i class="fas fa-times"></i></button>`;
+            document.body.appendChild(notification);
+            notification.querySelector(".notification-close").addEventListener("click", () => notification.remove());
+            setTimeout(() => { if (notification.parentNode) { notification.style.animation = "slideOutRight 0.3s ease forwards"; setTimeout(() => notification.remove(), 300); } }, 4000);
+        };
+
+        if (!document.getElementById("global-notification-styles")) {
+            const style = document.createElement("style");
+            style.id = "global-notification-styles";
+            style.textContent = `
+                .global-notification { position:fixed; top:24px; right:24px; padding:16px 20px; border-radius:12px; display:flex; align-items:center; gap:12px; font-weight:500; z-index:9999; animation:slideInRight 0.3s ease; box-shadow:0 4px 12px rgba(0,0,0,0.15); max-width:400px; }
+                .global-notification.success { background:#E8F5E9; color:#2E7D32; border:1px solid #A5D6A7; }
+                .global-notification.error   { background:#FFEBEE; color:#C62828; border:1px solid #EF9A9A; }
+                .global-notification.warning { background:#FFF3E0; color:#E65100; border:1px solid #FFCC80; }
+                .global-notification.info    { background:#E3F2FD; color:#1565C0; border:1px solid #90CAF9; }
+                .global-notification span { flex:1; }
+                .global-notification .notification-close { background:none; border:none; cursor:pointer; color:inherit; opacity:0.7; padding:4px; }
+                .global-notification .notification-close:hover { opacity:1; }
+                @@keyframes slideInRight  { from { opacity:0; transform:translateX(100px); } to { opacity:1; transform:translateX(0); } }
+                @@keyframes slideOutRight { from { opacity:1; transform:translateX(0); }     to { opacity:0; transform:translateX(100px); } }
+            `;
+            document.head.appendChild(style);
+        }
+    });
+</script>
+
+<script>
+    // ================================
+    // Blood Pressure Tracker
+    // ================================
+    document.addEventListener("DOMContentLoaded", function () {
+        const systolicInput  = document.getElementById("systolic");
+        const diastolicInput = document.getElementById("diastolic");
+        const pulseInput     = document.getElementById("pulse");
+        const bpMeasTime     = document.getElementById("bpMeasurementTime");
+        const saveBPBtn      = document.getElementById("saveBP");
+        const bpResult       = document.getElementById("bpResult");
+        const bpValue        = document.getElementById("bpValue");
+        const bpStatus       = document.getElementById("bpStatus");
+        const bpMessage      = document.getElementById("bpMessage");
+
+        // Tab switching
+        const tabButtons  = document.querySelectorAll(".tab-btn");
+        const tabContents = document.querySelectorAll(".tab-content");
+        tabButtons.forEach(button => {
+            button.addEventListener("click", function () {
+                const targetTab = this.getAttribute("data-tab");
+                tabButtons.forEach(btn => btn.classList.remove("active"));
+                tabContents.forEach(content => content.classList.remove("active"));
+                this.classList.add("active");
+                document.getElementById(`${targetTab}-tab`).classList.add("active");
+            });
+        });
+
+        [systolicInput, diastolicInput, pulseInput].forEach(input => {
+            if (input) input.addEventListener("input", function () { this.value = this.value.replace(/[^0-9]/g, ""); });
+        });
+
+        if (systolicInput && diastolicInput) {
+            systolicInput.addEventListener("input",  function () { if (this.value.length >= 3) diastolicInput.focus(); });
+            diastolicInput.addEventListener("input", function () { if (this.value.length >= 2 && pulseInput) pulseInput.focus(); });
+        }
+
+        if (saveBPBtn) {
+            saveBPBtn.addEventListener("click", async function () {
+                const systolic  = parseInt(systolicInput.value);
+                const diastolic = parseInt(diastolicInput.value);
+                const measTime  = bpMeasTime ? bpMeasTime.value : null;
+
+                if (!systolic || !diastolic) { window.showNotification("Please enter both systolic and diastolic values.", "error"); return; }
+                if (systolic  < 70  || systolic  > 200) { window.showNotification("Systolic value should be between 70-200 mmHg.",  "error"); return; }
+                if (diastolic < 40  || diastolic > 130) { window.showNotification("Diastolic value should be between 40-130 mmHg.", "error"); return; }
+
+                const analysis = analyzeBP(systolic, diastolic);
+
+                bpValue.textContent = `${systolic}/${diastolic}`;
+                bpStatus.className  = "bp-status " + analysis.status;
+                bpStatus.innerHTML  = `<i class="fas ${analysis.icon}"></i><span>${analysis.label}</span>`;
+                bpMessage.textContent = analysis.message;
+                bpResult.style.display = "block";
+
+                const bpStatVal    = document.getElementById("bpStatValue");
+                const bpStatChange = document.getElementById("bpStatChange");
+                if (bpStatVal)    bpStatVal.textContent    = `${systolic}/${diastolic}`;
+                if (bpStatChange) bpStatChange.textContent = analysis.label;
+
+                try {
+                    const formData = new FormData();
+                    formData.append("patientId",      PATIENT_ID);
+                    formData.append("systolic",       systolic);
+                    formData.append("diastolic",      diastolic);
+                    formData.append("measurementTime", measTime || "");
+                    formData.append("__RequestVerificationToken", ANTIFORGERY_TOKEN);
+
+                    const response = await fetch("/Patient/SaveBloodPressure", { method: "POST", body: formData });
+                    if (!response.ok) throw new Error("Server error");
+
+                    const data = await response.json();
+                    if (data.success) {
+                        addBPToHistory(systolic, diastolic, data.day, data.month, data.time, measTime, analysis);
+                        window.showNotification("Blood pressure reading saved successfully!", "success");
+                    }
+                } catch (err) {
+                    window.showNotification("Could not save reading. Please try again.", "error");
+                }
+
+                bpResult.scrollIntoView({ behavior: "smooth", block: "center" });
+            });
+        }
+
+        function analyzeBP(systolic, diastolic) {
+            let status, label, icon, message;
+            if      (systolic < 90 || diastolic < 60)                 { status="low";      label="Low";            icon="fa-arrow-down";         message="Your blood pressure is lower than normal. If you feel dizzy or faint, please consult your doctor."; }
+            else if (systolic <= 120 && diastolic <= 80)               { status="normal";   label="Normal";         icon="fa-check-circle";       message="Excellent! Your blood pressure is within the normal range. Keep up the healthy lifestyle!"; }
+            else if (systolic <= 129 && diastolic < 80)                { status="elevated"; label="Elevated";       icon="fa-exclamation-circle"; message="Your blood pressure is slightly elevated. Consider reducing salt intake and increasing physical activity."; }
+            else if (systolic <= 139 || diastolic <= 89)               { status="elevated"; label="High (Stage 1)"; icon="fa-exclamation-triangle"; message="Your blood pressure is high. Please monitor regularly and consult your healthcare provider."; }
+            else                                                        { status="high";     label="High (Stage 2)"; icon="fa-exclamation-triangle"; message="Your blood pressure is significantly elevated. Please contact your doctor immediately."; }
+            return { status, label, icon, message };
+        }
+
+        function addBPToHistory(systolic, diastolic, day, month, time, measTime, analysis) {
+            const historyList = document.getElementById("bpHistoryList");
+            if (!historyList) return;
+            const noMsg = historyList.querySelector("p.no-activity");
+            if (noMsg) noMsg.remove();
+
+            const timeDisplay = measTime ? `${measTime} - ${time}` : time;
+            const item = document.createElement("div");
+            item.className = "bp-history-item";
+            item.style.animation = "fadeIn 0.3s ease";
+            item.innerHTML = `
+                <div class="bp-history-date"><span class="day">${day}</span><span class="month">${month}</span></div>
+                <div class="bp-history-reading"><span class="reading">${systolic}/${diastolic}</span><span class="time">${timeDisplay}</span></div>
+                <div class="bp-history-status ${analysis.status}"><i class="fas ${analysis.icon}"></i> ${analysis.label}</div>`;
+            historyList.insertBefore(item, historyList.firstChild);
+            const items = historyList.querySelectorAll(".bp-history-item");
+            if (items.length > 10) items[items.length - 1].remove();
+        }
+
+        // Input colour hints
+        [systolicInput, diastolicInput].forEach(input => {
+            if (!input) return;
+            input.addEventListener("blur", function () {
+                const value = parseInt(this.value);
+                const wrapper = this.closest(".bp-input-wrapper");
+                if (!wrapper) return;
+                wrapper.classList.remove("normal", "elevated", "high", "low");
+                if (!value) return;
+                if (this === systolicInput) {
+                    if (value < 90) wrapper.classList.add("low"); else if (value <= 120) wrapper.classList.add("normal"); else if (value <= 139) wrapper.classList.add("elevated"); else wrapper.classList.add("high");
+                } else {
+                    if (value < 60) wrapper.classList.add("low"); else if (value <= 80) wrapper.classList.add("normal"); else if (value <= 89) wrapper.classList.add("elevated"); else wrapper.classList.add("high");
+                }
+            });
+        });
+    });
+</script>
+
+<script>
+    // ================================
+    // Blood Sugar Tracker
+    // ================================
+    document.addEventListener("DOMContentLoaded", function () {
+        const bloodSugarInput = document.getElementById("bloodSugar");
+        const mealTimeSelect  = document.getElementById("mealTime");
+        const saveBSBtn       = document.getElementById("saveBS");
+        const bsResult        = document.getElementById("bsResult");
+        const bsValue         = document.getElementById("bsValue");
+        const bsStatus        = document.getElementById("bsStatus");
+        const bsMessage       = document.getElementById("bsMessage");
+
+        if (bloodSugarInput) {
+            bloodSugarInput.addEventListener("input", function () { this.value = this.value.replace(/[^0-9]/g, ""); });
+        }
+
+        if (saveBSBtn) {
+            saveBSBtn.addEventListener("click", async function () {
+                const bloodSugar = parseInt(bloodSugarInput.value);
+                const mealTime   = mealTimeSelect.value;
+
+                if (!bloodSugar) { window.showNotification("Please enter a blood sugar value.", "error"); return; }
+                if (bloodSugar < 40 || bloodSugar > 400) { window.showNotification("Blood sugar value should be between 40-400 mg/dL.", "error"); return; }
+
+                const analysis = analyzeBloodSugar(bloodSugar, mealTime);
+
+                bsValue.textContent   = bloodSugar;
+                bsStatus.className    = "bs-status " + analysis.status;
+                bsStatus.innerHTML    = `<i class="fas ${analysis.icon}"></i><span>${analysis.label}</span>`;
+                bsMessage.textContent = analysis.message;
+                bsResult.style.display = "block";
+
+                const bsStatVal    = document.getElementById("bsStatValue");
+                const bsStatChange = document.getElementById("bsStatChange");
+                if (bsStatVal)    bsStatVal.textContent    = bloodSugar;
+                if (bsStatChange) bsStatChange.textContent = analysis.label;
+
+                try {
+                    const formData = new FormData();
+                    formData.append("patientId",       PATIENT_ID);
+                    formData.append("bloodSugar",      bloodSugar);
+                    formData.append("measurementTime", mealTime);
+                    formData.append("__RequestVerificationToken", ANTIFORGERY_TOKEN);
+
+                    const response = await fetch("/Patient/SaveBloodSugar", { method: "POST", body: formData });
+                    if (!response.ok) throw new Error("Server error");
+
+                    const data = await response.json();
+                    if (data.success) {
+                        addBSToHistory(bloodSugar, mealTime, data.day, data.month, data.time, analysis);
+                        window.showNotification("Blood sugar reading saved successfully!", "success");
+                    }
+                } catch (err) {
+                    window.showNotification("Could not save reading. Please try again.", "error");
+                }
+
+                bsResult.scrollIntoView({ behavior: "smooth", block: "center" });
+            });
+        }
+
+        function analyzeBloodSugar(value, mealTime) {
+            let status, label, icon, message;
+            const isFasting = mealTime.includes("Fasting") || mealTime.includes("Before Lunch") || mealTime.includes("Before Dinner");
+            if (value < 70) {
+                status="low"; label="Low"; icon="fa-arrow-down"; message="Your blood sugar is low. Consider eating something with carbohydrates. If you feel symptoms, contact your doctor.";
+            } else if (isFasting) {
+                if      (value <= 100) { status="normal";   label="Normal";   icon="fa-check-circle";       message="Excellent! Your fasting blood sugar is within the normal range. Keep maintaining your healthy lifestyle!"; }
+                else if (value <= 125) { status="elevated"; label="Elevated"; icon="fa-exclamation-circle"; message="Your fasting blood sugar is slightly elevated. Consider consulting your healthcare provider and monitor your diet."; }
+                else                   { status="high";     label="High";     icon="fa-exclamation-triangle"; message="Your fasting blood sugar is high. Please contact your healthcare provider for guidance."; }
+            } else {
+                if      (value <= 140) { status="normal";   label="Normal";       icon="fa-check-circle";       message="Great! Your post-meal blood sugar is within the normal range. Your body is processing glucose well!"; }
+                else if (value <= 180) { status="elevated"; label="Slightly High"; icon="fa-exclamation-circle"; message="Your post-meal blood sugar is slightly elevated. Try to reduce refined carbohydrates and increase physical activity."; }
+                else                   { status="high";     label="High";          icon="fa-exclamation-triangle"; message="Your post-meal blood sugar is high. Please consult your healthcare provider about adjusting your diet and treatment plan."; }
+            }
+            return { status, label, icon, message };
+        }
+
+        function addBSToHistory(bloodSugar, mealTime, day, month, time, analysis) {
+            const historyList = document.getElementById("bsHistoryList");
+            if (!historyList) return;
+            const noMsg = historyList.querySelector("p.no-activity");
+            if (noMsg) noMsg.remove();
+
+            const item = document.createElement("div");
+            item.className = "bs-history-item";
+            item.style.animation = "fadeIn 0.3s ease";
+            item.innerHTML = `
+                <div class="bs-history-date"><span class="day">${day}</span><span class="month">${month}</span></div>
+                <div class="bs-history-reading"><span class="reading">${bloodSugar} mg/dL</span><span class="time">${mealTime} - ${time}</span></div>
+                <div class="bs-history-status ${analysis.status}"><i class="fas ${analysis.icon}"></i> ${analysis.label}</div>`;
+            historyList.insertBefore(item, historyList.firstChild);
+            const items = historyList.querySelectorAll(".bs-history-item");
+            if (items.length > 10) items[items.length - 1].remove();
+        }
+
+        if (bloodSugarInput) {
+            bloodSugarInput.addEventListener("blur", function () {
+                const value = parseInt(this.value);
+                const wrapper = this.closest(".bs-input-wrapper");
+                if (!wrapper) return;
+                wrapper.classList.remove("normal", "elevated", "high", "low");
+                if (!value) return;
+                if      (value < 70)   wrapper.classList.add("low");
+                else if (value <= 100) wrapper.classList.add("normal");
+                else if (value <= 140) wrapper.classList.add("elevated");
+                else                   wrapper.classList.add("high");
+            });
+        }
+    });
+</script>
+}

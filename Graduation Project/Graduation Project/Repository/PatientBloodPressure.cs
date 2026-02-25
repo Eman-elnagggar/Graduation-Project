@@ -29,5 +29,22 @@ namespace Graduation_Project.Repository
         }
 
         public void Save() => _context.SaveChanges();
+
+        public PatientBloodPressure GetLastBloodPressureValue(int patientId)
+        {
+            return _context.PatientBloodPressure
+                .Where(x => x.PatientID == patientId)
+                .OrderByDescending(x => x.DateTime)
+                .FirstOrDefault();
+        }
+
+        public IEnumerable<PatientBloodPressure> GetRecentByPatientId(int patientId, int count = 10)
+        {
+            return _context.PatientBloodPressure
+                .Where(x => x.PatientID == patientId)
+                .OrderByDescending(x => x.DateTime)
+                .Take(count)
+                .ToList();
+        }
     }
 }

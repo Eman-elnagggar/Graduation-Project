@@ -1,6 +1,7 @@
 ﻿using Graduation_Project.Data;
 using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Graduation_Project.Repository
 {
@@ -29,5 +30,23 @@ namespace Graduation_Project.Repository
         }
 
         public void Save() => _context.SaveChanges();
+
+        public Appointment GetNextAppointmentForPatient(int patientId)
+        {
+            return _context.Appointments
+                .Where(a => a.PatientID == patientId && a.Date > DateTime.Now)
+                .Include(a => a.Doctor)
+                .ThenInclude(d => d.User) // Include doctor details
+                .OrderBy(a => a.Date)
+                .FirstOrDefault();
+        }
+
+        public IEnumerable<Appointment> GetByPatientId(int patientId) =>
+            _context.Appointments
+                .Where(a => a.PatientID == patientId)
+                .Include(a => a.Doctor).ThenInclude(d => d.User)
+                .Include(a => a.Clinic)
+                .OrderByDescending(a => a.Date)
+                .ToList();
     }
 }

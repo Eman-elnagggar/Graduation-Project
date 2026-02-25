@@ -10,5 +10,7 @@ namespace Graduation_Project.Interfaces
         void Update(UltrasoundImage ultrasoundImage);
         void Delete(int id);
         void Save();
+        UltrasoundImage GetLastUltrasoundByPatientId(int patientId);
+        IEnumerable<UltrasoundImage> GetUltrasoundsByPatientId(int patientId);
     }
 }

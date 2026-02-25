@@ -10,5 +10,7 @@ namespace Graduation_Project.Interfaces
         void Update(LabTest labTest);
         void Delete(int id);
         void Save();
+        IEnumerable<LabTest> GetLabTestsByPatientId(int patientId);
+        LabTest GetLastLabTestByPatientId(int patientId);
     }
 }
