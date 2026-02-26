@@ -89,7 +89,8 @@
                 <div class="nav-icon"><i class="fas fa-bell"></i></div>
                 <span>Alerts</span>
             </a>
-            <a href="#" class="nav-item @(activePage == "Profile" ? "active" : "")" data-tooltip="My Profile">
+            <a href="/PatientProfile/Index/@patientId"
+               class="nav-item @(activePage == "Profile" ? "active" : "")" data-tooltip="My Profile">
                 <div class="nav-icon"><i class="fas fa-user-circle"></i></div>
                 <span>My Profile</span>
             </a>
