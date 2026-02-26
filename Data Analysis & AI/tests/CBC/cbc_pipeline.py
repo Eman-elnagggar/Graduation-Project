@@ -23,7 +23,7 @@ class cbc_model_prediction:
         cols_to_fix=['wbc','platelets','abs_lymp']
         input_data[cols_to_fix] = self.__pt.transform(input_data[cols_to_fix])
 
-        del input_data['wbc']
+        del input_data['lymp']
         del input_data['mch']
 
         return input_data
@@ -31,6 +31,7 @@ class cbc_model_prediction:
     def predicit_cbc(self,input_data):
         input_data=self.__input_to_df(input_data)
         input_data=self.__preprocessing(input_data)
+        print(input_data)
         sample_pred = self.__model.predict(input_data)[0]
         predicted_diagnoses = [self.__labels[i] for i in range(len(self.__labels)) if sample_pred[i] == 1]
         return predicted_diagnoses
