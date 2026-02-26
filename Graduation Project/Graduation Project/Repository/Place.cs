@@ -29,5 +29,8 @@ namespace Graduation_Project.Repository
         }
 
         public void Save() => _context.SaveChanges();
+
+        public IEnumerable<Place> GetByPatientId(int patientId) =>
+            _context.Places.Where(p => p.PatientID == patientId).ToList();
     }
 }

@@ -11,170 +11,233 @@
     @Html.AntiForgeryToken()
 }
 
-<!-- Header -->
-<header class="header">
-    <div class="header-left">
-        <h1>Welcome, @Model.UserName! 👋</h1>
-        <p>Here's your pregnancy journey overview</p>
-    </div>
-    <div class="header-right">
-        <div class="notification">
-            <i class="fas fa-bell"></i>
-            <span class="badge">3</span>
+<!-- ══════════════════ PAGE HEADER ══════════════════ -->
+<header class="db-header">
+    <div class="db-header-left">
+        <div class="db-title-wrap">
+            <div class="db-title-icon">
+                <i class="fas fa-home"></i>
+            </div>
+            <div>
+                <h1 class="db-title">Welcome back, <span class="db-name">@Model.UserName</span> 👋</h1>
+                <p class="db-subtitle">Here's your pregnancy journey overview for today</p>
+            </div>
         </div>
-        <div class="profile">
-            <img src="https://img.freepik.com/free-psd/portrait-woman-wearing-hijab_23-2150945115.jpg?t=st=1765809397~exp=1765812997~hmac=3a0f5380a8654b0ab467fef42c27dae769a70acb5bd0eba3cbf169de91bcc9d0&w=1060"
-                 alt="Profile" />
+    </div>
+    <div class="db-header-right">
+        <div class="db-date-chip">
+            <i class="fas fa-calendar-alt"></i>
+            <span id="dbTodayLabel"></span>
+        </div>
+        <div class="db-notif-btn">
+            <i class="fas fa-bell"></i>
+            @if (Model.HealthAlerts != null && Model.HealthAlerts.Any(a => !a.IsRead))
+            {
+                <span class="db-notif-badge">@Model.HealthAlerts.Count(a => !a.IsRead)</span>
+            }
+        </div>
+        <div class="db-profile-chip">
+            <div class="db-avatar"><i class="fas fa-user"></i></div>
             <span>@Model.UserName</span>
         </div>
     </div>
 </header>
 
-<!-- Pregnancy Progress -->
-<section class="pregnancy-progress">
-    <div class="progress-card">
-        <div class="progress-info">
-            <h3>Pregnancy Progress</h3>
-            <p>Week <span class="week-number">@Model.PregnancyWeek</span> of 40</p>
+<!-- ══════════════════ PREGNANCY PROGRESS ══════════════════ -->
+<section class="db-pregnancy-card">
+    <div class="db-preg-left">
+        <div class="db-preg-icon-col">
+            <div class="db-preg-icon"><i class="fas fa-baby"></i></div>
         </div>
-        <div class="progress-bar-container">
-            <div class="progress-bar" style="width: @(Model.PregnancyProgressPercent)%"></div>
+        <div class="db-preg-info">
+            <div class="db-preg-week-row">
+                <span class="db-preg-label">Pregnancy Progress</span>
+                <span class="db-preg-trimester">@Model.Trimester</span>
+            </div>
+            <div class="db-preg-week-display">
+                <span class="db-week-num">@Model.PregnancyWeek</span>
+                <span class="db-week-of">&nbsp;/ 40 weeks</span>
+            </div>
+            <div class="db-preg-bar-wrap">
+                <div class="db-preg-bar">
+                    <div class="db-preg-bar-fill" style="width: @(Model.PregnancyProgressPercent)%"></div>
+                    <div class="db-preg-bar-dot" style="left: calc(@(Model.PregnancyProgressPercent)% - 8px)"></div>
+                </div>
+                <div class="db-preg-bar-labels">
+                    <span>Week 1</span><span>Week 13</span><span>Week 27</span><span>Week 40</span>
+                </div>
+            </div>
         </div>
-        <div class="progress-details">
-            <span><i class="fas fa-calendar"></i> Due Date: @Model.DueDate</span>
-            <span><i class="fas fa-baby"></i> @Model.Trimester</span>
+    </div>
+    <div class="db-preg-right">
+        <div class="db-preg-stat">
+            <div class="db-preg-stat-icon"><i class="fas fa-calendar-check"></i></div>
+            <div>
+                <span class="db-preg-stat-val">@Model.DueDate</span>
+                <span class="db-preg-stat-lbl">Due Date</span>
+            </div>
+        </div>
+        <div class="db-preg-divider"></div>
+        <div class="db-preg-stat">
+            <div class="db-preg-stat-icon"><i class="fas fa-heart"></i></div>
+            <div>
+                <span class="db-preg-stat-val">@(40 - Model.PregnancyWeek) weeks</span>
+                <span class="db-preg-stat-lbl">Remaining</span>
+            </div>
+        </div>
+        <div class="db-preg-divider"></div>
+        <div class="db-preg-stat">
+            <div class="db-preg-stat-icon"><i class="fas fa-percentage"></i></div>
+            <div>
+                <span class="db-preg-stat-val">@Model.PregnancyProgressPercent%</span>
+                <span class="db-preg-stat-lbl">Complete</span>
+            </div>
         </div>
     </div>
 </section>
 
-<!-- Stats Cards -->
-<section class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-icon" style="background: #e8f5e9">
-            <i class="fas fa-weight" style="color: #4caf50"></i>
+<!-- ══════════════════ STAT CARDS ══════════════════ -->
+<section class="db-stats-grid">
+    <!-- Weight -->
+    <div class="db-stat-card db-stat-weight">
+        <div class="db-stat-icon"><i class="fas fa-weight"></i></div>
+        <div class="db-stat-body">
+            <span class="db-stat-num">@Model.Patient.WeightKg</span>
+            <span class="db-stat-lbl">Weight (kg)</span>
+            <span class="db-stat-tag db-tag-normal"><i class="fas fa-arrow-up"></i> +2kg this month</span>
         </div>
-        <div class="stat-info">
-            <h4>Weight</h4>
-            <p class="stat-value">@Model.Patient.WeightKg</p>
-            <span class="stat-change positive">+2kg this month</span>
-        </div>
+        <div class="db-stat-bg"><i class="fas fa-weight"></i></div>
     </div>
-    <div class="stat-card"
-         onclick="document.querySelector('.health-tracker-section').scrollIntoView({ behavior: 'smooth' })">
-        <div class="stat-icon" style="background: #e3f2fd">
-            <i class="fas fa-heartbeat" style="color: #2196f3"></i>
+    <!-- Blood Pressure -->
+    <div class="db-stat-card db-stat-bp" style="cursor:pointer"
+         onclick="document.querySelector('.db-tracker-section').scrollIntoView({behavior:'smooth'})">
+        <div class="db-stat-icon"><i class="fas fa-heartbeat"></i></div>
+        <div class="db-stat-body">
+            <span class="db-stat-num" id="bpStatValue">@Model.LastBloodPressureValue</span>
+            <span class="db-stat-lbl">Blood Pressure</span>
+            <span class="db-stat-tag db-tag-normal" id="bpStatChange">Normal</span>
         </div>
-        <div class="stat-info">
-            <h4>Blood Pressure</h4>
-            <p class="stat-value" id="bpStatValue">@Model.LastBloodPressureValue</p>
-            <span class="stat-change positive" id="bpStatChange">Normal</span>
-        </div>
+        <div class="db-stat-bg"><i class="fas fa-heartbeat"></i></div>
     </div>
-    <div class="stat-card"
-         onclick="document.querySelector('.health-tracker-section').scrollIntoView({ behavior: 'smooth' })">
-        <div class="stat-icon" style="background: #fce4ec">
-            <i class="fas fa-tint" style="color: #e91e63"></i>
+    <!-- Blood Sugar -->
+    <div class="db-stat-card db-stat-bs" style="cursor:pointer"
+         onclick="document.querySelector('.db-tracker-section').scrollIntoView({behavior:'smooth'})">
+        <div class="db-stat-icon"><i class="fas fa-tint"></i></div>
+        <div class="db-stat-body">
+            <span class="db-stat-num" id="bsStatValue">@Model.LastBloodSugarValue</span>
+            <span class="db-stat-lbl">Blood Sugar (mg/dL)</span>
+            <span class="db-stat-tag db-tag-normal" id="bsStatChange">Normal</span>
         </div>
-        <div class="stat-info">
-            <h4>Blood Sugar</h4>
-            <p class="stat-value" id="bsStatValue">@Model.LastBloodSugarValue</p>
-            <span class="stat-change positive" id="bsStatChange">Normal</span>
-        </div>
+        <div class="db-stat-bg"><i class="fas fa-tint"></i></div>
     </div>
-    <div class="stat-card">
-        <div class="stat-icon" style="background: #fff3e0">
-            <i class="fas fa-flask" style="color: #ff9800"></i>
+    <!-- Last Lab Test -->
+    <div class="db-stat-card db-stat-lab">
+        <div class="db-stat-icon"><i class="fas fa-flask"></i></div>
+        <div class="db-stat-body">
+            <span class="db-stat-num db-stat-num-sm">@(Model.LastLabTest?.TestType ?? "—")</span>
+            <span class="db-stat-lbl">Last Lab Test</span>
+            <span class="db-stat-tag db-tag-neutral">@(Model.LastLabTest?.UploadDate.ToString("MMM dd, yyyy") ?? "No tests yet")</span>
         </div>
-        <div class="stat-info">
-            <h4>Last Test</h4>
-            <p class="stat-value">@Model.LastLabTest?.TestType</p>
-            <span class="stat-change">@Model.LastLabTest?.UploadDate.ToString("MMM dd, yyyy")</span>
-        </div>
+        <div class="db-stat-bg"><i class="fas fa-flask"></i></div>
     </div>
-    <div class="stat-card">
-        <div class="stat-icon" style="background: #fce4ec">
-            <i class="fas fa-calendar-alt" style="color: #e91e63"></i>
+    <!-- Next Appointment -->
+    <div class="db-stat-card db-stat-appt">
+        <div class="db-stat-icon"><i class="fas fa-calendar-alt"></i></div>
+        <div class="db-stat-body">
+            <span class="db-stat-num db-stat-num-sm">@(Model.NextAppointment?.Date.ToString("MMM dd") ?? "—")</span>
+            <span class="db-stat-lbl">Next Appointment</span>
+            <span class="db-stat-tag db-tag-upcoming">
+                @(Model.NextAppointment != null ? "Dr. " + Model.NextAppointment.Doctor?.User?.FirstName : "None scheduled")
+            </span>
         </div>
-        <div class="stat-info">
-            <h4>Next Appointment</h4>
-            <p class="stat-value">@Model.NextAppointment?.Date.ToString("MMM dd")</p>
-            <span class="stat-change">Dr. @Model.NextAppointment?.Doctor?.User?.FirstName</span>
-        </div>
+        <div class="db-stat-bg"><i class="fas fa-calendar-alt"></i></div>
     </div>
 </section>
 
-<!-- Recent Activity & Alerts -->
-<section class="dashboard-grid">
-    <div class="card recent-activity">
-        <div class="card-header">
-            <h3><i class="fas fa-history"></i> Recent Activity</h3>
-            <a href="/Patient/MedicalHistory/@Model.Patient.PatientID">View All</a>
+<!-- ══════════════════ ACTIVITY & ALERTS GRID ══════════════════ -->
+<section class="db-mid-grid">
+
+    <!-- Recent Activity -->
+    <div class="db-card db-activity-card">
+        <div class="db-card-header">
+            <div class="db-card-title">
+                <div class="db-card-icon-wrap activity"><i class="fas fa-history"></i></div>
+                <h3>Recent Activity</h3>
+            </div>
+            <a href="/Patient/MedicalHistory/@Model.Patient.PatientID" class="db-view-all">
+                View All <i class="fas fa-arrow-right"></i>
+            </a>
         </div>
-        <div class="activity-list">
+        <div class="db-activity-list">
             @if (Model.RecentActivities != null && Model.RecentActivities.Any())
             {
                 @foreach (var activity in Model.RecentActivities)
                 {
-                    <div class="activity-item">
-                        <div class="activity-icon" style="background: @activity.IconBgColor">
-                            <i class="@activity.IconClass" style="color: @activity.IconColor"></i>
+                    <div class="db-activity-item">
+                        <div class="db-activity-icon" style="background:@activity.IconBgColor">
+                            <i class="@activity.IconClass" style="color:@activity.IconColor"></i>
                         </div>
-                        <div class="activity-info">
+                        <div class="db-activity-info">
                             <h4>@activity.Title</h4>
                             <p>@activity.Description</p>
                         </div>
-                        <span class="activity-time">@activity.RelativeTime</span>
+                        <span class="db-activity-time">@activity.RelativeTime</span>
                     </div>
                 }
             }
             else
             {
-                <p class="no-activity">No recent activity found.</p>
+                <div class="db-empty-feed">
+                    <div class="db-empty-icon"><i class="fas fa-history"></i></div>
+                    <p>No recent activity found.</p>
+                </div>
             }
         </div>
     </div>
 
-    <div class="card alerts-card">
-        <div class="card-header">
-            <h3><i class="fas fa-bell"></i> Health Alerts</h3>
-            <a href="/Patient/Alerts/@Model.Patient.PatientID">View All</a>
+    <!-- Health Alerts -->
+    <div class="db-card db-alerts-card">
+        <div class="db-card-header">
+            <div class="db-card-title">
+                <div class="db-card-icon-wrap alerts"><i class="fas fa-bell"></i></div>
+                <h3>Health Alerts</h3>
+            </div>
+            <a href="/Patient/Alerts/@Model.Patient.PatientID" class="db-view-all">
+                View All <i class="fas fa-arrow-right"></i>
+            </a>
         </div>
-        <div class="alerts-list">
+        <div class="db-alerts-list">
             @if (Model.HealthAlerts != null && Model.HealthAlerts.Any())
             {
                 @foreach (var alert in Model.HealthAlerts)
                 {
-                    var cssClass = alert.AlertType switch
-                    {
-                        "danger"  => "alert-item danger",
-                        "warning" => "alert-item warning",
-                        "info"    => "alert-item info",
-                        "success" => "alert-item success",
-                        _         => "alert-item info"
-                    };
-                    var iconClass = alert.AlertType switch
-                    {
-                        "danger"  => "fas fa-exclamation-circle",
-                        "warning" => "fas fa-exclamation-triangle",
-                        "info"    => "fas fa-info-circle",
-                        "success" => "fas fa-check-circle",
-                        _         => "fas fa-bell"
-                    };
-                    <div class="@cssClass">
-                        <i class="@iconClass"></i>
-                        <div class="alert-info">
+                    string alertType   = (alert.AlertType ?? "info").ToLower();
+                    bool   isDanger    = alertType == "danger"  || alertType == "critical";
+                    bool   isWarning   = alertType == "warning";
+                    bool   isSuccess   = alertType == "success";
+                    string cardCls     = isDanger ? "db-alert-item-danger" : isWarning ? "db-alert-item-warning" : isSuccess ? "db-alert-item-success" : "db-alert-item-info";
+                    string iconCls     = isDanger ? "fas fa-exclamation-circle" : isWarning ? "fas fa-exclamation-triangle" : isSuccess ? "fas fa-check-circle" : "fas fa-info-circle";
+                    <div class="db-alert-item @cardCls">
+                        <div class="db-alert-stripe"></div>
+                        <div class="db-alert-icon-col"><i class="@iconCls"></i></div>
+                        <div class="db-alert-info">
                             <h4>@alert.Title</h4>
                             <p>@alert.Message</p>
                         </div>
+                        @if (!alert.IsRead)
+                        {
+                            <span class="db-alert-unread-dot"></span>
+                        }
                     </div>
                 }
             }
             else
             {
-                <div class="alert-item success">
-                    <i class="fas fa-check-circle"></i>
-                    <div class="alert-info">
-                        <h4>All Clear</h4>
+                <div class="db-alert-item db-alert-item-success">
+                    <div class="db-alert-stripe"></div>
+                    <div class="db-alert-icon-col"><i class="fas fa-check-circle"></i></div>
+                    <div class="db-alert-info">
+                        <h4>All Clear!</h4>
                         <p>No critical alerts at this time. Keep up the great care!</p>
                     </div>
                 </div>
@@ -183,674 +246,1024 @@
     </div>
 </section>
 
-<!-- Health Tracker Section with Tabs -->
-<section class="health-tracker-section">
-    <div class="tracker-tabs">
-        <button class="tab-btn active" data-tab="blood-pressure">
-            <i class="fas fa-heartbeat"></i>
-            <span>Blood Pressure</span>
+<!-- ══════════════════ HEALTH TRACKER ══════════════════ -->
+<section class="db-tracker-section">
+    <!-- Tab switcher -->
+    <div class="db-tracker-tabs">
+        <button class="db-tab active" data-tab="blood-pressure">
+            <i class="fas fa-heartbeat"></i> Blood Pressure
         </button>
-        <button class="tab-btn" data-tab="blood-sugar">
-            <i class="fas fa-tint"></i>
-            <span>Blood Sugar</span>
+        <button class="db-tab" data-tab="blood-sugar">
+            <i class="fas fa-tint"></i> Blood Sugar
         </button>
     </div>
 
-    <!-- Blood Pressure Tab -->
-    <div class="tab-content active" id="blood-pressure-tab">
-        <div class="card bp-card">
-            <div class="bp-header">
-                <div class="bp-title">
-                    <i class="fas fa-heartbeat"></i>
-                    <h3>Blood Pressure Tracker</h3>
-                </div>
-                <span class="bp-date" id="bpTodayDate"></span>
-            </div>
+    <!-- ─── Blood Pressure Tab ─── -->
+    <div class="db-tab-content active" id="blood-pressure-tab">
+        <div class="db-tracker-grid">
 
-            <div class="bp-input-container">
-                <div class="bp-input-group">
-                    <label for="systolic">Systolic (Top Number)</label>
-                    <div class="bp-input-wrapper">
-                        <input type="number" id="systolic" class="bp-input" placeholder="120" min="70" max="200" />
-                        <span class="bp-unit">mmHg</span>
+            <!-- Input card -->
+            <div class="db-card db-tracker-input-card">
+                <div class="db-tracker-header">
+                    <div class="db-tracker-title">
+                        <div class="db-tracker-icon bp"><i class="fas fa-heartbeat"></i></div>
+                        <div>
+                            <h3>Blood Pressure Tracker</h3>
+                            <span class="db-tracker-date" id="bpTodayDate"></span>
+                        </div>
                     </div>
-                    <span class="bp-hint">Normal: 90-120</span>
                 </div>
 
-                <div class="bp-divider"><span>/</span></div>
-
-                <div class="bp-input-group">
-                    <label for="diastolic">Diastolic (Bottom Number)</label>
-                    <div class="bp-input-wrapper">
-                        <input type="number" id="diastolic" class="bp-input" placeholder="80" min="40" max="130" />
-                        <span class="bp-unit">mmHg</span>
+                <div class="db-bp-inputs">
+                    <div class="db-input-group">
+                        <label>Systolic <small>(Top)</small></label>
+                        <div class="db-input-wrap">
+                            <input type="number" id="systolic" class="db-input" placeholder="120" min="70" max="200" />
+                            <span class="db-input-unit">mmHg</span>
+                        </div>
+                        <span class="db-input-hint">Normal: 90–120</span>
                     </div>
-                    <span class="bp-hint">Normal: 60-80</span>
-                </div>
-
-                <div class="bp-input-group pulse-group">
-                    <label for="pulse">Pulse (Optional)</label>
-                    <div class="bp-input-wrapper">
-                        <input type="number" id="pulse" class="bp-input" placeholder="72" min="40" max="200" />
-                        <span class="bp-unit">BPM</span>
+                    <div class="db-bp-divider"><span>/</span></div>
+                    <div class="db-input-group">
+                        <label>Diastolic <small>(Bottom)</small></label>
+                        <div class="db-input-wrap">
+                            <input type="number" id="diastolic" class="db-input" placeholder="80" min="40" max="130" />
+                            <span class="db-input-unit">mmHg</span>
+                        </div>
+                        <span class="db-input-hint">Normal: 60–80</span>
                     </div>
-                    <span class="bp-hint">Normal: 60-100</span>
+                    <div class="db-input-group">
+                        <label>Pulse <small>(Optional)</small></label>
+                        <div class="db-input-wrap">
+                            <input type="number" id="pulse" class="db-input" placeholder="72" min="40" max="200" />
+                            <span class="db-input-unit">BPM</span>
+                        </div>
+                        <span class="db-input-hint">Normal: 60–100</span>
+                    </div>
+                    <div class="db-input-group db-input-group-full">
+                        <label>When did you measure?</label>
+                        <select id="bpMeasurementTime" class="db-select">
+                            <option value="Morning">Morning</option>
+                            <option value="Afternoon">Afternoon</option>
+                            <option value="Evening">Evening</option>
+                            <option value="Bedtime">Bedtime</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
                 </div>
 
-                <div class="bp-input-group">
-                    <label for="bpMeasurementTime">When did you measure?</label>
-                    <select id="bpMeasurementTime" class="bs-select">
-                        <option value="Morning">Morning</option>
-                        <option value="Afternoon">Afternoon</option>
-                        <option value="Evening">Evening</option>
-                        <option value="Bedtime">Bedtime</option>
-                        <option value="Other">Other</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="bp-actions">
-                <button class="btn btn-primary" id="saveBP">
+                <button class="db-save-btn" id="saveBP">
                     <i class="fas fa-save"></i> Save Reading
                 </button>
-            </div>
 
-            <div class="bp-result" id="bpResult" style="display: none">
-                <div class="bp-result-header">
-                    <div class="bp-reading">
-                        <span class="bp-value" id="bpValue">120/80</span>
-                        <span class="bp-label">mmHg</span>
+                <!-- Result banner -->
+                <div class="db-result-banner" id="bpResult" style="display:none">
+                    <div class="db-result-left">
+                        <span class="db-result-value" id="bpValue">120/80</span>
+                        <span class="db-result-unit">mmHg</span>
                     </div>
-                    <div class="bp-status" id="bpStatus">
-                        <i class="fas fa-check-circle"></i>
-                        <span>Normal</span>
+                    <div class="db-result-right">
+                        <span class="db-result-status" id="bpStatus"><i class="fas fa-check-circle"></i> Normal</span>
+                        <p class="db-result-msg" id="bpMessage"></p>
                     </div>
                 </div>
-                <div class="bp-message" id="bpMessage">
-                    Your blood pressure is within the normal range. Keep up the great work!
-                </div>
-            </div>
 
-            <div class="bp-history">
-                <h4><i class="fas fa-history"></i> Recent Readings</h4>
-                <div class="bp-history-list" id="bpHistoryList">
-                    @if (Model.RecentBloodPressureReadings != null && Model.RecentBloodPressureReadings.Any())
-                    {
-                        @foreach (var bp in Model.RecentBloodPressureReadings)
+                <!-- History -->
+                <div class="db-history-section">
+                    <h4 class="db-history-title"><i class="fas fa-history"></i> Recent Readings</h4>
+                    <div class="db-history-list" id="bpHistoryList">
+                        @if (Model.RecentBloodPressureReadings != null && Model.RecentBloodPressureReadings.Any())
                         {
-                            var parts = bp.BloodPressure?.Split('/');
-                            string bpStatusClass = "normal";
-                            string bpStatusLabel = "Normal";
-                            string bpStatusIcon = "fa-check-circle";
-                            if (parts != null && parts.Length == 2 &&
-                                int.TryParse(parts[0], out int sys) &&
-                                int.TryParse(parts[1], out int dia))
+                            @foreach (var bp in Model.RecentBloodPressureReadings)
                             {
-                                if (sys < 90 || dia < 60)        { bpStatusClass = "low";      bpStatusLabel = "Low";      bpStatusIcon = "fa-arrow-down"; }
-                                else if (sys <= 120 && dia <= 80) { bpStatusClass = "normal";   bpStatusLabel = "Normal";   bpStatusIcon = "fa-check-circle"; }
-                                else if (sys <= 139 || dia <= 89) { bpStatusClass = "elevated"; bpStatusLabel = "Elevated"; bpStatusIcon = "fa-exclamation-circle"; }
-                                else                               { bpStatusClass = "high";     bpStatusLabel = "High";     bpStatusIcon = "fa-exclamation-triangle"; }
+                                var parts = bp.BloodPressure?.Split('/');
+                                string cls = "normal", lbl = "Normal", ico = "fa-check-circle";
+                                if (parts?.Length == 2 && int.TryParse(parts[0], out int s) && int.TryParse(parts[1], out int d))
+                                {
+                                    if (s < 90 || d < 60)        { cls = "low";      lbl = "Low";       ico = "fa-arrow-down"; }
+                                    else if (s <= 120 && d <= 80) { cls = "normal";   lbl = "Normal";    ico = "fa-check-circle"; }
+                                    else if (s <= 139 || d <= 89) { cls = "elevated"; lbl = "Elevated";  ico = "fa-exclamation-circle"; }
+                                    else                           { cls = "high";     lbl = "High";      ico = "fa-exclamation-triangle"; }
+                                }
+                                <div class="db-history-item">
+                                    <div class="db-hist-date">
+                                        <span class="db-hist-day">@bp.DateTime.Day</span>
+                                        <span class="db-hist-mon">@bp.DateTime.ToString("MMM")</span>
+                                    </div>
+                                    <div class="db-hist-reading">
+                                        <span class="db-hist-val">@bp.BloodPressure</span>
+                                        <span class="db-hist-time">
+                                            @if (!string.IsNullOrWhiteSpace(bp.MeasurementTime)) { @(bp.MeasurementTime + " · ") }
+                                            @bp.DateTime.ToString("h:mm tt")
+                                        </span>
+                                    </div>
+                                    <span class="db-hist-badge @cls"><i class="fas @ico"></i> @lbl</span>
+                                </div>
                             }
-                            <div class="bp-history-item">
-                                <div class="bp-history-date">
-                                    <span class="day">@bp.DateTime.Day</span>
-                                    <span class="month">@bp.DateTime.ToString("MMM")</span>
-                                </div>
-                                <div class="bp-history-reading">
-                                    <span class="reading">@bp.BloodPressure</span>
-                                    <span class="time">
-                                        @if (!string.IsNullOrWhiteSpace(bp.MeasurementTime))
-                                        {
-                                            @(bp.MeasurementTime + " - ")
-                                        }
-                                        @bp.DateTime.ToString("h:mm tt")
-                                    </span>
-                                </div>
-                                <div class="bp-history-status @bpStatusClass">
-                                    <i class="fas @bpStatusIcon"></i>
-                                    @bpStatusLabel
-                                </div>
-                            </div>
                         }
-                    }
-                    else
-                    {
-                        <p class="no-activity">No blood pressure readings recorded yet.</p>
-                    }
+                        else
+                        {
+                            <p class="db-no-data">No readings recorded yet.</p>
+                        }
+                    </div>
+                    <a href="/Patient/MedicalHistory/@Model.Patient.PatientID" class="db-view-all-link">View Full History <i class="fas fa-arrow-right"></i></a>
                 </div>
-                <a href="/Patient/MedicalHistory/@Model.Patient.PatientID" class="view-all-link">View Full History →</a>
             </div>
-        </div>
 
-        <div class="card bp-chart-card">
-            <h3><i class="fas fa-chart-line"></i> Weekly Trend</h3>
-            <div class="bp-chart">
-                <div class="chart-bars">
-                    <div class="chart-bar-group">
-                        <div class="bar systolic" style="height: 60%" data-value="118"></div>
-                        <div class="bar diastolic" style="height: 40%" data-value="76"></div>
-                        <span class="bar-label">Mon</span>
-                    </div>
-                    <div class="chart-bar-group">
-                        <div class="bar systolic" style="height: 62%" data-value="120"></div>
-                        <div class="bar diastolic" style="height: 42%" data-value="78"></div>
-                        <span class="bar-label">Tue</span>
-                    </div>
-                    <div class="chart-bar-group">
-                        <div class="bar systolic" style="height: 65%" data-value="125"></div>
-                        <div class="bar diastolic" style="height: 44%" data-value="82"></div>
-                        <span class="bar-label">Wed</span>
-                    </div>
-                    <div class="chart-bar-group">
-                        <div class="bar systolic elevated" style="height: 70%" data-value="135"></div>
-                        <div class="bar diastolic elevated" style="height: 48%" data-value="88"></div>
-                        <span class="bar-label">Thu</span>
-                    </div>
-                    <div class="chart-bar-group">
-                        <div class="bar systolic" style="height: 61%" data-value="119"></div>
-                        <div class="bar diastolic" style="height: 41%" data-value="77"></div>
-                        <span class="bar-label">Fri</span>
-                    </div>
-                    <div class="chart-bar-group">
-                        <div class="bar systolic" style="height: 63%" data-value="122"></div>
-                        <div class="bar diastolic" style="height: 43%" data-value="80"></div>
-                        <span class="bar-label">Sat</span>
-                    </div>
-                    <div class="chart-bar-group today">
-                        <div class="bar systolic" style="height: 60%" data-value="120"></div>
-                        <div class="bar diastolic" style="height: 40%" data-value="80"></div>
-                        <span class="bar-label">Today</span>
+            <!-- Chart card -->
+            <div class="db-card db-chart-card">
+                <div class="db-chart-header">
+                    <h3><i class="fas fa-chart-bar"></i> Weekly Trend</h3>
+                    <div class="db-chart-legend">
+                        <span><span class="db-legend-dot systolic"></span> Systolic</span>
+                        <span><span class="db-legend-dot diastolic"></span> Diastolic</span>
                     </div>
                 </div>
-            </div>
-            <div class="chart-legend">
-                <span><i class="fas fa-square systolic"></i> Systolic</span>
-                <span><i class="fas fa-square diastolic"></i> Diastolic</span>
-            </div>
-            <div class="bp-summary">
-                <div class="summary-item">
-                    <span class="label">Average</span>
-                    <span class="value">122/80 mmHg</span>
+                <div class="db-bar-chart">
+                    @{
+                        var bpDays = new[] { "Mon","Tue","Wed","Thu","Fri","Sat","Today" };
+                        var bpSys  = new[] { 60, 62, 65, 70, 61, 63, 60 };
+                        var bpDia  = new[] { 40, 42, 44, 48, 41, 43, 40 };
+                    }
+                    @for (int i = 0; i < 7; i++)
+                    {
+                        bool isToday = i == 6;
+                        bool elevated = bpSys[i] >= 68;
+                        <div class="db-bar-group @(isToday ? "db-bar-today" : "")">
+                            <div class="db-bar db-bar-sys @(elevated ? "db-bar-elevated" : "")" style="height:@(bpSys[i])%"></div>
+                            <div class="db-bar db-bar-dia @(elevated ? "db-bar-elevated" : "")" style="height:@(bpDia[i])%"></div>
+                            <span class="db-bar-lbl">@bpDays[i]</span>
+                        </div>
+                    }
                 </div>
-                <div class="summary-item">
-                    <span class="label">Highest</span>
-                    <span class="value warning">135/88 mmHg</span>
-                </div>
-                <div class="summary-item">
-                    <span class="label">Lowest</span>
-                    <span class="value">115/75 mmHg</span>
+                <div class="db-summary-row">
+                    <div class="db-summary-item">
+                        <span class="db-summary-lbl">Average</span>
+                        <span class="db-summary-val">122/80 mmHg</span>
+                    </div>
+                    <div class="db-summary-item">
+                        <span class="db-summary-lbl">Highest</span>
+                        <span class="db-summary-val db-val-warn">135/88 mmHg</span>
+                    </div>
+                    <div class="db-summary-item">
+                        <span class="db-summary-lbl">Lowest</span>
+                        <span class="db-summary-val">115/75 mmHg</span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    <!-- End Blood Pressure Tab -->
+    <!-- End BP Tab -->
 
-    <!-- Blood Sugar Tab -->
-    <div class="tab-content" id="blood-sugar-tab">
-        <div class="card bs-card">
-            <div class="bs-header">
-                <div class="bs-title">
-                    <i class="fas fa-tint"></i>
-                    <h3>Blood Sugar Tracker</h3>
-                </div>
-                <span class="bs-date" id="bsTodayDate"></span>
-            </div>
+    <!-- ─── Blood Sugar Tab ─── -->
+    <div class="db-tab-content" id="blood-sugar-tab">
+        <div class="db-tracker-grid">
 
-            <div class="bs-input-container">
-                <div class="bs-input-group">
-                    <label for="bloodSugar">Blood Sugar Level</label>
-                    <div class="bs-input-wrapper">
-                        <input type="number" id="bloodSugar" class="bs-input" placeholder="95" min="40" max="400" />
-                        <span class="bs-unit">mg/dL</span>
+            <!-- Input card -->
+            <div class="db-card db-tracker-input-card">
+                <div class="db-tracker-header">
+                    <div class="db-tracker-title">
+                        <div class="db-tracker-icon bs"><i class="fas fa-tint"></i></div>
+                        <div>
+                            <h3>Blood Sugar Tracker</h3>
+                            <span class="db-tracker-date" id="bsTodayDate"></span>
+                        </div>
                     </div>
-                    <span class="bs-hint">Fasting: 70-100 | After meals: &lt;140</span>
                 </div>
 
-                <div class="bs-input-group">
-                    <label for="mealTime">When did you measure?</label>
-                    <select id="mealTime" class="bs-select">
-                        <option value="Fasting (Before breakfast)">Fasting (Before breakfast)</option>
-                        <option value="After Breakfast (2 hours)">After Breakfast (2 hours)</option>
-                        <option value="Before Lunch">Before Lunch</option>
-                        <option value="After Lunch (2 hours)">After Lunch (2 hours)</option>
-                        <option value="Before Dinner">Before Dinner</option>
-                        <option value="After Dinner (2 hours)">After Dinner (2 hours)</option>
-                        <option value="Bedtime">Bedtime</option>
-                    </select>
+                <div class="db-bs-inputs">
+                    <div class="db-input-group db-input-group-lg">
+                        <label>Blood Sugar Level</label>
+                        <div class="db-input-wrap">
+                            <input type="number" id="bloodSugar" class="db-input" placeholder="95" min="40" max="400" />
+                            <span class="db-input-unit">mg/dL</span>
+                        </div>
+                        <span class="db-input-hint">Fasting: 70–100 · After meals: &lt;140</span>
+                    </div>
+                    <div class="db-input-group db-input-group-lg">
+                        <label>When did you measure?</label>
+                        <select id="mealTime" class="db-select">
+                            <option value="Fasting (Before breakfast)">Fasting (Before breakfast)</option>
+                            <option value="After Breakfast (2 hours)">After Breakfast (2 hours)</option>
+                            <option value="Before Lunch">Before Lunch</option>
+                            <option value="After Lunch (2 hours)">After Lunch (2 hours)</option>
+                            <option value="Before Dinner">Before Dinner</option>
+                            <option value="After Dinner (2 hours)">After Dinner (2 hours)</option>
+                            <option value="Bedtime">Bedtime</option>
+                        </select>
+                    </div>
                 </div>
-            </div>
 
-            <div class="bs-actions">
-                <button class="btn btn-primary" id="saveBS">
+                <button class="db-save-btn db-save-btn-bs" id="saveBS">
                     <i class="fas fa-save"></i> Save Reading
                 </button>
-            </div>
 
-            <div class="bs-result" id="bsResult" style="display: none">
-                <div class="bs-result-header">
-                    <div class="bs-reading">
-                        <span class="bs-value" id="bsValue">95</span>
-                        <span class="bs-label">mg/dL</span>
+                <div class="db-result-banner" id="bsResult" style="display:none">
+                    <div class="db-result-left">
+                        <span class="db-result-value" id="bsValue">95</span>
+                        <span class="db-result-unit">mg/dL</span>
                     </div>
-                    <div class="bs-status" id="bsStatus">
-                        <i class="fas fa-check-circle"></i>
-                        <span>Normal</span>
+                    <div class="db-result-right">
+                        <span class="db-result-status" id="bsStatus"><i class="fas fa-check-circle"></i> Normal</span>
+                        <p class="db-result-msg" id="bsMessage"></p>
                     </div>
                 </div>
-                <div class="bs-message" id="bsMessage">
-                    Your blood sugar is within the normal range. Keep up the great work!
-                </div>
-            </div>
 
-            <div class="bs-history">
-                <h4><i class="fas fa-history"></i> Recent Readings</h4>
-                <div class="bs-history-list" id="bsHistoryList">
-                    @if (Model.RecentBloodSugarReadings != null && Model.RecentBloodSugarReadings.Any())
-                    {
-                        @foreach (var bs in Model.RecentBloodSugarReadings)
+                <div class="db-history-section">
+                    <h4 class="db-history-title"><i class="fas fa-history"></i> Recent Readings</h4>
+                    <div class="db-history-list" id="bsHistoryList">
+                        @if (Model.RecentBloodSugarReadings != null && Model.RecentBloodSugarReadings.Any())
                         {
-                            var isFasting = bs.MeasurementTime != null &&
-                                (bs.MeasurementTime.Contains("Fasting") ||
-                                 bs.MeasurementTime.Contains("Before Lunch") ||
-                                 bs.MeasurementTime.Contains("Before Dinner"));
-                            string bsStatusClass, bsStatusLabel, bsStatusIcon;
-                            if (bs.BloodSugar < 70)
+                            @foreach (var bs in Model.RecentBloodSugarReadings)
                             {
-                                bsStatusClass = "low"; bsStatusLabel = "Low"; bsStatusIcon = "fa-arrow-down";
-                            }
-                            else if (isFasting)
-                            {
-                                if (bs.BloodSugar <= 100)      { bsStatusClass = "normal";   bsStatusLabel = "Normal";   bsStatusIcon = "fa-check-circle"; }
-                                else if (bs.BloodSugar <= 125) { bsStatusClass = "elevated"; bsStatusLabel = "Elevated"; bsStatusIcon = "fa-exclamation-circle"; }
-                                else                            { bsStatusClass = "high";     bsStatusLabel = "High";     bsStatusIcon = "fa-exclamation-triangle"; }
-                            }
-                            else
-                            {
-                                if (bs.BloodSugar <= 140)      { bsStatusClass = "normal";   bsStatusLabel = "Normal";        bsStatusIcon = "fa-check-circle"; }
-                                else if (bs.BloodSugar <= 180) { bsStatusClass = "elevated"; bsStatusLabel = "Slightly High"; bsStatusIcon = "fa-exclamation-circle"; }
-                                else                            { bsStatusClass = "high";     bsStatusLabel = "High";          bsStatusIcon = "fa-exclamation-triangle"; }
-                            }
-                            <div class="bs-history-item">
-                                <div class="bs-history-date">
-                                    <span class="day">@bs.DateTime.Day</span>
-                                    <span class="month">@bs.DateTime.ToString("MMM")</span>
+                                bool isFast = bs.MeasurementTime != null && (bs.MeasurementTime.Contains("Fasting") || bs.MeasurementTime.Contains("Before Lunch") || bs.MeasurementTime.Contains("Before Dinner"));
+                                string cls, lbl, ico;
+                                if      (bs.BloodSugar < 70)  { cls="low";      lbl="Low";          ico="fa-arrow-down"; }
+                                else if (isFast)
+                                {
+                                    if      (bs.BloodSugar <= 100) { cls="normal";   lbl="Normal";   ico="fa-check-circle"; }
+                                    else if (bs.BloodSugar <= 125) { cls="elevated"; lbl="Elevated"; ico="fa-exclamation-circle"; }
+                                    else                            { cls="high";     lbl="High";     ico="fa-exclamation-triangle"; }
+                                }
+                                else
+                                {
+                                    if      (bs.BloodSugar <= 140) { cls="normal";   lbl="Normal";        ico="fa-check-circle"; }
+                                    else if (bs.BloodSugar <= 180) { cls="elevated"; lbl="Slightly High"; ico="fa-exclamation-circle"; }
+                                    else                            { cls="high";     lbl="High";          ico="fa-exclamation-triangle"; }
+                                }
+                                <div class="db-history-item">
+                                    <div class="db-hist-date">
+                                        <span class="db-hist-day">@bs.DateTime.Day</span>
+                                        <span class="db-hist-mon">@bs.DateTime.ToString("MMM")</span>
+                                    </div>
+                                    <div class="db-hist-reading">
+                                        <span class="db-hist-val">@bs.BloodSugar mg/dL</span>
+                                        <span class="db-hist-time">
+                                            @if (!string.IsNullOrWhiteSpace(bs.MeasurementTime)) { @(bs.MeasurementTime + " · ") }
+                                            @bs.DateTime.ToString("h:mm tt")
+                                        </span>
+                                    </div>
+                                    <span class="db-hist-badge @cls"><i class="fas @ico"></i> @lbl</span>
                                 </div>
-                                <div class="bs-history-reading">
-                                    <span class="reading">@bs.BloodSugar mg/dL</span>
-                                    <span class="time">
-                                        @if (!string.IsNullOrWhiteSpace(bs.MeasurementTime))
-                                        {
-                                            @(bs.MeasurementTime + " - ")
-                                        }
-                                        @bs.DateTime.ToString("h:mm tt")
-                                    </span>
-                                </div>
-                                <div class="bs-history-status @bsStatusClass">
-                                    <i class="fas @bsStatusIcon"></i>
-                                    @bsStatusLabel
-                                </div>
-                            </div>
+                            }
                         }
-                    }
-                    else
-                    {
-                        <p class="no-activity">No blood sugar readings recorded yet.</p>
-                    }
+                        else
+                        {
+                            <p class="db-no-data">No readings recorded yet.</p>
+                        }
+                    </div>
+                    <a href="/Patient/MedicalHistory/@Model.Patient.PatientID" class="db-view-all-link">View Full History <i class="fas fa-arrow-right"></i></a>
                 </div>
-                <a href="#" class="view-all-link">View Full History →</a>
             </div>
-        </div>
 
-        <div class="card bs-chart-card">
-            <h3><i class="fas fa-chart-line"></i> Weekly Trend</h3>
-            <div class="bs-chart">
-                <div class="chart-line">
-                    <div class="chart-point" style="bottom: 45%; left: 10%" data-value="90"></div>
-                    <div class="chart-point" style="bottom: 50%; left: 24%" data-value="95"></div>
-                    <div class="chart-point" style="bottom: 48%; left: 38%" data-value="92"></div>
-                    <div class="chart-point" style="bottom: 40%; left: 52%" data-value="88"></div>
-                    <div class="chart-point" style="bottom: 52%; left: 66%" data-value="98"></div>
-                    <div class="chart-point" style="bottom: 46%; left: 80%" data-value="91"></div>
-                    <div class="chart-point today" style="bottom: 48%; left: 94%" data-value="92"></div>
+            <!-- Chart card -->
+            <div class="db-card db-chart-card">
+                <div class="db-chart-header">
+                    <h3><i class="fas fa-chart-line"></i> Weekly Trend</h3>
                 </div>
-                <div class="chart-labels">
-                    <span>Mon</span><span>Tue</span><span>Wed</span>
-                    <span>Thu</span><span>Fri</span><span>Sat</span><span>Today</span>
+                <div class="db-bar-chart">
+                    @{
+                        var bsDays = new[] { "Mon","Tue","Wed","Thu","Fri","Sat","Today" };
+                        var bsVals = new[] { 45, 50, 48, 40, 52, 46, 48 };
+                    }
+                    @for (int i = 0; i < 7; i++)
+                    {
+                        bool isToday2  = i == 6;
+                        bool elevated2 = bsVals[i] >= 50;
+                        <div class="db-bar-group @(isToday2 ? "db-bar-today" : "")">
+                            <div class="db-bar db-bar-bs @(elevated2 ? "db-bar-elevated" : "")" style="height:@(bsVals[i])%"></div>
+                            <span class="db-bar-lbl">@bsDays[i]</span>
+                        </div>
+                    }
                 </div>
-            </div>
-            <div class="bs-summary">
-                <div class="summary-item">
-                    <span class="label">Average</span>
-                    <span class="value">92 mg/dL</span>
-                </div>
-                <div class="summary-item">
-                    <span class="label">Highest</span>
-                    <span class="value">98 mg/dL</span>
-                </div>
-                <div class="summary-item">
-                    <span class="label">Lowest</span>
-                    <span class="value">88 mg/dL</span>
+                <div class="db-summary-row">
+                    <div class="db-summary-item">
+                        <span class="db-summary-lbl">Average</span>
+                        <span class="db-summary-val">92 mg/dL</span>
+                    </div>
+                    <div class="db-summary-item">
+                        <span class="db-summary-lbl">Highest</span>
+                        <span class="db-summary-val">98 mg/dL</span>
+                    </div>
+                    <div class="db-summary-item">
+                        <span class="db-summary-lbl">Lowest</span>
+                        <span class="db-summary-val">88 mg/dL</span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    <!-- End Blood Sugar Tab -->
+    <!-- End BS Tab -->
 </section>
 
 @section Scripts {
 <script>
-    // ================================
-    // Shared helpers
-    // ================================
-    const PATIENT_ID = parseInt(document.querySelector('meta[name="patient-id"]').content, 10);
-    const ANTIFORGERY_TOKEN = document.querySelector('input[name="__RequestVerificationToken"]').value;
+// ── Shared helpers ──────────────────────────────────────────
+const PATIENT_ID        = parseInt(document.querySelector('meta[name="patient-id"]').content, 10);
+const ANTIFORGERY_TOKEN = document.querySelector('input[name="__RequestVerificationToken"]').value;
 
-    // Set today's date in tracker headers
-    (function () {
-        const opts = { year: 'numeric', month: 'long', day: 'numeric' };
-        const label = 'Today, ' + new Date().toLocaleDateString('en-US', opts);
-        const bpDate = document.getElementById('bpTodayDate');
-        const bsDate = document.getElementById('bsTodayDate');
-        if (bpDate) bpDate.textContent = label;
-        if (bsDate) bsDate.textContent = label;
-    })();
+// Set today label
+(function () {
+    const opts  = { weekday:'long', year:'numeric', month:'long', day:'numeric' };
+    const label = new Date().toLocaleDateString('en-US', opts);
+    const el    = document.getElementById('dbTodayLabel');
+    if (el) el.textContent = label;
 
-    // ================================
-    // Mother Portal - Main JavaScript
-    // ================================
-    document.addEventListener("DOMContentLoaded", function () {
-        // Notification badge
-        document.querySelectorAll(".notification").forEach(n => {
-            n.addEventListener("click", function () {
-                const badge = this.querySelector(".badge");
-                if (badge) badge.style.display = "none";
-                window.showNotification && window.showNotification("Notifications panel coming soon!", "info");
-            });
-        });
+    const bpDate = document.getElementById('bpTodayDate');
+    const bsDate = document.getElementById('bsTodayDate');
+    const short  = 'Today, ' + new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+    if (bpDate) bpDate.textContent = short;
+    if (bsDate) bsDate.textContent = short;
+})();
 
-        // Button hover effects
-        document.querySelectorAll(".btn").forEach(btn => {
-            btn.addEventListener("mouseenter", function () { this.style.transform = "translateY(-2px)"; });
-            btn.addEventListener("mouseleave", function () { this.style.transform = "translateY(0)"; });
-        });
+// Global toast
+window.showNotification = function (message, type = "info") {
+    document.querySelector('.db-toast')?.remove();
+    const icons = { success:'fa-check-circle', error:'fa-times-circle', warning:'fa-exclamation-triangle', info:'fa-info-circle' };
+    const n = document.createElement('div');
+    n.className = `db-toast db-toast-${type}`;
+    n.innerHTML = `<i class="fas ${icons[type]||icons.info}"></i><span>${message}</span><button class="db-toast-close"><i class="fas fa-times"></i></button>`;
+    document.body.appendChild(n);
+    n.querySelector('.db-toast-close').addEventListener('click', () => n.remove());
+    setTimeout(() => n?.remove(), 4000);
+};
 
-        // Global notification helper
-        window.showNotification = function (message, type = "info") {
-            const existing = document.querySelector(".global-notification");
-            if (existing) existing.remove();
-            const notification = document.createElement("div");
-            notification.className = `global-notification ${type}`;
-            let icon = "fa-info-circle";
-            if (type === "success") icon = "fa-check-circle";
-            if (type === "error")   icon = "fa-exclamation-circle";
-            if (type === "warning") icon = "fa-exclamation-triangle";
-            notification.innerHTML = `<i class="fas ${icon}"></i><span>${message}</span><button class="notification-close"><i class="fas fa-times"></i></button>`;
-            document.body.appendChild(notification);
-            notification.querySelector(".notification-close").addEventListener("click", () => notification.remove());
-            setTimeout(() => { if (notification.parentNode) { notification.style.animation = "slideOutRight 0.3s ease forwards"; setTimeout(() => notification.remove(), 300); } }, 4000);
-        };
-
-        if (!document.getElementById("global-notification-styles")) {
-            const style = document.createElement("style");
-            style.id = "global-notification-styles";
-            style.textContent = `
-                .global-notification { position:fixed; top:24px; right:24px; padding:16px 20px; border-radius:12px; display:flex; align-items:center; gap:12px; font-weight:500; z-index:9999; animation:slideInRight 0.3s ease; box-shadow:0 4px 12px rgba(0,0,0,0.15); max-width:400px; }
-                .global-notification.success { background:#E8F5E9; color:#2E7D32; border:1px solid #A5D6A7; }
-                .global-notification.error   { background:#FFEBEE; color:#C62828; border:1px solid #EF9A9A; }
-                .global-notification.warning { background:#FFF3E0; color:#E65100; border:1px solid #FFCC80; }
-                .global-notification.info    { background:#E3F2FD; color:#1565C0; border:1px solid #90CAF9; }
-                .global-notification span { flex:1; }
-                .global-notification .notification-close { background:none; border:none; cursor:pointer; color:inherit; opacity:0.7; padding:4px; }
-                .global-notification .notification-close:hover { opacity:1; }
-                @@keyframes slideInRight  { from { opacity:0; transform:translateX(100px); } to { opacity:1; transform:translateX(0); } }
-                @@keyframes slideOutRight { from { opacity:1; transform:translateX(0); }     to { opacity:0; transform:translateX(100px); } }
-            `;
-            document.head.appendChild(style);
-        }
-    });
-</script>
-
-<script>
-    // ================================
-    // Blood Pressure Tracker
-    // ================================
-    document.addEventListener("DOMContentLoaded", function () {
-        const systolicInput  = document.getElementById("systolic");
-        const diastolicInput = document.getElementById("diastolic");
-        const pulseInput     = document.getElementById("pulse");
-        const bpMeasTime     = document.getElementById("bpMeasurementTime");
-        const saveBPBtn      = document.getElementById("saveBP");
-        const bpResult       = document.getElementById("bpResult");
-        const bpValue        = document.getElementById("bpValue");
-        const bpStatus       = document.getElementById("bpStatus");
-        const bpMessage      = document.getElementById("bpMessage");
-
-        // Tab switching
-        const tabButtons  = document.querySelectorAll(".tab-btn");
-        const tabContents = document.querySelectorAll(".tab-content");
-        tabButtons.forEach(button => {
-            button.addEventListener("click", function () {
-                const targetTab = this.getAttribute("data-tab");
-                tabButtons.forEach(btn => btn.classList.remove("active"));
-                tabContents.forEach(content => content.classList.remove("active"));
-                this.classList.add("active");
-                document.getElementById(`${targetTab}-tab`).classList.add("active");
-            });
-        });
-
-        [systolicInput, diastolicInput, pulseInput].forEach(input => {
-            if (input) input.addEventListener("input", function () { this.value = this.value.replace(/[^0-9]/g, ""); });
-        });
-
-        if (systolicInput && diastolicInput) {
-            systolicInput.addEventListener("input",  function () { if (this.value.length >= 3) diastolicInput.focus(); });
-            diastolicInput.addEventListener("input", function () { if (this.value.length >= 2 && pulseInput) pulseInput.focus(); });
-        }
-
-        if (saveBPBtn) {
-            saveBPBtn.addEventListener("click", async function () {
-                const systolic  = parseInt(systolicInput.value);
-                const diastolic = parseInt(diastolicInput.value);
-                const measTime  = bpMeasTime ? bpMeasTime.value : null;
-
-                if (!systolic || !diastolic) { window.showNotification("Please enter both systolic and diastolic values.", "error"); return; }
-                if (systolic  < 70  || systolic  > 200) { window.showNotification("Systolic value should be between 70-200 mmHg.",  "error"); return; }
-                if (diastolic < 40  || diastolic > 130) { window.showNotification("Diastolic value should be between 40-130 mmHg.", "error"); return; }
-
-                const analysis = analyzeBP(systolic, diastolic);
-
-                bpValue.textContent = `${systolic}/${diastolic}`;
-                bpStatus.className  = "bp-status " + analysis.status;
-                bpStatus.innerHTML  = `<i class="fas ${analysis.icon}"></i><span>${analysis.label}</span>`;
-                bpMessage.textContent = analysis.message;
-                bpResult.style.display = "block";
-
-                const bpStatVal    = document.getElementById("bpStatValue");
-                const bpStatChange = document.getElementById("bpStatChange");
-                if (bpStatVal)    bpStatVal.textContent    = `${systolic}/${diastolic}`;
-                if (bpStatChange) bpStatChange.textContent = analysis.label;
-
-                try {
-                    const formData = new FormData();
-                    formData.append("patientId",      PATIENT_ID);
-                    formData.append("systolic",       systolic);
-                    formData.append("diastolic",      diastolic);
-                    formData.append("measurementTime", measTime || "");
-                    formData.append("__RequestVerificationToken", ANTIFORGERY_TOKEN);
-
-                    const response = await fetch("/Patient/SaveBloodPressure", { method: "POST", body: formData });
-                    if (!response.ok) throw new Error("Server error");
-
-                    const data = await response.json();
-                    if (data.success) {
-                        addBPToHistory(systolic, diastolic, data.day, data.month, data.time, measTime, analysis);
-                        window.showNotification("Blood pressure reading saved successfully!", "success");
-                    }
-                } catch (err) {
-                    window.showNotification("Could not save reading. Please try again.", "error");
-                }
-
-                bpResult.scrollIntoView({ behavior: "smooth", block: "center" });
-            });
-        }
-
-        function analyzeBP(systolic, diastolic) {
-            let status, label, icon, message;
-            if      (systolic < 90 || diastolic < 60)                 { status="low";      label="Low";            icon="fa-arrow-down";         message="Your blood pressure is lower than normal. If you feel dizzy or faint, please consult your doctor."; }
-            else if (systolic <= 120 && diastolic <= 80)               { status="normal";   label="Normal";         icon="fa-check-circle";       message="Excellent! Your blood pressure is within the normal range. Keep up the healthy lifestyle!"; }
-            else if (systolic <= 129 && diastolic < 80)                { status="elevated"; label="Elevated";       icon="fa-exclamation-circle"; message="Your blood pressure is slightly elevated. Consider reducing salt intake and increasing physical activity."; }
-            else if (systolic <= 139 || diastolic <= 89)               { status="elevated"; label="High (Stage 1)"; icon="fa-exclamation-triangle"; message="Your blood pressure is high. Please monitor regularly and consult your healthcare provider."; }
-            else                                                        { status="high";     label="High (Stage 2)"; icon="fa-exclamation-triangle"; message="Your blood pressure is significantly elevated. Please contact your doctor immediately."; }
-            return { status, label, icon, message };
-        }
-
-        function addBPToHistory(systolic, diastolic, day, month, time, measTime, analysis) {
-            const historyList = document.getElementById("bpHistoryList");
-            if (!historyList) return;
-            const noMsg = historyList.querySelector("p.no-activity");
-            if (noMsg) noMsg.remove();
-
-            const timeDisplay = measTime ? `${measTime} - ${time}` : time;
-            const item = document.createElement("div");
-            item.className = "bp-history-item";
-            item.style.animation = "fadeIn 0.3s ease";
-            item.innerHTML = `
-                <div class="bp-history-date"><span class="day">${day}</span><span class="month">${month}</span></div>
-                <div class="bp-history-reading"><span class="reading">${systolic}/${diastolic}</span><span class="time">${timeDisplay}</span></div>
-                <div class="bp-history-status ${analysis.status}"><i class="fas ${analysis.icon}"></i> ${analysis.label}</div>`;
-            historyList.insertBefore(item, historyList.firstChild);
-            const items = historyList.querySelectorAll(".bp-history-item");
-            if (items.length > 10) items[items.length - 1].remove();
-        }
-
-        // Input colour hints
-        [systolicInput, diastolicInput].forEach(input => {
-            if (!input) return;
-            input.addEventListener("blur", function () {
-                const value = parseInt(this.value);
-                const wrapper = this.closest(".bp-input-wrapper");
-                if (!wrapper) return;
-                wrapper.classList.remove("normal", "elevated", "high", "low");
-                if (!value) return;
-                if (this === systolicInput) {
-                    if (value < 90) wrapper.classList.add("low"); else if (value <= 120) wrapper.classList.add("normal"); else if (value <= 139) wrapper.classList.add("elevated"); else wrapper.classList.add("high");
-                } else {
-                    if (value < 60) wrapper.classList.add("low"); else if (value <= 80) wrapper.classList.add("normal"); else if (value <= 89) wrapper.classList.add("elevated"); else wrapper.classList.add("high");
-                }
-            });
+document.addEventListener('DOMContentLoaded', function () {
+    // ── Tab switching ──────────────────────────────────────
+    document.querySelectorAll('.db-tab').forEach(btn => {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('.db-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.db-tab-content').forEach(c => c.classList.remove('active'));
+            this.classList.add('active');
+            document.getElementById(this.dataset.tab + '-tab').classList.add('active');
         });
     });
-</script>
 
-<script>
-    // ================================
-    // Blood Sugar Tracker
-    // ================================
-    document.addEventListener("DOMContentLoaded", function () {
-        const bloodSugarInput = document.getElementById("bloodSugar");
-        const mealTimeSelect  = document.getElementById("mealTime");
-        const saveBSBtn       = document.getElementById("saveBS");
-        const bsResult        = document.getElementById("bsResult");
-        const bsValue         = document.getElementById("bsValue");
-        const bsStatus        = document.getElementById("bsStatus");
-        const bsMessage       = document.getElementById("bsMessage");
+    // ── Blood Pressure ──────────────────────────────────────
+    const sysIn   = document.getElementById('systolic');
+    const diaIn   = document.getElementById('diastolic');
+    const pulseIn = document.getElementById('pulse');
+    const bpTime  = document.getElementById('bpMeasurementTime');
+    const bpRes   = document.getElementById('bpResult');
 
-        if (bloodSugarInput) {
-            bloodSugarInput.addEventListener("input", function () { this.value = this.value.replace(/[^0-9]/g, ""); });
-        }
+    [sysIn, diaIn, pulseIn].forEach(i => i?.addEventListener('input', () => { if (i) i.value = i.value.replace(/[^0-9]/g, ''); }));
+    sysIn?.addEventListener('input',  () => { if (sysIn.value.length  >= 3) diaIn?.focus(); });
+    diaIn?.addEventListener('input',  () => { if (diaIn.value.length  >= 2) pulseIn?.focus(); });
 
-        if (saveBSBtn) {
-            saveBSBtn.addEventListener("click", async function () {
-                const bloodSugar = parseInt(bloodSugarInput.value);
-                const mealTime   = mealTimeSelect.value;
-
-                if (!bloodSugar) { window.showNotification("Please enter a blood sugar value.", "error"); return; }
-                if (bloodSugar < 40 || bloodSugar > 400) { window.showNotification("Blood sugar value should be between 40-400 mg/dL.", "error"); return; }
-
-                const analysis = analyzeBloodSugar(bloodSugar, mealTime);
-
-                bsValue.textContent   = bloodSugar;
-                bsStatus.className    = "bs-status " + analysis.status;
-                bsStatus.innerHTML    = `<i class="fas ${analysis.icon}"></i><span>${analysis.label}</span>`;
-                bsMessage.textContent = analysis.message;
-                bsResult.style.display = "block";
-
-                const bsStatVal    = document.getElementById("bsStatValue");
-                const bsStatChange = document.getElementById("bsStatChange");
-                if (bsStatVal)    bsStatVal.textContent    = bloodSugar;
-                if (bsStatChange) bsStatChange.textContent = analysis.label;
-
-                try {
-                    const formData = new FormData();
-                    formData.append("patientId",       PATIENT_ID);
-                    formData.append("bloodSugar",      bloodSugar);
-                    formData.append("measurementTime", mealTime);
-                    formData.append("__RequestVerificationToken", ANTIFORGERY_TOKEN);
-
-                    const response = await fetch("/Patient/SaveBloodSugar", { method: "POST", body: formData });
-                    if (!response.ok) throw new Error("Server error");
-
-                    const data = await response.json();
-                    if (data.success) {
-                        addBSToHistory(bloodSugar, mealTime, data.day, data.month, data.time, analysis);
-                        window.showNotification("Blood sugar reading saved successfully!", "success");
-                    }
-                } catch (err) {
-                    window.showNotification("Could not save reading. Please try again.", "error");
-                }
-
-                bsResult.scrollIntoView({ behavior: "smooth", block: "center" });
-            });
-        }
-
-        function analyzeBloodSugar(value, mealTime) {
-            let status, label, icon, message;
-            const isFasting = mealTime.includes("Fasting") || mealTime.includes("Before Lunch") || mealTime.includes("Before Dinner");
-            if (value < 70) {
-                status="low"; label="Low"; icon="fa-arrow-down"; message="Your blood sugar is low. Consider eating something with carbohydrates. If you feel symptoms, contact your doctor.";
-            } else if (isFasting) {
-                if      (value <= 100) { status="normal";   label="Normal";   icon="fa-check-circle";       message="Excellent! Your fasting blood sugar is within the normal range. Keep maintaining your healthy lifestyle!"; }
-                else if (value <= 125) { status="elevated"; label="Elevated"; icon="fa-exclamation-circle"; message="Your fasting blood sugar is slightly elevated. Consider consulting your healthcare provider and monitor your diet."; }
-                else                   { status="high";     label="High";     icon="fa-exclamation-triangle"; message="Your fasting blood sugar is high. Please contact your healthcare provider for guidance."; }
+    // Input colour hints
+    [sysIn, diaIn].forEach(inp => {
+        if (!inp) return;
+        inp.addEventListener('blur', function () {
+            const v = parseInt(this.value), w = this.closest('.db-input-wrap');
+            if (!w) return;
+            w.classList.remove('hint-normal','hint-elevated','hint-high','hint-low');
+            if (!v) return;
+            if (this === sysIn) {
+                if (v < 90) w.classList.add('hint-low'); else if (v <= 120) w.classList.add('hint-normal'); else if (v <= 139) w.classList.add('hint-elevated'); else w.classList.add('hint-high');
             } else {
-                if      (value <= 140) { status="normal";   label="Normal";       icon="fa-check-circle";       message="Great! Your post-meal blood sugar is within the normal range. Your body is processing glucose well!"; }
-                else if (value <= 180) { status="elevated"; label="Slightly High"; icon="fa-exclamation-circle"; message="Your post-meal blood sugar is slightly elevated. Try to reduce refined carbohydrates and increase physical activity."; }
-                else                   { status="high";     label="High";          icon="fa-exclamation-triangle"; message="Your post-meal blood sugar is high. Please consult your healthcare provider about adjusting your diet and treatment plan."; }
+                if (v < 60) w.classList.add('hint-low'); else if (v <= 80) w.classList.add('hint-normal'); else if (v <= 89) w.classList.add('hint-elevated'); else w.classList.add('hint-high');
             }
-            return { status, label, icon, message };
-        }
-
-        function addBSToHistory(bloodSugar, mealTime, day, month, time, analysis) {
-            const historyList = document.getElementById("bsHistoryList");
-            if (!historyList) return;
-            const noMsg = historyList.querySelector("p.no-activity");
-            if (noMsg) noMsg.remove();
-
-            const item = document.createElement("div");
-            item.className = "bs-history-item";
-            item.style.animation = "fadeIn 0.3s ease";
-            item.innerHTML = `
-                <div class="bs-history-date"><span class="day">${day}</span><span class="month">${month}</span></div>
-                <div class="bs-history-reading"><span class="reading">${bloodSugar} mg/dL</span><span class="time">${mealTime} - ${time}</span></div>
-                <div class="bs-history-status ${analysis.status}"><i class="fas ${analysis.icon}"></i> ${analysis.label}</div>`;
-            historyList.insertBefore(item, historyList.firstChild);
-            const items = historyList.querySelectorAll(".bs-history-item");
-            if (items.length > 10) items[items.length - 1].remove();
-        }
-
-        if (bloodSugarInput) {
-            bloodSugarInput.addEventListener("blur", function () {
-                const value = parseInt(this.value);
-                const wrapper = this.closest(".bs-input-wrapper");
-                if (!wrapper) return;
-                wrapper.classList.remove("normal", "elevated", "high", "low");
-                if (!value) return;
-                if      (value < 70)   wrapper.classList.add("low");
-                else if (value <= 100) wrapper.classList.add("normal");
-                else if (value <= 140) wrapper.classList.add("elevated");
-                else                   wrapper.classList.add("high");
-            });
-        }
+        });
     });
+
+    document.getElementById('saveBP')?.addEventListener('click', async function () {
+        const sys  = parseInt(sysIn.value);
+        const dia  = parseInt(diaIn.value);
+        const meas = bpTime?.value || '';
+        if (!sys || !dia)             { window.showNotification('Please enter both values.', 'error'); return; }
+        if (sys < 70  || sys > 200)   { window.showNotification('Systolic must be 70–200.',  'error'); return; }
+        if (dia < 40  || dia > 130)   { window.showNotification('Diastolic must be 40–130.', 'error'); return; }
+
+        const a = analyzeBP(sys, dia);
+        document.getElementById('bpValue').textContent  = `${sys}/${dia}`;
+        const bpSt = document.getElementById('bpStatus');
+        bpSt.className = 'db-result-status ' + a.status;
+        bpSt.innerHTML = `<i class="fas ${a.icon}"></i> ${a.label}`;
+        document.getElementById('bpMessage').textContent = a.message;
+        bpRes.style.display = 'block';
+
+        document.getElementById('bpStatValue').textContent  = `${sys}/${dia}`;
+        document.getElementById('bpStatChange').textContent = a.label;
+
+        try {
+            const fd = new FormData();
+            fd.append('patientId', PATIENT_ID); fd.append('systolic', sys); fd.append('diastolic', dia);
+            fd.append('measurementTime', meas); fd.append('__RequestVerificationToken', ANTIFORGERY_TOKEN);
+            const r = await fetch('/Patient/SaveBloodPressure', { method:'POST', body:fd });
+            if (!r.ok) throw new Error();
+            const d = await r.json();
+            if (d.success) { addBPRow(sys, dia, d.day, d.month, d.time, meas, a); window.showNotification('Blood pressure saved!', 'success'); }
+        } catch { window.showNotification('Could not save. Please try again.', 'error'); }
+
+        bpRes.scrollIntoView({ behavior:'smooth', block:'center' });
+    });
+
+    function analyzeBP(s, d) {
+        if (s < 90 || d < 60)               return { status:'low',      label:'Low',            icon:'fa-arrow-down',           message:'Blood pressure is low. If you feel dizzy, consult your doctor.' };
+        if (s <= 120 && d <= 80)             return { status:'normal',   label:'Normal',         icon:'fa-check-circle',         message:'Excellent! Your blood pressure is within the normal range.' };
+        if (s <= 129 && d < 80)              return { status:'elevated', label:'Elevated',       icon:'fa-exclamation-circle',   message:'Slightly elevated. Consider reducing salt and increasing activity.' };
+        if (s <= 139 || d <= 89)             return { status:'elevated', label:'High (Stage 1)', icon:'fa-exclamation-triangle', message:'High blood pressure. Monitor regularly and consult your provider.' };
+        return                                      { status:'high',     label:'High (Stage 2)', icon:'fa-exclamation-triangle', message:'Significantly elevated. Please contact your doctor immediately.' };
+    }
+
+    function addBPRow(sys, dia, day, month, time, meas, a) {
+        const list = document.getElementById('bpHistoryList');
+        if (!list) return;
+        list.querySelector('p.db-no-data')?.remove();
+        const row = document.createElement('div');
+        row.className = 'db-history-item'; row.style.animation = 'dbFadeIn .3s ease';
+        row.innerHTML = `
+            <div class="db-hist-date"><span class="db-hist-day">${day}</span><span class="db-hist-mon">${month}</span></div>
+            <div class="db-hist-reading"><span class="db-hist-val">${sys}/${dia}</span><span class="db-hist-time">${meas ? meas+' · ' : ''}${time}</span></div>
+            <span class="db-hist-badge ${a.status}"><i class="fas ${a.icon}"></i> ${a.label}</span>`;
+        list.insertBefore(row, list.firstChild);
+        const items = list.querySelectorAll('.db-history-item');
+        if (items.length > 10) items[items.length-1].remove();
+    }
+
+    // ── Blood Sugar ─────────────────────────────────────────
+    const bsIn   = document.getElementById('bloodSugar');
+    const bsTime = document.getElementById('mealTime');
+    const bsRes  = document.getElementById('bsResult');
+
+    bsIn?.addEventListener('input', () => { bsIn.value = bsIn.value.replace(/[^0-9]/g, ''); });
+    bsIn?.addEventListener('blur', function () {
+        const v = parseInt(this.value), w = this.closest('.db-input-wrap');
+        if (!w) return;
+        w.classList.remove('hint-normal','hint-elevated','hint-high','hint-low');
+        if (!v) return;
+        if (v < 70) w.classList.add('hint-low'); else if (v <= 100) w.classList.add('hint-normal'); else if (v <= 140) w.classList.add('hint-elevated'); else w.classList.add('hint-high');
+    });
+
+    document.getElementById('saveBS')?.addEventListener('click', async function () {
+        const val  = parseInt(bsIn.value);
+        const meal = bsTime.value;
+        if (!val)                      { window.showNotification('Please enter a blood sugar value.', 'error'); return; }
+        if (val < 40 || val > 400)     { window.showNotification('Value must be 40–400 mg/dL.', 'error'); return; }
+
+        const a = analyzeBS(val, meal);
+        document.getElementById('bsValue').textContent   = val;
+        const bsSt = document.getElementById('bsStatus');
+        bsSt.className = 'db-result-status ' + a.status;
+        bsSt.innerHTML = `<i class="fas ${a.icon}"></i> ${a.label}`;
+        document.getElementById('bsMessage').textContent = a.message;
+        bsRes.style.display = 'block';
+
+        document.getElementById('bsStatValue').textContent  = val;
+        document.getElementById('bsStatChange').textContent = a.label;
+
+        try {
+            const fd = new FormData();
+            fd.append('patientId', PATIENT_ID); fd.append('bloodSugar', val);
+            fd.append('measurementTime', meal); fd.append('__RequestVerificationToken', ANTIFORGERY_TOKEN);
+            const r = await fetch('/Patient/SaveBloodSugar', { method:'POST', body:fd });
+            if (!r.ok) throw new Error();
+            const d = await r.json();
+            if (d.success) { addBSRow(val, meal, d.day, d.month, d.time, a); window.showNotification('Blood sugar saved!', 'success'); }
+        } catch { window.showNotification('Could not save. Please try again.', 'error'); }
+
+        bsRes.scrollIntoView({ behavior:'smooth', block:'center' });
+    });
+
+    function analyzeBS(v, meal) {
+        const isFast = meal.includes('Fasting') || meal.includes('Before Lunch') || meal.includes('Before Dinner');
+        if (v < 70) return { status:'low', label:'Low', icon:'fa-arrow-down', message:'Blood sugar is low. Eat carbohydrates and monitor closely.' };
+        if (isFast) {
+            if (v <= 100) return { status:'normal',   label:'Normal',   icon:'fa-check-circle',         message:'Fasting blood sugar is in normal range. Great job!' };
+            if (v <= 125) return { status:'elevated', label:'Elevated', icon:'fa-exclamation-circle',   message:'Slightly elevated fasting sugar. Monitor your diet.' };
+            return              { status:'high',     label:'High',          icon:'fa-exclamation-triangle', message:'High fasting sugar. Please consult your provider.' };
+        }
+        if (v <= 140) return { status:'normal',   label:'Normal',       icon:'fa-check-circle',         message:'Post-meal blood sugar is within normal range.' };
+        if (v <= 180) return { status:'elevated', label:'Slightly High', icon:'fa-exclamation-circle',   message:'Slightly high post-meal sugar. Reduce refined carbs.' };
+        return              { status:'high',     label:'High',          icon:'fa-exclamation-triangle', message:'High post-meal sugar. Consult your healthcare provider.' };
+    }
+
+    function addBSRow(val, meal, day, month, time, a) {
+        const list = document.getElementById('bsHistoryList');
+        if (!list) return;
+        list.querySelector('p.db-no-data')?.remove();
+        const row = document.createElement('div');
+        row.className = 'db-history-item'; row.style.animation = 'dbFadeIn .3s ease';
+        row.innerHTML = `
+            <div class="db-hist-date"><span class="db-hist-day">${day}</span><span class="db-hist-mon">${month}</span></div>
+            <div class="db-hist-reading"><span class="db-hist-val">${val} mg/dL</span><span class="db-hist-time">${meal} · ${time}</span></div>
+            <span class="db-hist-badge ${a.status}"><i class="fas ${a.icon}"></i> ${a.label}</span>`;
+        list.insertBefore(row, list.firstChild);
+        const items = list.querySelectorAll('.db-history-item');
+        if (items.length > 10) items[items.length-1].remove();
+    }
+});
 </script>
+
+<style>
+/* ─────────────────────────────────────────
+   DASHBOARD VARIABLES
+───────────────────────────────────────── */
+:root {
+    --db-primary:    #1BAEBE;
+    --db-primary-dk: #138fa0;
+    --db-text:       #1e293b;
+    --db-muted:      #64748b;
+    --db-light:      #f8fafc;
+    --db-border:     #e2e8f0;
+    --db-radius:     16px;
+    --db-shadow:     0 4px 24px rgba(0,0,0,.07);
+    --db-shadow-hov: 0 8px 32px rgba(0,0,0,.12);
+}
+
+/* ─────────────────────────────────────────
+   HEADER
+───────────────────────────────────────── */
+.db-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 1.75rem; flex-wrap: wrap; gap: 1rem;
+}
+.db-header-left  { display:flex; align-items:center; }
+.db-title-wrap   { display:flex; align-items:center; gap:1rem; }
+.db-title-icon   {
+    width:52px; height:52px;
+    background: linear-gradient(135deg,var(--db-primary),var(--db-primary-dk));
+    border-radius:14px; display:flex; align-items:center; justify-content:center;
+    color:#fff; font-size:1.3rem;
+    box-shadow: 0 4px 14px rgba(27,174,190,.35);
+}
+.db-title        { margin:0; font-size:1.55rem; font-weight:700; color:var(--db-text); }
+.db-name         { color:var(--db-primary); }
+.db-subtitle     { margin:.15rem 0 0; font-size:.88rem; color:var(--db-muted); }
+
+.db-header-right { display:flex; align-items:center; gap:.9rem; flex-wrap:wrap; }
+.db-date-chip {
+    display:flex; align-items:center; gap:.45rem;
+    background:#fff; border-radius:22px;
+    padding:.4rem .9rem; font-size:.8rem; font-weight:500; color:var(--db-muted);
+    box-shadow:0 2px 8px rgba(0,0,0,.06); border:1px solid var(--db-border);
+}
+.db-notif-btn {
+    position:relative; width:42px; height:42px;
+    background:#fff; border-radius:12px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 8px rgba(0,0,0,.07);
+    color:var(--db-muted); font-size:1.05rem; cursor:pointer;
+    transition:box-shadow .2s;
+}
+.db-notif-btn:hover { box-shadow:var(--db-shadow-hov); }
+.db-notif-badge {
+    position:absolute; top:-4px; right:-4px;
+    background:#ef4444; color:#fff; font-size:.65rem; font-weight:700;
+    min-width:18px; height:18px; border-radius:9px; padding:0 4px;
+    border:2px solid #fff; display:flex; align-items:center; justify-content:center;
+}
+.db-profile-chip {
+    display:flex; align-items:center; gap:.55rem;
+    background:#fff; border-radius:24px;
+    padding:.45rem .9rem .45rem .6rem;
+    box-shadow:0 2px 8px rgba(0,0,0,.07);
+    font-size:.88rem; font-weight:500; color:var(--db-text);
+}
+.db-avatar {
+    width:30px; height:30px;
+    background:linear-gradient(135deg,var(--db-primary),var(--db-primary-dk));
+    border-radius:50%; display:flex; align-items:center; justify-content:center;
+    color:#fff; font-size:.8rem;
+}
+
+/* ─────────────────────────────────────────
+   PREGNANCY CARD
+───────────────────────────────────────── */
+.db-pregnancy-card {
+    display:flex; flex-wrap:wrap; gap:1.5rem; align-items:center;
+    background: linear-gradient(135deg,#1BAEBE,#0d7a8e);
+    border-radius:var(--db-radius);
+    padding:1.6rem 2rem;
+    margin-bottom:1.75rem;
+    box-shadow: 0 8px 28px rgba(27,174,190,.35);
+    color:#fff; overflow:hidden; position:relative;
+}
+.db-pregnancy-card::before {
+    content:''; position:absolute; right:-40px; top:-40px;
+    width:200px; height:200px; border-radius:50%;
+    background:rgba(255,255,255,.06);
+}
+.db-preg-left  { display:flex; align-items:center; gap:1.2rem; flex:1; min-width:260px; }
+.db-preg-icon-col {}
+.db-preg-icon  {
+    width:60px; height:60px; border-radius:16px;
+    background:rgba(255,255,255,.2); backdrop-filter:blur(6px);
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.7rem;
+}
+.db-preg-info  { flex:1; }
+.db-preg-label { font-size:.8rem; font-weight:600; opacity:.8; text-transform:uppercase; letter-spacing:.05em; display:block; margin-bottom:.25rem; }
+.db-preg-trimester {
+    font-size:.72rem; font-weight:700; background:rgba(255,255,255,.22);
+    border-radius:20px; padding:.18rem .6rem;
+    text-transform:uppercase; letter-spacing:.04em;
+    border:1px solid rgba(255,255,255,.3); margin-left:.5rem;
+}
+.db-preg-week-row  { display:flex; align-items:center; margin-bottom:.35rem; }
+.db-preg-week-display { display:flex; align-items:baseline; gap:.3rem; margin-bottom:.7rem; }
+.db-week-num  { font-size:3.2rem; font-weight:900; line-height:1; }
+.db-week-of   { font-size:1rem; opacity:.75; }
+
+.db-preg-bar-wrap { width:100%; }
+.db-preg-bar {
+    position:relative; height:10px;
+    background:rgba(255,255,255,.25); border-radius:6px; overflow:visible;
+    margin-bottom:.45rem;
+}
+.db-preg-bar-fill {
+    height:100%; border-radius:6px;
+    background:rgba(255,255,255,.85);
+    transition:width .6s ease;
+}
+.db-preg-bar-dot {
+    position:absolute; top:-3px;
+    width:16px; height:16px; border-radius:50%;
+    background:#fff; box-shadow:0 0 0 3px rgba(255,255,255,.4);
+}
+.db-preg-bar-labels {
+    display:flex; justify-content:space-between;
+    font-size:.7rem; opacity:.7;
+}
+
+.db-preg-right {
+    display:flex; align-items:center; gap:1rem; flex-shrink:0;
+    background:rgba(255,255,255,.12); backdrop-filter:blur(6px);
+    border-radius:14px; padding:.9rem 1.4rem;
+    border:1px solid rgba(255,255,255,.2);
+    flex-wrap:wrap;
+}
+.db-preg-stat       { display:flex; align-items:center; gap:.65rem; }
+.db-preg-stat-icon  {
+    width:38px; height:38px; border-radius:10px;
+    background:rgba(255,255,255,.2);
+    display:flex; align-items:center; justify-content:center;
+    font-size:1rem;
+}
+.db-preg-stat-val   { display:block; font-size:1.05rem; font-weight:700; line-height:1.2; }
+.db-preg-stat-lbl   { display:block; font-size:.72rem; opacity:.75; }
+.db-preg-divider    { width:1px; height:40px; background:rgba(255,255,255,.25); }
+
+/* ─────────────────────────────────────────
+   STAT CARDS
+───────────────────────────────────────── */
+.db-stats-grid {
+    display:grid; grid-template-columns:repeat(5,1fr);
+    gap:1rem; margin-bottom:1.75rem;
+}
+@@media(max-width:1100px){ .db-stats-grid{ grid-template-columns:repeat(3,1fr); } }
+@@media(max-width:640px) { .db-stats-grid{ grid-template-columns:repeat(2,1fr); } }
+
+.db-stat-card {
+    position:relative; overflow:hidden;
+    border-radius:var(--db-radius);
+    padding:1.2rem 1.4rem;
+    display:flex; align-items:center; gap:1rem;
+    box-shadow:var(--db-shadow);
+    transition:transform .22s, box-shadow .22s;
+}
+.db-stat-card:hover { transform:translateY(-3px); box-shadow:var(--db-shadow-hov); }
+
+.db-stat-weight { background:linear-gradient(135deg,#e8f5e9,#f1fff3); border-top:3px solid #4caf50; }
+.db-stat-bp     { background:linear-gradient(135deg,#e3f2fd,#f0f8ff); border-top:3px solid #2196f3; }
+.db-stat-bs     { background:linear-gradient(135deg,#fce4ec,#fff5f8); border-top:3px solid #e91e63; }
+.db-stat-lab    { background:linear-gradient(135deg,#fff8e1,#fffdf0); border-top:3px solid #ff9800; }
+.db-stat-appt   { background:linear-gradient(135deg,#f3e5f5,#faf0fe); border-top:3px solid #9c27b0; }
+
+.db-stat-icon {
+    width:46px; height:46px; border-radius:12px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:1.15rem;
+    background:rgba(255,255,255,.65); backdrop-filter:blur(4px);
+}
+.db-stat-weight .db-stat-icon { color:#388e3c; }
+.db-stat-bp     .db-stat-icon { color:#1565c0; }
+.db-stat-bs     .db-stat-icon { color:#c2185b; }
+.db-stat-lab    .db-stat-icon { color:#e65100; }
+.db-stat-appt   .db-stat-icon { color:#7b1fa2; }
+
+.db-stat-body    { display:flex; flex-direction:column; z-index:1; min-width:0; }
+.db-stat-num     { font-size:1.9rem; font-weight:800; color:var(--db-text); line-height:1; }
+.db-stat-num-sm  { font-size:1.15rem; font-weight:700; }
+.db-stat-lbl     { font-size:.75rem; font-weight:500; color:var(--db-muted); margin:.2rem 0 .35rem; }
+.db-stat-tag     { display:inline-flex; align-items:center; gap:.3rem; font-size:.7rem; font-weight:600; border-radius:20px; padding:.15rem .55rem; width:fit-content; }
+.db-tag-normal   { background:#e8f5e9; color:#2e7d32; }
+.db-tag-neutral  { background:#f1f5f9; color:#475569; }
+.db-tag-upcoming { background:#e3f2fd; color:#1565c0; }
+.db-tag-warn     { background:#fff3e0; color:#e65100; }
+
+.db-stat-bg {
+    position:absolute; right:-8px; bottom:-8px;
+    font-size:4rem; opacity:.06; color:#000; pointer-events:none;
+}
+
+/* ─────────────────────────────────────────
+   MID GRID (activity + alerts)
+───────────────────────────────────────── */
+.db-mid-grid {
+    display:grid; grid-template-columns:1fr 1fr;
+    gap:1.25rem; margin-bottom:1.75rem;
+}
+@@media(max-width:900px){ .db-mid-grid{ grid-template-columns:1fr; } }
+
+.db-card {
+    background:#fff; border-radius:var(--db-radius);
+    box-shadow:var(--db-shadow); border:1px solid var(--db-border);
+    padding:1.4rem 1.5rem;
+}
+.db-card-header {
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:1.1rem; padding-bottom:.9rem;
+    border-bottom:1.5px solid var(--db-border);
+}
+.db-card-title {
+    display:flex; align-items:center; gap:.65rem;
+}
+.db-card-title h3 { margin:0; font-size:1rem; font-weight:700; color:var(--db-text); }
+.db-card-icon-wrap {
+    width:34px; height:34px; border-radius:9px;
+    display:flex; align-items:center; justify-content:center; font-size:.9rem;
+}
+.db-card-icon-wrap.activity { background:#e3f2fd; color:#1565c0; }
+.db-card-icon-wrap.alerts   { background:#fce4ec; color:#c2185b; }
+
+.db-view-all {
+    display:inline-flex; align-items:center; gap:.35rem;
+    font-size:.8rem; font-weight:600; color:var(--db-primary);
+    text-decoration:none; transition:gap .2s;
+}
+.db-view-all:hover { gap:.55rem; }
+
+/* Activity list */
+.db-activity-list  { display:flex; flex-direction:column; gap:.75rem; }
+.db-activity-item  {
+    display:flex; align-items:flex-start; gap:.85rem;
+    padding:.7rem .8rem; border-radius:12px;
+    background:var(--db-light); border:1px solid var(--db-border);
+    transition:box-shadow .2s;
+}
+.db-activity-item:hover { box-shadow:var(--db-shadow-hov); }
+.db-activity-icon  {
+    width:38px; height:38px; border-radius:10px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:.9rem;
+}
+.db-activity-info  { flex:1; min-width:0; }
+.db-activity-info h4 { margin:0 0 .15rem; font-size:.88rem; font-weight:700; color:var(--db-text); }
+.db-activity-info p  { margin:0; font-size:.8rem; color:var(--db-muted); }
+.db-activity-time  { font-size:.75rem; color:#94a3b8; white-space:nowrap; flex-shrink:0; }
+
+.db-empty-feed     { text-align:center; padding:2rem; }
+.db-empty-feed .db-empty-icon { width:52px; height:52px; border-radius:50%; background:var(--db-light); display:flex; align-items:center; justify-content:center; font-size:1.2rem; color:#cbd5e1; margin:0 auto .75rem; }
+.db-empty-feed p   { color:#94a3b8; font-size:.88rem; margin:0; }
+
+/* Alert list */
+.db-alerts-list    { display:flex; flex-direction:column; gap:.7rem; }
+.db-alert-item     {
+    display:flex; align-items:flex-start;
+    border-radius:12px; overflow:hidden;
+    border:1px solid var(--db-border);
+    background:#fff;
+    transition:box-shadow .2s;
+}
+.db-alert-item:hover { box-shadow:var(--db-shadow-hov); }
+.db-alert-stripe   { width:4px; flex-shrink:0; }
+.db-alert-item-danger  .db-alert-stripe { background:#ef4444; }
+.db-alert-item-warning .db-alert-stripe { background:#f59e0b; }
+.db-alert-item-info    .db-alert-stripe { background:#3b82f6; }
+.db-alert-item-success .db-alert-stripe { background:#22c55e; }
+
+.db-alert-item-danger  { background:linear-gradient(135deg,#fff8f8,#fff1f2); border-color:#fca5a5; }
+.db-alert-item-warning { background:linear-gradient(135deg,#fffdf5,#fffbeb); border-color:#fde68a; }
+.db-alert-item-info    { background:linear-gradient(135deg,#f8fbff,#eff6ff); border-color:#93c5fd; }
+.db-alert-item-success { background:linear-gradient(135deg,#f6fff8,#f0fdf4); border-color:#86efac; }
+
+.db-alert-icon-col { padding:.75rem .65rem; font-size:1rem; flex-shrink:0; }
+.db-alert-item-danger  .db-alert-icon-col { color:#b91c1c; }
+.db-alert-item-warning .db-alert-icon-col { color:#b45309; }
+.db-alert-item-info    .db-alert-icon-col { color:#1d4ed8; }
+.db-alert-item-success .db-alert-icon-col { color:#15803d; }
+
+.db-alert-info     { flex:1; padding:.7rem .5rem .7rem 0; }
+.db-alert-info h4  { margin:0 0 .2rem; font-size:.88rem; font-weight:700; color:var(--db-text); }
+.db-alert-info p   { margin:0; font-size:.8rem; color:var(--db-muted); line-height:1.5; }
+.db-alert-unread-dot {
+    width:8px; height:8px; border-radius:50%; background:#ef4444;
+    flex-shrink:0; margin:.85rem .8rem 0 0;
+    animation:dbPulse 1.8s ease-in-out infinite;
+}
+@@keyframes dbPulse {
+    0%   { box-shadow:0 0 0 0 rgba(239,68,68,.5); }
+    70%  { box-shadow:0 0 0 7px rgba(239,68,68,0); }
+    100% { box-shadow:0 0 0 0 rgba(239,68,68,0); }
+}
+
+/* ─────────────────────────────────────────
+   HEALTH TRACKER SECTION
+───────────────────────────────────────── */
+.db-tracker-section { margin-bottom:2rem; }
+.db-tracker-tabs {
+    display:flex; gap:.6rem; margin-bottom:1.1rem; flex-wrap:wrap;
+}
+.db-tab {
+    display:inline-flex; align-items:center; gap:.45rem;
+    padding:.5rem 1.2rem; border-radius:22px;
+    border:1.5px solid var(--db-border);
+    background:var(--db-light);
+    font-size:.85rem; font-weight:600; color:var(--db-muted);
+    cursor:pointer; transition:all .2s;
+}
+.db-tab:hover { background:#f1f5f9; color:var(--db-text); }
+.db-tab.active {
+    background:linear-gradient(135deg,var(--db-primary),var(--db-primary-dk));
+    color:#fff; border-color:transparent;
+    box-shadow:0 3px 10px rgba(27,174,190,.3);
+}
+.db-tab-content { display:none; }
+.db-tab-content.active { display:block; }
+
+.db-tracker-grid {
+    display:grid; grid-template-columns:1fr 1fr;
+    gap:1.25rem;
+}
+@@media(max-width:900px){ .db-tracker-grid{ grid-template-columns:1fr; } }
+
+/* tracker header */
+.db-tracker-header  { margin-bottom:1.2rem; }
+.db-tracker-title   { display:flex; align-items:center; gap:.9rem; }
+.db-tracker-title h3{ margin:0; font-size:1rem; font-weight:700; color:var(--db-text); }
+.db-tracker-date    { font-size:.78rem; color:var(--db-muted); display:block; margin-top:.15rem; }
+.db-tracker-icon {
+    width:44px; height:44px; border-radius:12px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:1.1rem;
+}
+.db-tracker-icon.bp { background:#e3f2fd; color:#1565c0; }
+.db-tracker-icon.bs { background:#fce4ec; color:#c2185b; }
+
+/* inputs */
+.db-bp-inputs {
+    display:grid; grid-template-columns:1fr auto 1fr 1fr;
+    gap:.75rem; align-items:end; margin-bottom:1rem;
+}
+@@media(max-width:600px){ .db-bp-inputs{ grid-template-columns:1fr 1fr; } .db-bp-divider{ display:none; } }
+.db-bs-inputs { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; margin-bottom:1rem; }
+@@media(max-width:500px){ .db-bs-inputs{ grid-template-columns:1fr; } }
+
+.db-input-group      { display:flex; flex-direction:column; gap:.35rem; }
+.db-input-group-full { grid-column:1/-1; }
+.db-input-group-lg   {}
+.db-input-group label{ font-size:.8rem; font-weight:600; color:var(--db-text); }
+.db-input-group label small { font-weight:400; color:var(--db-muted); }
+.db-input-wrap {
+    display:flex; align-items:center;
+    border:1.5px solid var(--db-border); border-radius:10px;
+    background:var(--db-light); overflow:hidden;
+    transition:border-color .2s, box-shadow .2s;
+}
+.db-input-wrap:focus-within { border-color:var(--db-primary); box-shadow:0 0 0 3px rgba(27,174,190,.12); }
+.db-input-wrap.hint-normal   { border-color:#4caf50; }
+.db-input-wrap.hint-elevated { border-color:#f59e0b; }
+.db-input-wrap.hint-high     { border-color:#ef4444; }
+.db-input-wrap.hint-low      { border-color:#3b82f6; }
+.db-input {
+    border:none; background:transparent; padding:.55rem .75rem;
+    font-size:.92rem; color:var(--db-text); flex:1; outline:none; width:100%;
+}
+.db-input-unit {
+    padding:0 .65rem; font-size:.75rem; font-weight:600;
+    color:var(--db-muted); background:rgba(0,0,0,.03);
+    border-left:1px solid var(--db-border); white-space:nowrap;
+}
+.db-input-hint { font-size:.72rem; color:#94a3b8; }
+.db-bp-divider { display:flex; align-items:flex-end; padding-bottom:.6rem; font-size:1.5rem; font-weight:300; color:var(--db-muted); }
+.db-select {
+    border:1.5px solid var(--db-border); border-radius:10px;
+    padding:.55rem .75rem; font-size:.85rem; background:#fff;
+    color:var(--db-text); outline:none; width:100%;
+    transition:border-color .2s;
+}
+.db-select:focus { border-color:var(--db-primary); }
+
+/* save button */
+.db-save-btn {
+    display:inline-flex; align-items:center; gap:.45rem;
+    background:linear-gradient(135deg,var(--db-primary),var(--db-primary-dk));
+    color:#fff; border:none; border-radius:12px;
+    padding:.65rem 1.4rem; font-size:.88rem; font-weight:700;
+    cursor:pointer; transition:all .2s;
+    box-shadow:0 3px 10px rgba(27,174,190,.35);
+    margin-bottom:1rem;
+}
+.db-save-btn:hover { transform:translateY(-1px); box-shadow:0 5px 16px rgba(27,174,190,.45); }
+.db-save-btn-bs { background:linear-gradient(135deg,#e91e63,#c2185b); box-shadow:0 3px 10px rgba(233,30,99,.3); }
+.db-save-btn-bs:hover { box-shadow:0 5px 16px rgba(233,30,99,.4); }
+
+/* result banner */
+.db-result-banner {
+    display:flex; gap:1rem; align-items:flex-start;
+    background:linear-gradient(135deg,#f0fdf4,#e8fdf0);
+    border:1px solid #86efac; border-radius:14px;
+    padding:.9rem 1.1rem; margin-bottom:1rem;
+}
+.db-result-left { display:flex; align-items:baseline; gap:.35rem; }
+.db-result-value{ font-size:2rem; font-weight:800; color:var(--db-text); line-height:1; }
+.db-result-unit { font-size:.85rem; color:var(--db-muted); }
+.db-result-right{ flex:1; }
+.db-result-status {
+    display:inline-flex; align-items:center; gap:.35rem;
+    font-size:.82rem; font-weight:700;
+    padding:.2rem .65rem; border-radius:20px; margin-bottom:.35rem;
+}
+.db-result-status.normal   { background:#e8f5e9; color:#2e7d32; }
+.db-result-status.elevated { background:#fff3e0; color:#e65100; }
+.db-result-status.high     { background:#ffebee; color:#c62828; }
+.db-result-status.low      { background:#e3f2fd; color:#1565c0; }
+.db-result-msg  { margin:0; font-size:.82rem; color:#475569; line-height:1.5; }
+
+/* history */
+.db-history-section { border-top:1px dashed var(--db-border); padding-top:.9rem; margin-top:.5rem; }
+.db-history-title   { display:flex; align-items:center; gap:.45rem; font-size:.88rem; font-weight:700; color:var(--db-text); margin:0 0 .75rem; }
+.db-history-list    { display:flex; flex-direction:column; gap:.55rem; }
+.db-history-item    {
+    display:flex; align-items:center; gap:.85rem;
+    padding:.6rem .8rem; border-radius:10px;
+    background:var(--db-light); border:1px solid var(--db-border);
+}
+.db-hist-date   { display:flex; flex-direction:column; align-items:center; min-width:32px; }
+.db-hist-day    { font-size:1.1rem; font-weight:800; color:var(--db-text); line-height:1; }
+.db-hist-mon    { font-size:.65rem; color:var(--db-muted); font-weight:500; text-transform:uppercase; }
+.db-hist-reading{ flex:1; display:flex; flex-direction:column; }
+.db-hist-val    { font-size:.9rem; font-weight:700; color:var(--db-text); }
+.db-hist-time   { font-size:.75rem; color:#94a3b8; }
+.db-hist-badge  {
+    display:inline-flex; align-items:center; gap:.3rem;
+    font-size:.72rem; font-weight:600;
+    padding:.2rem .6rem; border-radius:20px; white-space:nowrap;
+}
+.db-hist-badge.normal   { background:#e8f5e9; color:#2e7d32; }
+.db-hist-badge.elevated { background:#fff3e0; color:#e65100; }
+.db-hist-badge.high     { background:#ffebee; color:#c62828; }
+.db-hist-badge.low      { background:#e3f2fd; color:#1565c0; }
+.db-no-data     { font-size:.85rem; color:#94a3b8; text-align:center; padding:1rem 0; margin:0; }
+.db-view-all-link {
+    display:inline-flex; align-items:center; gap:.35rem;
+    font-size:.8rem; font-weight:600; color:var(--db-primary);
+    text-decoration:none; margin-top:.65rem;
+    transition:gap .2s;
+}
+.db-view-all-link:hover { gap:.55rem; }
+
+/* chart card */
+.db-chart-card  { display:flex; flex-direction:column; }
+.db-chart-header {
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:1rem;
+}
+.db-chart-header h3 { margin:0; font-size:.95rem; font-weight:700; color:var(--db-text); display:flex; align-items:center; gap:.5rem; }
+.db-chart-legend { display:flex; gap:.9rem; font-size:.75rem; color:var(--db-muted); }
+.db-legend-dot  { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:.3rem; }
+.db-legend-dot.systolic  { background:#2196f3; }
+.db-legend-dot.diastolic { background:#90caf9; }
+
+.db-bar-chart {
+    display:flex; align-items:flex-end; gap:.5rem;
+    height:160px; padding:.5rem 0;
+    border-bottom:1.5px solid var(--db-border);
+    margin-bottom:1rem; flex:1;
+}
+.db-bar-group  { display:flex; flex-direction:column; align-items:center; gap:2px; flex:1; height:100%; justify-content:flex-end; }
+.db-bar        { width:100%; max-width:20px; border-radius:4px 4px 0 0; transition:height .4s ease; min-height:4px; }
+.db-bar-sys    { background:#2196f3; }
+.db-bar-dia    { background:#90caf9; }
+.db-bar-bs     { background:#e91e63; }
+.db-bar-elevated{ opacity:1 !important; }
+.db-bar-elevated.db-bar-sys,
+.db-bar-elevated.db-bar-bs { background:#ef4444; }
+.db-bar-elevated.db-bar-dia { background:#ffcdd2; }
+.db-bar-lbl    { font-size:.68rem; color:var(--db-muted); margin-top:.3rem; }
+
+.db-summary-row  { display:flex; gap:.5rem; flex-wrap:wrap; }
+.db-summary-item { flex:1; min-width:80px; background:var(--db-light); border-radius:10px; padding:.6rem .8rem; border:1px solid var(--db-border); }
+.db-summary-lbl  { display:block; font-size:.7rem; color:#94a3b8; margin-bottom:.2rem; }
+.db-summary-val  { display:block; font-size:.85rem; font-weight:700; color:var(--db-text); }
+.db-val-warn     { color:#e65100; }
+
+/* ─────────────────────────────────────────
+   TOAST
+───────────────────────────────────────── */
+.db-toast {
+    position:fixed; top:1.5rem; right:1.5rem;
+    padding:.9rem 1.25rem; border-radius:14px;
+    display:flex; align-items:center; gap:.75rem;
+    font-size:.9rem; font-weight:500; z-index:9999;
+    box-shadow:0 8px 24px rgba(0,0,0,.14);
+    animation:dbSlideIn .3s ease;
+}
+.db-toast-success { background:#e8f5e9; color:#2e7d32; border:1px solid #a5d6a7; }
+.db-toast-error   { background:#ffebee; color:#c62828; border:1px solid #ef9a9a; }
+.db-toast-warning { background:#fff3e0; color:#e65100; border:1px solid #ffcc80; }
+.db-toast-info    { background:#e3f2fd; color:#1565c0; border:1px solid #90caf9; }
+.db-toast-close   { background:none; border:none; cursor:pointer; color:inherit; opacity:.6; padding:2px 6px; margin-left:.25rem; }
+
+@@keyframes dbSlideIn { from{ opacity:0; transform:translateX(30px); } to{ opacity:1; transform:translateX(0); } }
+@@keyframes dbFadeIn  { from{ opacity:0; transform:translateY(8px);  } to{ opacity:1; transform:translateY(0); } }
+</style>
 }

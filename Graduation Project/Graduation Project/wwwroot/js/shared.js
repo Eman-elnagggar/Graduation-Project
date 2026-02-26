@@ -8,7 +8,6 @@
 // ================================
 function initSharedSidebar() {
   const sidebar = document.querySelector(".sidebar");
-  const mainContent = document.querySelector(".main-content");
 
   // Prevent double initialization
   if (!sidebar || sidebar.dataset.sidebarInitialized === "true") return;
@@ -41,12 +40,14 @@ function initSharedSidebar() {
     document.body.appendChild(overlay);
   }
 
-  // Add tooltips to nav items
-  const navItems = sidebar.querySelectorAll(".nav-item, .nav-link");
+  // Add tooltips to nav items (read from span text or existing data-tooltip)
+  const navItems = sidebar.querySelectorAll(".nav-item");
   navItems.forEach((item) => {
-    const text = item.querySelector("span")?.textContent || "";
     if (!item.getAttribute("data-tooltip")) {
-      item.setAttribute("data-tooltip", text);
+      const text = item.querySelector("span:not(.nav-icon)")?.textContent?.trim() || "";
+      if (text) {
+        item.setAttribute("data-tooltip", text);
+      }
     }
   });
 
@@ -58,10 +59,6 @@ function initSharedSidebar() {
     document.body.classList.add("sidebar-collapsed");
     toggleBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
     toggleBtn.classList.add("collapsed");
-    if (mainContent) {
-      mainContent.style.marginLeft = "80px";
-      mainContent.style.maxWidth = "calc(100% - 80px)";
-    }
   }
 
   // Toggle button click handler
@@ -77,22 +74,14 @@ function initSharedSidebar() {
       document.body.classList.toggle("sidebar-collapsed");
       toggleBtn.classList.toggle("collapsed");
 
-      // Update icon and main content
+      // Update icon
       const icon = this.querySelector("i");
       if (sidebar.classList.contains("collapsed")) {
         icon.className = "fas fa-chevron-right";
         localStorage.setItem(storageKey, "true");
-        if (mainContent) {
-          mainContent.style.marginLeft = "80px";
-          mainContent.style.maxWidth = "calc(100% - 80px)";
-        }
       } else {
         icon.className = "fas fa-chevron-left";
         localStorage.setItem(storageKey, "false");
-        if (mainContent) {
-          mainContent.style.marginLeft = "260px";
-          mainContent.style.maxWidth = "calc(100% - 260px)";
-        }
       }
     }
   });
@@ -161,6 +150,13 @@ function initSharedSidebar() {
       e.preventDefault();
       toggleBtn.click();
     }
+  });
+
+  // Add subtle hover ripple effect to nav items
+  navItems.forEach((item) => {
+    item.addEventListener("mouseenter", function () {
+      this.style.transition = "all 0.2s ease";
+    });
   });
 }
 
