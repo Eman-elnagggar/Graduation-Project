@@ -18,7 +18,7 @@ from sklearn.metrics import classification_report, confusion_matrix, accuracy_sc
 
 print("Loading dataset...")
 try:
-    df = pd.read_csv("./UrinAnalysis/final_pregnancy_urinalysis_ready.csv")
+    df = pd.read_csv("final_pregnancy_urinalysis_ready.csv")
 except FileNotFoundError:
     print("Error: file 'final_pregnancy_urinalysis_ready.csv' not found in current directory")
     exit(1)
