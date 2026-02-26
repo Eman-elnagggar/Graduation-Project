@@ -18,6 +18,8 @@ namespace Graduation_Project.Data
         public DbSet<Booking> Bookings { get; set; }
         public DbSet<CBC_Test> CBC_Tests { get; set; }
         public DbSet<Clinic> Clinics { get; set; }
+        public DbSet<ClinicDoctor> ClinicDoctors { get; set; }
+        public DbSet<AssistantDoctor> AssistantDoctors { get; set; }
         public DbSet<Doctor> Doctors { get; set; }
         public DbSet<LabTest> LabTests { get; set; }
         public DbSet<MedicalHistory> MedicalHistories { get; set; }
@@ -88,25 +90,53 @@ namespace Graduation_Project.Data
             });
 
             // ============================================================
-            // 5. ASSISTANT -> CLINIC (One Assistant has One Clinic)
+            // 5. ASSISTANT -> CLINIC (Many Assistants belong to One Clinic)
             // ============================================================
             modelBuilder.Entity<Assistant>(entity =>
             {
                 entity.HasOne(d => d.Clinic)
-                    .WithMany()
+                    .WithMany(c => c.Assistants)
                     .HasForeignKey(d => d.ClinicID)
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
             // ============================================================
-            // 6. CLINIC -> DOCTOR (Many Clinics belong to One Doctor)
+            // 6. CLINIC -> DOCTOR (Many-to-Many through ClinicDoctor)
             // ============================================================
             modelBuilder.Entity<Clinic>(entity =>
             {
                 entity.HasKey(e => e.ClinicID);
+            });
+
+            modelBuilder.Entity<ClinicDoctor>(entity =>
+            {
+                entity.HasKey(e => new { e.ClinicID, e.DoctorID });
+
+                entity.HasOne(d => d.Clinic)
+                    .WithMany(c => c.ClinicDoctors)
+                    .HasForeignKey(d => d.ClinicID)
+                    .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(d => d.Doctor)
-                    .WithMany(p => p.Clinics)
+                    .WithMany(d => d.ClinicDoctors)
+                    .HasForeignKey(d => d.DoctorID)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // ============================================================
+            // ASSISTANT <-> DOCTOR (Many-to-Many through AssistantDoctor)
+            // ============================================================
+            modelBuilder.Entity<AssistantDoctor>(entity =>
+            {
+                entity.HasKey(e => new { e.AssistantID, e.DoctorID });
+
+                entity.HasOne(d => d.Assistant)
+                    .WithMany(a => a.AssistantDoctors)
+                    .HasForeignKey(d => d.AssistantID)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(d => d.Doctor)
+                    .WithMany(d => d.AssistantDoctors)
                     .HasForeignKey(d => d.DoctorID)
                     .OnDelete(DeleteBehavior.Restrict);
             });
