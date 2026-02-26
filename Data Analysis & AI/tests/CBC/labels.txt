@@ -1,0 +1,2 @@
+'Leukopenia','Leukocytosis','Anemia','Elevated Hemoglobin','Thrombocytopenia','Thrombocytosis','Microcytosis','Macrocytosis'
+,'Lymphopenia','Lymphocytosis'
