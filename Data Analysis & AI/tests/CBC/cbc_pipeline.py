@@ -36,18 +36,18 @@ class cbc_model_prediction:
         predicted_diagnoses = [self.__labels[i] for i in range(len(self.__labels)) if sample_pred[i] == 1]
         return predicted_diagnoses
     
-if __name__=="__main__":
+# if __name__=="__main__":
 
-    input_data={
-        "age":48,
-        "hb":10.9,
-        "rbc":3.75,
-        "wbc":231100,
-        "platelets":333000.0,
-        "lymp":79.0,
-        "mcv":75.6,
-        "mch":24.3,
-        "mchc":33.1,
-    }
-    obj=cbc_model_prediction()
-    print(obj.predicit_cbc(input_data))
+#     input_data={
+#         "age":48,
+#         "hb":10.9,
+#         "rbc":3.75,
+#         "wbc":231100,
+#         "platelets":333000.0,
+#         "lymp":79.0,
+#         "mcv":75.6,
+#         "mch":24.3,
+#         "mchc":33.1,
+#     }
+#     obj=cbc_model_prediction()
+#     print(obj.predicit_cbc(input_data))
