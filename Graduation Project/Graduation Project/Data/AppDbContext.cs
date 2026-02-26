@@ -5,6 +5,10 @@ namespace Graduation_Project.Data
 {
     public class AppDbContext : DbContext
     {
+        public AppDbContext()
+        {
+        }
+
         public AppDbContext(DbContextOptions<AppDbContext> options)
             : base(options)
         {
@@ -17,19 +21,33 @@ namespace Graduation_Project.Data
         public DbSet<Assistant> Assistants { get; set; }
         public DbSet<Booking> Bookings { get; set; }
         public DbSet<CBC_Test> CBC_Tests { get; set; }
+        public DbSet<BloodGroup_Test> BloodGroup_Tests { get; set; }
+        public DbSet<HbA1c_Test> HbA1c_Tests { get; set; }
+        public DbSet<Urinalysis_Test> Urinalysis_Tests { get; set; }
+        public DbSet<HBsAg_Test> HBsAg_Tests { get; set; }
+        public DbSet<HCV_Test> HCV_Tests { get; set; }
+        public DbSet<TSH_Test> TSH_Tests { get; set; }
+        public DbSet<Ferritin_Test> Ferritin_Tests { get; set; }
         public DbSet<Clinic> Clinics { get; set; }
+        public DbSet<ClinicDoctor> ClinicDoctors { get; set; }
+        public DbSet<AssistantDoctor> AssistantDoctors { get; set; }
         public DbSet<Doctor> Doctors { get; set; }
         public DbSet<LabTest> LabTests { get; set; }
         public DbSet<MedicalHistory> MedicalHistories { get; set; }
+        public DbSet<Note> Notes { get; set; }
         public DbSet<Patient> Patients { get; set; }
         public DbSet<PatientBloodPressure> PatientBloodPressure { get; set; }
         public DbSet<PatientBloodSugar> PatientBloodSugar { get; set; }
         public DbSet<PatientDoctor> PatientDoctors { get; set; }
         public DbSet<PatientDrug> PatientDrugs { get; set; }
         public DbSet<Place> Places { get; set; }
+        public DbSet<Prescription> Prescriptions { get; set; }
+        public DbSet<PrescriptionItem> PrescriptionItems { get; set; }
         public DbSet<Role> Roles { get; set; }
+        public DbSet<TestReport> TestReports { get; set; }
         public DbSet<UltrasoundImage> UltrasoundImages { get; set; }
         public DbSet<User> Users { get; set; }
+        public DbSet<WeightTracking> WeightTrackings { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -88,25 +106,53 @@ namespace Graduation_Project.Data
             });
 
             // ============================================================
-            // 5. ASSISTANT -> CLINIC (One Assistant has One Clinic)
+            // 5. ASSISTANT -> CLINIC (Many Assistants belong to One Clinic)
             // ============================================================
             modelBuilder.Entity<Assistant>(entity =>
             {
                 entity.HasOne(d => d.Clinic)
-                    .WithMany()
+                    .WithMany(c => c.Assistants)
                     .HasForeignKey(d => d.ClinicID)
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
             // ============================================================
-            // 6. CLINIC -> DOCTOR (Many Clinics belong to One Doctor)
+            // 6. CLINIC -> DOCTOR (Many-to-Many through ClinicDoctor)
             // ============================================================
             modelBuilder.Entity<Clinic>(entity =>
             {
                 entity.HasKey(e => e.ClinicID);
+            });
+
+            modelBuilder.Entity<ClinicDoctor>(entity =>
+            {
+                entity.HasKey(e => new { e.ClinicID, e.DoctorID });
+
+                entity.HasOne(d => d.Clinic)
+                    .WithMany(c => c.ClinicDoctors)
+                    .HasForeignKey(d => d.ClinicID)
+                    .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(d => d.Doctor)
-                    .WithMany(p => p.Clinics)
+                    .WithMany(d => d.ClinicDoctors)
+                    .HasForeignKey(d => d.DoctorID)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // ============================================================
+            // ASSISTANT <-> DOCTOR (Many-to-Many through AssistantDoctor)
+            // ============================================================
+            modelBuilder.Entity<AssistantDoctor>(entity =>
+            {
+                entity.HasKey(e => new { e.AssistantID, e.DoctorID });
+
+                entity.HasOne(d => d.Assistant)
+                    .WithMany(a => a.AssistantDoctors)
+                    .HasForeignKey(d => d.AssistantID)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(d => d.Doctor)
+                    .WithMany(d => d.AssistantDoctors)
                     .HasForeignKey(d => d.DoctorID)
                     .OnDelete(DeleteBehavior.Restrict);
             });
@@ -169,6 +215,97 @@ namespace Graduation_Project.Data
                 entity.HasOne(d => d.LabTest)
                     .WithOne()
                     .HasForeignKey<CBC_Test>(d => d.LabTestID)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ============================================================
+            // 40. BLOODGROUP_TEST -> LABTEST (One-to-One)
+            // ============================================================
+            modelBuilder.Entity<BloodGroup_Test>(entity =>
+            {
+                entity.HasKey(e => e.LabTestID);
+
+                entity.HasOne(d => d.LabTest)
+                    .WithOne()
+                    .HasForeignKey<BloodGroup_Test>(d => d.LabTestID)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ============================================================
+            // 41. HBA1C_TEST -> LABTEST (One-to-One)
+            // ============================================================
+            modelBuilder.Entity<HbA1c_Test>(entity =>
+            {
+                entity.HasKey(e => e.LabTestID);
+
+                entity.HasOne(d => d.LabTest)
+                    .WithOne()
+                    .HasForeignKey<HbA1c_Test>(d => d.LabTestID)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ============================================================
+            // 42. URINALYSIS_TEST -> LABTEST (One-to-One)
+            // ============================================================
+            modelBuilder.Entity<Urinalysis_Test>(entity =>
+            {
+                entity.HasKey(e => e.LabTestID);
+
+                entity.HasOne(d => d.LabTest)
+                    .WithOne()
+                    .HasForeignKey<Urinalysis_Test>(d => d.LabTestID)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ============================================================
+            // 43. HBSAG_TEST -> LABTEST (One-to-One)
+            // ============================================================
+            modelBuilder.Entity<HBsAg_Test>(entity =>
+            {
+                entity.HasKey(e => e.LabTestID);
+
+                entity.HasOne(d => d.LabTest)
+                    .WithOne()
+                    .HasForeignKey<HBsAg_Test>(d => d.LabTestID)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ============================================================
+            // 44. HCV_TEST -> LABTEST (One-to-One)
+            // ============================================================
+            modelBuilder.Entity<HCV_Test>(entity =>
+            {
+                entity.HasKey(e => e.LabTestID);
+
+                entity.HasOne(d => d.LabTest)
+                    .WithOne()
+                    .HasForeignKey<HCV_Test>(d => d.LabTestID)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ============================================================
+            // 45. TSH_TEST -> LABTEST (One-to-One)
+            // ============================================================
+            modelBuilder.Entity<TSH_Test>(entity =>
+            {
+                entity.HasKey(e => e.LabTestID);
+
+                entity.HasOne(d => d.LabTest)
+                    .WithOne()
+                    .HasForeignKey<TSH_Test>(d => d.LabTestID)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ============================================================
+            // 46. FERRITIN_TEST -> LABTEST (One-to-One)
+            // ============================================================
+            modelBuilder.Entity<Ferritin_Test>(entity =>
+            {
+                entity.HasKey(e => e.LabTestID);
+
+                entity.HasOne(d => d.LabTest)
+                    .WithOne()
+                    .HasForeignKey<Ferritin_Test>(d => d.LabTestID)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
@@ -401,6 +538,115 @@ namespace Graduation_Project.Data
             modelBuilder.Entity<PatientBloodSugar>(entity =>
             {
                 entity.HasKey(e => e.ID);
+
+                entity.HasOne(d => d.Patient)
+                    .WithMany()
+                    .HasForeignKey(d => d.PatientID)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ============================================================
+            // 31. NOTE -> DOCTOR (Many Notes belong to One Doctor)
+            // ============================================================
+            modelBuilder.Entity<Note>(entity =>
+            {
+                entity.HasKey(e => e.NoteID);
+
+                entity.HasOne(d => d.Doctor)
+                    .WithMany()
+                    .HasForeignKey(d => d.DoctorID)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // ============================================================
+            // 32. NOTE -> PATIENT (Many Notes belong to One Patient)
+            // ============================================================
+            modelBuilder.Entity<Note>(entity =>
+            {
+                entity.HasOne(d => d.Patient)
+                    .WithMany()
+                    .HasForeignKey(d => d.PatientID)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // ============================================================
+            // 33. PRESCRIPTION -> DOCTOR (Many Prescriptions belong to One Doctor)
+            // ============================================================
+            modelBuilder.Entity<Prescription>(entity =>
+            {
+                entity.HasKey(e => e.PrescriptionID);
+
+                entity.HasOne(d => d.Doctor)
+                    .WithMany()
+                    .HasForeignKey(d => d.DoctorID)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // ============================================================
+            // 34. PRESCRIPTION -> PATIENT (Many Prescriptions belong to One Patient)
+            // ============================================================
+            modelBuilder.Entity<Prescription>(entity =>
+            {
+                entity.HasOne(d => d.Patient)
+                    .WithMany()
+                    .HasForeignKey(d => d.PatientID)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // ============================================================
+            // 35. PRESCRIPTIONITEM -> PRESCRIPTION (Many Items belong to One Prescription)
+            // ============================================================
+            modelBuilder.Entity<PrescriptionItem>(entity =>
+            {
+                entity.HasKey(e => e.ItemID);
+
+                entity.HasOne(d => d.Prescription)
+                    .WithMany(p => p.Items)
+                    .HasForeignKey(d => d.PrescriptionID)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ============================================================
+            // 36. TESTREPORT -> PATIENT (Many Reports belong to One Patient)
+            // ============================================================
+            modelBuilder.Entity<TestReport>(entity =>
+            {
+                entity.HasKey(e => e.ReportID);
+
+                entity.HasOne(d => d.Patient)
+                    .WithMany()
+                    .HasForeignKey(d => d.PatientID)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // ============================================================
+            // 37. TESTREPORT -> DOCTOR (Many Reports belong to One Doctor)
+            // ============================================================
+            modelBuilder.Entity<TestReport>(entity =>
+            {
+                entity.HasOne(d => d.Doctor)
+                    .WithMany()
+                    .HasForeignKey(d => d.DoctorID)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // ============================================================
+            // 38. TESTREPORT -> LABTESTS (One Report covers Many LabTests)
+            // ============================================================
+            modelBuilder.Entity<LabTest>(entity =>
+            {
+                entity.HasOne(d => d.TestReport)
+                    .WithMany(r => r.LabTests)
+                    .HasForeignKey(d => d.ReportID)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // ============================================================
+            // 39. WEIGHTTRACKING -> PATIENT (One Patient has Many WeightTracking records)
+            // ============================================================
+            modelBuilder.Entity<WeightTracking>(entity =>
+            {
+                entity.HasKey(e => e.WeightTrackingID);
 
                 entity.HasOne(d => d.Patient)
                     .WithMany()

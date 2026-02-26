@@ -15,6 +15,8 @@ namespace Graduation_Project.Models
         public int DoctorID { get; set; }
         public int ClinicID { get; set; }
         public string Status { get; set; }
+        public string Reason { get; set; }
+        public string Notes { get; set; }
 
         // Navigation
         public virtual Appointment Appointment { get; set; }

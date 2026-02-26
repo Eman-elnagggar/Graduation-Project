@@ -154,6 +154,41 @@ namespace Graduation_Project.Migrations
                     b.ToTable("Assistants");
                 });
 
+            modelBuilder.Entity("Graduation_Project.Models.AssistantDoctor", b =>
+                {
+                    b.Property<int>("AssistantID")
+                        .HasColumnType("int")
+                        .HasColumnOrder(0);
+
+                    b.Property<int>("DoctorID")
+                        .HasColumnType("int")
+                        .HasColumnOrder(1);
+
+                    b.HasKey("AssistantID", "DoctorID");
+
+                    b.HasIndex("DoctorID");
+
+                    b.ToTable("AssistantDoctors");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.BloodGroup_Test", b =>
+                {
+                    b.Property<int>("LabTestID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ABO_Group")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RH_Factor")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("LabTestID");
+
+                    b.ToTable("BloodGroup_Tests");
+                });
+
             modelBuilder.Entity("Graduation_Project.Models.Booking", b =>
                 {
                     b.Property<int>("BookingID")
@@ -171,8 +206,16 @@ namespace Graduation_Project.Migrations
                     b.Property<int>("DoctorID")
                         .HasColumnType("int");
 
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("PatientID")
                         .HasColumnType("int");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -234,9 +277,6 @@ namespace Graduation_Project.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ClinicID"));
 
-                    b.Property<int>("DoctorID")
-                        .HasColumnType("int");
-
                     b.Property<string>("Location")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -247,9 +287,24 @@ namespace Graduation_Project.Migrations
 
                     b.HasKey("ClinicID");
 
+                    b.ToTable("Clinics");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.ClinicDoctor", b =>
+                {
+                    b.Property<int>("ClinicID")
+                        .HasColumnType("int")
+                        .HasColumnOrder(0);
+
+                    b.Property<int>("DoctorID")
+                        .HasColumnType("int")
+                        .HasColumnOrder(1);
+
+                    b.HasKey("ClinicID", "DoctorID");
+
                     b.HasIndex("DoctorID");
 
-                    b.ToTable("Clinics");
+                    b.ToTable("ClinicDoctors");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.Doctor", b =>
@@ -294,6 +349,60 @@ namespace Graduation_Project.Migrations
                     b.ToTable("Doctors");
                 });
 
+            modelBuilder.Entity("Graduation_Project.Models.Ferritin_Test", b =>
+                {
+                    b.Property<int>("LabTestID")
+                        .HasColumnType("int");
+
+                    b.Property<float>("Ferritin_Value")
+                        .HasColumnType("real");
+
+                    b.HasKey("LabTestID");
+
+                    b.ToTable("Ferritin_Tests");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.HBsAg_Test", b =>
+                {
+                    b.Property<int>("LabTestID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("HBsAg")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("LabTestID");
+
+                    b.ToTable("HBsAg_Tests");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.HCV_Test", b =>
+                {
+                    b.Property<int>("LabTestID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("HCV")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("LabTestID");
+
+                    b.ToTable("HCV_Tests");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.HbA1c_Test", b =>
+                {
+                    b.Property<int>("LabTestID")
+                        .HasColumnType("int");
+
+                    b.Property<float>("HbA1c")
+                        .HasColumnType("real");
+
+                    b.HasKey("LabTestID");
+
+                    b.ToTable("HbA1c_Tests");
+                });
+
             modelBuilder.Entity("Graduation_Project.Models.LabTest", b =>
                 {
                     b.Property<int>("LabTestID")
@@ -309,10 +418,6 @@ namespace Graduation_Project.Migrations
                     b.Property<int>("DoctorID")
                         .HasColumnType("int");
 
-                    b.Property<string>("DoctorNotes")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("ImagePath")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -321,6 +426,9 @@ namespace Graduation_Project.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("PatientID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ReportID")
                         .HasColumnType("int");
 
                     b.Property<string>("TestType")
@@ -337,6 +445,8 @@ namespace Graduation_Project.Migrations
                     b.HasIndex("ModelID");
 
                     b.HasIndex("PatientID");
+
+                    b.HasIndex("ReportID");
 
                     b.ToTable("LabTests");
                 });
@@ -386,6 +496,36 @@ namespace Graduation_Project.Migrations
                     b.HasIndex("PatientID");
 
                     b.ToTable("MedicalHistories");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.Note", b =>
+                {
+                    b.Property<int>("NoteID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("NoteID"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DoctorID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PatientID")
+                        .HasColumnType("int");
+
+                    b.HasKey("NoteID");
+
+                    b.HasIndex("DoctorID");
+
+                    b.HasIndex("PatientID");
+
+                    b.ToTable("Notes");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.Patient", b =>
@@ -459,6 +599,9 @@ namespace Graduation_Project.Migrations
                     b.Property<DateTime>("DateTime")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("MeasurementTime")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("PatientID")
                         .HasColumnType("int");
 
@@ -482,6 +625,9 @@ namespace Graduation_Project.Migrations
 
                     b.Property<DateTime>("DateTime")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("MeasurementTime")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("PatientID")
                         .HasColumnType("int");
@@ -523,6 +669,38 @@ namespace Graduation_Project.Migrations
                     b.ToTable("PatientDoctors");
                 });
 
+            modelBuilder.Entity("Graduation_Project.Models.PatientDrug", b =>
+                {
+                    b.Property<int>("DrugID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DrugID"));
+
+                    b.Property<double>("DoseMgPerDay")
+                        .HasColumnType("float");
+
+                    b.Property<string>("DrugName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("DurationMonths")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PatientID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("DrugID");
+
+                    b.HasIndex("PatientID");
+
+                    b.ToTable("PatientDrugs");
+                });
+
             modelBuilder.Entity("Graduation_Project.Models.Place", b =>
                 {
                     b.Property<int>("PlaceID")
@@ -561,6 +739,73 @@ namespace Graduation_Project.Migrations
                     b.ToTable("Places");
                 });
 
+            modelBuilder.Entity("Graduation_Project.Models.Prescription", b =>
+                {
+                    b.Property<int>("PrescriptionID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PrescriptionID"));
+
+                    b.Property<int>("DoctorID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("PatientID")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("PrescriptionDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("PrescriptionID");
+
+                    b.HasIndex("DoctorID");
+
+                    b.HasIndex("PatientID");
+
+                    b.ToTable("Prescriptions");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.PrescriptionItem", b =>
+                {
+                    b.Property<int>("ItemID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ItemID"));
+
+                    b.Property<string>("Dosage")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("DurationDays")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Frequency")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Instructions")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MedicineName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("PrescriptionID")
+                        .HasColumnType("int");
+
+                    b.HasKey("ItemID");
+
+                    b.HasIndex("PrescriptionID");
+
+                    b.ToTable("PrescriptionItems");
+                });
+
             modelBuilder.Entity("Graduation_Project.Models.Role", b =>
                 {
                     b.Property<int>("RoleID")
@@ -580,6 +825,64 @@ namespace Graduation_Project.Migrations
                     b.HasKey("RoleID");
 
                     b.ToTable("Roles");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.TSH_Test", b =>
+                {
+                    b.Property<int>("LabTestID")
+                        .HasColumnType("int");
+
+                    b.Property<float>("TSH")
+                        .HasColumnType("real");
+
+                    b.Property<string>("TSH_Unit")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("LabTestID");
+
+                    b.ToTable("TSH_Tests");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.TestReport", b =>
+                {
+                    b.Property<int>("ReportID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ReportID"));
+
+                    b.Property<string>("AISummary")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<double?>("ConfidenceScore")
+                        .HasColumnType("float");
+
+                    b.Property<int>("DoctorID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DoctorInterpretation")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OverallStatus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("PatientID")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ReportDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("ReportID");
+
+                    b.HasIndex("DoctorID");
+
+                    b.HasIndex("PatientID");
+
+                    b.ToTable("TestReports");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.UltrasoundImage", b =>
@@ -632,6 +935,54 @@ namespace Graduation_Project.Migrations
                     b.ToTable("UltrasoundImages");
                 });
 
+            modelBuilder.Entity("Graduation_Project.Models.Urinalysis_Test", b =>
+                {
+                    b.Property<int>("LabTestID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Blood")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Glucose")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Ketones")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Leukocytes")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Nitrite")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<float>("PH")
+                        .HasColumnType("real");
+
+                    b.Property<string>("Protein")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RBCs")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<float>("Specific_Gravity")
+                        .HasColumnType("real");
+
+                    b.HasKey("LabTestID");
+
+                    b.ToTable("Urinalysis_Tests");
+                });
+
             modelBuilder.Entity("Graduation_Project.Models.User", b =>
                 {
                     b.Property<int>("UserID")
@@ -679,36 +1030,32 @@ namespace Graduation_Project.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("PatientDrug", b =>
+            modelBuilder.Entity("Graduation_Project.Models.WeightTracking", b =>
                 {
-                    b.Property<int>("DrugID")
+                    b.Property<int>("WeightTrackingID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DrugID"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WeightTrackingID"));
 
-                    b.Property<double>("DoseMgPerDay")
-                        .HasColumnType("float");
-
-                    b.Property<string>("DrugName")
+                    b.Property<string>("Notes")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("DurationMonths")
-                        .HasColumnType("int");
 
                     b.Property<int>("PatientID")
                         .HasColumnType("int");
 
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<DateTime>("RecordedDate")
+                        .HasColumnType("datetime2");
 
-                    b.HasKey("DrugID");
+                    b.Property<double>("WeightKg")
+                        .HasColumnType("float");
+
+                    b.HasKey("WeightTrackingID");
 
                     b.HasIndex("PatientID");
 
-                    b.ToTable("PatientDrugs");
+                    b.ToTable("WeightTrackings");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.Alert", b =>
@@ -752,7 +1099,7 @@ namespace Graduation_Project.Migrations
             modelBuilder.Entity("Graduation_Project.Models.Assistant", b =>
                 {
                     b.HasOne("Graduation_Project.Models.Clinic", "Clinic")
-                        .WithMany()
+                        .WithMany("Assistants")
                         .HasForeignKey("ClinicID")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -766,6 +1113,36 @@ namespace Graduation_Project.Migrations
                     b.Navigation("Clinic");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.AssistantDoctor", b =>
+                {
+                    b.HasOne("Graduation_Project.Models.Assistant", "Assistant")
+                        .WithMany("AssistantDoctors")
+                        .HasForeignKey("AssistantID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Graduation_Project.Models.Doctor", "Doctor")
+                        .WithMany("AssistantDoctors")
+                        .HasForeignKey("DoctorID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Assistant");
+
+                    b.Navigation("Doctor");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.BloodGroup_Test", b =>
+                {
+                    b.HasOne("Graduation_Project.Models.LabTest", "LabTest")
+                        .WithOne()
+                        .HasForeignKey("Graduation_Project.Models.BloodGroup_Test", "LabTestID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("LabTest");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.Booking", b =>
@@ -808,13 +1185,21 @@ namespace Graduation_Project.Migrations
                     b.Navigation("LabTest");
                 });
 
-            modelBuilder.Entity("Graduation_Project.Models.Clinic", b =>
+            modelBuilder.Entity("Graduation_Project.Models.ClinicDoctor", b =>
                 {
+                    b.HasOne("Graduation_Project.Models.Clinic", "Clinic")
+                        .WithMany("ClinicDoctors")
+                        .HasForeignKey("ClinicID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("Graduation_Project.Models.Doctor", "Doctor")
-                        .WithMany("Clinics")
+                        .WithMany("ClinicDoctors")
                         .HasForeignKey("DoctorID")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Clinic");
 
                     b.Navigation("Doctor");
                 });
@@ -828,6 +1213,50 @@ namespace Graduation_Project.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.Ferritin_Test", b =>
+                {
+                    b.HasOne("Graduation_Project.Models.LabTest", "LabTest")
+                        .WithOne()
+                        .HasForeignKey("Graduation_Project.Models.Ferritin_Test", "LabTestID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("LabTest");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.HBsAg_Test", b =>
+                {
+                    b.HasOne("Graduation_Project.Models.LabTest", "LabTest")
+                        .WithOne()
+                        .HasForeignKey("Graduation_Project.Models.HBsAg_Test", "LabTestID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("LabTest");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.HCV_Test", b =>
+                {
+                    b.HasOne("Graduation_Project.Models.LabTest", "LabTest")
+                        .WithOne()
+                        .HasForeignKey("Graduation_Project.Models.HCV_Test", "LabTestID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("LabTest");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.HbA1c_Test", b =>
+                {
+                    b.HasOne("Graduation_Project.Models.LabTest", "LabTest")
+                        .WithOne()
+                        .HasForeignKey("Graduation_Project.Models.HbA1c_Test", "LabTestID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("LabTest");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.LabTest", b =>
@@ -849,11 +1278,18 @@ namespace Graduation_Project.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Graduation_Project.Models.TestReport", "TestReport")
+                        .WithMany("LabTests")
+                        .HasForeignKey("ReportID")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("AIModel");
 
                     b.Navigation("Doctor");
 
                     b.Navigation("Patient");
+
+                    b.Navigation("TestReport");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.MedicalHistory", b =>
@@ -873,6 +1309,25 @@ namespace Graduation_Project.Migrations
                         .WithMany()
                         .HasForeignKey("LabTestID")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Graduation_Project.Models.Patient", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Doctor");
+
+                    b.Navigation("Patient");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.Note", b =>
+                {
+                    b.HasOne("Graduation_Project.Models.Doctor", "Doctor")
+                        .WithMany()
+                        .HasForeignKey("DoctorID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("Graduation_Project.Models.Patient", "Patient")
                         .WithMany()
@@ -937,6 +1392,17 @@ namespace Graduation_Project.Migrations
                     b.Navigation("Patient");
                 });
 
+            modelBuilder.Entity("Graduation_Project.Models.PatientDrug", b =>
+                {
+                    b.HasOne("Graduation_Project.Models.Patient", "Patient")
+                        .WithMany("PatientDrugs")
+                        .HasForeignKey("PatientID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Patient");
+                });
+
             modelBuilder.Entity("Graduation_Project.Models.Place", b =>
                 {
                     b.HasOne("Graduation_Project.Models.Patient", "Patient")
@@ -944,6 +1410,66 @@ namespace Graduation_Project.Migrations
                         .HasForeignKey("PatientID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Patient");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.Prescription", b =>
+                {
+                    b.HasOne("Graduation_Project.Models.Doctor", "Doctor")
+                        .WithMany()
+                        .HasForeignKey("DoctorID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Graduation_Project.Models.Patient", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Doctor");
+
+                    b.Navigation("Patient");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.PrescriptionItem", b =>
+                {
+                    b.HasOne("Graduation_Project.Models.Prescription", "Prescription")
+                        .WithMany("Items")
+                        .HasForeignKey("PrescriptionID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Prescription");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.TSH_Test", b =>
+                {
+                    b.HasOne("Graduation_Project.Models.LabTest", "LabTest")
+                        .WithOne()
+                        .HasForeignKey("Graduation_Project.Models.TSH_Test", "LabTestID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("LabTest");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.TestReport", b =>
+                {
+                    b.HasOne("Graduation_Project.Models.Doctor", "Doctor")
+                        .WithMany()
+                        .HasForeignKey("DoctorID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Graduation_Project.Models.Patient", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Doctor");
 
                     b.Navigation("Patient");
                 });
@@ -973,6 +1499,17 @@ namespace Graduation_Project.Migrations
                     b.Navigation("Patient");
                 });
 
+            modelBuilder.Entity("Graduation_Project.Models.Urinalysis_Test", b =>
+                {
+                    b.HasOne("Graduation_Project.Models.LabTest", "LabTest")
+                        .WithOne()
+                        .HasForeignKey("Graduation_Project.Models.Urinalysis_Test", "LabTestID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("LabTest");
+                });
+
             modelBuilder.Entity("Graduation_Project.Models.User", b =>
                 {
                     b.HasOne("Graduation_Project.Models.Role", "Role")
@@ -984,10 +1521,10 @@ namespace Graduation_Project.Migrations
                     b.Navigation("Role");
                 });
 
-            modelBuilder.Entity("PatientDrug", b =>
+            modelBuilder.Entity("Graduation_Project.Models.WeightTracking", b =>
                 {
                     b.HasOne("Graduation_Project.Models.Patient", "Patient")
-                        .WithMany("PatientDrugs")
+                        .WithMany()
                         .HasForeignKey("PatientID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1001,11 +1538,25 @@ namespace Graduation_Project.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Graduation_Project.Models.Assistant", b =>
+                {
+                    b.Navigation("AssistantDoctors");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.Clinic", b =>
+                {
+                    b.Navigation("Assistants");
+
+                    b.Navigation("ClinicDoctors");
+                });
+
             modelBuilder.Entity("Graduation_Project.Models.Doctor", b =>
                 {
                     b.Navigation("Appointments");
 
-                    b.Navigation("Clinics");
+                    b.Navigation("AssistantDoctors");
+
+                    b.Navigation("ClinicDoctors");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.Patient", b =>
@@ -1013,9 +1564,19 @@ namespace Graduation_Project.Migrations
                     b.Navigation("PatientDrugs");
                 });
 
+            modelBuilder.Entity("Graduation_Project.Models.Prescription", b =>
+                {
+                    b.Navigation("Items");
+                });
+
             modelBuilder.Entity("Graduation_Project.Models.Role", b =>
                 {
                     b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.TestReport", b =>
+                {
+                    b.Navigation("LabTests");
                 });
 #pragma warning restore 612, 618
         }

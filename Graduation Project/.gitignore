@@ -9,7 +9,7 @@
 *.sln.docstates
 *.wsuo
 
-# Visual Studio folders at any level
+# Visual Studio cache/options directory
 .vs/
 **/.vs/
 
@@ -29,19 +29,23 @@ bld/
 [Ll]og/
 [Ll]ogs/
 
-# Visual Studio cache files
-*.vsidx
-*.vspscc
-.builds
-*.pidb
-*.svclog
-*.scc
-*.db
-*.sqlite
-*.backup.json
+# Visual Studio profiler
+*.psess
+*.vsp
+*.vspx
+*.sap
 
-# Files built by Visual Studio
-*.dbmdl
-*.jfm
-*.pfx
-*.publishsettings
+# ReSharper is a .NET coding add-in
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# NuGet Packages
+*.nupkg
+**/packages/*
+
+# Visual Studio cache files
+# files ending in .cache can be ignored
+*.[Cc]ache
+# but keep track of directories ending in .cache
+!?*.[Cc]ache/
