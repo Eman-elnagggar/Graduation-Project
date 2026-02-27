@@ -10,6 +10,7 @@ namespace Graduation_Project.Controllers
         private readonly IAssistant _assistantRepository;
         private readonly IClinic _clinicRepository;
         private readonly IAppointment _appointmentRepository;
+        private readonly IBooking _bookingRepository;
         private readonly IPatientDoctor _patientDoctorRepository;
         private readonly IAlert _alertRepository;
         private readonly ILabTest _labTestRepository;
@@ -18,6 +19,7 @@ namespace Graduation_Project.Controllers
             IAssistant assistantRepository,
             IClinic clinicRepository,
             IAppointment appointmentRepository,
+            IBooking bookingRepository,
             IPatientDoctor patientDoctorRepository,
             IAlert alertRepository,
             ILabTest labTestRepository)
@@ -25,6 +27,7 @@ namespace Graduation_Project.Controllers
             _assistantRepository = assistantRepository;
             _clinicRepository = clinicRepository;
             _appointmentRepository = appointmentRepository;
+            _bookingRepository = bookingRepository;
             _patientDoctorRepository = patientDoctorRepository;
             _alertRepository = alertRepository;
             _labTestRepository = labTestRepository;
@@ -200,6 +203,173 @@ namespace Graduation_Project.Controllers
                 });
             }
             return summaries;
+        }
+
+        public IActionResult Appointments(int id, int? doctorId)
+        {
+            var assistant = _assistantRepository.GetByIdWithDoctors(id);
+            if (assistant == null) return NotFound();
+
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            if (clinic == null) return NotFound();
+
+            var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
+            var doctorSummaries = BuildDoctorSummaries(assistant, clinic, relevantDoctorIds);
+            bool isFiltered = doctorId.HasValue && relevantDoctorIds.Contains(doctorId.Value);
+
+            var viewModel = new AssistantAppointmentsViewModel
+            {
+                Assistant = assistant,
+                AssistantName = assistant.User != null
+                    ? $"{assistant.User.FirstName} {assistant.User.LastName}".Trim()
+                    : "Assistant",
+                Clinic = clinic,
+                ClinicName = clinic.Name ?? "Clinic",
+                Doctors = doctorSummaries,
+                SelectedDoctorID = isFiltered ? doctorId : null
+            };
+
+            return View(viewModel);
+        }
+
+        [HttpGet]
+        public IActionResult GetAppointments(int id, int? doctorId, string status = "Confirmed")
+        {
+            var assistant = _assistantRepository.GetByIdWithDoctors(id);
+            if (assistant == null) return NotFound();
+
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            if (clinic == null) return NotFound();
+
+            var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
+            bool isFiltered = doctorId.HasValue && relevantDoctorIds.Contains(doctorId.Value);
+            var activeDoctorIds = isFiltered ? new List<int> { doctorId!.Value } : relevantDoctorIds;
+
+            var appointments = _appointmentRepository.GetByClinicDoctorsAndStatus(clinic.ClinicID, activeDoctorIds, status);
+
+            var result = appointments.Select(a => new
+            {
+                appointmentId = a.AppointmentID,
+                patientName = a.Patient?.User != null
+                    ? $"{a.Patient.User.FirstName} {a.Patient.User.LastName}" : "Unknown",
+                patientPhone = a.Patient?.User?.Phone ?? string.Empty,
+                doctorName = a.Doctor?.User != null
+                    ? $"Dr. {a.Doctor.User.FirstName} {a.Doctor.User.LastName}" : "Unknown",
+                doctorSpecialization = a.Doctor?.Specialization ?? string.Empty,
+                date = a.Date.ToString("yyyy-MM-dd"),
+                time = a.Time.ToString(@"hh\:mm"),
+                status = a.Booking?.Status ?? "Confirmed",
+                reason = a.Booking?.Reason ?? string.Empty,
+                notes = a.Booking?.Notes ?? string.Empty,
+                isToday = a.Date.Date == DateTime.Today
+            }).ToList();
+
+            return Json(result);
+        }
+
+        [HttpGet]
+        public IActionResult GetAppointmentDetail(int id, int appointmentId)
+        {
+            var assistant = _assistantRepository.GetByIdWithDoctors(id);
+            if (assistant == null) return NotFound();
+
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            if (clinic == null) return NotFound();
+
+            var appointment = _appointmentRepository.GetByIdWithBooking(appointmentId);
+            if (appointment == null || appointment.ClinicID != clinic.ClinicID)
+                return NotFound();
+
+            var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
+            if (!relevantDoctorIds.Contains(appointment.DoctorID))
+                return Forbid();
+
+            return Json(new
+            {
+                appointmentId = appointment.AppointmentID,
+                doctorId = appointment.DoctorID,
+                patientName = appointment.Patient?.User != null
+                    ? $"{appointment.Patient.User.FirstName} {appointment.Patient.User.LastName}" : "Unknown",
+                doctorName = appointment.Doctor?.User != null
+                    ? $"Dr. {appointment.Doctor.User.FirstName} {appointment.Doctor.User.LastName}" : "Unknown",
+                date = appointment.Date.ToString("yyyy-MM-dd"),
+                time = appointment.Time.ToString(@"hh\:mm"),
+                status = appointment.Booking?.Status ?? "Confirmed",
+                reason = appointment.Booking?.Reason ?? string.Empty
+            });
+        }
+
+        [HttpPost]
+        public IActionResult ModifyAppointment(int id, int appointmentId, string newDate, string newTime, string reason)
+        {
+            var assistant = _assistantRepository.GetByIdWithDoctors(id);
+            if (assistant == null) return NotFound();
+
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            if (clinic == null) return NotFound();
+
+            var appointment = _appointmentRepository.GetByIdWithBooking(appointmentId);
+            if (appointment == null || appointment.ClinicID != clinic.ClinicID)
+                return Json(new { success = false, message = "Appointment not found." });
+
+            var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
+            if (!relevantDoctorIds.Contains(appointment.DoctorID))
+                return Json(new { success = false, message = "Access denied." });
+
+            if (!DateTime.TryParse(newDate, out var parsedDate))
+                return Json(new { success = false, message = "Invalid date." });
+
+            if (!TimeSpan.TryParse(newTime, out var parsedTime))
+                return Json(new { success = false, message = "Invalid time." });
+
+            appointment.Date = parsedDate;
+            appointment.Time = parsedTime;
+            _appointmentRepository.Update(appointment);
+
+            if (appointment.Booking != null)
+            {
+                appointment.Booking.Status = "Modified";
+                if (!string.IsNullOrWhiteSpace(reason))
+                    appointment.Booking.Notes = reason;
+                _bookingRepository.Update(appointment.Booking);
+            }
+
+            _appointmentRepository.Save();
+
+            return Json(new { success = true, message = "Appointment modified successfully." });
+        }
+
+        [HttpPost]
+        public IActionResult CancelAppointment(int id, int appointmentId, string reason)
+        {
+            var assistant = _assistantRepository.GetByIdWithDoctors(id);
+            if (assistant == null) return NotFound();
+
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            if (clinic == null) return NotFound();
+
+            var appointment = _appointmentRepository.GetByIdWithBooking(appointmentId);
+            if (appointment == null || appointment.ClinicID != clinic.ClinicID)
+                return Json(new { success = false, message = "Appointment not found." });
+
+            var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
+            if (!relevantDoctorIds.Contains(appointment.DoctorID))
+                return Json(new { success = false, message = "Access denied." });
+
+            appointment.isBooked = false;
+            _appointmentRepository.Update(appointment);
+
+            if (appointment.Booking != null)
+            {
+                appointment.Booking.Status = "Cancelled";
+                if (!string.IsNullOrWhiteSpace(reason))
+                    appointment.Booking.Notes = reason;
+                _bookingRepository.Update(appointment.Booking);
+            }
+
+            _appointmentRepository.Save();
+
+            return Json(new { success = true, message = "Appointment cancelled successfully." });
         }
 
         public IActionResult Details(int id)

@@ -16,5 +16,7 @@ namespace Graduation_Project.Interfaces
         IEnumerable<Appointment> GetByClinicDoctorAndDate(int clinicId, int doctorId, DateTime date);
         Dictionary<int, DateTime> GetLastVisitDates(IEnumerable<int> patientIds, int doctorId);
         Dictionary<int, DateTime> GetLastVisitDatesForDoctors(IEnumerable<int> patientIds, IEnumerable<int> doctorIds);
+        IEnumerable<Appointment> GetByClinicDoctorsAndStatus(int clinicId, IEnumerable<int> doctorIds, string status);
+        Appointment GetByIdWithBooking(int id);
     }
 }

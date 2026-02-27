@@ -92,5 +92,26 @@ namespace Graduation_Project.Repository
                 .GroupBy(a => a.PatientID)
                 .Select(g => new { PatientID = g.Key, LastDate = g.Max(a => a.Date) })
                 .ToDictionary(x => x.PatientID, x => x.LastDate);
+
+        public IEnumerable<Appointment> GetByClinicDoctorsAndStatus(int clinicId, IEnumerable<int> doctorIds, string status) =>
+            _context.Appointments
+                .AsNoTracking()
+                .Include(a => a.Patient).ThenInclude(p => p.User)
+                .Include(a => a.Doctor).ThenInclude(d => d.User)
+                .Include(a => a.Booking)
+                .Where(a => a.ClinicID == clinicId
+                         && doctorIds.Contains(a.DoctorID)
+                         && a.Booking != null
+                         && a.Booking.Status == status)
+                .OrderByDescending(a => a.Date).ThenBy(a => a.Time)
+                .AsSplitQuery()
+                .ToList();
+
+        public Appointment GetByIdWithBooking(int id) =>
+            _context.Appointments
+                .Include(a => a.Booking)
+                .Include(a => a.Patient).ThenInclude(p => p.User)
+                .Include(a => a.Doctor).ThenInclude(d => d.User)
+                .FirstOrDefault(a => a.AppointmentID == id);
     }
 }

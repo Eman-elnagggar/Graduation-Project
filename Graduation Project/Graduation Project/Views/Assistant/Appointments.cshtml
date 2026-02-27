@@ -1,0 +1,480 @@
+﻿@model Graduation_Project.ViewModels.AssistantAppointmentsViewModel
+@{
+    Layout = "~/Views/Shared/_AssistantLayout.cshtml";
+    ViewData["Title"] = "Appointments";
+    ViewData["AssistantId"] = Model.Assistant.AssistantID;
+    ViewData["ActivePage"] = "Appointments";
+}
+
+<!-- Page Header -->
+<header class="header">
+    <div class="header-left">
+        <div class="header-page-icon">
+            <i class="fas fa-calendar-alt"></i>
+        </div>
+        <div class="header-title-group">
+            <h1>Appointments</h1>
+            <p>Manage patient appointments for @Model.ClinicName</p>
+        </div>
+    </div>
+    <div class="header-right">
+        <div class="header-date-chip">
+            <i class="fas fa-calendar-day"></i>
+            @DateTime.Today.ToString("MMM dd, yyyy")
+        </div>
+        <div class="notification" id="notifBell" title="Notifications">
+            <i class="fas fa-bell"></i>
+            <span class="badge" id="alert-badge" style="display: none;"></span>
+        </div>
+        <div class="profile">
+            <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(Model.AssistantName)&background=7c3aed&color=fff&size=80"
+                 alt="Profile" />
+            <span>@Model.AssistantName</span>
+        </div>
+    </div>
+</header>
+
+<!-- Hero Banner -->
+<section class="pregnancy-progress">
+    <div class="progress-card assistant-hero">
+        <div class="progress-info">
+            <h3><i class="fas fa-calendar-check" style="margin-right: 8px;"></i>Appointments Overview</h3>
+            <p>
+                <span class="week-number">@DateTime.Today.ToString("dddd, MMMM dd, yyyy")</span>
+            </p>
+        </div>
+        <div class="progress-details">
+            <span>
+                <i class="fas fa-check-circle"></i>
+                <span id="heroConfirmedCount">--</span> Confirmed
+            </span>
+            <span>
+                <i class="fas fa-edit"></i>
+                <span id="heroModifiedCount">--</span> Modified
+            </span>
+            <span>
+                <i class="fas fa-times-circle"></i>
+                <span id="heroCancelledCount">--</span> Cancelled
+            </span>
+        </div>
+    </div>
+</section>
+
+<!-- Quick Stats -->
+<div class="quick-stats appt-stats">
+    <div class="quick-stat-card">
+        <div class="stat-header">
+            <div class="stat-icon" style="background: #e8f5e9; color: #2e7d32;">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+        </div>
+        <div class="stat-value" id="statConfirmed">--</div>
+        <div class="stat-label">Confirmed</div>
+    </div>
+    <div class="quick-stat-card">
+        <div class="stat-header">
+            <div class="stat-icon" style="background: #e3f2fd; color: #1565c0;">
+                <i class="fas fa-pen-square"></i>
+            </div>
+        </div>
+        <div class="stat-value" id="statModified">--</div>
+        <div class="stat-label">Modified</div>
+    </div>
+    <div class="quick-stat-card">
+        <div class="stat-header">
+            <div class="stat-icon" style="background: #ffebee; color: #c62828;">
+                <i class="fas fa-times-circle"></i>
+            </div>
+        </div>
+        <div class="stat-value" id="statCancelled">--</div>
+        <div class="stat-label">Cancelled</div>
+    </div>
+    <div class="quick-stat-card">
+        <div class="stat-header">
+            <div class="stat-icon" style="background: rgba(124,58,237,0.1); color: var(--assistant-primary);">
+                <i class="fas fa-clipboard-list"></i>
+            </div>
+        </div>
+        <div class="stat-value" id="statTotal">--</div>
+        <div class="stat-label">Total</div>
+    </div>
+</div>
+
+<!-- Privacy Notice -->
+<div class="privacy-notice">
+    <i class="fas fa-shield-alt"></i>
+    <p>
+        <strong>Privacy Protected:</strong> You can only see appointment details
+        and patient contact information. Medical records are not accessible.
+    </p>
+</div>
+
+<!-- Doctor Selector (only shown when managing multiple doctors) -->
+@if (Model.Doctors.Count > 1)
+{
+    <section class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-user-md"></i> Filter by Doctor</h3>
+        </div>
+        <div class="doctor-filter-pills">
+            <a href="@Url.Action("Appointments", new { id = Model.Assistant.AssistantID })"
+               class="doctor-pill @(Model.SelectedDoctorID == null ? "active" : "")">
+                <i class="fas fa-users"></i> All Doctors
+            </a>
+            @foreach (var doc in Model.Doctors)
+            {
+                var isSelected = Model.SelectedDoctorID == doc.DoctorID;
+                <a href="@Url.Action("Appointments", new { id = Model.Assistant.AssistantID, doctorId = doc.DoctorID })"
+                   class="doctor-pill @(isSelected ? "active-blue" : "")">
+                    <i class="fas fa-user-md"></i> @doc.FullName
+                </a>
+            }
+        </div>
+    </section>
+}
+
+<!-- Status Tabs -->
+<div class="card" style="padding: 0; overflow: hidden;">
+    <div class="tabs-bar">
+        <button class="tab-btn active" data-tab="Confirmed" onclick="switchTab('Confirmed')">
+            <i class="fas fa-calendar-check"></i> Confirmed
+            <span class="status-badge confirmed" id="confirmedTabCount">–</span>
+        </button>
+        <button class="tab-btn" data-tab="Modified" onclick="switchTab('Modified')">
+            <i class="fas fa-edit"></i> Modified
+            <span class="status-badge reviewed" id="modifiedTabCount">–</span>
+        </button>
+        <button class="tab-btn" data-tab="Cancelled" onclick="switchTab('Cancelled')">
+            <i class="fas fa-times-circle"></i> Cancelled
+            <span class="status-badge danger" id="cancelledTabCount">–</span>
+        </button>
+    </div>
+    <div style="padding: 24px;">
+        <div class="tab-content active" id="Confirmed-tab">
+            <div class="request-list" id="ConfirmedAppointmentsList">
+                <div class="empty-state">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading appointments…</p>
+                </div>
+            </div>
+        </div>
+        <div class="tab-content" id="Modified-tab" style="display: none;">
+            <div class="request-list" id="ModifiedAppointmentsList"></div>
+        </div>
+        <div class="tab-content" id="Cancelled-tab" style="display: none;">
+            <div class="request-list" id="CancelledAppointmentsList"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modify Appointment Modal -->
+<div class="modal-overlay" id="modifyModal" style="display: none;">
+    <div class="modal" style="max-width: 520px;">
+        <div class="modal-header">
+            <h3><i class="fas fa-edit"></i> Modify Appointment</h3>
+            <button class="btn-close" onclick="closeModifyModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Patient</label>
+                <p id="modifyPatientName" style="font-weight: 650; font-size: 1.05rem;">–</p>
+            </div>
+            <div class="form-group">
+                <label>Current Date &amp; Time</label>
+                <p id="modifyCurrentDateTime" style="color: var(--text-secondary);">–</p>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="newDate">New Date</label>
+                    <input type="date" class="form-input" id="newDate" />
+                </div>
+                <div class="form-group">
+                    <label for="newTime">New Time</label>
+                    <input type="time" class="form-input" id="newTime" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="modifyReason">Reason for Change (optional)</label>
+                <textarea class="form-textarea" id="modifyReason"
+                          placeholder="Enter reason for rescheduling…"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModifyModal()">Cancel</button>
+            <button class="btn btn-danger" onclick="handleCancelAppointment()">
+                <i class="fas fa-times"></i> Cancel Appointment
+            </button>
+            <button class="btn btn-primary" onclick="handleSaveModification()">
+                <i class="fas fa-check"></i> Save Changes
+            </button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const assistantId    = @Model.Assistant.AssistantID;
+        const selectedDoctorId = @(Model.SelectedDoctorID.HasValue ? Model.SelectedDoctorID.Value.ToString() : "null");
+
+        let currentTab             = 'Confirmed';
+        let modifyingAppointmentId = null;
+        let modifyingDoctorId      = null;
+
+        // ── Helpers ────────────────────────────────────────────────────────────
+
+        function formatTime(time24) {
+            const [hours, minutes] = time24.split(':');
+            const hour  = parseInt(hours);
+            const ampm  = hour >= 12 ? 'PM' : 'AM';
+            const hour12 = hour % 12 || 12;
+            return { time: `${hour12}:${minutes}`, period: ampm };
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr + 'T00:00:00');
+            return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        }
+
+        function getStatusClass(status) {
+            switch (status?.toLowerCase()) {
+                case 'confirmed': return 'confirmed';
+                case 'modified':  return 'reviewed';
+                case 'cancelled': return 'danger';
+                default:          return '';
+            }
+        }
+
+        // ── Render ─────────────────────────────────────────────────────────────
+
+        function renderAppointments(appointments, status) {
+            const list = document.getElementById(`${status}AppointmentsList`);
+            if (!list) return;
+
+            if (!appointments.length) {
+                list.innerHTML = `<div class="empty-state">
+                    <i class="fas fa-calendar-times"></i>
+                    <p>No ${status.toLowerCase()} appointments</p></div>`;
+                return;
+            }
+
+            const canModify = (status === 'Confirmed');
+            const canCancel = (status !== 'Cancelled');
+
+            list.innerHTML = appointments.map(a => {
+                const fmt     = formatTime(a.time);
+                const dateStr = formatDate(a.date);
+                const todayBadge = a.isToday
+                    ? '<span class="status-badge" style="background:#e8f5e9;color:#388e3c;margin-right:4px;">Today</span>'
+                    : '';
+                const phoneRow = a.patientPhone
+                    ? `<div class="detail-item"><i class="fas fa-phone"></i><span>${a.patientPhone}</span></div>`
+                    : '';
+                const reasonRow = a.reason
+                    ? `<div class="detail-item"><i class="fas fa-info-circle"></i><span>${a.reason}</span></div>`
+                    : '';
+                const modifyBtn = canModify
+                    ? `<button class="btn btn-outline btn-sm" onclick="openModifyModal(${a.appointmentId})">
+                           <i class="fas fa-edit"></i> Modify
+                       </button>` : '';
+                const cancelBtn = canCancel
+                    ? `<button class="btn btn-danger btn-sm" onclick="quickCancelAppointment(${a.appointmentId})">
+                           <i class="fas fa-times"></i> Cancel
+                       </button>` : '';
+
+                return `
+                <div class="request-item">
+                    <div class="request-header">
+                        <div class="patient-info">
+                            <div class="patient-avatar"><i class="fas fa-user"></i></div>
+                            <div>
+                                <h4>${a.patientName}</h4>
+                                <p style="color:var(--text-secondary);font-size:0.875rem;">
+                                    <i class="fas fa-user-md"></i> ${a.doctorName}
+                                    ${a.doctorSpecialization ? `&nbsp;·&nbsp;${a.doctorSpecialization}` : ''}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="request-meta">
+                            ${todayBadge}
+                            <span class="status-badge ${getStatusClass(a.status)}">${a.status}</span>
+                        </div>
+                    </div>
+                    <div class="request-details">
+                        <div class="detail-item"><i class="fas fa-calendar"></i><span>${dateStr}</span></div>
+                        <div class="detail-item"><i class="fas fa-clock"></i><span>${fmt.time} ${fmt.period}</span></div>
+                        ${reasonRow}${phoneRow}
+                    </div>
+                    <div class="request-actions">${modifyBtn}${cancelBtn}</div>
+                </div>`;
+            }).join('');
+        }
+
+        // ── Data Loading ───────────────────────────────────────────────────────
+
+        async function loadAppointments(status) {
+            const list = document.getElementById(`${status}AppointmentsList`);
+            if (list) list.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading…</p></div>';
+            try {
+                const params = new URLSearchParams({ id: assistantId, status });
+                if (selectedDoctorId !== null) params.append('doctorId', selectedDoctorId);
+                const resp = await fetch(`@Url.Action("GetAppointments", "Assistant")?${params}`);
+                if (!resp.ok) throw new Error();
+                const data = await resp.json();
+                renderAppointments(data, status);
+                return data.length;
+            } catch {
+                if (list) list.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load appointments</p></div>';
+                return 0;
+            }
+        }
+
+        async function loadAllTabCounts() {
+            const map = [
+                { status: 'Confirmed', countId: 'confirmedTabCount', heroId: 'heroConfirmedCount', statId: 'statConfirmed' },
+                { status: 'Modified',  countId: 'modifiedTabCount',  heroId: 'heroModifiedCount',  statId: 'statModified'  },
+                { status: 'Cancelled', countId: 'cancelledTabCount', heroId: 'heroCancelledCount', statId: 'statCancelled' }
+            ];
+            let total = 0;
+            await Promise.all(map.map(async ({ status, countId, heroId, statId }) => {
+                try {
+                    const params = new URLSearchParams({ id: assistantId, status });
+                    if (selectedDoctorId !== null) params.append('doctorId', selectedDoctorId);
+                    const resp = await fetch(`@Url.Action("GetAppointments", "Assistant")?${params}`);
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        const count = data.length;
+                        total += count;
+                        document.getElementById(countId).textContent = count;
+                        const heroEl = document.getElementById(heroId);
+                        if (heroEl) heroEl.textContent = count;
+                        const statEl = document.getElementById(statId);
+                        if (statEl) statEl.textContent = count;
+                    }
+                } catch { /* ignore */ }
+            }));
+            const totalEl = document.getElementById('statTotal');
+            if (totalEl) totalEl.textContent = total;
+        }
+
+        // ── Tab Switching ──────────────────────────────────────────────────────
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn =>
+                btn.classList.toggle('active', btn.dataset.tab === tab));
+            document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+            const content = document.getElementById(`${tab}-tab`);
+            if (content) content.style.display = 'block';
+            loadAppointments(tab);
+        }
+
+        // ── Modify Modal ───────────────────────────────────────────────────────
+
+        async function openModifyModal(appointmentId) {
+            try {
+                const params = new URLSearchParams({ id: assistantId, appointmentId });
+                const resp = await fetch(`@Url.Action("GetAppointmentDetail", "Assistant")?${params}`);
+                if (!resp.ok) throw new Error();
+                const appt = await resp.json();
+
+                const fmt = formatTime(appt.time);
+                document.getElementById('modifyPatientName').textContent   = appt.patientName;
+                document.getElementById('modifyCurrentDateTime').textContent =
+                    `${formatDate(appt.date)} at ${fmt.time} ${fmt.period}`;
+                document.getElementById('newDate').value    = appt.date;
+                document.getElementById('newTime').value    = appt.time;
+                document.getElementById('modifyReason').value = '';
+
+                modifyingAppointmentId = appointmentId;
+                modifyingDoctorId      = appt.doctorId;
+                document.getElementById('modifyModal').style.display = 'flex';
+            } catch {
+                showToast('Failed to load appointment details', 'error');
+            }
+        }
+
+        function closeModifyModal() {
+            document.getElementById('modifyModal').style.display = 'none';
+            modifyingAppointmentId = null;
+            modifyingDoctorId      = null;
+            const url = new URL(window.location);
+            url.searchParams.delete('modify');
+            window.history.replaceState({}, '', url);
+        }
+
+        async function handleSaveModification() {
+            const newDate = document.getElementById('newDate').value;
+            const newTime = document.getElementById('newTime').value;
+            const reason  = document.getElementById('modifyReason').value.trim();
+
+            if (!newDate) { showToast('Please select a new date', 'error');  return; }
+            if (!newTime) { showToast('Please select a new time', 'error'); return; }
+
+            try {
+                const resp = await fetch('@Url.Action("ModifyAppointment", "Assistant")', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        id: assistantId, appointmentId: modifyingAppointmentId,
+                        newDate, newTime, reason
+                    })
+                });
+                const result = await resp.json();
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    closeModifyModal();
+                    loadAppointments(currentTab);
+                    loadAllTabCounts();
+                } else {
+                    showToast(result.message || 'Failed to modify appointment', 'error');
+                }
+            } catch {
+                showToast('An error occurred. Please try again.', 'error');
+            }
+        }
+
+        async function handleCancelAppointment() {
+            if (!confirm('Are you sure you want to cancel this appointment?')) return;
+            const reason = document.getElementById('modifyReason').value.trim();
+            await doCancelAppointment(modifyingAppointmentId, reason);
+            closeModifyModal();
+        }
+
+        async function quickCancelAppointment(appointmentId) {
+            if (!confirm('Are you sure you want to cancel this appointment?')) return;
+            await doCancelAppointment(appointmentId, '');
+        }
+
+        async function doCancelAppointment(appointmentId, reason) {
+            try {
+                const resp = await fetch('@Url.Action("CancelAppointment", "Assistant")', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ id: assistantId, appointmentId, reason })
+                });
+                const result = await resp.json();
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    loadAppointments(currentTab);
+                    loadAllTabCounts();
+                } else {
+                    showToast(result.message || 'Failed to cancel appointment', 'error');
+                }
+            } catch {
+                showToast('An error occurred. Please try again.', 'error');
+            }
+        }
+
+        // ── Init ───────────────────────────────────────────────────────────────
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAppointments('Confirmed');
+            loadAllTabCounts();
+
+            const modifyId = new URLSearchParams(window.location.search).get('modify');
+            if (modifyId) openModifyModal(parseInt(modifyId));
+        });
+    </script>
+}
