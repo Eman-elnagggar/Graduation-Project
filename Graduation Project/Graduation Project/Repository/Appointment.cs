@@ -77,19 +77,21 @@ namespace Graduation_Project.Repository
 
         public Dictionary<int, DateTime> GetLastVisitDates(IEnumerable<int> patientIds, int doctorId) =>
             _context.Appointments
-                .Where(a => patientIds.Contains(a.PatientID)
+                .Where(a => a.PatientID.HasValue
+                         && patientIds.Contains(a.PatientID.Value)
                          && a.DoctorID == doctorId
                          && a.Date < DateTime.Now)
-                .GroupBy(a => a.PatientID)
+                .GroupBy(a => a.PatientID!.Value)
                 .Select(g => new { PatientID = g.Key, LastDate = g.Max(a => a.Date) })
                 .ToDictionary(x => x.PatientID, x => x.LastDate);
 
         public Dictionary<int, DateTime> GetLastVisitDatesForDoctors(IEnumerable<int> patientIds, IEnumerable<int> doctorIds) =>
             _context.Appointments
-                .Where(a => patientIds.Contains(a.PatientID)
+                .Where(a => a.PatientID.HasValue
+                         && patientIds.Contains(a.PatientID.Value)
                          && doctorIds.Contains(a.DoctorID)
                          && a.Date < DateTime.Now)
-                .GroupBy(a => a.PatientID)
+                .GroupBy(a => a.PatientID!.Value)
                 .Select(g => new { PatientID = g.Key, LastDate = g.Max(a => a.Date) })
                 .ToDictionary(x => x.PatientID, x => x.LastDate);
 
@@ -113,5 +115,18 @@ namespace Graduation_Project.Repository
                 .Include(a => a.Patient).ThenInclude(p => p.User)
                 .Include(a => a.Doctor).ThenInclude(d => d.User)
                 .FirstOrDefault(a => a.AppointmentID == id);
+
+        public void AddRange(IEnumerable<Appointment> appointments) =>
+            _context.Appointments.AddRange(appointments);
+
+        public IEnumerable<Appointment> GetByClinicDoctorAndDateRange(int clinicId, int doctorId, DateTime startDate, DateTime endDate) =>
+            _context.Appointments
+                .AsNoTracking()
+                .Where(a => a.ClinicID == clinicId
+                         && a.DoctorID == doctorId
+                         && a.Date.Date >= startDate.Date
+                         && a.Date.Date <= endDate.Date)
+                .OrderBy(a => a.Date).ThenBy(a => a.Time)
+                .ToList();
     }
 }

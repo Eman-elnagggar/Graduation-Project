@@ -44,59 +44,65 @@
             </p>
         </div>
         <div class="progress-details">
-            <span>
+            <div class="hero-stat-pill">
                 <i class="fas fa-check-circle"></i>
-                <span id="heroConfirmedCount">--</span> Confirmed
-            </span>
-            <span>
+                <span class="hero-stat-value" id="heroConfirmedCount">--</span> Confirmed
+            </div>
+            <div class="hero-divider"></div>
+            <div class="hero-stat-pill">
                 <i class="fas fa-edit"></i>
-                <span id="heroModifiedCount">--</span> Modified
-            </span>
-            <span>
+                <span class="hero-stat-value" id="heroModifiedCount">--</span> Modified
+            </div>
+            <div class="hero-divider"></div>
+            <div class="hero-stat-pill">
                 <i class="fas fa-times-circle"></i>
-                <span id="heroCancelledCount">--</span> Cancelled
-            </span>
+                <span class="hero-stat-value" id="heroCancelledCount">--</span> Cancelled
+            </div>
         </div>
     </div>
 </section>
 
 <!-- Quick Stats -->
 <div class="quick-stats appt-stats">
-    <div class="quick-stat-card">
+    <div class="quick-stat-card stat-confirmed">
         <div class="stat-header">
-            <div class="stat-icon" style="background: #e8f5e9; color: #2e7d32;">
+            <div class="stat-icon" style="background: var(--status-confirmed-bg); color: var(--status-confirmed-icon);">
                 <i class="fas fa-calendar-check"></i>
             </div>
         </div>
         <div class="stat-value" id="statConfirmed">--</div>
         <div class="stat-label">Confirmed</div>
+        <div class="stat-bg-icon"><i class="fas fa-calendar-check"></i></div>
     </div>
-    <div class="quick-stat-card">
+    <div class="quick-stat-card stat-modified">
         <div class="stat-header">
-            <div class="stat-icon" style="background: #e3f2fd; color: #1565c0;">
+            <div class="stat-icon" style="background: var(--status-modified-bg); color: var(--status-modified-icon);">
                 <i class="fas fa-pen-square"></i>
             </div>
         </div>
         <div class="stat-value" id="statModified">--</div>
         <div class="stat-label">Modified</div>
+        <div class="stat-bg-icon"><i class="fas fa-pen-square"></i></div>
     </div>
-    <div class="quick-stat-card">
+    <div class="quick-stat-card stat-cancelled">
         <div class="stat-header">
-            <div class="stat-icon" style="background: #ffebee; color: #c62828;">
+            <div class="stat-icon" style="background: var(--status-cancelled-bg); color: var(--status-cancelled-icon);">
                 <i class="fas fa-times-circle"></i>
             </div>
         </div>
         <div class="stat-value" id="statCancelled">--</div>
         <div class="stat-label">Cancelled</div>
+        <div class="stat-bg-icon"><i class="fas fa-times-circle"></i></div>
     </div>
-    <div class="quick-stat-card">
+    <div class="quick-stat-card stat-total">
         <div class="stat-header">
-            <div class="stat-icon" style="background: rgba(124,58,237,0.1); color: var(--assistant-primary);">
+            <div class="stat-icon" style="background: var(--assistant-surface-mid); color: var(--assistant-primary);">
                 <i class="fas fa-clipboard-list"></i>
             </div>
         </div>
         <div class="stat-value" id="statTotal">--</div>
         <div class="stat-label">Total</div>
+        <div class="stat-bg-icon"><i class="fas fa-clipboard-list"></i></div>
     </div>
 </div>
 
@@ -135,6 +141,13 @@
 
 <!-- Status Tabs -->
 <div class="card" style="padding: 0; overflow: hidden;">
+    <div class="appt-search-bar">
+        <div class="appt-search-wrap">
+            <i class="fas fa-search"></i>
+            <input type="text" id="appointmentSearch" placeholder="Search by patient name, doctor, or phone…"
+                   oninput="filterAppointments(this.value)" />
+        </div>
+    </div>
     <div class="tabs-bar">
         <button class="tab-btn active" data-tab="Confirmed" onclick="switchTab('Confirmed')">
             <i class="fas fa-calendar-check"></i> Confirmed
@@ -203,10 +216,10 @@
         </div>
         <div class="modal-footer">
             <button class="btn btn-outline" onclick="closeModifyModal()">Cancel</button>
-            <button class="btn btn-danger" onclick="handleCancelAppointment()">
+            <button class="btn btn-danger" id="modalCancelBtn" onclick="handleCancelAppointment()">
                 <i class="fas fa-times"></i> Cancel Appointment
             </button>
-            <button class="btn btn-primary" onclick="handleSaveModification()">
+            <button class="btn btn-primary" id="modalSaveBtn" onclick="handleSaveModification()">
                 <i class="fas fa-check"></i> Save Changes
             </button>
         </div>
@@ -215,27 +228,49 @@
 
 @section Scripts {
     <script>
-        const assistantId    = @Model.Assistant.AssistantID;
-        const selectedDoctorId = @(Model.SelectedDoctorID.HasValue ? Model.SelectedDoctorID.Value.ToString() : "null");
+        // ── Constants & State ──────────────────────────────────────────────────
+        const assistantId      = @Model.Assistant.AssistantID;
+        const selectedDoctorId = @(Model.SelectedDoctorID.HasValue? Model.SelectedDoctorID.Value.ToString() : "null");
+        const ALL_STATUSES     = ['Confirmed', 'Modified', 'Cancelled'];
+        const AUTO_REFRESH_MS  = 60_000; // 1 minute
 
         let currentTab             = 'Confirmed';
         let modifyingAppointmentId = null;
         let modifyingDoctorId      = null;
+        let autoRefreshTimer       = null;
+        let isBusy                 = false;   // global guard against overlapping mutations
 
-        // ── Helpers ────────────────────────────────────────────────────────────
+        // In-memory cache: { Confirmed: [...], Modified: [...], Cancelled: [...] }
+        const cache = {};
+
+        // ── Utility Helpers ────────────────────────────────────────────────────
 
         function formatTime(time24) {
-            const [hours, minutes] = time24.split(':');
-            const hour  = parseInt(hours);
-            const ampm  = hour >= 12 ? 'PM' : 'AM';
+            if (!time24) return { time: '--', period: '' };
+            const parts = time24.split(':');
+            if (parts.length < 2) return { time: time24, period: '' };
+            const hour = parseInt(parts[0], 10);
+            if (isNaN(hour)) return { time: time24, period: '' };
+            const ampm   = hour >= 12 ? 'PM' : 'AM';
             const hour12 = hour % 12 || 12;
-            return { time: `${hour12}:${minutes}`, period: ampm };
+            return { time: `${hour12}:${parts[1]}`, period: ampm };
         }
 
         function formatDate(dateStr) {
-            const date = new Date(dateStr + 'T00:00:00');
+            if (!dateStr) return '–';
+            // Parse as local date components to avoid timezone shift
+            const [y, m, d] = dateStr.split('-').map(Number);
+            if (!y || !m || !d) return dateStr;
+            const date = new Date(y, m - 1, d);
             return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
         }
+
+        function todayISO() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+
+        function isPast(dateStr) { return dateStr < todayISO(); }
 
         function getStatusClass(status) {
             switch (status?.toLowerCase()) {
@@ -246,18 +281,115 @@
             }
         }
 
-        // ── Render ─────────────────────────────────────────────────────────────
+        function escapeHtml(str) {
+            if (!str) return '';
+            const el = document.createElement('span');
+            el.textContent = str;
+            return el.innerHTML;
+        }
+
+        function setText(id, value) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+        }
+
+        function setButtonLoading(btn, loading) {
+            if (!btn) return;
+            if (loading) {
+                btn.disabled = true;
+                btn.dataset.prevHtml = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Wait…';
+            } else {
+                btn.disabled = false;
+                if (btn.dataset.prevHtml) { btn.innerHTML = btn.dataset.prevHtml; delete btn.dataset.prevHtml; }
+            }
+        }
+
+        // ── API Layer ──────────────────────────────────────────────────────────
+
+        async function api(url, options = {}) {
+            let resp;
+            try {
+                resp = await fetch(url, options);
+            } catch {
+                showToast('Network error — check your connection.', 'error');
+                throw new Error('network');
+            }
+
+            if (resp.status === 401 || resp.status === 403) {
+                showToast('Session expired. Redirecting to login…', 'error');
+                setTimeout(() => location.reload(), 2000);
+                throw new Error('auth');
+            }
+            if (resp.status === 404) {
+                showToast('The requested resource was not found.', 'error');
+                throw new Error('not-found');
+            }
+            if (!resp.ok) {
+                throw new Error(`server-${resp.status}`);
+            }
+            return resp.json();
+        }
+
+        function buildParams(extra = {}) {
+            const p = new URLSearchParams({ id: assistantId, ...extra });
+            if (selectedDoctorId !== null) p.append('doctorId', selectedDoctorId);
+            return p;
+        }
+
+        // ── Rendering ─────────────────────────────────────────────────────────
+
+        function renderLoading(status) {
+            const el = document.getElementById(`${status}AppointmentsList`);
+            if (el) el.innerHTML =
+                '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading…</p></div>';
+        }
+
+        function renderError(status, message) {
+            const el = document.getElementById(`${status}AppointmentsList`);
+            if (!el) return;
+            el.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>${escapeHtml(message || 'Failed to load appointments')}</p>
+                    <button class="btn btn-outline btn-sm" style="margin-top:12px"
+                            onclick="loadTab('${status}')">
+                        <i class="fas fa-redo"></i> Retry
+                    </button>
+                </div>`;
+        }
+
+        function renderEmpty(status) {
+            const icons = { Confirmed: 'fa-calendar-check', Modified: 'fa-edit', Cancelled: 'fa-calendar-times' };
+            const messages = {
+                Confirmed: 'No confirmed appointments found',
+                Modified:  'No modified appointments at the moment',
+                Cancelled: 'No cancelled appointments'
+            };
+            const el = document.getElementById(`${status}AppointmentsList`);
+            if (el) el.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas ${icons[status] || 'fa-calendar'}"></i>
+                    <p>${messages[status] || 'No ' + status.toLowerCase() + ' appointments'}</p>
+                    <p style="font-size:0.82rem;color:var(--text-muted);margin-top:6px;">
+                        Appointments will appear here when their status changes
+                    </p>
+                </div>`;
+        }
+
+        function getStripeClass(status) {
+            switch (status?.toLowerCase()) {
+                case 'confirmed': return 'stripe-confirmed';
+                case 'modified':  return 'stripe-modified';
+                case 'cancelled': return 'stripe-cancelled';
+                default:          return '';
+            }
+        }
 
         function renderAppointments(appointments, status) {
             const list = document.getElementById(`${status}AppointmentsList`);
             if (!list) return;
-
-            if (!appointments.length) {
-                list.innerHTML = `<div class="empty-state">
-                    <i class="fas fa-calendar-times"></i>
-                    <p>No ${status.toLowerCase()} appointments</p></div>`;
-                return;
-            }
+            if (!appointments?.length) { renderEmpty(status); return; }
 
             const canModify = (status === 'Confirmed');
             const canCancel = (status !== 'Cancelled');
@@ -265,133 +397,193 @@
             list.innerHTML = appointments.map(a => {
                 const fmt     = formatTime(a.time);
                 const dateStr = formatDate(a.date);
-                const todayBadge = a.isToday
-                    ? '<span class="status-badge" style="background:#e8f5e9;color:#388e3c;margin-right:4px;">Today</span>'
-                    : '';
-                const phoneRow = a.patientPhone
-                    ? `<div class="detail-item"><i class="fas fa-phone"></i><span>${a.patientPhone}</span></div>`
-                    : '';
-                const reasonRow = a.reason
-                    ? `<div class="detail-item"><i class="fas fa-info-circle"></i><span>${a.reason}</span></div>`
-                    : '';
-                const modifyBtn = canModify
-                    ? `<button class="btn btn-outline btn-sm" onclick="openModifyModal(${a.appointmentId})">
-                           <i class="fas fa-edit"></i> Modify
-                       </button>` : '';
-                const cancelBtn = canCancel
-                    ? `<button class="btn btn-danger btn-sm" onclick="quickCancelAppointment(${a.appointmentId})">
-                           <i class="fas fa-times"></i> Cancel
-                       </button>` : '';
+                const isApt   = a.isToday;
+                const isPastApt = !isApt && isPast(a.date);
+
+                // Badges
+                const badges = [
+                    isApt     ? '<span class="status-badge" style="background:var(--status-confirmed-bg);color:var(--status-confirmed-text);margin-right:4px;"><i class="fas fa-sun" style="margin-right:3px;font-size:0.65rem;"></i>Today</span>' : '',
+                    isPastApt ? '<span class="status-badge" style="background:#fff3e0;color:#c2410c;margin-right:4px;"><i class="fas fa-history" style="margin-right:3px;font-size:0.65rem;"></i>Past</span>'  : '',
+                    `<span class="status-badge ${getStatusClass(a.status)}">${escapeHtml(a.status)}</span>`
+                ].join('');
+
+                // Detail rows
+                const details = [
+                    `<div class="detail-item"><i class="fas fa-calendar"></i><span>${dateStr}</span></div>`,
+                    `<div class="detail-item"><i class="fas fa-clock"></i><span>${fmt.time} ${fmt.period}</span></div>`,
+                    a.reason ? `<div class="detail-item"><i class="fas fa-info-circle"></i><span>${escapeHtml(a.reason)}</span></div>` : '',
+                    a.notes  ? `<div class="detail-item"><i class="fas fa-sticky-note"></i><span>${escapeHtml(a.notes)}</span></div>`  : '',
+                    a.patientPhone ? `<div class="detail-item"><i class="fas fa-phone"></i><span>${escapeHtml(a.patientPhone)}</span></div>` : ''
+                ].join('');
+
+                // Actions — don't allow modify/cancel on past appointments
+                const modifyBtn = canModify && !isPastApt
+                    ? `<button class="btn btn-outline btn-sm" data-action="modify-${a.appointmentId}"
+                               onclick="openModifyModal(${a.appointmentId})">
+                           <i class="fas fa-edit"></i> Modify</button>` : '';
+                const cancelBtn = canCancel && !isPastApt
+                    ? `<button class="btn btn-danger btn-sm" data-action="cancel-${a.appointmentId}"
+                               onclick="quickCancelAppointment(${a.appointmentId})">
+                           <i class="fas fa-times"></i> Cancel</button>` : '';
 
                 return `
-                <div class="request-item">
-                    <div class="request-header">
-                        <div class="patient-info">
-                            <div class="patient-avatar"><i class="fas fa-user"></i></div>
-                            <div>
-                                <h4>${a.patientName}</h4>
-                                <p style="color:var(--text-secondary);font-size:0.875rem;">
-                                    <i class="fas fa-user-md"></i> ${a.doctorName}
-                                    ${a.doctorSpecialization ? `&nbsp;·&nbsp;${a.doctorSpecialization}` : ''}
-                                </p>
+                <div class="request-item" data-appointment-id="${a.appointmentId}"
+                     data-search="${escapeHtml((a.patientName || '') + ' ' + (a.doctorName || '') + ' ' + (a.patientPhone || '')).toLowerCase()}">
+                    <div class="appt-stripe ${getStripeClass(a.status)}"></div>
+                    <div class="appt-body">
+                        <div class="request-header">
+                            <div class="patient-info">
+                                <div class="patient-avatar"><i class="fas fa-user"></i></div>
+                                <div>
+                                    <h4>${escapeHtml(a.patientName)}</h4>
+                                    <p style="color:var(--text-secondary);font-size:0.875rem;">
+                                        <i class="fas fa-user-md"></i> ${escapeHtml(a.doctorName)}
+                                        ${a.doctorSpecialization ? `&nbsp;·&nbsp;${escapeHtml(a.doctorSpecialization)}` : ''}
+                                    </p>
+                                </div>
                             </div>
+                            <div class="request-meta">${badges}</div>
                         </div>
-                        <div class="request-meta">
-                            ${todayBadge}
-                            <span class="status-badge ${getStatusClass(a.status)}">${a.status}</span>
-                        </div>
+                        <div class="request-details">${details}</div>
+                        <div class="request-actions">${modifyBtn}${cancelBtn}</div>
                     </div>
-                    <div class="request-details">
-                        <div class="detail-item"><i class="fas fa-calendar"></i><span>${dateStr}</span></div>
-                        <div class="detail-item"><i class="fas fa-clock"></i><span>${fmt.time} ${fmt.period}</span></div>
-                        ${reasonRow}${phoneRow}
-                    </div>
-                    <div class="request-actions">${modifyBtn}${cancelBtn}</div>
                 </div>`;
             }).join('');
         }
 
         // ── Data Loading ───────────────────────────────────────────────────────
 
-        async function loadAppointments(status) {
-            const list = document.getElementById(`${status}AppointmentsList`);
-            if (list) list.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading…</p></div>';
+        /** Load a single tab (with optional cache). */
+        async function loadTab(status, useCache = false) {
+            if (useCache && cache[status]) {
+                renderAppointments(cache[status], status);
+                return cache[status].length;
+            }
+            renderLoading(status);
             try {
-                const params = new URLSearchParams({ id: assistantId, status });
-                if (selectedDoctorId !== null) params.append('doctorId', selectedDoctorId);
-                const resp = await fetch(`@Url.Action("GetAppointments", "Assistant")?${params}`);
-                if (!resp.ok) throw new Error();
-                const data = await resp.json();
+                const data = await api(`@Url.Action("GetAppointments", "Assistant")?${buildParams({ status })}`);
+                cache[status] = data;
                 renderAppointments(data, status);
                 return data.length;
             } catch {
-                if (list) list.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load appointments</p></div>';
+                renderError(status);
                 return 0;
             }
         }
 
-        async function loadAllTabCounts() {
-            const map = [
-                { status: 'Confirmed', countId: 'confirmedTabCount', heroId: 'heroConfirmedCount', statId: 'statConfirmed' },
-                { status: 'Modified',  countId: 'modifiedTabCount',  heroId: 'heroModifiedCount',  statId: 'statModified'  },
-                { status: 'Cancelled', countId: 'cancelledTabCount', heroId: 'heroCancelledCount', statId: 'statCancelled' }
-            ];
-            let total = 0;
-            await Promise.all(map.map(async ({ status, countId, heroId, statId }) => {
-                try {
-                    const params = new URLSearchParams({ id: assistantId, status });
-                    if (selectedDoctorId !== null) params.append('doctorId', selectedDoctorId);
-                    const resp = await fetch(`@Url.Action("GetAppointments", "Assistant")?${params}`);
-                    if (resp.ok) {
-                        const data = await resp.json();
-                        const count = data.length;
-                        total += count;
-                        document.getElementById(countId).textContent = count;
-                        const heroEl = document.getElementById(heroId);
-                        if (heroEl) heroEl.textContent = count;
-                        const statEl = document.getElementById(statId);
-                        if (statEl) statEl.textContent = count;
-                    }
-                } catch { /* ignore */ }
-            }));
-            const totalEl = document.getElementById('statTotal');
-            if (totalEl) totalEl.textContent = total;
+        /** Load all three statuses in parallel, update counts everywhere. */
+        async function loadAllData() {
+            renderLoading(currentTab);
+
+            const results = await Promise.allSettled(
+                ALL_STATUSES.map(async status => {
+                    const data = await api(`@Url.Action("GetAppointments", "Assistant")?${buildParams({ status })}`);
+                    cache[status] = data;
+                    return { status, count: data.length };
+                })
+            );
+
+            const counts = { Confirmed: 0, Modified: 0, Cancelled: 0 };
+            ALL_STATUSES.forEach((status, i) => {
+                const r = results[i];
+                if (r.status === 'fulfilled') {
+                    counts[status] = r.value.count;
+                    if (status === currentTab) renderAppointments(cache[status], status);
+                } else if (status === currentTab) {
+                    renderError(status);
+                }
+            });
+
+            applyCountsToUI(counts);
+        }
+
+        /** Lightweight refresh: fetch only counts, then reload the active tab. */
+        async function refreshCounts() {
+            try {
+                const counts = await api(`@Url.Action("GetAppointmentCounts", "Assistant")?${buildParams()}`);
+                applyCountsToUI({
+                    Confirmed: counts.confirmed,
+                    Modified:  counts.modified,
+                    Cancelled: counts.cancelled
+                });
+            } catch { /* silent — non-critical */ }
+        }
+
+        function applyCountsToUI(counts) {
+            const total = (counts.Confirmed || 0) + (counts.Modified || 0) + (counts.Cancelled || 0);
+            // Tab badges
+            setText('confirmedTabCount', counts.Confirmed);
+            setText('modifiedTabCount',  counts.Modified);
+            setText('cancelledTabCount', counts.Cancelled);
+            // Hero section
+            setText('heroConfirmedCount', counts.Confirmed);
+            setText('heroModifiedCount',  counts.Modified);
+            setText('heroCancelledCount', counts.Cancelled);
+            // Stat cards
+            setText('statConfirmed', counts.Confirmed);
+            setText('statModified',  counts.Modified);
+            setText('statCancelled', counts.Cancelled);
+            setText('statTotal',     total);
+        }
+
+        /** Invalidate cache and reload everything after a mutation. */
+        function reloadAfterMutation() {
+            ALL_STATUSES.forEach(s => delete cache[s]);
+            loadAllData();
         }
 
         // ── Tab Switching ──────────────────────────────────────────────────────
 
         function switchTab(tab) {
+            if (tab === currentTab) return;
             currentTab = tab;
+
             document.querySelectorAll('.tab-btn').forEach(btn =>
                 btn.classList.toggle('active', btn.dataset.tab === tab));
             document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
-            const content = document.getElementById(`${tab}-tab`);
-            if (content) content.style.display = 'block';
-            loadAppointments(tab);
+            const pane = document.getElementById(`${tab}-tab`);
+            if (pane) pane.style.display = 'block';
+
+            // Clear search when switching tabs
+            const searchInput = document.getElementById('appointmentSearch');
+            if (searchInput) searchInput.value = '';
+
+            // Use cache when available; fetch otherwise
+            if (cache[tab]) {
+                renderAppointments(cache[tab], tab);
+            } else {
+                loadTab(tab);
+            }
         }
 
         // ── Modify Modal ───────────────────────────────────────────────────────
 
         async function openModifyModal(appointmentId) {
+            const btn = document.querySelector(`[data-action="modify-${appointmentId}"]`);
+            setButtonLoading(btn, true);
             try {
-                const params = new URLSearchParams({ id: assistantId, appointmentId });
-                const resp = await fetch(`@Url.Action("GetAppointmentDetail", "Assistant")?${params}`);
-                if (!resp.ok) throw new Error();
-                const appt = await resp.json();
+                const appt = await api(
+                    `@Url.Action("GetAppointmentDetail", "Assistant")?${buildParams({ appointmentId })}`);
 
                 const fmt = formatTime(appt.time);
-                document.getElementById('modifyPatientName').textContent   = appt.patientName;
-                document.getElementById('modifyCurrentDateTime').textContent =
-                    `${formatDate(appt.date)} at ${fmt.time} ${fmt.period}`;
-                document.getElementById('newDate').value    = appt.date;
-                document.getElementById('newTime').value    = appt.time;
+                setText('modifyPatientName',     appt.patientName || '–');
+                setText('modifyCurrentDateTime',
+                    `${formatDate(appt.date)} at ${fmt.time} ${fmt.period}`);
+
+                const dateInput = document.getElementById('newDate');
+                const timeInput = document.getElementById('newTime');
+                dateInput.value = appt.date || '';
+                dateInput.min   = todayISO();
+                timeInput.value = appt.time || '';
                 document.getElementById('modifyReason').value = '';
 
                 modifyingAppointmentId = appointmentId;
                 modifyingDoctorId      = appt.doctorId;
                 document.getElementById('modifyModal').style.display = 'flex';
             } catch {
-                showToast('Failed to load appointment details', 'error');
+                showToast('Failed to load appointment details.', 'error');
+            } finally {
+                setButtonLoading(btn, false);
             }
         }
 
@@ -399,9 +591,15 @@
             document.getElementById('modifyModal').style.display = 'none';
             modifyingAppointmentId = null;
             modifyingDoctorId      = null;
-            const url = new URL(window.location);
+            // Reset any loading states on modal buttons
+            ['modalSaveBtn', 'modalCancelBtn'].forEach(id => {
+                const b = document.getElementById(id);
+                if (b) setButtonLoading(b, false);
+            });
+            // Clean query string
+            const url = new URL(location);
             url.searchParams.delete('modify');
-            window.history.replaceState({}, '', url);
+            history.replaceState({}, '', url);
         }
 
         async function handleSaveModification() {
@@ -409,72 +607,177 @@
             const newTime = document.getElementById('newTime').value;
             const reason  = document.getElementById('modifyReason').value.trim();
 
-            if (!newDate) { showToast('Please select a new date', 'error');  return; }
-            if (!newTime) { showToast('Please select a new time', 'error'); return; }
+            // Client-side validation
+            if (!newDate)         { showToast('Please select a new date.', 'error');  return; }
+            if (!newTime)         { showToast('Please select a new time.', 'error');  return; }
+            if (isPast(newDate))  { showToast('Cannot schedule in the past.', 'error'); return; }
+
+            const btn = document.getElementById('modalSaveBtn');
+            if (isBusy) return;
+            isBusy = true;
+            setButtonLoading(btn, true);
 
             try {
-                const resp = await fetch('@Url.Action("ModifyAppointment", "Assistant")', {
+                const result = await api('@Url.Action("ModifyAppointment", "Assistant")', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: new URLSearchParams({
-                        id: assistantId, appointmentId: modifyingAppointmentId,
+                        id: assistantId,
+                        appointmentId: modifyingAppointmentId,
                         newDate, newTime, reason
                     })
                 });
-                const result = await resp.json();
+
                 if (result.success) {
                     showToast(result.message, 'success');
                     closeModifyModal();
-                    loadAppointments(currentTab);
-                    loadAllTabCounts();
+                    reloadAfterMutation();
                 } else {
-                    showToast(result.message || 'Failed to modify appointment', 'error');
+                    showToast(result.message || 'Failed to modify appointment.', 'error');
                 }
             } catch {
                 showToast('An error occurred. Please try again.', 'error');
+            } finally {
+                isBusy = false;
+                setButtonLoading(btn, false);
             }
         }
 
         async function handleCancelAppointment() {
             if (!confirm('Are you sure you want to cancel this appointment?')) return;
             const reason = document.getElementById('modifyReason').value.trim();
-            await doCancelAppointment(modifyingAppointmentId, reason);
-            closeModifyModal();
+            const btn    = document.getElementById('modalCancelBtn');
+
+            if (isBusy) return;
+            isBusy = true;
+            setButtonLoading(btn, true);
+
+            try {
+                await doCancelAppointment(modifyingAppointmentId, reason);
+                closeModifyModal();
+            } finally {
+                isBusy = false;
+                setButtonLoading(btn, false);
+            }
         }
 
         async function quickCancelAppointment(appointmentId) {
             if (!confirm('Are you sure you want to cancel this appointment?')) return;
-            await doCancelAppointment(appointmentId, '');
+            const btn = document.querySelector(`[data-action="cancel-${appointmentId}"]`);
+
+            if (isBusy) return;
+            isBusy = true;
+            setButtonLoading(btn, true);
+
+            try {
+                await doCancelAppointment(appointmentId, '');
+            } finally {
+                isBusy = false;
+                setButtonLoading(btn, false);
+            }
         }
 
         async function doCancelAppointment(appointmentId, reason) {
             try {
-                const resp = await fetch('@Url.Action("CancelAppointment", "Assistant")', {
+                const result = await api('@Url.Action("CancelAppointment", "Assistant")', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: new URLSearchParams({ id: assistantId, appointmentId, reason })
                 });
-                const result = await resp.json();
                 if (result.success) {
                     showToast(result.message, 'success');
-                    loadAppointments(currentTab);
-                    loadAllTabCounts();
+                    reloadAfterMutation();
                 } else {
-                    showToast(result.message || 'Failed to cancel appointment', 'error');
+                    showToast(result.message || 'Failed to cancel appointment.', 'error');
                 }
             } catch {
                 showToast('An error occurred. Please try again.', 'error');
             }
         }
 
+        // ── Auto-Refresh ───────────────────────────────────────────────────────
+
+        function startAutoRefresh() {
+            stopAutoRefresh();
+            autoRefreshTimer = setInterval(() => {
+                // Only refresh when visible and modal is closed
+                if (!document.hidden &&
+                    document.getElementById('modifyModal').style.display === 'none' &&
+                    !isBusy) {
+                    refreshCounts();
+                    loadTab(currentTab); // Refresh active tab data
+                }
+            }, AUTO_REFRESH_MS);
+        }
+
+        function stopAutoRefresh() {
+            if (autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; }
+        }
+
+        // Pause when tab hidden; resume + immediate refresh when visible again
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                stopAutoRefresh();
+            } else {
+                reloadAfterMutation();
+                startAutoRefresh();
+            }
+        });
+
+        // ── Keyboard Shortcuts ─────────────────────────────────────────────────
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('modifyModal');
+                if (modal && modal.style.display !== 'none') closeModifyModal();
+            }
+        });
+
+        // Close modal when clicking the overlay backdrop
+        document.getElementById('modifyModal')?.addEventListener('click', e => {
+            if (e.target.id === 'modifyModal') closeModifyModal();
+        });
+
+        // ── Search / Filter ────────────────────────────────────────────────────
+
+        function filterAppointments(query) {
+            const q = (query || '').toLowerCase().trim();
+            const listEl = document.getElementById(`${currentTab}AppointmentsList`);
+            if (!listEl) return;
+            const items = listEl.querySelectorAll('.request-item');
+            let visible = 0;
+            items.forEach(item => {
+                const data = item.dataset.search || '';
+                const match = !q || data.includes(q);
+                item.style.display = match ? '' : 'none';
+                if (match) visible++;
+            });
+            // Show/hide "no results" message
+            let noRes = listEl.querySelector('.search-no-results');
+            if (visible === 0 && items.length > 0 && q) {
+                if (!noRes) {
+                    noRes = document.createElement('div');
+                    noRes.className = 'empty-state search-no-results';
+                    noRes.innerHTML = '<i class="fas fa-search"></i><p>No appointments match your search</p>';
+                    listEl.appendChild(noRes);
+                }
+                noRes.style.display = '';
+            } else if (noRes) {
+                noRes.style.display = 'none';
+            }
+        }
+
         // ── Init ───────────────────────────────────────────────────────────────
 
         document.addEventListener('DOMContentLoaded', () => {
-            loadAppointments('Confirmed');
-            loadAllTabCounts();
+            loadAllData();
+            startAutoRefresh();
 
-            const modifyId = new URLSearchParams(window.location.search).get('modify');
-            if (modifyId) openModifyModal(parseInt(modifyId));
+            // Deep-link: ?modify=123 opens the modal for that appointment
+            const modifyId = new URLSearchParams(location.search).get('modify');
+            if (modifyId) openModifyModal(parseInt(modifyId, 10));
         });
+
+        window.addEventListener('beforeunload', stopAutoRefresh);
     </script>
 }

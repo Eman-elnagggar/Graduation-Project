@@ -316,7 +316,7 @@ namespace Graduation_Project.Data
                     context.Bookings.Add(new Booking
                     {
                         AppointmentID = bookedAppts[i].AppointmentID,
-                        PatientID     = bookedAppts[i].PatientID,
+                        PatientID     = bookedAppts[i].PatientID!.Value,
                         DoctorID      = bookedAppts[i].DoctorID,
                         ClinicID      = bookedAppts[i].ClinicID,
                         Status        = statuses[i % statuses.Length],

@@ -267,6 +267,39 @@ namespace Graduation_Project.Controllers
             return Json(result);
         }
 
+        /// <summary>
+        /// Lightweight endpoint that returns only the counts per status,
+        /// avoiding the cost of serializing full appointment objects.
+        /// </summary>
+        [HttpGet]
+        public IActionResult GetAppointmentCounts(int id, int? doctorId)
+        {
+            var assistant = _assistantRepository.GetByIdWithDoctors(id);
+            if (assistant == null) return NotFound();
+
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            if (clinic == null) return NotFound();
+
+            var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
+            bool isFiltered = doctorId.HasValue && relevantDoctorIds.Contains(doctorId.Value);
+            var activeDoctorIds = isFiltered ? new List<int> { doctorId!.Value } : relevantDoctorIds;
+
+            var confirmed = _appointmentRepository
+                .GetByClinicDoctorsAndStatus(clinic.ClinicID, activeDoctorIds, "Confirmed").Count();
+            var modified = _appointmentRepository
+                .GetByClinicDoctorsAndStatus(clinic.ClinicID, activeDoctorIds, "Modified").Count();
+            var cancelled = _appointmentRepository
+                .GetByClinicDoctorsAndStatus(clinic.ClinicID, activeDoctorIds, "Cancelled").Count();
+
+            return Json(new
+            {
+                confirmed,
+                modified,
+                cancelled,
+                total = confirmed + modified + cancelled
+            });
+        }
+
         [HttpGet]
         public IActionResult GetAppointmentDetail(int id, int appointmentId)
         {
@@ -322,6 +355,9 @@ namespace Graduation_Project.Controllers
             if (!TimeSpan.TryParse(newTime, out var parsedTime))
                 return Json(new { success = false, message = "Invalid time." });
 
+            if (parsedDate.Date < DateTime.Today)
+                return Json(new { success = false, message = "Cannot schedule an appointment in the past." });
+
             appointment.Date = parsedDate;
             appointment.Time = parsedTime;
             _appointmentRepository.Update(appointment);
@@ -371,6 +407,279 @@ namespace Graduation_Project.Controllers
 
             return Json(new { success = true, message = "Appointment cancelled successfully." });
         }
+
+        // ── Availability ────────────────────────────────────────────────────
+
+        public IActionResult Availability(int id, int? doctorId)
+        {
+            var assistant = _assistantRepository.GetByIdWithDoctors(id);
+            if (assistant == null) return NotFound();
+
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            if (clinic == null) return NotFound();
+
+            var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
+            var doctorSummaries = BuildDoctorSummaries(assistant, clinic, relevantDoctorIds);
+            bool isFiltered = doctorId.HasValue && relevantDoctorIds.Contains(doctorId.Value);
+
+            var viewModel = new AssistantAvailabilityViewModel
+            {
+                Assistant = assistant,
+                AssistantName = assistant.User != null
+                    ? $"{assistant.User.FirstName} {assistant.User.LastName}".Trim()
+                    : "Assistant",
+                Clinic = clinic,
+                ClinicName = clinic.Name ?? "Clinic",
+                Doctors = doctorSummaries,
+                SelectedDoctorID = isFiltered ? doctorId : (relevantDoctorIds.Count == 1 ? relevantDoctorIds[0] : null)
+            };
+
+            return View(viewModel);
+        }
+
+        [HttpGet]
+        public IActionResult GetAvailabilitySlots(int id, int doctorId, string date)
+        {
+            var assistant = _assistantRepository.GetByIdWithDoctors(id);
+            if (assistant == null) return NotFound();
+
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            if (clinic == null) return NotFound();
+
+            var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
+            if (!relevantDoctorIds.Contains(doctorId))
+                return Forbid();
+
+            if (!DateTime.TryParse(date, out var parsedDate))
+                return BadRequest("Invalid date.");
+
+            var appointments = _appointmentRepository.GetByClinicDoctorAndDate(clinic.ClinicID, doctorId, parsedDate);
+
+            var result = appointments.Select(a => new
+            {
+                appointmentId = a.AppointmentID,
+                time = a.Time.ToString(@"hh\:mm"),
+                isBooked = a.isBooked,
+                patientName = a.Patient?.User != null
+                    ? $"{a.Patient.User.FirstName} {a.Patient.User.LastName}" : null
+            }).ToList();
+
+            return Json(result);
+        }
+
+        [HttpPost]
+        public IActionResult CreateAvailabilitySlot(int id, int doctorId, string date, string time)
+        {
+            var assistant = _assistantRepository.GetByIdWithDoctors(id);
+            if (assistant == null) return NotFound();
+
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            if (clinic == null) return NotFound();
+
+            var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
+            if (!relevantDoctorIds.Contains(doctorId))
+                return Json(new { success = false, message = "Access denied." });
+
+            if (!DateTime.TryParse(date, out var parsedDate))
+                return Json(new { success = false, message = "Invalid date." });
+
+            if (!TimeSpan.TryParse(time, out var parsedTime))
+                return Json(new { success = false, message = "Invalid time." });
+
+            if (parsedDate.Date < DateTime.Today)
+                return Json(new { success = false, message = "Cannot create slots in the past." });
+
+            var existing = _appointmentRepository
+                .GetByClinicDoctorAndDate(clinic.ClinicID, doctorId, parsedDate)
+                .Any(a => a.Time == parsedTime);
+            if (existing)
+                return Json(new { success = false, message = "Slot already exists." });
+
+            var slot = new Appointment
+            {
+                DoctorID = doctorId,
+                ClinicID = clinic.ClinicID,
+                PatientID = null,
+                Date = parsedDate,
+                Time = parsedTime,
+                isBooked = false
+            };
+            _appointmentRepository.Add(slot);
+            _appointmentRepository.Save();
+
+            return Json(new { success = true, message = "Slot created.", appointmentId = slot.AppointmentID });
+        }
+
+        [HttpPost]
+        public IActionResult DeleteAvailabilitySlot(int id, int appointmentId)
+        {
+            var assistant = _assistantRepository.GetByIdWithDoctors(id);
+            if (assistant == null) return NotFound();
+
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            if (clinic == null) return NotFound();
+
+            var appointment = _appointmentRepository.GetById(appointmentId);
+            if (appointment == null || appointment.ClinicID != clinic.ClinicID)
+                return Json(new { success = false, message = "Slot not found." });
+
+            if (appointment.isBooked)
+                return Json(new { success = false, message = "Cannot remove a booked slot." });
+
+            var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
+            if (!relevantDoctorIds.Contains(appointment.DoctorID))
+                return Json(new { success = false, message = "Access denied." });
+
+            _appointmentRepository.Delete(appointmentId);
+            _appointmentRepository.Save();
+
+            return Json(new { success = true, message = "Slot removed." });
+        }
+
+        [HttpPost]
+        public IActionResult SetAllSlotsAvailable(int id, int doctorId, string date,
+            string startTime, string endTime, int slotDuration)
+        {
+            var assistant = _assistantRepository.GetByIdWithDoctors(id);
+            if (assistant == null) return NotFound();
+
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            if (clinic == null) return NotFound();
+
+            var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
+            if (!relevantDoctorIds.Contains(doctorId))
+                return Json(new { success = false, message = "Access denied." });
+
+            if (!DateTime.TryParse(date, out var parsedDate))
+                return Json(new { success = false, message = "Invalid date." });
+
+            if (parsedDate.Date < DateTime.Today)
+                return Json(new { success = false, message = "Cannot create slots in the past." });
+
+            if (!TimeSpan.TryParse(startTime, out var start) || !TimeSpan.TryParse(endTime, out var end))
+                return Json(new { success = false, message = "Invalid time range." });
+
+            var existingTimes = _appointmentRepository
+                .GetByClinicDoctorAndDate(clinic.ClinicID, doctorId, parsedDate)
+                .Select(a => a.Time).ToHashSet();
+
+            var newSlots = new List<Appointment>();
+            var current = start;
+            while (current < end)
+            {
+                if (!existingTimes.Contains(current))
+                {
+                    newSlots.Add(new Appointment
+                    {
+                        DoctorID = doctorId,
+                        ClinicID = clinic.ClinicID,
+                        PatientID = null,
+                        Date = parsedDate,
+                        Time = current,
+                        isBooked = false
+                    });
+                }
+                current = current.Add(TimeSpan.FromMinutes(slotDuration));
+            }
+
+            if (newSlots.Any())
+            {
+                _appointmentRepository.AddRange(newSlots);
+                _appointmentRepository.Save();
+            }
+
+            return Json(new { success = true, message = $"{newSlots.Count} slot(s) created." });
+        }
+
+        [HttpPost]
+        public IActionResult BlockAllAvailabilitySlots(int id, int doctorId, string date)
+        {
+            var assistant = _assistantRepository.GetByIdWithDoctors(id);
+            if (assistant == null) return NotFound();
+
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            if (clinic == null) return NotFound();
+
+            var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
+            if (!relevantDoctorIds.Contains(doctorId))
+                return Json(new { success = false, message = "Access denied." });
+
+            if (!DateTime.TryParse(date, out var parsedDate))
+                return Json(new { success = false, message = "Invalid date." });
+
+            var slots = _appointmentRepository
+                .GetByClinicDoctorAndDate(clinic.ClinicID, doctorId, parsedDate)
+                .Where(a => !a.isBooked).ToList();
+
+            foreach (var slot in slots)
+                _appointmentRepository.Delete(slot.AppointmentID);
+
+            _appointmentRepository.Save();
+
+            return Json(new { success = true, message = $"{slots.Count} slot(s) blocked." });
+        }
+
+        [HttpPost]
+        public IActionResult ApplyQuickSetupSchedule(int id, [FromBody] QuickSetupRequest request)
+        {
+            var assistant = _assistantRepository.GetByIdWithDoctors(id);
+            if (assistant == null) return NotFound();
+
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            if (clinic == null) return NotFound();
+
+            var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
+            if (!relevantDoctorIds.Contains(request.DoctorId))
+                return Json(new { success = false, message = "Access denied." });
+
+            if (request.WorkingDays == null || !request.WorkingDays.Any())
+                return Json(new { success = false, message = "Please select at least one working day." });
+
+            if (!TimeSpan.TryParse(request.StartTime, out var start) || !TimeSpan.TryParse(request.EndTime, out var end))
+                return Json(new { success = false, message = "Invalid time range." });
+
+            var today = DateTime.Today;
+            var endDate = today.AddDays(request.WeeksAhead * 7);
+
+            var existingSet = _appointmentRepository
+                .GetByClinicDoctorAndDateRange(clinic.ClinicID, request.DoctorId, today, endDate)
+                .Select(a => (a.Date.Date, a.Time))
+                .ToHashSet();
+
+            var newSlots = new List<Appointment>();
+            for (var d = today; d <= endDate; d = d.AddDays(1))
+            {
+                if (!request.WorkingDays.Contains((int)d.DayOfWeek)) continue;
+
+                var current = start;
+                while (current < end)
+                {
+                    if (!existingSet.Contains((d, current)))
+                    {
+                        newSlots.Add(new Appointment
+                        {
+                            DoctorID = request.DoctorId,
+                            ClinicID = clinic.ClinicID,
+                            PatientID = null,
+                            Date = d,
+                            Time = current,
+                            isBooked = false
+                        });
+                    }
+                    current = current.Add(TimeSpan.FromMinutes(request.SlotDuration));
+                }
+            }
+
+            if (newSlots.Any())
+            {
+                _appointmentRepository.AddRange(newSlots);
+                _appointmentRepository.Save();
+            }
+
+            return Json(new { success = true, message = $"Schedule applied. {newSlots.Count} slot(s) created." });
+        }
+
+        // ── CRUD stubs ───────────────────────────────────────────────────────
 
         public IActionResult Details(int id)
         {

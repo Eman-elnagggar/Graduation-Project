@@ -67,6 +67,18 @@ namespace Graduation_Project.Data
             });
 
             // ============================================================
+            // APPOINTMENT -> PATIENT (optional — availability slots have no patient)
+            // ============================================================
+            modelBuilder.Entity<Appointment>(entity =>
+            {
+                entity.HasOne(a => a.Patient)
+                    .WithMany()
+                    .HasForeignKey(a => a.PatientID)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // ============================================================
             // 2. PATIENT -> USER (One Patient is One User)
             // ============================================================
             modelBuilder.Entity<Patient>(entity =>
