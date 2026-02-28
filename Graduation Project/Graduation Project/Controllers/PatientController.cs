@@ -158,7 +158,8 @@ namespace Graduation_Project.Controllers
                 {
                     Title = "Upcoming Appointment",
                     Description = $"Dr. {nextAppt.Doctor?.User?.FirstName} - {nextAppt.Date:MMM dd, yyyy}",
-                    DateTime = nextAppt.Date,
+                    DateTime = DateTime.Now,
+                    OverrideTime = nextAppt.Date.ToString("MMM dd, yyyy"),
                     IconClass = "fas fa-calendar-check",
                     IconBgColor = "#fff3e0",
                     IconColor = "#ff9800"
