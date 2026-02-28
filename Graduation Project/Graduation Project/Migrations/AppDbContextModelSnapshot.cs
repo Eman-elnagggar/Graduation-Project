@@ -104,6 +104,9 @@ namespace Graduation_Project.Migrations
                     b.Property<int>("ClinicID")
                         .HasColumnType("int");
 
+                    b.Property<int?>("CreatedByAssistantID")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("Date")
                         .HasColumnType("datetime2");
 
@@ -122,6 +125,8 @@ namespace Graduation_Project.Migrations
                     b.HasKey("AppointmentID");
 
                     b.HasIndex("ClinicID");
+
+                    b.HasIndex("CreatedByAssistantID");
 
                     b.HasIndex("DoctorID");
 
@@ -1077,6 +1082,11 @@ namespace Graduation_Project.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Graduation_Project.Models.Assistant", "CreatedByAssistant")
+                        .WithMany()
+                        .HasForeignKey("CreatedByAssistantID")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Graduation_Project.Models.Doctor", "Doctor")
                         .WithMany("Appointments")
                         .HasForeignKey("DoctorID")
@@ -1089,6 +1099,8 @@ namespace Graduation_Project.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Clinic");
+
+                    b.Navigation("CreatedByAssistant");
 
                     b.Navigation("Doctor");
 

@@ -49,5 +49,12 @@ namespace Graduation_Project.Repository
                 .Where(pd => doctorIds.Contains(pd.DoctorID) && pd.Status == "Approved")
                 .AsSplitQuery()
                 .ToList();
+
+        public IEnumerable<PatientDoctor> GetByPatientId(int patientId) =>
+            _context.PatientDoctors
+                .Include(pd => pd.Doctor).ThenInclude(d => d.User)
+                .Include(pd => pd.Doctor).ThenInclude(d => d.ClinicDoctors).ThenInclude(cd => cd.Clinic)
+                .Where(pd => pd.PatientID == patientId)
+                .ToList();
     }
 }

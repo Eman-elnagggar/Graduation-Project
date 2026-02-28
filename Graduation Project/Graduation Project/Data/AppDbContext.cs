@@ -448,6 +448,12 @@ namespace Graduation_Project.Data
                     .WithMany()
                     .HasForeignKey(d => d.ClinicID)
                     .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(d => d.CreatedByAssistant)
+                    .WithMany()
+                    .HasForeignKey(d => d.CreatedByAssistantID)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             // ============================================================

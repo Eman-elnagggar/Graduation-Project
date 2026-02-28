@@ -1,0 +1,353 @@
+﻿@model Graduation_Project.ViewModels.PatientAppointmentsViewModel
+@{
+    Layout = "~/Views/Shared/_PatientLayout.cshtml";
+    ViewData["Title"] = "My Appointments";
+    ViewData["PatientId"] = Model.Patient.PatientID;
+    ViewData["ActivePage"] = "Appointments";
+    var patientId = Model.Patient.PatientID;
+    var fullName = $"{Model.Patient.User?.FirstName} {Model.Patient.User?.LastName}".Trim();
+}
+@section Head {
+    @Html.AntiForgeryToken()
+}
+
+<header class="header">
+                <div class="header-left">
+                    <h1>My Appointments 📅</h1>
+                    <p>View and manage your medical appointments</p>
+                </div>
+                <div class="header-right">
+                    <button class="btn btn-primary"
+                            onclick="window.location.href='@Url.Action("BookAppointment", "Patient", new { id = patientId })'"
+                            style="margin-right: 20px">
+                        <i class="fas fa-plus-circle"></i> Book New Appointment
+                    </button>
+                    <div class="notification">
+                        <i class="fas fa-bell"></i>
+                        @if (Model.UnreadAlertsCount > 0)
+                        {
+                            <span class="badge">@Model.UnreadAlertsCount</span>
+                        }
+                    </div>
+                    <div class="profile">
+                        <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(fullName)&background=1BAEBE&color=fff&size=40"
+                             alt="Profile" />
+                        <span>@fullName</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Primary Doctor Section -->
+            <section class="primary-doctor-section">
+                <div class="card primary-doctor-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-user-md"></i> Your Primary Doctor</h3>
+                        <span class="primary-badge"><i class="fas fa-star"></i> Primary</span>
+                    </div>
+                    @if (Model.PrimaryDoctor?.Doctor != null)
+                    {
+                        var doc = Model.PrimaryDoctor.Doctor;
+                        var docName = doc.User != null ? $"Dr. {doc.User.FirstName} {doc.User.LastName}".Trim() : "Doctor";
+                        var clinicDoc = doc.ClinicDoctors?.FirstOrDefault();
+                        var docApptCount = Model.UpcomingAppointments.Count(a => a.DoctorID == doc.DoctorID)
+                                         + Model.PastAppointments.Count(a => a.DoctorID == doc.DoctorID);
+                        <div class="primary-doctor-content">
+                            <div class="primary-doctor-info">
+                                <div class="primary-doctor-details">
+                                    <div class="primary-doctor-avatar">
+                                        <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(docName)&background=1BAEBE&color=fff&size=80"
+                                             alt="@docName" />
+                                        <span class="online-status"></span>
+                                    </div>
+                                    <div class="primary-info">
+                                        <h4>@docName</h4>
+                                        <p class="specialty"><i class="fas fa-stethoscope"></i> @doc.Specialization</p>
+                                        <p class="location"><i class="fas fa-map-marker-alt"></i> @(clinicDoc?.Clinic?.Name ?? "Clinic")</p>
+                                        <div class="quick-stats">
+                                            <span>
+                                                <i class="fas fa-calendar-check"></i>
+                                                @docApptCount appointment@(docApptCount != 1 ? "s" : "")
+                                            </span>
+                                            <span><i class="fas fa-star"></i> Receives alerts</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="primary-doctor-actions">
+                                    <button class="btn btn-primary"
+                                            onclick="window.location.href='@Url.Action("BookAppointment", "Patient", new { id = patientId })'">
+                                        <i class="fas fa-calendar-plus"></i> Book Appointment
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="primary-doctor-content">
+                            <div class="no-primary-doctor">
+                                <i class="fas fa-user-md"></i>
+                                <h4>No Primary Doctor Set</h4>
+                                <p>
+                                    Select a doctor from the list below to set as your primary
+                                    care provider
+                                </p>
+                                <button class="btn btn-primary"
+                                        onclick="window.location.href='@Url.Action("BookAppointment", "Patient", new { id = patientId })'">
+                                    <i class="fas fa-search"></i> Find &amp; Select Doctor
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </section>
+
+            <!-- My Doctors (Previously Visited) -->
+            @if (Model.MyDoctors.Count > 0)
+            {
+                <section class="my-doctors-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-history"></i> My Doctors</h3>
+                            <span class="doctors-count" id="myDoctorsCount">
+                                @Model.MyDoctors.Count doctor@(Model.MyDoctors.Count != 1 ? "s" : "")
+                            </span>
+                        </div>
+                        <div class="my-doctors-grid">
+                            @foreach (var pd in Model.MyDoctors)
+                            {
+                                var doc = pd.Doctor;
+                                if (doc == null) { continue; }
+                                var docName = doc.User != null ? $"Dr. {doc.User.FirstName} {doc.User.LastName}".Trim() : "Doctor";
+                                var clinicDoc = doc.ClinicDoctors?.FirstOrDefault();
+                                <div class="doctor-mini-card">
+                                    <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(docName)&background=1BAEBE&color=fff&size=60"
+                                         alt="@docName" />
+                                    <div class="doctor-mini-info">
+                                        <h5>
+                                            @docName
+                                            @if (pd.IsPrimary) { <span class="primary-tag">Primary</span> }
+                                        </h5>
+                                        <p>@doc.Specialization</p>
+                                        <p>@(clinicDoc?.Clinic?.Name ?? "")</p>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline"
+                                            onclick="window.location.href='@Url.Action("BookAppointment", "Patient", new { id = patientId })'">
+                                        Book
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </section>
+            }
+
+            <!-- Upcoming Appointments -->
+            <section class="upcoming-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-clock"></i> Upcoming Appointments</h3>
+                        <span class="appointments-count" id="upcomingCount">
+                            @Model.UpcomingAppointments.Count appointment@(Model.UpcomingAppointments.Count != 1 ? "s" : "")
+                        </span>
+                    </div>
+                    <div class="appointments-list">
+                        @if (!Model.UpcomingAppointments.Any())
+                        {
+                            <div style="text-align:center; padding: 32px; color: #94a3b8;">
+                                <i class="fas fa-calendar-times" style="font-size:2rem; margin-bottom:12px; display:block;"></i>
+                                <p>No upcoming appointments.
+                                    <a href="@Url.Action("BookAppointment", "Patient", new { id = patientId })">Book one now</a>
+                                </p>
+                            </div>
+                        }
+                        else
+                        {
+                            @foreach (var appt in Model.UpcomingAppointments)
+                            {
+                                var docName = appt.Doctor?.User != null
+                                    ? $"Dr. {appt.Doctor.User.FirstName} {appt.Doctor.User.LastName}".Trim()
+                                    : "Doctor";
+                                var status = appt.Booking?.Status ?? "Confirmed";
+                                var timeDisplay = DateTime.Today.Add(appt.Time).ToString("h:mm tt");
+                                var reason = appt.Booking?.Reason;
+                                if (string.IsNullOrWhiteSpace(reason)) reason = "Appointment";
+                                <div class="appointment-card upcoming" id="appt-@appt.AppointmentID">
+                                    <div class="appointment-date">
+                                        <span class="day">@appt.Date.Day</span>
+                                        <span class="month">@appt.Date.ToString("MMM")</span>
+                                    </div>
+                                    <div class="appointment-info">
+                                        <h4>@reason</h4>
+                                        <p class="doctor-name">
+                                            <i class="fas fa-user-md"></i> @docName
+                                        </p>
+                                        <p class="appointment-time">
+                                            <i class="fas fa-clock"></i> @timeDisplay
+                                        </p>
+                                        <p class="appointment-location">
+                                            <i class="fas fa-map-marker-alt"></i> @(appt.Clinic?.Name ?? "Clinic")
+                                        </p>
+                                    </div>
+                                    <div class="appointment-status">
+                                        <span class="status-badge @status.ToLower()">@status</span>
+                                    </div>
+                                    <div class="appointment-actions">
+                                        <button class="btn btn-sm btn-outline danger cancel-btn"
+                                                data-appointment-id="@appt.AppointmentID"
+                                                data-patient-id="@patientId">
+                                            <i class="fas fa-times"></i> Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            </section>
+
+            <!-- Past Appointments -->
+            @if (Model.PastAppointments.Count > 0)
+            {
+                <section class="past-appointments" id="pastAppointmentsSection">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-history"></i> Past Appointments</h3>
+                            <button class="btn btn-sm btn-outline" id="togglePastBtn">
+                                <i class="fas fa-chevron-up"></i> Hide
+                            </button>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Doctor</th>
+                                    <th>Reason</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var appt in Model.PastAppointments)
+                                {
+                                    var docName = appt.Doctor?.User != null
+                                        ? $"Dr. {appt.Doctor.User.FirstName} {appt.Doctor.User.LastName}".Trim()
+                                        : "Doctor";
+                                    var status = appt.Booking?.Status ?? "Completed";
+                                    var badgeClass = status.ToLower() == "cancelled" ? "cancelled" : "completed";
+                                    var badgeLabel = status.ToLower() == "cancelled" ? "Cancelled" : "Completed";
+                                    var reason = appt.Booking?.Reason;
+                                    if (string.IsNullOrWhiteSpace(reason)) reason = "Visit";
+                                    <tr>
+                                        <td>@appt.Date.ToString("MMM dd, yyyy")</td>
+                                        <td>@docName</td>
+                                        <td>@reason</td>
+                                        <td><span class="status-badge @badgeClass">@badgeLabel</span></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            }
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+          // ================================
+          // Show / Hide Past Appointments
+          // ================================
+          const togglePastBtn = document.getElementById("togglePastBtn");
+          const pastTable = document.querySelector("#pastAppointmentsSection table");
+
+          if (togglePastBtn && pastTable) {
+            let collapsed = false;
+            togglePastBtn.addEventListener("click", function () {
+              collapsed = !collapsed;
+              pastTable.style.display = collapsed ? "none" : "";
+              this.innerHTML = collapsed
+                ? '<i class="fas fa-chevron-down"></i> Show'
+                : '<i class="fas fa-chevron-up"></i> Hide';
+            });
+          }
+
+          // ================================
+          // Cancel Appointment
+          // ================================
+          const antiForgeryToken = document.querySelector(
+            '[name="__RequestVerificationToken"]'
+          )?.value ?? "";
+
+          document.querySelectorAll(".cancel-btn").forEach(function (btn) {
+            btn.addEventListener("click", async function () {
+              if (!confirm("Are you sure you want to cancel this appointment?"))
+                return;
+
+              const appointmentId = parseInt(this.dataset.appointmentId);
+              const patientId = parseInt(this.dataset.patientId);
+
+              try {
+                const response = await fetch("/Patient/CancelAppointment", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                  },
+                  body: new URLSearchParams({
+                    __RequestVerificationToken: antiForgeryToken,
+                    patientId: patientId,
+                    appointmentId: appointmentId,
+                  }),
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                  const card = document.getElementById("appt-" + appointmentId);
+                  if (card) card.remove();
+                  const remaining = document.querySelectorAll(
+                    ".appointment-card.upcoming"
+                  ).length;
+                  const countEl = document.getElementById("upcomingCount");
+                  if (countEl)
+                    countEl.textContent =
+                      remaining + " appointment" + (remaining !== 1 ? "s" : "");
+                  window.showNotification?.("Appointment cancelled.", "success");
+                } else {
+                  window.showNotification?.(
+                    result.message || "Failed to cancel.",
+                    "error"
+                  );
+                }
+              } catch {
+                window.showNotification?.(
+                  "Error cancelling appointment.",
+                  "error"
+                );
+              }
+            });
+          });
+
+          // ================================
+          // Global Notification
+          // ================================
+          window.showNotification = function (message, type = "info") {
+            const existing = document.querySelector(".global-notification");
+            if (existing) existing.remove();
+            const notification = document.createElement("div");
+            notification.className = "global-notification " + type;
+            let icon = "fa-info-circle";
+            if (type === "success") icon = "fa-check-circle";
+            if (type === "error") icon = "fa-exclamation-circle";
+            notification.innerHTML =
+              '<i class="fas ' +
+              icon +
+              '"></i><span>' +
+              message +
+              '</span><button class="notification-close"><i class="fas fa-times"></i></button>';
+            document.body.appendChild(notification);
+            notification
+              .querySelector(".notification-close")
+              .addEventListener("click", () => notification.remove());
+            setTimeout(() => {
+              if (notification.parentNode) notification.remove();
+            }, 4000);
+          };
+        });
+    </script>
+}

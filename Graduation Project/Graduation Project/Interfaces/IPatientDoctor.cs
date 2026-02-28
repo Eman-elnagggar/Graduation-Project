@@ -12,5 +12,6 @@ namespace Graduation_Project.Interfaces
         void Save();
         IEnumerable<PatientDoctor> GetApprovedByDoctor(int doctorId);
         IEnumerable<PatientDoctor> GetApprovedByDoctors(IEnumerable<int> doctorIds);
+        IEnumerable<PatientDoctor> GetByPatientId(int patientId);
     }
 }

@@ -461,7 +461,9 @@ namespace Graduation_Project.Controllers
                 time = a.Time.ToString(@"hh\:mm"),
                 isBooked = a.isBooked,
                 patientName = a.Patient?.User != null
-                    ? $"{a.Patient.User.FirstName} {a.Patient.User.LastName}" : null
+                    ? $"{a.Patient.User.FirstName} {a.Patient.User.LastName}" : null,
+                clinicName = clinic.Name ?? "Clinic",
+                clinicLocation = clinic.Location ?? string.Empty
             }).ToList();
 
             return Json(result);

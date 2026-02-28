@@ -22,10 +22,14 @@ namespace Graduation_Project.Models
 
         public bool isBooked { get; set; }
 
+        [ForeignKey("CreatedByAssistant")]
+        public int? CreatedByAssistantID { get; set; }
+
         // Navigation
         public virtual Doctor Doctor { get; set; }
         public virtual Patient? Patient { get; set; }
         public virtual Clinic Clinic { get; set; }
         public virtual Booking Booking { get; set; }
+        public virtual Assistant? CreatedByAssistant { get; set; }
     }
 }

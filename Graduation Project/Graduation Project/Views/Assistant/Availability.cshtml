@@ -353,6 +353,7 @@
     // -- Constants ------------------------------------------------------------
     const assistantId      = @Model.Assistant.AssistantID;
     const selectedDoctorId = @(Model.SelectedDoctorID.HasValue ? Model.SelectedDoctorID.Value.ToString() : "null");
+    const clinicName       = '@Html.Raw(Model.ClinicName?.Replace("'", "\\'") ?? "Clinic")';
 
     let SLOT_START    = '08:00';
     let SLOT_END      = '18:00';
@@ -587,6 +588,7 @@
                             <span class="slot-status booked-text">
                                 ${slot.patientName ? escapeHtml(slot.patientName) : 'Booked'}
                             </span>
+                            <span class="slot-location"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(clinicName)}</span>
                         </div>
                     </div>`;
             }
@@ -598,6 +600,7 @@
                     <div class="slot-body">
                         <span class="slot-time">${label}</span>
                         <span class="slot-status available-text">Available</span>
+                        <span class="slot-location"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(clinicName)}</span>
                     </div>
                     ${!isPastDate ? `<div class="slot-action">
                         <button class="btn btn-sm btn-outline danger" onclick="deleteSlot(${slot.appointmentId})">
@@ -892,6 +895,8 @@
     .slot-body      { flex: 1; min-width: 0; }
     .slot-time      { display: block; font-weight: 700; font-size: 0.9rem; color: var(--text-primary); }
     .slot-status    { display: block; font-size: 0.77rem; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .slot-location  { display: block; font-size: 0.72rem; color: #6b7280; margin-top: 2px; }
+    .slot-location i { margin-right: 3px; color: #9ca3af; font-size: 0.68rem; }
     .available-text { color: var(--assistant-primary); }
     .booked-text    { color: var(--danger); }
     .blocked-text   { color: #94a3b8; }

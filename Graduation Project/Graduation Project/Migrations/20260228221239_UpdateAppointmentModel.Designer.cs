@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Graduation_Project.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260228000431_MakeAppointmentPatientIdNullable")]
-    partial class MakeAppointmentPatientIdNullable
+    [Migration("20260228221239_UpdateAppointmentModel")]
+    partial class UpdateAppointmentModel
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -107,13 +107,16 @@ namespace Graduation_Project.Migrations
                     b.Property<int>("ClinicID")
                         .HasColumnType("int");
 
+                    b.Property<int?>("CreatedByAssistantID")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("Date")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("DoctorID")
                         .HasColumnType("int");
 
-                    b.Property<int>("PatientID")
+                    b.Property<int?>("PatientID")
                         .HasColumnType("int");
 
                     b.Property<TimeSpan>("Time")
@@ -125,6 +128,8 @@ namespace Graduation_Project.Migrations
                     b.HasKey("AppointmentID");
 
                     b.HasIndex("ClinicID");
+
+                    b.HasIndex("CreatedByAssistantID");
 
                     b.HasIndex("DoctorID");
 
@@ -1080,6 +1085,11 @@ namespace Graduation_Project.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Graduation_Project.Models.Assistant", "CreatedByAssistant")
+                        .WithMany()
+                        .HasForeignKey("CreatedByAssistantID")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Graduation_Project.Models.Doctor", "Doctor")
                         .WithMany("Appointments")
                         .HasForeignKey("DoctorID")
@@ -1089,10 +1099,11 @@ namespace Graduation_Project.Migrations
                     b.HasOne("Graduation_Project.Models.Patient", "Patient")
                         .WithMany()
                         .HasForeignKey("PatientID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Clinic");
+
+                    b.Navigation("CreatedByAssistant");
 
                     b.Navigation("Doctor");
 
