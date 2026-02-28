@@ -1,0 +1,1115 @@
+﻿@model Graduation_Project.ViewModels.PlacesViewModel
+@{
+    Layout = "~/Views/Shared/_PatientLayout.cshtml";
+    ViewData["Title"] = "My Places";
+    ViewData["PatientId"] = Model.Patient.PatientID;
+    ViewData["ActivePage"] = "Places";
+
+    var total     = Model.Places.Count();
+    var hospitals = Model.Places.Count(p => p.Type?.ToLower() == "hospital");
+    var clinics   = Model.Places.Count(p => p.Type?.ToLower() == "clinic");
+    var others    = total - hospitals - clinics;
+}
+
+@section Head {
+    @Html.AntiForgeryToken()
+}
+
+<!-- ═══════════════════════════════════════════
+     HERO HEADER
+═══════════════════════════════════════════ -->
+<header class="pl-hero">
+    <div class="pl-hero-left">
+        <div class="pl-hero-icon">
+            <i class="fas fa-map-marked-alt"></i>
+        </div>
+        <div>
+            <h1 class="pl-hero-title">My Places</h1>
+            <p class="pl-hero-sub">Manage your healthcare locations all in one place</p>
+        </div>
+    </div>
+    <div class="pl-hero-right">
+        <div class="pl-notif-btn">
+            <i class="fas fa-bell"></i>
+        </div>
+        <div class="pl-profile-chip">
+            <div class="pl-avatar"><i class="fas fa-user"></i></div>
+            <span>@Model.UserName</span>
+        </div>
+    </div>
+</header>
+
+<!-- ═══════════════════════════════════════════
+     STATS BAR
+═══════════════════════════════════════════ -->
+<div class="pl-stats-bar">
+    <div class="pl-stat">
+        <div class="pl-stat-icon total"><i class="fas fa-map-marker-alt"></i></div>
+        <div class="pl-stat-body">
+            <span class="pl-stat-num" id="statTotal">@total</span>
+            <span class="pl-stat-lbl">Total Places</span>
+        </div>
+    </div>
+    <div class="pl-stat">
+        <div class="pl-stat-icon hospital"><i class="fas fa-hospital"></i></div>
+        <div class="pl-stat-body">
+            <span class="pl-stat-num" id="statHospitals">@hospitals</span>
+            <span class="pl-stat-lbl">Hospitals</span>
+        </div>
+    </div>
+    <div class="pl-stat">
+        <div class="pl-stat-icon clinic"><i class="fas fa-clinic-medical"></i></div>
+        <div class="pl-stat-body">
+            <span class="pl-stat-num" id="statClinics">@clinics</span>
+            <span class="pl-stat-lbl">Clinics</span>
+        </div>
+    </div>
+    <div class="pl-stat">
+        <div class="pl-stat-icon other"><i class="fas fa-briefcase-medical"></i></div>
+        <div class="pl-stat-body">
+            <span class="pl-stat-num" id="statOthers">@others</span>
+            <span class="pl-stat-lbl">Other</span>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     ADD NEW PLACE — collapsible panel
+═══════════════════════════════════════════ -->
+<section class="pl-section">
+    <div class="pl-card pl-add-card">
+        <div class="pl-add-toggle" id="addToggle">
+            <div class="pl-add-toggle-left">
+                <div class="pl-add-toggle-icon"><i class="fas fa-plus"></i></div>
+                <div>
+                    <span class="pl-add-toggle-title">Add New Place</span>
+                    <span class="pl-add-toggle-hint">Click to expand and save a new location</span>
+                </div>
+            </div>
+            <i class="fas fa-chevron-down pl-toggle-chevron" id="addChevron"></i>
+        </div>
+
+        <div class="pl-add-body" id="addBody">
+            <div class="pl-divider"></div>
+            <form id="addPlaceForm" class="pl-form">
+                <div class="pl-form-row">
+                    <div class="pl-form-group">
+                        <label class="pl-label" for="placeName">
+                            <i class="fas fa-tag"></i> Place Name <span class="pl-required">*</span>
+                        </label>
+                        <input type="text" id="placeName" class="pl-input" required />
+                    </div>
+                    <div class="pl-form-group">
+                        <label class="pl-label" for="placeType">
+                            <i class="fas fa-layer-group"></i> Place Type <span class="pl-required">*</span>
+                        </label>
+                        <select id="placeType" class="pl-input" required>
+                            <option value="">Select Type</option>
+                            <option value="hospital">🏥 Hospital</option>
+                            <option value="clinic">🏨 Clinic</option>
+                            <option value="lab">🔬 Laboratory</option>
+                            <option value="pharmacy">💊 Pharmacy</option>
+                            <option value="imaging">🩻 Imaging Center</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="pl-form-row">
+                    <div class="pl-form-group">
+                        <label class="pl-label" for="placeAddress">
+                            <i class="fas fa-map-marker-alt"></i> Address
+                        </label>
+                        <input type="text" id="placeAddress" class="pl-input" />
+                    </div>
+                    <div class="pl-form-group">
+                        <label class="pl-label" for="placePhone">
+                            <i class="fas fa-phone"></i> Phone Number
+                        </label>
+                        <input type="tel" id="placePhone" class="pl-input" />
+                    </div>
+                </div>
+                <div class="pl-form-actions">
+                    <button type="reset" class="pl-btn pl-btn-ghost">
+                        <i class="fas fa-redo"></i> Reset
+                    </button>
+                    <button type="submit" class="pl-btn pl-btn-primary">
+                        <i class="fas fa-save"></i> Save Place
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     MY SAVED PLACES
+═══════════════════════════════════════════ -->
+<section class="pl-section">
+    <div class="pl-card">
+        <div class="pl-list-header">
+            <div class="pl-list-title">
+                <div class="pl-list-icon"><i class="fas fa-th-large"></i></div>
+                <div>
+                    <h2 class="pl-list-heading">My Saved Places</h2>
+                    <p class="pl-list-sub" id="listCount">@total place@(total != 1 ? "s" : "") saved</p>
+                </div>
+            </div>
+            <div class="pl-filter-wrap">
+                <i class="fas fa-filter pl-filter-icon"></i>
+                <select class="pl-filter-select" id="typeFilter">
+                    <option value="">All Types</option>
+                    <option value="hospital">Hospitals</option>
+                    <option value="clinic">Clinics</option>
+                    <option value="lab">Laboratories</option>
+                    <option value="pharmacy">Pharmacies</option>
+                    <option value="imaging">Imaging Centers</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="pl-grid" id="placesGrid">
+            @if (!Model.Places.Any())
+            {
+                <div id="emptyState" class="pl-empty">
+                    <div class="pl-empty-icon"><i class="fas fa-map-marker-alt"></i></div>
+                    <h3>No places saved yet</h3>
+                    <p>Add your healthcare locations above to keep them handy.</p>
+                </div>
+            }
+            else
+            {
+                <div id="emptyState" class="pl-empty" style="display:none">
+                    <div class="pl-empty-icon"><i class="fas fa-search"></i></div>
+                    <h3>No places found</h3>
+                    <p>Try selecting a different type filter.</p>
+                </div>
+
+                foreach (var place in Model.Places)
+                {
+                    <div class="pl-place-card" data-place-id="@place.PlaceID" data-type="@place.Type?.ToLower()">
+                        <div class="pl-place-thumb @place.Type?.ToLower()">
+                            <i class="@GetPlaceIcon(place.Type)"></i>
+                            <span class="pl-badge @place.Type?.ToLower()">@CapitalizeType(place.Type)</span>
+                        </div>
+                        <div class="pl-place-body">
+                            <h4 class="pl-place-name">@place.Name</h4>
+                            @if (!string.IsNullOrWhiteSpace(place.Address))
+                            {
+                                <p class="pl-place-meta">
+                                    <i class="fas fa-map-marker-alt"></i> @place.Address
+                                </p>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(place.Phone))
+                            {
+                                <p class="pl-place-meta">
+                                    <i class="fas fa-phone"></i> @place.Phone
+                                </p>
+                            }
+                        </div>
+                        <div class="pl-place-footer">
+                            <button class="pl-btn pl-btn-edit edit-place-btn"
+                                    data-id="@place.PlaceID"
+                                    data-name="@place.Name"
+                                    data-type="@place.Type"
+                                    data-address="@place.Address"
+                                    data-phone="@place.Phone">
+                                <i class="fas fa-pen"></i> Edit
+                            </button>
+                            <button class="pl-btn pl-btn-delete delete-place-btn"
+                                    data-id="@place.PlaceID">
+                                <i class="fas fa-trash-alt"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     EDIT MODAL
+═══════════════════════════════════════════ -->
+<div id="editModal" class="pl-modal-backdrop" style="display:none">
+    <div class="pl-modal">
+        <div class="pl-modal-header">
+            <div class="pl-modal-title">
+                <div class="pl-modal-icon"><i class="fas fa-pen"></i></div>
+                <span>Edit Place</span>
+            </div>
+            <button class="pl-modal-close" id="closeEditModal"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="pl-modal-body">
+            <input type="hidden" id="editPlaceId" />
+            <div class="pl-form-row">
+                <div class="pl-form-group">
+                    <label class="pl-label"><i class="fas fa-tag"></i> Place Name <span class="pl-required">*</span></label>
+                    <input type="text" id="editPlaceName" class="pl-input" />
+                </div>
+                <div class="pl-form-group">
+                    <label class="pl-label"><i class="fas fa-layer-group"></i> Place Type <span class="pl-required">*</span></label>
+                    <select id="editPlaceType" class="pl-input">
+                        <option value="hospital">🏥 Hospital</option>
+                        <option value="clinic">🏨 Clinic</option>
+                        <option value="lab">🔬 Laboratory</option>
+                        <option value="pharmacy">💊 Pharmacy</option>
+                        <option value="imaging">🩻 Imaging Center</option>
+                    </select>
+                </div>
+            </div>
+            <div class="pl-form-row">
+                <div class="pl-form-group">
+                    <label class="pl-label"><i class="fas fa-map-marker-alt"></i> Address</label>
+                    <input type="text" id="editPlaceAddress" class="pl-input" />
+                </div>
+                <div class="pl-form-group">
+                    <label class="pl-label"><i class="fas fa-phone"></i> Phone Number</label>
+                    <input type="tel" id="editPlacePhone" class="pl-input" />
+                </div>
+            </div>
+        </div>
+        <div class="pl-modal-footer">
+            <button class="pl-btn pl-btn-ghost" id="closeEditModal2">Cancel</button>
+            <button class="pl-btn pl-btn-primary" id="saveEditBtn">
+                <i class="fas fa-save"></i> Save Changes
+            </button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const patientId   = @Model.Patient.PatientID;
+    const antiForgery = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? "";
+
+    // ── Collapsible add panel ────────────────────────────────────────
+    const addToggle = document.getElementById("addToggle");
+    const addBody   = document.getElementById("addBody");
+    const chevron   = document.getElementById("addChevron");
+    let addOpen = false;
+
+    addToggle.addEventListener("click", () => {
+        addOpen = !addOpen;
+        addBody.style.maxHeight  = addOpen ? addBody.scrollHeight + "px" : "0";
+        addBody.style.opacity    = addOpen ? "1" : "0";
+        chevron.style.transform  = addOpen ? "rotate(180deg)" : "rotate(0)";
+    });
+
+    // ── Type filter ──────────────────────────────────────────────────
+    document.getElementById("typeFilter").addEventListener("change", function () {
+        const filter = this.value.toLowerCase();
+        const cards  = document.querySelectorAll(".pl-place-card");
+        let visible  = 0;
+        cards.forEach(card => {
+            const show = !filter || card.dataset.type === filter;
+            card.style.display = show ? "" : "none";
+            if (show) visible++;
+        });
+        document.getElementById("emptyState").style.display = visible === 0 ? "flex" : "none";
+        document.getElementById("listCount").textContent = visible + " place" + (visible !== 1 ? "s" : "") + (filter ? " found" : " saved");
+    });
+
+    // ── Add Place ────────────────────────────────────────────────────
+    document.getElementById("addPlaceForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        const name    = document.getElementById("placeName").value.trim();
+        const type    = document.getElementById("placeType").value;
+        const address = document.getElementById("placeAddress").value.trim();
+        const phone   = document.getElementById("placePhone").value.trim();
+
+        if (!name || !type) { showToast("Name and type are required.", "warning"); return; }
+
+        const btn = this.querySelector('[type="submit"]');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+        btn.disabled = true;
+
+        fetch("/Patient/SavePlace", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: `patientId=${patientId}&name=${encodeURIComponent(name)}&type=${encodeURIComponent(type)}&address=${encodeURIComponent(address)}&phone=${encodeURIComponent(phone)}&__RequestVerificationToken=${encodeURIComponent(antiForgery)}`
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                this.reset();
+                addPlaceCard(data);
+                updateStats();
+                showToast("Place saved successfully!", "success");
+                // close panel
+                addOpen = true; addToggle.click();
+            }
+        })
+        .catch(() => showToast("An error occurred. Please try again.", "error"))
+        .finally(() => { btn.innerHTML = '<i class="fas fa-save"></i> Save Place'; btn.disabled = false; });
+    });
+
+    // ── Delete Place ─────────────────────────────────────────────────
+    document.addEventListener("click", function (e) {
+        const btn = e.target.closest(".delete-place-btn");
+        if (!btn) return;
+        const placeId = btn.dataset.id;
+        if (!confirm("Are you sure you want to delete this place?")) return;
+
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        btn.disabled = true;
+
+        fetch("/Patient/DeletePlace", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: `placeId=${placeId}&patientId=${patientId}&__RequestVerificationToken=${encodeURIComponent(antiForgery)}`
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        const card = btn.closest(".pl-place-card");
+                        card.style.animation = "plFadeOut .3s ease forwards";
+                        setTimeout(() => {
+                            card.remove();
+                            updateStats();
+                            showToast("Place deleted.", "success");
+                            if (!document.querySelectorAll(".pl-place-card").length)
+                                document.getElementById("emptyState").style.display = "flex";
+                        }, 300);
+                    }
+                })
+                .catch(() => showToast("An error occurred.", "error"));
+    });
+
+    // ── Open Edit Modal ──────────────────────────────────────────────
+    document.addEventListener("click", function (e) {
+        const btn = e.target.closest(".edit-place-btn");
+        if (!btn) return;
+        document.getElementById("editPlaceId").value      = btn.dataset.id;
+        document.getElementById("editPlaceName").value    = btn.dataset.name;
+        document.getElementById("editPlaceType").value    = btn.dataset.type?.toLowerCase();
+        document.getElementById("editPlaceAddress").value = btn.dataset.address ?? "";
+        document.getElementById("editPlacePhone").value   = btn.dataset.phone ?? "";
+        openModal();
+    });
+
+    function openModal()  { document.getElementById("editModal").style.display = "flex"; document.body.style.overflow = "hidden"; }
+    function closeModal() { document.getElementById("editModal").style.display = "none";  document.body.style.overflow = ""; }
+
+    document.getElementById("closeEditModal").addEventListener("click",  closeModal);
+    document.getElementById("closeEditModal2").addEventListener("click", closeModal);
+    document.getElementById("editModal").addEventListener("click", function (e) { if (e.target === this) closeModal(); });
+
+    // ── Save Edit ────────────────────────────────────────────────────
+    document.getElementById("saveEditBtn").addEventListener("click", function () {
+        const placeId = document.getElementById("editPlaceId").value;
+        const name    = document.getElementById("editPlaceName").value.trim();
+        const type    = document.getElementById("editPlaceType").value;
+        const address = document.getElementById("editPlaceAddress").value.trim();
+        const phone   = document.getElementById("editPlacePhone").value.trim();
+
+        if (!name || !type) { showToast("Name and type are required.", "warning"); return; }
+
+        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+        this.disabled = true;
+        const self = this;
+
+        fetch("/Patient/UpdatePlace", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: `placeId=${placeId}&patientId=${patientId}&name=${encodeURIComponent(name)}&type=${encodeURIComponent(type)}&address=${encodeURIComponent(address)}&phone=${encodeURIComponent(phone)}&__RequestVerificationToken=${encodeURIComponent(antiForgery)}`
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                const card = document.querySelector(`.pl-place-card[data-place-id="${placeId}"]`);
+                if (card) {
+                    card.dataset.type = type.toLowerCase();
+                    card.querySelector(".pl-place-name").textContent = name;
+
+                    // rebuild thumb class
+                    const thumb = card.querySelector(".pl-place-thumb");
+                    thumb.className = `pl-place-thumb ${type.toLowerCase()}`;
+                    const iconEl = thumb.querySelector("i");
+                    if (iconEl) iconEl.className = getPlaceIcon(type);
+
+                    // address / phone
+                    const metas = card.querySelectorAll(".pl-place-meta");
+                    metas.forEach(m => m.remove());
+                    const body = card.querySelector(".pl-place-body");
+                    if (address) body.insertAdjacentHTML("beforeend", `<p class="pl-place-meta"><i class="fas fa-map-marker-alt"></i> ${escHtml(address)}</p>`);
+                    if (phone)   body.insertAdjacentHTML("beforeend", `<p class="pl-place-meta"><i class="fas fa-phone"></i> ${escHtml(phone)}</p>`);
+
+                    // badge
+                    const badge = card.querySelector(".pl-badge");
+                    if (badge) { badge.className = `pl-badge ${type.toLowerCase()}`; badge.textContent = capitalizeType(type); }
+
+                    // edit btn attrs
+                    const editBtn = card.querySelector(".edit-place-btn");
+                    if (editBtn) { editBtn.dataset.name = name; editBtn.dataset.type = type; editBtn.dataset.address = address; editBtn.dataset.phone = phone; }
+                }
+                closeModal();
+                updateStats();
+                showToast("Place updated successfully!", "success");
+            }
+        })
+        .catch(() => showToast("An error occurred.", "error"))
+        .finally(() => { self.innerHTML = '<i class="fas fa-save"></i> Save Changes'; self.disabled = false; });
+    });
+
+    // ── Helpers ──────────────────────────────────────────────────────
+    function addPlaceCard(data) {
+        document.getElementById("emptyState").style.display = "none";
+        const grid = document.getElementById("placesGrid");
+        const icon = getPlaceIcon(data.type);
+        const card = document.createElement("div");
+        card.className = "pl-place-card";
+        card.dataset.placeId = data.id;
+        card.dataset.type = data.type.toLowerCase();
+        card.style.animation = "plFadeIn .4s ease";
+        card.innerHTML = `
+            <div class="pl-place-thumb ${data.type.toLowerCase()}">
+                <i class="${icon}"></i>
+                <span class="pl-badge ${data.type.toLowerCase()}">${capitalizeType(data.type)}</span>
+            </div>
+            <div class="pl-place-body">
+                <h4 class="pl-place-name">${escHtml(data.name)}</h4>
+                ${data.address ? `<p class="pl-place-meta"><i class="fas fa-map-marker-alt"></i> ${escHtml(data.address)}</p>` : ""}
+                ${data.phone   ? `<p class="pl-place-meta"><i class="fas fa-phone"></i> ${escHtml(data.phone)}</p>` : ""}
+            </div>
+            <div class="pl-place-footer">
+                <button class="pl-btn pl-btn-edit edit-place-btn"
+                    data-id="${data.id}" data-name="${escAttr(data.name)}"
+                    data-type="${escAttr(data.type)}" data-address="${escAttr(data.address ?? "")}"
+                    data-phone="${escAttr(data.phone ?? "")}">
+                    <i class="fas fa-pen"></i> Edit
+                </button>
+                <button class="pl-btn pl-btn-delete delete-place-btn" data-id="${data.id}">
+                    <i class="fas fa-trash-alt"></i> Delete
+                </button>
+            </div>`;
+        grid.insertBefore(card, grid.firstChild);
+    }
+
+    function updateStats() {
+        const cards     = document.querySelectorAll(".pl-place-card");
+        const total     = cards.length;
+        const hospitals = [...cards].filter(c => c.dataset.type === "hospital").length;
+        const clinics   = [...cards].filter(c => c.dataset.type === "clinic").length;
+        const others    = total - hospitals - clinics;
+        setEl("statTotal",     total);
+        setEl("statHospitals", hospitals);
+        setEl("statClinics",   clinics);
+        setEl("statOthers",    others);
+        document.getElementById("listCount").textContent = total + " place" + (total !== 1 ? "s" : "") + " saved";
+    }
+
+    function getPlaceIcon(type) {
+        const map = { hospital: "fas fa-hospital", clinic: "fas fa-clinic-medical", lab: "fas fa-flask", pharmacy: "fas fa-pills", imaging: "fas fa-x-ray" };
+        return map[(type ?? "").toLowerCase()] ?? "fas fa-map-marker-alt";
+    }
+
+    function capitalizeType(type) {
+        const map = { hospital: "Hospital", clinic: "Clinic", lab: "Laboratory", pharmacy: "Pharmacy", imaging: "Imaging Center" };
+        return map[(type ?? "").toLowerCase()] ?? type ?? "";
+    }
+
+    function setEl(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+    function escHtml(s) { const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; }
+    function escAttr(s) { return (s ?? "").replace(/"/g, "&quot;").replace(/'/g, "&#39;"); }
+
+    function showToast(message, type = "info") {
+        document.querySelector(".pl-toast")?.remove();
+        const icons = { success: "fa-check-circle", error: "fa-times-circle", warning: "fa-exclamation-triangle", info: "fa-info-circle" };
+        const n = document.createElement("div");
+        n.className = `pl-toast pl-toast-${type}`;
+        n.innerHTML = `<i class="fas ${icons[type] ?? icons.info}"></i><span>${message}</span>
+                       <button class="pl-toast-close"><i class="fas fa-times"></i></button>`;
+        document.body.appendChild(n);
+        n.querySelector(".pl-toast-close").addEventListener("click", () => n.remove());
+        setTimeout(() => n?.remove(), 4500);
+    }
+});
+</script>
+
+<style>
+/* ══════════════════════════════════════════
+   PLACES PAGE — FULL MODERN DESIGN SYSTEM
+══════════════════════════════════════════ */
+:root {
+    --pl-primary:     #1BAEBE;
+    --pl-primary-dk:  #138fa0;
+    --pl-primary-lt:  #e0f7fa;
+    --pl-text:        #1e293b;
+    --pl-muted:       #64748b;
+    --pl-light:       #f8fafc;
+    --pl-border:      #e2e8f0;
+    --pl-radius:      18px;
+    --pl-radius-sm:   10px;
+    --pl-shadow:      0 2px 16px rgba(0,0,0,.06);
+    --pl-shadow-md:   0 6px 28px rgba(0,0,0,.10);
+    --pl-shadow-hov:  0 12px 40px rgba(0,0,0,.14);
+    /* type colours */
+    --c-hospital:  #3b82f6;
+    --c-clinic:    #10b981;
+    --c-lab:       #8b5cf6;
+    --c-pharmacy:  #f59e0b;
+    --c-imaging:   #ec4899;
+    --c-other:     #64748b;
+}
+
+/* ── HERO HEADER ─────────────────────────── */
+.pl-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #0f2942 0%, #1a4a6e 50%, #0d3d5c 100%);
+    border-radius: var(--pl-radius);
+    padding: 1.8rem 2rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+    position: relative;
+    overflow: hidden;
+}
+.pl-hero::before {
+    content: "";
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(27,174,190,.25) 0%, transparent 70%);
+    pointer-events: none;
+}
+.pl-hero::after {
+    content: "";
+    position: absolute;
+    bottom: -60px; left: 20%;
+    width: 260px; height: 260px;
+    background: radial-gradient(circle, rgba(0,180,216,.12) 0%, transparent 70%);
+    pointer-events: none;
+}
+.pl-hero-left {
+    display: flex;
+    align-items: center;
+    gap: 1.1rem;
+    z-index: 1;
+}
+.pl-hero-icon {
+    width: 56px; height: 56px;
+    background: linear-gradient(135deg, var(--pl-primary), var(--pl-primary-dk));
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; color: #fff;
+    box-shadow: 0 6px 20px rgba(27,174,190,.45);
+    flex-shrink: 0;
+}
+.pl-hero-title {
+    margin: 0;
+    font-size: 1.7rem;
+    font-weight: 800;
+    color: #f1f5f9;
+    letter-spacing: -.3px;
+}
+.pl-hero-sub {
+    margin: .2rem 0 0;
+    font-size: .88rem;
+    color: #94a3b8;
+}
+.pl-hero-right {
+    display: flex;
+    align-items: center;
+    gap: .85rem;
+    z-index: 1;
+}
+.pl-notif-btn {
+    width: 42px; height: 42px;
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    color: #cbd5e1;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background .2s;
+}
+.pl-notif-btn:hover { background: rgba(255,255,255,.18); }
+.pl-profile-chip {
+    display: flex; align-items: center; gap: .55rem;
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 24px;
+    padding: .4rem .9rem .4rem .5rem;
+    font-size: .87rem; font-weight: 500; color: #e2e8f0;
+}
+.pl-avatar {
+    width: 30px; height: 30px;
+    background: linear-gradient(135deg, var(--pl-primary), var(--pl-primary-dk));
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .8rem; color: #fff;
+}
+
+/* ── STATS BAR ───────────────────────────── */
+.pl-stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+@@media (max-width: 768px) { .pl-stats-bar { grid-template-columns: repeat(2,1fr); } }
+@@media (max-width: 480px) { .pl-stats-bar { grid-template-columns: 1fr 1fr; } }
+
+.pl-stat {
+    background: #fff;
+    border-radius: var(--pl-radius);
+    padding: 1.1rem 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: .9rem;
+    box-shadow: var(--pl-shadow);
+    border: 1px solid var(--pl-border);
+    transition: transform .2s, box-shadow .2s;
+}
+.pl-stat:hover { transform: translateY(-2px); box-shadow: var(--pl-shadow-md); }
+
+.pl-stat-icon {
+    width: 46px; height: 46px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+.pl-stat-icon.total    { background: #e0f7fa; color: var(--pl-primary); }
+.pl-stat-icon.hospital { background: #dbeafe; color: var(--c-hospital); }
+.pl-stat-icon.clinic   { background: #d1fae5; color: var(--c-clinic); }
+.pl-stat-icon.other    { background: #f1f5f9; color: var(--c-other); }
+
+.pl-stat-body { display: flex; flex-direction: column; }
+.pl-stat-num  { font-size: 1.7rem; font-weight: 800; color: var(--pl-text); line-height: 1; }
+.pl-stat-lbl  { font-size: .75rem; font-weight: 500; color: var(--pl-muted); margin-top: .15rem; }
+
+/* ── CARD BASE ───────────────────────────── */
+.pl-section { margin-bottom: 1.5rem; }
+.pl-card {
+    background: #fff;
+    border-radius: var(--pl-radius);
+    box-shadow: var(--pl-shadow);
+    border: 1px solid var(--pl-border);
+    overflow: hidden;
+}
+
+/* ── ADD CARD / COLLAPSIBLE ──────────────── */
+.pl-add-card { }
+
+.pl-add-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.3rem 1.75rem;
+    cursor: pointer;
+    user-select: none;
+    transition: background .2s;
+}
+.pl-add-toggle:hover { background: #fafbff; }
+.pl-add-toggle-left  { display: flex; align-items: center; gap: 1rem; }
+.pl-add-toggle-icon  {
+    width: 42px; height: 42px;
+    background: linear-gradient(135deg, var(--pl-primary), var(--pl-primary-dk));
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 1rem;
+    box-shadow: 0 4px 12px rgba(27,174,190,.3);
+    flex-shrink: 0;
+}
+.pl-add-toggle-title { display: block; font-size: 1rem; font-weight: 700; color: var(--pl-text); }
+.pl-add-toggle-hint  { display: block; font-size: .8rem; color: var(--pl-muted); margin-top: .1rem; }
+.pl-toggle-chevron   { color: var(--pl-muted); font-size: .9rem; transition: transform .35s ease; }
+
+.pl-add-body {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height .4s ease, opacity .3s ease;
+}
+.pl-divider { height: 1px; background: var(--pl-border); margin: 0 1.75rem; }
+
+/* ── FORM ────────────────────────────────── */
+.pl-form { padding: 1.5rem 1.75rem 1.75rem; }
+.pl-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.1rem;
+    margin-bottom: 1.1rem;
+}
+@@media (max-width: 640px) { .pl-form-row { grid-template-columns: 1fr; } }
+
+.pl-form-group  { display: flex; flex-direction: column; gap: .45rem; }
+.pl-label {
+    font-size: .82rem;
+    font-weight: 600;
+    color: var(--pl-text);
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+}
+.pl-label i       { color: var(--pl-primary); font-size: .78rem; }
+.pl-required      { color: #ef4444; }
+
+.pl-input {
+    width: 100%;
+    padding: .72rem 1rem;
+    border: 1.5px solid var(--pl-border);
+    border-radius: var(--pl-radius-sm);
+    font-size: .91rem;
+    font-family: inherit;
+    color: var(--pl-text);
+    background: #fff;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s, background .2s;
+}
+.pl-input::placeholder { color: #b0bec5; }
+.pl-input:focus {
+    border-color: var(--pl-primary);
+    box-shadow: 0 0 0 4px rgba(27,174,190,.12);
+    background: #fafeff;
+}
+.pl-input:hover:not(:focus) { border-color: #c0cdd8; }
+
+.pl-form-actions {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin-top: .5rem;
+}
+
+/* ── BUTTONS ─────────────────────────────── */
+.pl-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    padding: .65rem 1.4rem;
+    border-radius: var(--pl-radius-sm);
+    border: none;
+    font-size: .88rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all .2s;
+    line-height: 1;
+    white-space: nowrap;
+}
+.pl-btn-primary {
+    background: linear-gradient(135deg, var(--pl-primary), var(--pl-primary-dk));
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(27,174,190,.35);
+}
+.pl-btn-primary:hover {
+    box-shadow: 0 6px 20px rgba(27,174,190,.5);
+    transform: translateY(-1px);
+}
+.pl-btn-ghost {
+    background: var(--pl-light);
+    color: var(--pl-muted);
+    border: 1.5px solid var(--pl-border);
+}
+.pl-btn-ghost:hover { background: #f1f5f9; color: var(--pl-text); }
+
+.pl-btn-edit {
+    flex: 1;
+    justify-content: center;
+    background: #f0f9ff;
+    color: var(--pl-primary);
+    border: 1.5px solid #bae6fd;
+    font-size: .8rem;
+    padding: .45rem .75rem;
+}
+.pl-btn-edit:hover { background: #e0f2fe; border-color: var(--pl-primary); }
+
+.pl-btn-delete {
+    flex: 1;
+    justify-content: center;
+    background: #fff1f2;
+    color: #dc2626;
+    border: 1.5px solid #fca5a5;
+    font-size: .8rem;
+    padding: .45rem .75rem;
+}
+.pl-btn-delete:hover { background: #fee2e2; border-color: #ef4444; }
+
+/* ── LIST HEADER ─────────────────────────── */
+.pl-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.4rem 1.75rem 1.1rem;
+    flex-wrap: wrap;
+    gap: .75rem;
+    border-bottom: 1px solid var(--pl-border);
+}
+.pl-list-title  { display: flex; align-items: center; gap: .9rem; }
+.pl-list-icon   {
+    width: 42px; height: 42px;
+    background: linear-gradient(135deg, #e0f7fa, #b2ebf2);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--pl-primary); font-size: 1rem;
+}
+.pl-list-heading { margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--pl-text); }
+.pl-list-sub     { margin: .1rem 0 0; font-size: .8rem; color: var(--pl-muted); }
+
+.pl-filter-wrap {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    background: var(--pl-light);
+    border: 1.5px solid var(--pl-border);
+    border-radius: 10px;
+    padding: .35rem .75rem;
+}
+.pl-filter-icon   { color: var(--pl-muted); font-size: .82rem; }
+.pl-filter-select {
+    border: none;
+    background: transparent;
+    font-size: .85rem;
+    font-family: inherit;
+    color: var(--pl-text);
+    outline: none;
+    cursor: pointer;
+    padding: .1rem .2rem;
+}
+
+/* ── PLACES GRID ─────────────────────────── */
+.pl-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.25rem;
+    padding: 1.5rem 1.75rem 1.75rem;
+}
+@@media (max-width: 600px) { .pl-grid { grid-template-columns: 1fr; } }
+
+/* ── PLACE CARD ──────────────────────────── */
+.pl-place-card {
+    border-radius: 14px;
+    border: 1px solid var(--pl-border);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    box-shadow: var(--pl-shadow);
+    transition: transform .22s, box-shadow .22s;
+    animation: plFadeIn .4s ease;
+}
+.pl-place-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--pl-shadow-hov);
+}
+
+/* Thumb — coloured per type */
+.pl-place-thumb {
+    position: relative;
+    height: 130px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+.pl-place-thumb i { position: relative; z-index: 1; }
+
+/* per-type gradient backgrounds */
+.pl-place-thumb.hospital { background: linear-gradient(135deg,#dbeafe,#bfdbfe); color: var(--c-hospital); }
+.pl-place-thumb.clinic   { background: linear-gradient(135deg,#d1fae5,#a7f3d0); color: var(--c-clinic);   }
+.pl-place-thumb.lab      { background: linear-gradient(135deg,#ede9fe,#ddd6fe); color: var(--c-lab);      }
+.pl-place-thumb.pharmacy { background: linear-gradient(135deg,#fef3c7,#fde68a); color: var(--c-pharmacy); }
+.pl-place-thumb.imaging  { background: linear-gradient(135deg,#fce7f3,#fbcfe8); color: var(--c-imaging);  }
+.pl-place-thumb          { background: linear-gradient(135deg,#f1f5f9,#e2e8f0); color: var(--c-other);    }
+
+/* Badge */
+.pl-badge {
+    position: absolute;
+    top: .65rem; right: .65rem;
+    font-size: .68rem;
+    font-weight: 700;
+    padding: .2rem .6rem;
+    border-radius: 20px;
+    letter-spacing: .03em;
+    backdrop-filter: blur(8px);
+    z-index: 2;
+}
+.pl-badge          { background: rgba(241,245,249,.9); color: #475569; }
+.pl-badge.hospital { background: rgba(219,234,254,.9); color: #1d4ed8; }
+.pl-badge.clinic   { background: rgba(209,250,229,.9); color: #065f46; }
+.pl-badge.lab      { background: rgba(237,233,254,.9); color: #5b21b6; }
+.pl-badge.pharmacy { background: rgba(254,243,199,.9); color: #92400e; }
+.pl-badge.imaging  { background: rgba(252,231,243,.9); color: #9d174d; }
+
+/* Card body */
+.pl-place-body { padding: 1rem 1.1rem .65rem; flex: 1; }
+.pl-place-name {
+    margin: 0 0 .5rem;
+    font-size: .97rem;
+    font-weight: 700;
+    color: var(--pl-text);
+    line-height: 1.3;
+}
+.pl-place-meta {
+    display: flex;
+    align-items: flex-start;
+    gap: .4rem;
+    font-size: .8rem;
+    color: var(--pl-muted);
+    margin: .3rem 0 0;
+    line-height: 1.5;
+}
+.pl-place-meta i { color: var(--pl-primary); flex-shrink: 0; margin-top: .17rem; font-size: .72rem; }
+
+/* Card footer */
+.pl-place-footer {
+    display: flex;
+    gap: .5rem;
+    padding: .75rem 1.1rem 1rem;
+    border-top: 1px solid var(--pl-light);
+}
+
+/* ── EMPTY STATE ─────────────────────────── */
+.pl-empty {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4rem 2rem;
+    text-align: center;
+}
+.pl-empty-icon {
+    width: 72px; height: 72px;
+    background: var(--pl-light);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; color: #cbd5e1;
+    margin-bottom: 1.1rem;
+    border: 2px dashed var(--pl-border);
+}
+.pl-empty h3 { margin: 0 0 .4rem; font-size: 1.05rem; color: #64748b; font-weight: 600; }
+.pl-empty p  { margin: 0; font-size: .87rem; color: #94a3b8; }
+
+/* ── MODAL ───────────────────────────────── */
+.pl-modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(15,23,42,.55);
+    backdrop-filter: blur(6px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    animation: plFadeIn .2s ease;
+}
+.pl-modal {
+    background: #fff;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 540px;
+    box-shadow: 0 24px 60px rgba(0,0,0,.2);
+    overflow: hidden;
+    animation: plSlideUp .3s ease;
+}
+.pl-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.3rem 1.7rem;
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    border-bottom: 1px solid var(--pl-border);
+}
+.pl-modal-title {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--pl-text);
+}
+.pl-modal-icon {
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, var(--pl-primary), var(--pl-primary-dk));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: .9rem;
+}
+.pl-modal-close {
+    width: 34px; height: 34px;
+    background: none;
+    border: 1.5px solid var(--pl-border);
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--pl-muted);
+    font-size: .85rem;
+    transition: all .2s;
+}
+.pl-modal-close:hover { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+.pl-modal-body   { padding: 1.5rem 1.7rem 1rem; }
+.pl-modal-footer {
+    display: flex;
+    gap: .75rem;
+    justify-content: flex-end;
+    padding: 1rem 1.7rem 1.5rem;
+    border-top: 1px solid var(--pl-border);
+    background: var(--pl-light);
+}
+
+/* ── TOAST ───────────────────────────────── */
+.pl-toast {
+    position: fixed;
+    top: 1.5rem; right: 1.5rem;
+    padding: .9rem 1.2rem;
+    border-radius: 14px;
+    display: flex; align-items: center; gap: .75rem;
+    font-size: .9rem; font-weight: 500;
+    z-index: 9999;
+    box-shadow: 0 8px 28px rgba(0,0,0,.14);
+    animation: plSlideInR .35s ease;
+    max-width: 340px;
+}
+.pl-toast-success { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+.pl-toast-warning { background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; }
+.pl-toast-error   { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+.pl-toast-info    { background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; }
+.pl-toast-close   { background: none; border: none; cursor: pointer; color: inherit; opacity: .65; padding: 2px 5px; margin-left: auto; }
+
+/* ── ANIMATIONS ──────────────────────────── */
+@@keyframes plFadeIn    { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+@@keyframes plFadeOut   { from { opacity:1; transform:scale(1);         } to { opacity:0; transform:scale(.92);    } }
+@@keyframes plSlideUp   { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }
+@@keyframes plSlideInR  { from { opacity:0; transform:translateX(60px); } to { opacity:1; transform:translateX(0); } }
+
+/* ── RESPONSIVE ──────────────────────────── */
+@@media (max-width: 768px) {
+    .pl-hero    { padding: 1.3rem 1.2rem; }
+    .pl-hero-title { font-size: 1.35rem; }
+    .pl-card    { border-radius: 14px; }
+    .pl-grid    { padding: 1rem; }
+    .pl-list-header { padding: 1rem 1.1rem .9rem; }
+    .pl-add-toggle  { padding: 1rem 1.2rem; }
+    .pl-form    { padding: 1.1rem 1.2rem 1.4rem; }
+    .pl-place-footer { flex-direction: row; }
+}
+</style>
+}
+
+@functions {
+    string GetPlaceIcon(string? type) => (type ?? "").ToLower() switch
+    {
+        "hospital" => "fas fa-hospital",
+        "clinic"   => "fas fa-clinic-medical",
+        "lab"      => "fas fa-flask",
+        "pharmacy" => "fas fa-pills",
+        "imaging"  => "fas fa-x-ray",
+        _          => "fas fa-map-marker-alt"
+    };
+
+    string CapitalizeType(string? type) => (type ?? "").ToLower() switch
+    {
+        "hospital" => "Hospital",
+        "clinic"   => "Clinic",
+        "lab"      => "Laboratory",
+        "pharmacy" => "Pharmacy",
+        "imaging"  => "Imaging Center",
+        _          => type ?? ""
+    };
+}
