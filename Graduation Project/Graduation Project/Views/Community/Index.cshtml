@@ -1,0 +1,1272 @@
+@{
+    Layout = "~/Views/Shared/_PatientLayout.cshtml";
+    ViewData["Title"]      = "Community";
+    ViewData["ActivePage"] = "Community";
+    var patientId = ViewData["PatientId"] as int? ?? 0;
+}
+
+<!-- ??????????????????????????????????????????????????
+     PAGE HEADER
+?????????????????????????????????????????????????? -->
+<header class="cm-header">
+    <div class="cm-header-left">
+        <div class="cm-header-icon">
+            <i class="fas fa-users"></i>
+        </div>
+        <div>
+            <h1 class="cm-title">Community</h1>
+            <p class="cm-subtitle">Connect, share and grow with other expecting mothers</p>
+        </div>
+    </div>
+    <div class="cm-header-right">
+        <div class="cm-members-pill">
+            <i class="fas fa-circle cm-online-dot"></i>
+            <span>2,841 members online</span>
+        </div>
+        <div class="cm-profile-chip">
+            <div class="cm-chip-avatar"><i class="fas fa-user"></i></div>
+            <span>Patient #@patientId</span>
+        </div>
+    </div>
+</header>
+
+<!-- ??????????????????????????????????????????????????
+     MAIN GRID  (feed  +  right panel)
+?????????????????????????????????????????????????? -->
+<div class="cm-page">
+
+    <!-- ?????????? FEED COLUMN ?????????? -->
+    <div class="cm-feed-col">
+
+        <!-- ?? Create Post Card ?? -->
+        <div class="cm-compose-card">
+            <div class="cm-compose-top">
+                <div class="cm-compose-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <button class="cm-compose-trigger" id="composeTrigger" type="button">
+                    What's on your mind? Share with the community&hellip;
+                </button>
+            </div>
+            <!-- Compose form (hidden by default) -->
+            <div class="cm-compose-form" id="composeForm" style="display:none">
+                <textarea class="cm-compose-textarea" id="postTextarea"
+                          placeholder="Share your thoughts, ask a question, or give advice to fellow moms&hellip;"
+                          rows="3" maxlength="1000"></textarea>
+                <div class="cm-compose-meta">
+                    <div class="cm-compose-tags">
+                        <button class="cm-tag-btn cm-tag-active" type="button" data-tag="General">
+                            <i class="fas fa-globe"></i> General
+                        </button>
+                        <button class="cm-tag-btn" type="button" data-tag="Nutrition">
+                            <i class="fas fa-apple-alt"></i> Nutrition
+                        </button>
+                        <button class="cm-tag-btn" type="button" data-tag="Symptoms">
+                            <i class="fas fa-heartbeat"></i> Symptoms
+                        </button>
+                        <button class="cm-tag-btn" type="button" data-tag="Question">
+                            <i class="fas fa-question-circle"></i> Question
+                        </button>
+                        <button class="cm-tag-btn" type="button" data-tag="Milestones">
+                            <i class="fas fa-star"></i> Milestone
+                        </button>
+                    </div>
+                    <div class="cm-compose-actions">
+                        <button class="cm-compose-cancel" id="composeCancel" type="button">Cancel</button>
+                        <button class="cm-compose-post" id="composePost" type="button">
+                            <i class="fas fa-paper-plane"></i> Post
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- Quick-action row -->
+            <div class="cm-compose-quick" id="composeQuick">
+                <button class="cm-quick-btn" type="button" id="qPhoto">
+                    <i class="fas fa-image"></i><span>Photo</span>
+                </button>
+                <button class="cm-quick-btn" type="button" id="qPoll">
+                    <i class="fas fa-poll-h"></i><span>Poll</span>
+                </button>
+                <button class="cm-quick-btn" type="button" id="qQuestion">
+                    <i class="fas fa-question-circle"></i><span>Question</span>
+                </button>
+                <div class="cm-compose-sep"></div>
+                <button class="cm-compose-post-sm cm-compose-post" id="composePostSm" type="button">
+                    <i class="fas fa-paper-plane"></i> Post
+                </button>
+            </div>
+        </div>
+
+        <!-- ?? Filter Tabs ?? -->
+        <div class="cm-feed-tabs">
+            <button class="cm-feed-tab active" data-feed="all">
+                <i class="fas fa-stream"></i> All Posts
+            </button>
+            <button class="cm-feed-tab" data-feed="trending">
+                <i class="fas fa-fire"></i> Trending
+            </button>
+            <button class="cm-feed-tab" data-feed="questions">
+                <i class="fas fa-question-circle"></i> Questions
+            </button>
+            <button class="cm-feed-tab" data-feed="milestones">
+                <i class="fas fa-star"></i> Milestones
+            </button>
+        </div>
+
+        <!-- ?? Posts Feed ?? -->
+        <div id="postsFeed">
+
+            <!-- Post 1 – Text + comments -->
+            <article class="cm-post" data-type="general">
+                <div class="cm-post-header">
+                    <img class="cm-post-avatar" src="https://i.pravatar.cc/48?img=20" alt="Mona Ibrahim" />
+                    <div class="cm-post-meta">
+                        <div class="cm-post-name-row">
+                            <h4>Mona Ibrahim</h4>
+                            <span class="cm-post-badge cm-badge-general">General</span>
+                        </div>
+                        <span class="cm-post-time">
+                            <i class="fas fa-baby-carriage"></i> Week 28 &bull; 2 hours ago
+                        </span>
+                    </div>
+                    <button class="cm-post-menu" type="button" aria-label="Post options">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                </div>
+
+                <div class="cm-post-body">
+                    <p>Just had my glucose test today! Was nervous but it went well. Any tips for managing the wait for results? The suspense is killing me!</p>
+                </div>
+
+                <div class="cm-post-stats">
+                    <span><i class="fas fa-heart"></i> 24</span>
+                    <span><i class="fas fa-comment"></i> 8 comments</span>
+                </div>
+
+                <div class="cm-post-actions">
+                    <button class="cm-action-btn cm-like-btn" type="button">
+                        <i class="far fa-heart"></i> Like
+                    </button>
+                    <button class="cm-action-btn cm-comment-toggle" type="button">
+                        <i class="far fa-comment"></i> Comment
+                    </button>
+                    <button class="cm-action-btn" type="button">
+                        <i class="far fa-share-square"></i> Share
+                    </button>
+                </div>
+
+                <div class="cm-comments">
+                    <div class="cm-comment">
+                        <img class="cm-comment-avatar" src="https://i.pravatar.cc/32?img=15" alt="Fatma Ali" />
+                        <div class="cm-comment-bubble">
+                            <span class="cm-comment-name">Fatma Ali</span>
+                            <p>Don't worry! Mine came back fine. Try to distract yourself with something fun!</p>
+                        </div>
+                    </div>
+                    <div class="cm-comment">
+                        <img class="cm-comment-avatar" src="https://i.pravatar.cc/32?img=22" alt="Nour Hassan" />
+                        <div class="cm-comment-bubble">
+                            <span class="cm-comment-name">Nour Hassan</span>
+                            <p>The waiting is the hardest part! Sending positive vibes your way.</p>
+                        </div>
+                    </div>
+                    <div class="cm-comment-input-row">
+                        <div class="cm-comment-input-avatar"><i class="fas fa-user"></i></div>
+                        <div class="cm-comment-input-wrap">
+                            <input class="cm-comment-input" type="text" placeholder="Write a comment&hellip;" />
+                            <button class="cm-comment-send" type="button"><i class="fas fa-paper-plane"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Post 2 – Image post -->
+            <article class="cm-post" data-type="milestones">
+                <div class="cm-post-header">
+                    <img class="cm-post-avatar" src="https://i.pravatar.cc/48?img=30" alt="Layla Omar" />
+                    <div class="cm-post-meta">
+                        <div class="cm-post-name-row">
+                            <h4>Layla Omar</h4>
+                            <span class="cm-post-badge cm-badge-milestone">Milestone</span>
+                        </div>
+                        <span class="cm-post-time">
+                            <i class="fas fa-baby-carriage"></i> Week 32 &bull; 5 hours ago
+                        </span>
+                    </div>
+                    <button class="cm-post-menu" type="button" aria-label="Post options">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                </div>
+
+                <div class="cm-post-body">
+                    <p>Finally finished setting up the nursery! Can't believe we're almost there. Here's a sneak peek:</p>
+                    <div class="cm-post-image">
+                        <img src="https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=700&h=380&fit=crop"
+                             alt="Nursery room" loading="lazy" />
+                    </div>
+                </div>
+
+                <div class="cm-post-stats">
+                    <span><i class="fas fa-heart"></i> 89</span>
+                    <span><i class="fas fa-comment"></i> 23 comments</span>
+                </div>
+
+                <div class="cm-post-actions">
+                    <button class="cm-action-btn cm-like-btn cm-liked" type="button">
+                        <i class="fas fa-heart"></i> Liked
+                    </button>
+                    <button class="cm-action-btn cm-comment-toggle" type="button">
+                        <i class="far fa-comment"></i> Comment
+                    </button>
+                    <button class="cm-action-btn" type="button">
+                        <i class="far fa-share-square"></i> Share
+                    </button>
+                </div>
+
+                <div class="cm-comments" style="display:none">
+                    <div class="cm-comment-input-row">
+                        <div class="cm-comment-input-avatar"><i class="fas fa-user"></i></div>
+                        <div class="cm-comment-input-wrap">
+                            <input class="cm-comment-input" type="text" placeholder="Write a comment&hellip;" />
+                            <button class="cm-comment-send" type="button"><i class="fas fa-paper-plane"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Post 3 – Poll -->
+            <article class="cm-post" data-type="general">
+                <div class="cm-post-header">
+                    <img class="cm-post-avatar" src="https://i.pravatar.cc/48?img=35" alt="Hana Mahmoud" />
+                    <div class="cm-post-meta">
+                        <div class="cm-post-name-row">
+                            <h4>Hana Mahmoud</h4>
+                            <span class="cm-post-badge cm-badge-poll">Poll</span>
+                        </div>
+                        <span class="cm-post-time">
+                            <i class="fas fa-baby-carriage"></i> Week 20 &bull; Yesterday
+                        </span>
+                    </div>
+                    <button class="cm-post-menu" type="button" aria-label="Post options">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                </div>
+
+                <div class="cm-post-body">
+                    <p>Quick poll: What's your go-to pregnancy snack?</p>
+                    <div class="cm-poll">
+                        <button class="cm-poll-option" type="button" data-pct="45">
+                            <div class="cm-poll-bar" style="width:45%"></div>
+                            <span class="cm-poll-label"><i class="fas fa-apple-alt"></i> Fruits</span>
+                            <span class="cm-poll-pct">45%</span>
+                        </button>
+                        <button class="cm-poll-option" type="button" data-pct="30">
+                            <div class="cm-poll-bar" style="width:30%"></div>
+                            <span class="cm-poll-label"><i class="fas fa-seedling"></i> Nuts &amp; Seeds</span>
+                            <span class="cm-poll-pct">30%</span>
+                        </button>
+                        <button class="cm-poll-option" type="button" data-pct="15">
+                            <div class="cm-poll-bar" style="width:15%"></div>
+                            <span class="cm-poll-label"><i class="fas fa-mug-hot"></i> Yogurt</span>
+                            <span class="cm-poll-pct">15%</span>
+                        </button>
+                        <button class="cm-poll-option" type="button" data-pct="10">
+                            <div class="cm-poll-bar" style="width:10%"></div>
+                            <span class="cm-poll-label"><i class="fas fa-ice-cream"></i> Ice cream</span>
+                            <span class="cm-poll-pct">10%</span>
+                        </button>
+                    </div>
+                    <p class="cm-poll-meta">
+                        <i class="fas fa-users"></i> 156 votes &bull;
+                        <i class="fas fa-clock"></i> 2 days left
+                    </p>
+                </div>
+
+                <div class="cm-post-actions">
+                    <button class="cm-action-btn cm-like-btn" type="button">
+                        <i class="far fa-heart"></i> Like
+                    </button>
+                    <button class="cm-action-btn cm-comment-toggle" type="button">
+                        <i class="far fa-comment"></i> Comment
+                    </button>
+                    <button class="cm-action-btn" type="button">
+                        <i class="far fa-share-square"></i> Share
+                    </button>
+                </div>
+
+                <div class="cm-comments" style="display:none">
+                    <div class="cm-comment-input-row">
+                        <div class="cm-comment-input-avatar"><i class="fas fa-user"></i></div>
+                        <div class="cm-comment-input-wrap">
+                            <input class="cm-comment-input" type="text" placeholder="Write a comment&hellip;" />
+                            <button class="cm-comment-send" type="button"><i class="fas fa-paper-plane"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Post 4 – Question -->
+            <article class="cm-post" data-type="questions">
+                <div class="cm-post-header">
+                    <img class="cm-post-avatar" src="https://i.pravatar.cc/48?img=44" alt="Sara Karim" />
+                    <div class="cm-post-meta">
+                        <div class="cm-post-name-row">
+                            <h4>Sara Karim</h4>
+                            <span class="cm-post-badge cm-badge-question">Question</span>
+                        </div>
+                        <span class="cm-post-time">
+                            <i class="fas fa-baby-carriage"></i> Week 16 &bull; 2 days ago
+                        </span>
+                    </div>
+                    <button class="cm-post-menu" type="button" aria-label="Post options">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                </div>
+
+                <div class="cm-post-body">
+                    <p>Has anyone experienced lower back pain in the second trimester? My doctor said it's normal but I'm looking for exercises or stretches that actually help. Any recommendations?</p>
+                </div>
+
+                <div class="cm-post-stats">
+                    <span><i class="fas fa-heart"></i> 37</span>
+                    <span><i class="fas fa-comment"></i> 14 comments</span>
+                </div>
+
+                <div class="cm-post-actions">
+                    <button class="cm-action-btn cm-like-btn" type="button">
+                        <i class="far fa-heart"></i> Like
+                    </button>
+                    <button class="cm-action-btn cm-comment-toggle" type="button">
+                        <i class="far fa-comment"></i> Comment
+                    </button>
+                    <button class="cm-action-btn" type="button">
+                        <i class="far fa-share-square"></i> Share
+                    </button>
+                </div>
+
+                <div class="cm-comments" style="display:none">
+                    <div class="cm-comment">
+                        <img class="cm-comment-avatar" src="https://i.pravatar.cc/32?img=9" alt="Rania Mostafa" />
+                        <div class="cm-comment-bubble">
+                            <span class="cm-comment-name">Rania Mostafa</span>
+                            <p>Cat-cow stretches and prenatal yoga helped me a lot! Do them gently twice a day.</p>
+                        </div>
+                    </div>
+                    <div class="cm-comment-input-row">
+                        <div class="cm-comment-input-avatar"><i class="fas fa-user"></i></div>
+                        <div class="cm-comment-input-wrap">
+                            <input class="cm-comment-input" type="text" placeholder="Write a comment&hellip;" />
+                            <button class="cm-comment-send" type="button"><i class="fas fa-paper-plane"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+        </div>
+        <!-- end #postsFeed -->
+
+        <!-- Load more -->
+        <div class="cm-load-more">
+            <button class="cm-load-btn" id="loadMoreBtn" type="button">
+                <i class="fas fa-spinner cm-spin" id="loadSpinner" style="display:none"></i>
+                <span id="loadMoreText">Load more posts</span>
+            </button>
+        </div>
+
+    </div>
+    <!-- end .cm-feed-col -->
+
+    <!-- ?????????? RIGHT SIDEBAR ?????????? -->
+    <aside class="cm-sidebar">
+
+        <!-- Trending Topics -->
+        <div class="cm-side-card">
+            <div class="cm-side-card-header">
+                <div class="cm-side-icon cm-side-icon-red">
+                    <i class="fas fa-fire"></i>
+                </div>
+                <div>
+                    <h4 class="cm-side-title">Trending Topics</h4>
+                    <p class="cm-side-sub">What moms are talking about</p>
+                </div>
+            </div>
+            <ol class="cm-trend-list">
+                <li class="cm-trend-item">
+                    <span class="cm-trend-rank">1</span>
+                    <div class="cm-trend-info">
+                        <a href="#" class="cm-trend-tag">#ThirdTrimester</a>
+                        <span class="cm-trend-count">1.2k posts this week</span>
+                    </div>
+                    <i class="fas fa-arrow-up cm-trend-up"></i>
+                </li>
+                <li class="cm-trend-item">
+                    <span class="cm-trend-rank">2</span>
+                    <div class="cm-trend-info">
+                        <a href="#" class="cm-trend-tag">#NurseryIdeas</a>
+                        <span class="cm-trend-count">847 posts this week</span>
+                    </div>
+                </li>
+                <li class="cm-trend-item">
+                    <span class="cm-trend-rank">3</span>
+                    <div class="cm-trend-info">
+                        <a href="#" class="cm-trend-tag">#HealthyPregnancy</a>
+                        <span class="cm-trend-count">612 posts this week</span>
+                    </div>
+                </li>
+                <li class="cm-trend-item">
+                    <span class="cm-trend-rank">4</span>
+                    <div class="cm-trend-info">
+                        <a href="#" class="cm-trend-tag">#BabyNames</a>
+                        <span class="cm-trend-count">503 posts this week</span>
+                    </div>
+                </li>
+                <li class="cm-trend-item">
+                    <span class="cm-trend-rank">5</span>
+                    <div class="cm-trend-info">
+                        <a href="#" class="cm-trend-tag">#FirstTimeMom</a>
+                        <span class="cm-trend-count">389 posts this week</span>
+                    </div>
+                </li>
+            </ol>
+        </div>
+
+        <!-- Suggested connections -->
+        <div class="cm-side-card">
+            <div class="cm-side-card-header">
+                <div class="cm-side-icon cm-side-icon-teal">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <div>
+                    <h4 class="cm-side-title">Suggested Connections</h4>
+                    <p class="cm-side-sub">Moms at a similar stage</p>
+                </div>
+            </div>
+            <div class="cm-suggest-list">
+                <div class="cm-suggest-item">
+                    <img class="cm-suggest-avatar" src="https://i.pravatar.cc/40?img=28" alt="Amira Khaled" />
+                    <div class="cm-suggest-info">
+                        <h5>Amira Khaled</h5>
+                        <span><i class="fas fa-baby-carriage"></i> Week 26</span>
+                    </div>
+                    <button class="cm-follow-btn" type="button">Follow</button>
+                </div>
+                <div class="cm-suggest-item">
+                    <img class="cm-suggest-avatar" src="https://i.pravatar.cc/40?img=32" alt="Dina Youssef" />
+                    <div class="cm-suggest-info">
+                        <h5>Dina Youssef</h5>
+                        <span><i class="fas fa-baby-carriage"></i> Week 30</span>
+                    </div>
+                    <button class="cm-follow-btn" type="button">Follow</button>
+                </div>
+                <div class="cm-suggest-item">
+                    <img class="cm-suggest-avatar" src="https://i.pravatar.cc/40?img=54" alt="Rana Fawzy" />
+                    <div class="cm-suggest-info">
+                        <h5>Rana Fawzy</h5>
+                        <span><i class="fas fa-baby-carriage"></i> Week 22</span>
+                    </div>
+                    <button class="cm-follow-btn" type="button">Follow</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Community guidelines -->
+        <div class="cm-side-card cm-guidelines-card">
+            <div class="cm-side-card-header">
+                <div class="cm-side-icon cm-side-icon-purple">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <div>
+                    <h4 class="cm-side-title">Community Guidelines</h4>
+                    <p class="cm-side-sub">Keep it kind and safe</p>
+                </div>
+            </div>
+            <ul class="cm-guide-list">
+                <li><i class="fas fa-heart"></i> Be respectful and supportive</li>
+                <li><i class="fas fa-user-md"></i> No medical advice &mdash; consult your doctor</li>
+                <li><i class="fas fa-lock"></i> Respect privacy and confidentiality</li>
+                <li><i class="fas fa-ban"></i> No spam or promotional content</li>
+            </ul>
+        </div>
+
+    </aside>
+
+</div>
+
+@section Styles {
+<style>
+/* ??????????????????????????????????????????????????????????????
+   COMMUNITY — Design Tokens
+?????????????????????????????????????????????????????????????? */
+:root {
+    --cm-primary:    #1BAEBE;
+    --cm-primary-dk: #138fa0;
+    --cm-primary-lt: #e0f7fa;
+    --cm-text:       #0f172a;
+    --cm-text-2:     #334155;
+    --cm-muted:      #64748b;
+    --cm-muted-lt:   #94a3b8;
+    --cm-surface:    #ffffff;
+    --cm-bg:         #f1f5f9;
+    --cm-border:     #e2e8f0;
+    --cm-radius-sm:  10px;
+    --cm-radius:     16px;
+    --cm-shadow:     0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.06);
+    --cm-shadow-md:  0 4px 24px rgba(0,0,0,.10);
+    --cm-shadow-hov: 0 8px 32px rgba(0,0,0,.12);
+}
+
+/* ??????????????????????????????????????????????????????????????
+   HEADER
+?????????????????????????????????????????????????????????????? */
+.cm-header {
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;
+}
+.cm-header-left { display: flex; align-items: center; gap: 1rem; }
+.cm-header-icon {
+    width: 54px; height: 54px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--cm-primary), var(--cm-primary-dk));
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 1.4rem;
+    box-shadow: 0 4px 14px rgba(27,174,190,.35);
+}
+.cm-title    { margin: 0; font-size: 1.6rem; font-weight: 700; color: var(--cm-text); }
+.cm-subtitle { margin: .15rem 0 0; font-size: .88rem; color: var(--cm-muted); }
+
+.cm-header-right { display: flex; align-items: center; gap: .85rem; }
+.cm-members-pill {
+    display: inline-flex; align-items: center; gap: .45rem;
+    background: #e8f5e9; border: 1px solid #a5d6a7;
+    border-radius: 22px; padding: .38rem .95rem;
+    font-size: .82rem; font-weight: 600; color: #2e7d32;
+}
+.cm-online-dot {
+    font-size: .5rem; color: #4caf50;
+    animation: cmPulse 2s ease infinite;
+}
+@@keyframes cmPulse {
+    0%,100% { opacity:1; text-shadow: 0 0 0 rgba(76,175,80,.4); }
+    50%      { opacity:.6; text-shadow: 0 0 6px rgba(76,175,80,.5); }
+}
+.cm-profile-chip {
+    display: flex; align-items: center; gap: .55rem;
+    background: #fff; border-radius: 24px;
+    padding: .42rem .9rem .42rem .55rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,.07);
+    font-size: .87rem; font-weight: 500; color: var(--cm-text);
+}
+.cm-chip-avatar {
+    width: 30px; height: 30px;
+    background: linear-gradient(135deg, var(--cm-primary), var(--cm-primary-dk));
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: .8rem;
+}
+
+/* ??????????????????????????????????????????????????????????????
+   PAGE GRID
+?????????????????????????????????????????????????????????????? */
+.cm-page {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 1.25rem;
+    align-items: start;
+}
+@@media(max-width: 960px) {
+    .cm-page { grid-template-columns: 1fr; }
+    .cm-sidebar { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+}
+@@media(max-width: 600px) {
+    .cm-page { gap: .9rem; }
+    .cm-sidebar { grid-template-columns: 1fr; }
+}
+
+/* ??????????????????????????????????????????????????????????????
+   COMPOSE CARD
+?????????????????????????????????????????????????????????????? */
+.cm-compose-card {
+    background: var(--cm-surface);
+    border-radius: var(--cm-radius);
+    box-shadow: var(--cm-shadow);
+    border: 1px solid var(--cm-border);
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 1rem;
+}
+.cm-compose-top {
+    display: flex; align-items: center; gap: .85rem;
+    margin-bottom: .9rem;
+}
+.cm-compose-avatar {
+    width: 40px; height: 40px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--cm-primary), var(--cm-primary-dk));
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: .9rem;
+}
+.cm-compose-trigger {
+    flex: 1; padding: .65rem 1rem;
+    background: var(--cm-bg); border: 1.5px solid var(--cm-border);
+    border-radius: 24px;
+    font-size: .88rem; color: var(--cm-muted-lt);
+    cursor: pointer; text-align: left;
+    font-family: inherit; transition: border-color .18s, background .18s;
+}
+.cm-compose-trigger:hover { border-color: var(--cm-primary); background: #fff; color: var(--cm-muted); }
+
+.cm-compose-form { animation: cmFadeIn .22s ease; }
+@@keyframes cmFadeIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+
+.cm-compose-textarea {
+    width: 100%; box-sizing: border-box;
+    border: 1.5px solid var(--cm-border); border-radius: 12px;
+    padding: .8rem 1rem; font-size: .9rem;
+    color: var(--cm-text); background: var(--cm-bg);
+    resize: none; outline: none; font-family: inherit;
+    line-height: 1.6; transition: border-color .18s, box-shadow .18s;
+    margin-bottom: .85rem;
+}
+.cm-compose-textarea:focus {
+    border-color: var(--cm-primary);
+    box-shadow: 0 0 0 3px rgba(27,174,190,.12);
+    background: #fff;
+}
+.cm-compose-meta {
+    display: flex; justify-content: space-between;
+    align-items: center; flex-wrap: wrap; gap: .6rem;
+}
+.cm-compose-tags { display: flex; flex-wrap: wrap; gap: .4rem; }
+.cm-tag-btn {
+    display: inline-flex; align-items: center; gap: .3rem;
+    padding: .3rem .75rem;
+    border-radius: 20px; border: 1.5px solid var(--cm-border);
+    background: var(--cm-bg); font-size: .75rem; font-weight: 600;
+    color: var(--cm-muted); cursor: pointer; font-family: inherit;
+    transition: all .15s;
+}
+.cm-tag-btn:hover, .cm-tag-btn.cm-tag-active {
+    border-color: var(--cm-primary);
+    color: var(--cm-primary-dk);
+    background: var(--cm-primary-lt);
+}
+.cm-compose-actions { display: flex; align-items: center; gap: .5rem; }
+.cm-compose-cancel {
+    padding: .45rem .9rem; border-radius: 10px;
+    border: 1.5px solid var(--cm-border); background: #fff;
+    font-size: .83rem; font-weight: 600; color: var(--cm-muted);
+    cursor: pointer; font-family: inherit; transition: all .15s;
+}
+.cm-compose-cancel:hover { background: var(--cm-bg); }
+
+.cm-compose-post {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .48rem 1.1rem; border-radius: 10px; border: none;
+    background: linear-gradient(135deg, var(--cm-primary), var(--cm-primary-dk));
+    color: #fff; font-size: .83rem; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+    box-shadow: 0 3px 10px rgba(27,174,190,.32);
+    transition: transform .15s, box-shadow .15s;
+}
+.cm-compose-post:hover { transform: translateY(-1px); box-shadow: 0 5px 16px rgba(27,174,190,.4); }
+
+/* Quick bar */
+.cm-compose-quick {
+    display: flex; align-items: center; gap: .5rem;
+    padding-top: .75rem; border-top: 1px solid var(--cm-border);
+    flex-wrap: wrap;
+}
+.cm-quick-btn {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .38rem .85rem; border-radius: 22px;
+    border: 1.5px solid var(--cm-border); background: var(--cm-bg);
+    font-size: .8rem; font-weight: 600; color: var(--cm-muted);
+    cursor: pointer; font-family: inherit; transition: all .15s;
+}
+.cm-quick-btn:hover { border-color: var(--cm-primary); color: var(--cm-primary-dk); background: var(--cm-primary-lt); }
+.cm-quick-btn i { font-size: .85rem; }
+.cm-compose-sep { flex: 1; }
+.cm-compose-post-sm { padding: .4rem .9rem; font-size: .8rem; }
+
+/* ??????????????????????????????????????????????????????????????
+   FEED TABS
+?????????????????????????????????????????????????????????????? */
+.cm-feed-tabs {
+    display: flex; gap: .45rem; flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+.cm-feed-tab {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .42rem 1rem; border-radius: 22px;
+    border: 1.5px solid var(--cm-border); background: var(--cm-surface);
+    font-size: .8rem; font-weight: 600; color: var(--cm-muted);
+    cursor: pointer; font-family: inherit; transition: all .18s;
+}
+.cm-feed-tab:hover { background: var(--cm-bg); color: var(--cm-text); }
+.cm-feed-tab.active {
+    background: linear-gradient(135deg, var(--cm-primary), var(--cm-primary-dk));
+    color: #fff; border-color: transparent;
+    box-shadow: 0 3px 10px rgba(27,174,190,.3);
+}
+
+/* ??????????????????????????????????????????????????????????????
+   POST CARDS
+?????????????????????????????????????????????????????????????? */
+.cm-post {
+    background: var(--cm-surface);
+    border-radius: var(--cm-radius);
+    box-shadow: var(--cm-shadow);
+    border: 1px solid var(--cm-border);
+    margin-bottom: 1rem;
+    overflow: hidden;
+    transition: box-shadow .2s;
+}
+.cm-post:hover { box-shadow: var(--cm-shadow-md); }
+
+/* Post header */
+.cm-post-header {
+    display: flex; align-items: center; gap: .85rem;
+    padding: 1.1rem 1.25rem .7rem;
+}
+.cm-post-avatar {
+    width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+    object-fit: cover;
+    border: 2px solid var(--cm-border);
+}
+.cm-post-meta { flex: 1; min-width: 0; }
+.cm-post-name-row { display: flex; align-items: center; gap: .5rem; margin-bottom: .18rem; }
+.cm-post-name-row h4 { margin: 0; font-size: .92rem; font-weight: 700; color: var(--cm-text); }
+.cm-post-time {
+    font-size: .76rem; color: var(--cm-muted-lt);
+    display: flex; align-items: center; gap: .3rem;
+}
+.cm-post-menu {
+    width: 32px; height: 32px; flex-shrink: 0; border-radius: 8px;
+    border: none; background: none; cursor: pointer;
+    color: var(--cm-muted-lt); font-size: .88rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s, color .15s;
+}
+.cm-post-menu:hover { background: var(--cm-bg); color: var(--cm-muted); }
+
+/* Badges */
+.cm-post-badge {
+    display: inline-flex; align-items: center;
+    font-size: .68rem; font-weight: 700; letter-spacing: .03em;
+    border-radius: 20px; padding: .15rem .55rem;
+    text-transform: uppercase; border: 1px solid transparent;
+    white-space: nowrap;
+}
+.cm-badge-general  { background: rgba(27,174,190,.1);  color: var(--cm-primary-dk); border-color: rgba(27,174,190,.2); }
+.cm-badge-milestone{ background: rgba(245,158,11,.1);  color: #b45309;              border-color: rgba(245,158,11,.25); }
+.cm-badge-poll     { background: rgba(99,102,241,.1);  color: #4338ca;              border-color: rgba(99,102,241,.2); }
+.cm-badge-question { background: rgba(239,68,68,.1);   color: #b91c1c;              border-color: rgba(239,68,68,.2); }
+.cm-badge-nutrition{ background: rgba(34,197,94,.1);   color: #15803d;              border-color: rgba(34,197,94,.2); }
+
+/* Post body */
+.cm-post-body { padding: .4rem 1.25rem .75rem; }
+.cm-post-body p { margin: 0 0 .65rem; font-size: .9rem; color: var(--cm-text-2); line-height: 1.65; }
+.cm-post-body p:last-child { margin-bottom: 0; }
+
+/* Post image */
+.cm-post-image {
+    border-radius: 12px; overflow: hidden; margin-top: .5rem;
+    border: 1px solid var(--cm-border);
+}
+.cm-post-image img {
+    width: 100%; display: block; max-height: 360px; object-fit: cover;
+}
+
+/* Stats */
+.cm-post-stats {
+    display: flex; align-items: center; gap: 1rem;
+    padding: .6rem 1.25rem;
+    border-top: 1px solid var(--cm-border);
+    font-size: .78rem; color: var(--cm-muted-lt);
+}
+.cm-post-stats span { display: flex; align-items: center; gap: .3rem; }
+.cm-post-stats .fa-heart { color: #ef4444; }
+
+/* Action bar */
+.cm-post-actions {
+    display: flex; align-items: center;
+    padding: .2rem .8rem .65rem;
+    gap: .2rem;
+}
+.cm-action-btn {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: .4rem;
+    padding: .52rem .5rem;
+    border-radius: 10px; border: none; background: none;
+    font-size: .82rem; font-weight: 600; color: var(--cm-muted);
+    cursor: pointer; font-family: inherit; transition: all .15s;
+}
+.cm-action-btn:hover { background: var(--cm-bg); color: var(--cm-text); }
+.cm-liked, .cm-action-btn.cm-liked { color: #ef4444 !important; }
+.cm-liked i { color: #ef4444; }
+
+/* ??????????????????????????????????????????????????????????????
+   POLL
+?????????????????????????????????????????????????????????????? */
+.cm-poll { display: flex; flex-direction: column; gap: .5rem; margin: .5rem 0; }
+.cm-poll-option {
+    position: relative; width: 100%;
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--cm-bg); border: 1.5px solid var(--cm-border);
+    border-radius: 10px; padding: .6rem 1rem;
+    font-size: .85rem; font-weight: 500; color: var(--cm-text-2);
+    cursor: pointer; font-family: inherit; overflow: hidden;
+    transition: border-color .18s;
+    text-align: left;
+}
+.cm-poll-option:hover { border-color: var(--cm-primary); }
+.cm-poll-option.cm-voted { border-color: var(--cm-primary); color: var(--cm-primary-dk); }
+.cm-poll-bar {
+    position: absolute; inset: 0; right: auto;
+    background: var(--cm-primary-lt);
+    border-radius: 8px; transition: width .5s ease;
+    z-index: 0;
+}
+.cm-poll-label { position: relative; z-index: 1; display: flex; align-items: center; gap: .4rem; }
+.cm-poll-label i { font-size: .8rem; color: var(--cm-primary-dk); }
+.cm-poll-pct   { position: relative; z-index: 1; font-size: .78rem; font-weight: 700; color: var(--cm-primary-dk); }
+.cm-poll-meta  { font-size: .77rem; color: var(--cm-muted-lt); margin: .35rem 0 0 !important; display: flex; align-items: center; gap: .5rem; }
+
+/* ??????????????????????????????????????????????????????????????
+   COMMENTS
+?????????????????????????????????????????????????????????????? */
+.cm-comments {
+    padding: .75rem 1.25rem 1rem;
+    border-top: 1px solid var(--cm-border);
+    background: var(--cm-bg);
+    display: flex; flex-direction: column; gap: .75rem;
+}
+.cm-comment { display: flex; align-items: flex-start; gap: .65rem; }
+.cm-comment-avatar {
+    width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+    object-fit: cover; border: 1.5px solid var(--cm-border);
+}
+.cm-comment-bubble {
+    background: var(--cm-surface);
+    border: 1px solid var(--cm-border);
+    border-radius: 14px; border-top-left-radius: 4px;
+    padding: .55rem .85rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,.05);
+    flex: 1;
+}
+.cm-comment-name { display: block; font-size: .78rem; font-weight: 700; color: var(--cm-text); margin-bottom: .18rem; }
+.cm-comment-bubble p { margin: 0; font-size: .82rem; color: var(--cm-text-2); line-height: 1.55; }
+
+/* Comment input row */
+.cm-comment-input-row { display: flex; align-items: center; gap: .65rem; }
+.cm-comment-input-avatar {
+    width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--cm-primary), var(--cm-primary-dk));
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: .78rem;
+}
+.cm-comment-input-wrap {
+    flex: 1; display: flex; align-items: center; gap: .4rem;
+    background: var(--cm-surface);
+    border: 1.5px solid var(--cm-border); border-radius: 24px;
+    padding: .35rem .4rem .35rem .85rem;
+    transition: border-color .18s, box-shadow .18s;
+}
+.cm-comment-input-wrap:focus-within {
+    border-color: var(--cm-primary);
+    box-shadow: 0 0 0 3px rgba(27,174,190,.1);
+}
+.cm-comment-input {
+    flex: 1; border: none; background: none; outline: none;
+    font-size: .83rem; color: var(--cm-text); font-family: inherit;
+}
+.cm-comment-input::placeholder { color: var(--cm-muted-lt); }
+.cm-comment-send {
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--cm-primary), var(--cm-primary-dk));
+    border: none; color: #fff; font-size: .8rem;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: transform .15s;
+}
+.cm-comment-send:hover { transform: scale(1.1); }
+
+/* ??????????????????????????????????????????????????????????????
+   LOAD MORE
+?????????????????????????????????????????????????????????????? */
+.cm-load-more { text-align: center; padding: .5rem 0 1.5rem; }
+.cm-load-btn {
+    display: inline-flex; align-items: center; gap: .5rem;
+    padding: .6rem 1.6rem; border-radius: 22px;
+    border: 1.5px solid var(--cm-border); background: var(--cm-surface);
+    font-size: .85rem; font-weight: 600; color: var(--cm-muted);
+    cursor: pointer; font-family: inherit; transition: all .18s;
+}
+.cm-load-btn:hover { border-color: var(--cm-primary); color: var(--cm-primary-dk); background: var(--cm-primary-lt); }
+@@keyframes cmSpin { to { transform: rotate(360deg); } }
+.cm-spin { animation: cmSpin .8s linear infinite; }
+
+/* ??????????????????????????????????????????????????????????????
+   SIDEBAR CARDS
+?????????????????????????????????????????????????????????????? */
+.cm-sidebar { display: flex; flex-direction: column; gap: 1rem; }
+.cm-side-card {
+    background: var(--cm-surface);
+    border-radius: var(--cm-radius);
+    box-shadow: var(--cm-shadow);
+    border: 1px solid var(--cm-border);
+    padding: 1.1rem 1.2rem;
+    transition: box-shadow .2s;
+}
+.cm-side-card:hover { box-shadow: var(--cm-shadow-md); }
+
+.cm-side-card-header {
+    display: flex; align-items: center; gap: .75rem;
+    margin-bottom: .9rem; padding-bottom: .8rem;
+    border-bottom: 1px solid var(--cm-border);
+}
+.cm-side-icon {
+    width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: .88rem;
+}
+.cm-side-icon-red    { background: rgba(239,68,68,.1);  color: #b91c1c; }
+.cm-side-icon-teal   { background: rgba(27,174,190,.1); color: var(--cm-primary-dk); }
+.cm-side-icon-purple { background: rgba(99,102,241,.1); color: #4338ca; }
+
+.cm-side-title { margin: 0; font-size: .88rem; font-weight: 700; color: var(--cm-text); }
+.cm-side-sub   { margin: .1rem 0 0; font-size: .74rem; color: var(--cm-muted); }
+
+/* Trending list */
+.cm-trend-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .55rem; }
+.cm-trend-item {
+    display: flex; align-items: center; gap: .65rem;
+    padding: .45rem .65rem; border-radius: 10px;
+    background: var(--cm-bg); border: 1px solid var(--cm-border);
+    transition: all .15s; cursor: pointer;
+}
+.cm-trend-item:hover { border-color: var(--cm-primary); background: var(--cm-primary-lt); }
+.cm-trend-rank {
+    width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0;
+    background: var(--cm-surface); border: 1px solid var(--cm-border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: .72rem; font-weight: 800; color: var(--cm-muted);
+}
+.cm-trend-info { flex: 1; min-width: 0; }
+.cm-trend-tag {
+    display: block; font-size: .82rem; font-weight: 700;
+    color: var(--cm-primary-dk); text-decoration: none; line-height: 1.2;
+}
+.cm-trend-tag:hover { text-decoration: underline; }
+.cm-trend-count { font-size: .72rem; color: var(--cm-muted-lt); }
+.cm-trend-up { color: #22c55e; font-size: .7rem; flex-shrink: 0; }
+
+/* Suggested users */
+.cm-suggest-list { display: flex; flex-direction: column; gap: .65rem; }
+.cm-suggest-item { display: flex; align-items: center; gap: .65rem; }
+.cm-suggest-avatar {
+    width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+    object-fit: cover; border: 2px solid var(--cm-border);
+}
+.cm-suggest-info { flex: 1; min-width: 0; }
+.cm-suggest-info h5 { margin: 0 0 .1rem; font-size: .83rem; font-weight: 700; color: var(--cm-text); }
+.cm-suggest-info span { font-size: .74rem; color: var(--cm-muted-lt); display: flex; align-items: center; gap: .3rem; }
+.cm-follow-btn {
+    padding: .32rem .85rem; border-radius: 20px;
+    border: 1.5px solid var(--cm-primary);
+    background: transparent; color: var(--cm-primary-dk);
+    font-size: .78rem; font-weight: 700; cursor: pointer;
+    font-family: inherit; white-space: nowrap;
+    transition: all .15s;
+}
+.cm-follow-btn:hover { background: var(--cm-primary); color: #fff; }
+.cm-follow-btn.cm-following {
+    background: var(--cm-primary-lt); border-color: transparent;
+    color: var(--cm-primary-dk);
+}
+
+/* Guidelines card */
+.cm-guidelines-card { border-color: rgba(99,102,241,.25); background: linear-gradient(160deg,#f8f7ff,#f0f0ff); }
+.cm-guide-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
+.cm-guide-list li {
+    display: flex; align-items: center; gap: .55rem;
+    font-size: .8rem; color: var(--cm-text-2); line-height: 1.4;
+}
+.cm-guide-list li i { color: var(--cm-primary-dk); font-size: .78rem; width: 16px; text-align: center; flex-shrink: 0; }
+
+/* ??????????????????????????????????????????????????????????????
+   TOAST
+?????????????????????????????????????????????????????????????? */
+.cm-toast {
+    position: fixed; bottom: 1.75rem; right: 1.75rem;
+    padding: .85rem 1.15rem; border-radius: 14px;
+    display: flex; align-items: center; gap: .7rem;
+    font-size: .86rem; font-weight: 500; z-index: 9999;
+    box-shadow: 0 8px 28px rgba(0,0,0,.13); max-width: 320px;
+    animation: cmToastIn .28s ease;
+}
+.cm-toast-success { background:#dcfce7; color:#15803d; border:1px solid #86efac; }
+.cm-toast-info    { background:#e0f2fe; color:#0369a1; border:1px solid #7dd3fc; }
+.cm-toast-error   { background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; }
+.cm-toast-close   { background:none; border:none; cursor:pointer; color:inherit; opacity:.6; margin-left:auto; }
+@@keyframes cmToastIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+
+/* New post animation */
+@@keyframes cmSlideDown { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
+.cm-post-new { animation: cmSlideDown .3s ease; }
+</style>
+}
+
+@section Scripts {
+<script>
+(function () {
+    'use strict';
+
+    /* ?? Compose expand / collapse ?????????????????????????? */
+    const trigger     = document.getElementById('composeTrigger');
+    const form        = document.getElementById('composeForm');
+    const quickBar    = document.getElementById('composeQuick');
+    const cancelBtn   = document.getElementById('composeCancel');
+    const textarea    = document.getElementById('postTextarea');
+
+    function openCompose() {
+        trigger.style.display = 'none';
+        form.style.display    = 'block';
+        quickBar.style.display = 'none';
+        textarea?.focus();
+    }
+    function closeCompose() {
+        form.style.display    = 'none';
+        quickBar.style.display = 'flex';
+        trigger.style.display  = 'flex';
+        if (textarea) textarea.value = '';
+        document.querySelectorAll('.cm-tag-btn').forEach(b => b.classList.remove('cm-tag-active'));
+        document.querySelector('[data-tag="General"]')?.classList.add('cm-tag-active');
+    }
+
+    trigger?.addEventListener('click', openCompose);
+    cancelBtn?.addEventListener('click', closeCompose);
+
+    /* Quick buttons open compose with matching tag pre-selected */
+    document.getElementById('qQuestion')?.addEventListener('click', () => {
+        openCompose();
+        document.querySelectorAll('.cm-tag-btn').forEach(b => b.classList.remove('cm-tag-active'));
+        document.querySelector('[data-tag="Question"]')?.classList.add('cm-tag-active');
+    });
+    ['qPhoto','qPoll'].forEach(id => document.getElementById(id)?.addEventListener('click', openCompose));
+
+    /* Tag selection */
+    document.querySelectorAll('.cm-tag-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('.cm-tag-btn').forEach(b => b.classList.remove('cm-tag-active'));
+            this.classList.add('cm-tag-active');
+        });
+    });
+
+    /* ?? Post submission ???????????????????????????????????? */
+    function submitPost() {
+        const text = textarea?.value?.trim();
+        if (!text) { toast('Please write something before posting.', 'info'); return; }
+        const tag  = document.querySelector('.cm-tag-btn.cm-tag-active')?.dataset.tag || 'General';
+        prependPost(text, tag);
+        closeCompose();
+        toast('Your post has been shared with the community!', 'success');
+    }
+
+    document.getElementById('composePost')?.addEventListener('click', submitPost);
+    document.getElementById('composePostSm')?.addEventListener('click', submitPost);
+
+    /* ?? Prepend new post to feed ??????????????????????????? */
+    function prependPost(text, tag) {
+        const feed = document.getElementById('postsFeed');
+        if (!feed) return;
+
+        const tagClasses = {
+            General:'cm-badge-general', Nutrition:'cm-badge-nutrition',
+            Symptoms:'cm-badge-general', Question:'cm-badge-question',
+            Milestones:'cm-badge-milestone'
+        };
+        const badgeClass = tagClasses[tag] || 'cm-badge-general';
+        const now = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+
+        const article = document.createElement('article');
+        article.className = 'cm-post cm-post-new';
+        article.dataset.type = tag.toLowerCase();
+        article.innerHTML = `
+            <div class="cm-post-header">
+                <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--cm-primary),var(--cm-primary-dk));display:flex;align-items:center;justify-content:center;color:#fff;font-size:.9rem;flex-shrink:0;border:2px solid var(--cm-border)">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="cm-post-meta">
+                    <div class="cm-post-name-row">
+                        <h4>You</h4>
+                        <span class="cm-post-badge ${badgeClass}">${escHtml(tag)}</span>
+                    </div>
+                    <span class="cm-post-time"><i class="fas fa-clock"></i> Just now &bull; ${now}</span>
+                </div>
+                <button class="cm-post-menu" type="button"><i class="fas fa-ellipsis-h"></i></button>
+            </div>
+            <div class="cm-post-body"><p>${escHtml(text)}</p></div>
+            <div class="cm-post-stats">
+                <span><i class="fas fa-heart" style="color:#ef4444"></i> 0</span>
+                <span><i class="fas fa-comment"></i> 0 comments</span>
+            </div>
+            <div class="cm-post-actions">
+                <button class="cm-action-btn cm-like-btn" type="button"><i class="far fa-heart"></i> Like</button>
+                <button class="cm-action-btn cm-comment-toggle" type="button"><i class="far fa-comment"></i> Comment</button>
+                <button class="cm-action-btn" type="button"><i class="far fa-share-square"></i> Share</button>
+            </div>
+            <div class="cm-comments" style="display:none">
+                <div class="cm-comment-input-row">
+                    <div class="cm-comment-input-avatar"><i class="fas fa-user"></i></div>
+                    <div class="cm-comment-input-wrap">
+                        <input class="cm-comment-input" type="text" placeholder="Write a comment&hellip;" />
+                        <button class="cm-comment-send" type="button"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                </div>
+            </div>`;
+        feed.insertBefore(article, feed.firstChild);
+        bindPostEvents(article);
+    }
+
+    /* ?? Like toggle ???????????????????????????????????????? */
+    function bindLike(post) {
+        post.querySelector('.cm-like-btn')?.addEventListener('click', function () {
+            const liked = this.classList.toggle('cm-liked');
+            const icon  = this.querySelector('i');
+            const stat  = post.querySelector('.cm-post-stats span:first-child');
+            icon.className = liked ? 'fas fa-heart' : 'far fa-heart';
+            this.innerHTML = liked
+                ? '<i class="fas fa-heart"></i> Liked'
+                : '<i class="far fa-heart"></i> Like';
+            if (stat) {
+                const n = parseInt(stat.textContent.match(/\d+/)?.[0] || '0');
+                stat.innerHTML = `<i class="fas fa-heart" style="color:#ef4444"></i> ${liked ? n + 1 : Math.max(0, n - 1)}`;
+            }
+        });
+    }
+
+    /* ?? Comment toggle ????????????????????????????????????? */
+    function bindCommentToggle(post) {
+        post.querySelector('.cm-comment-toggle')?.addEventListener('click', function () {
+            const sec = post.querySelector('.cm-comments');
+            if (!sec) return;
+            const open = sec.style.display !== 'none';
+            sec.style.display = open ? 'none' : 'flex';
+            if (!open) sec.querySelector('.cm-comment-input')?.focus();
+        });
+    }
+
+    /* ?? Submit comment ????????????????????????????????????? */
+    function bindCommentSubmit(post) {
+        function doSubmit(input) {
+            const text = input.value.trim();
+            if (!text) return;
+            const commentDiv = document.createElement('div');
+            commentDiv.className = 'cm-comment';
+            commentDiv.style.animation = 'cmFadeIn .22s ease';
+            commentDiv.innerHTML = `
+                <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--cm-primary),var(--cm-primary-dk));display:flex;align-items:center;justify-content:center;color:#fff;font-size:.78rem;flex-shrink:0">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="cm-comment-bubble">
+                    <span class="cm-comment-name">You</span>
+                    <p>${escHtml(text)}</p>
+                </div>`;
+            const inputRow = post.querySelector('.cm-comment-input-row');
+            post.querySelector('.cm-comments').insertBefore(commentDiv, inputRow);
+            input.value = '';
+            const stat = post.querySelector('.cm-post-stats span:nth-child(2)');
+            if (stat) {
+                const n = parseInt(stat.textContent.match(/\d+/)?.[0] || '0');
+                stat.innerHTML = `<i class="fas fa-comment"></i> ${n + 1} comment${n + 1 !== 1 ? 's' : ''}`;
+            }
+        }
+        post.querySelectorAll('.cm-comment-send').forEach(btn => {
+            btn.addEventListener('click', () => doSubmit(btn.closest('.cm-comment-input-wrap').querySelector('.cm-comment-input')));
+        });
+        post.querySelectorAll('.cm-comment-input').forEach(inp => {
+            inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); doSubmit(inp); } });
+        });
+    }
+
+    /* ?? Poll voting ???????????????????????????????????????? */
+    function bindPoll(post) {
+        post.querySelectorAll('.cm-poll-option').forEach(opt => {
+            opt.addEventListener('click', function () {
+                if (post.querySelector('.cm-voted')) return; // already voted
+                this.classList.add('cm-voted');
+                this.closest('.cm-poll')?.querySelectorAll('.cm-poll-option').forEach(o => {
+                    o.style.cursor = 'default';
+                    o.style.pointerEvents = 'none';
+                });
+            });
+        });
+    }
+
+    /* ?? Bind all events to a post element ????????????????? */
+    function bindPostEvents(post) {
+        bindLike(post);
+        bindCommentToggle(post);
+        bindCommentSubmit(post);
+        bindPoll(post);
+    }
+
+    /* Bind existing posts on load */
+    document.querySelectorAll('.cm-post').forEach(bindPostEvents);
+
+    /* ?? Feed filter tabs ??????????????????????????????????? */
+    document.querySelectorAll('.cm-feed-tab').forEach(tab => {
+        tab.addEventListener('click', function () {
+            document.querySelectorAll('.cm-feed-tab').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            const filter = this.dataset.feed;
+            document.querySelectorAll('.cm-post').forEach(post => {
+                const type = post.dataset.type || 'general';
+                let show = filter === 'all'
+                    || (filter === 'trending'   && post.querySelector('.cm-post-image'))
+                    || (filter === 'questions'  && type === 'questions')
+                    || (filter === 'milestones' && type === 'milestones');
+                post.style.display = show ? 'block' : 'none';
+            });
+        });
+    });
+
+    /* ?? Follow buttons ????????????????????????????????????? */
+    document.querySelectorAll('.cm-follow-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const following = this.classList.toggle('cm-following');
+            this.textContent = following ? 'Following' : 'Follow';
+            toast(following ? 'You are now following this member.' : 'Unfollowed.', 'info');
+        });
+    });
+
+    /* ?? Load more (stub) ??????????????????????????????????? */
+    document.getElementById('loadMoreBtn')?.addEventListener('click', function () {
+        const spinner = document.getElementById('loadSpinner');
+        const label   = document.getElementById('loadMoreText');
+        spinner.style.display = 'inline-block';
+        label.textContent     = 'Loading&hellip;';
+        setTimeout(() => {
+            spinner.style.display = 'none';
+            label.textContent     = 'Load more posts';
+            toast('No more posts to load.', 'info');
+        }, 1200);
+    });
+
+    /* ?? Toast ?????????????????????????????????????????????? */
+    function toast(msg, type = 'info') {
+        document.querySelector('.cm-toast')?.remove();
+        const icons = { info:'fa-info-circle', success:'fa-check-circle', error:'fa-times-circle' };
+        const el = document.createElement('div');
+        el.className = `cm-toast cm-toast-${type}`;
+        el.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i><span>${msg}</span>
+                        <button class="cm-toast-close"><i class="fas fa-times"></i></button>`;
+        document.body.appendChild(el);
+        el.querySelector('.cm-toast-close').addEventListener('click', () => el.remove());
+        setTimeout(() => el?.remove(), 3500);
+    }
+
+    /* ?? Helpers ???????????????????????????????????????????? */
+    function escHtml(s) {
+        return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+}());
+</script>
+}

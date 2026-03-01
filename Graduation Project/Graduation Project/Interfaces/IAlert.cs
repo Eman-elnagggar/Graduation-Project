@@ -11,5 +11,7 @@ namespace Graduation_Project.Interfaces
         void Update(Alert alert);
         void Delete(int id);
         void Save();
+        IEnumerable<Alert> GetUnreadByPatientIds(IEnumerable<int> patientIds, int count);
+        IEnumerable<int> GetPatientIdsWithUnreadAlerts(IEnumerable<int> patientIds);
     }
 }

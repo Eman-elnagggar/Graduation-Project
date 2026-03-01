@@ -1,6 +1,7 @@
 ﻿using Graduation_Project.Data;
 using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Graduation_Project.Repository
 {
@@ -16,6 +17,15 @@ namespace Graduation_Project.Repository
         public IEnumerable<Clinic> GetAll() => _context.Clinics.ToList();
 
         public Clinic GetById(int id) => _context.Clinics.Find(id);
+
+        public Clinic GetByIdWithDoctor(int id) =>
+            _context.Clinics
+                .AsNoTracking()
+                .Include(c => c.ClinicDoctors)
+                    .ThenInclude(cd => cd.Doctor)
+                        .ThenInclude(d => d.User)
+                .AsSplitQuery()
+                .FirstOrDefault(c => c.ClinicID == id);
 
         public void Add(Clinic clinic) => _context.Clinics.Add(clinic);
 

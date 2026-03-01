@@ -104,13 +104,16 @@ namespace Graduation_Project.Migrations
                     b.Property<int>("ClinicID")
                         .HasColumnType("int");
 
+                    b.Property<int?>("CreatedByAssistantID")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("Date")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("DoctorID")
                         .HasColumnType("int");
 
-                    b.Property<int>("PatientID")
+                    b.Property<int?>("PatientID")
                         .HasColumnType("int");
 
                     b.Property<TimeSpan>("Time")
@@ -122,6 +125,8 @@ namespace Graduation_Project.Migrations
                     b.HasKey("AppointmentID");
 
                     b.HasIndex("ClinicID");
+
+                    b.HasIndex("CreatedByAssistantID");
 
                     b.HasIndex("DoctorID");
 
@@ -152,6 +157,23 @@ namespace Graduation_Project.Migrations
                         .IsUnique();
 
                     b.ToTable("Assistants");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.AssistantDoctor", b =>
+                {
+                    b.Property<int>("AssistantID")
+                        .HasColumnType("int")
+                        .HasColumnOrder(0);
+
+                    b.Property<int>("DoctorID")
+                        .HasColumnType("int")
+                        .HasColumnOrder(1);
+
+                    b.HasKey("AssistantID", "DoctorID");
+
+                    b.HasIndex("DoctorID");
+
+                    b.ToTable("AssistantDoctors");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.BloodGroup_Test", b =>
@@ -260,9 +282,6 @@ namespace Graduation_Project.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ClinicID"));
 
-                    b.Property<int>("DoctorID")
-                        .HasColumnType("int");
-
                     b.Property<string>("Location")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -273,9 +292,24 @@ namespace Graduation_Project.Migrations
 
                     b.HasKey("ClinicID");
 
+                    b.ToTable("Clinics");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.ClinicDoctor", b =>
+                {
+                    b.Property<int>("ClinicID")
+                        .HasColumnType("int")
+                        .HasColumnOrder(0);
+
+                    b.Property<int>("DoctorID")
+                        .HasColumnType("int")
+                        .HasColumnOrder(1);
+
+                    b.HasKey("ClinicID", "DoctorID");
+
                     b.HasIndex("DoctorID");
 
-                    b.ToTable("Clinics");
+                    b.ToTable("ClinicDoctors");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.Doctor", b =>
@@ -1048,6 +1082,11 @@ namespace Graduation_Project.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Graduation_Project.Models.Assistant", "CreatedByAssistant")
+                        .WithMany()
+                        .HasForeignKey("CreatedByAssistantID")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Graduation_Project.Models.Doctor", "Doctor")
                         .WithMany("Appointments")
                         .HasForeignKey("DoctorID")
@@ -1057,10 +1096,11 @@ namespace Graduation_Project.Migrations
                     b.HasOne("Graduation_Project.Models.Patient", "Patient")
                         .WithMany()
                         .HasForeignKey("PatientID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Clinic");
+
+                    b.Navigation("CreatedByAssistant");
 
                     b.Navigation("Doctor");
 
@@ -1070,7 +1110,7 @@ namespace Graduation_Project.Migrations
             modelBuilder.Entity("Graduation_Project.Models.Assistant", b =>
                 {
                     b.HasOne("Graduation_Project.Models.Clinic", "Clinic")
-                        .WithMany()
+                        .WithMany("Assistants")
                         .HasForeignKey("ClinicID")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -1084,6 +1124,25 @@ namespace Graduation_Project.Migrations
                     b.Navigation("Clinic");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.AssistantDoctor", b =>
+                {
+                    b.HasOne("Graduation_Project.Models.Assistant", "Assistant")
+                        .WithMany("AssistantDoctors")
+                        .HasForeignKey("AssistantID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Graduation_Project.Models.Doctor", "Doctor")
+                        .WithMany("AssistantDoctors")
+                        .HasForeignKey("DoctorID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Assistant");
+
+                    b.Navigation("Doctor");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.BloodGroup_Test", b =>
@@ -1137,13 +1196,21 @@ namespace Graduation_Project.Migrations
                     b.Navigation("LabTest");
                 });
 
-            modelBuilder.Entity("Graduation_Project.Models.Clinic", b =>
+            modelBuilder.Entity("Graduation_Project.Models.ClinicDoctor", b =>
                 {
+                    b.HasOne("Graduation_Project.Models.Clinic", "Clinic")
+                        .WithMany("ClinicDoctors")
+                        .HasForeignKey("ClinicID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("Graduation_Project.Models.Doctor", "Doctor")
-                        .WithMany("Clinics")
+                        .WithMany("ClinicDoctors")
                         .HasForeignKey("DoctorID")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Clinic");
 
                     b.Navigation("Doctor");
                 });
@@ -1347,6 +1414,17 @@ namespace Graduation_Project.Migrations
                     b.Navigation("Patient");
                 });
 
+            modelBuilder.Entity("Graduation_Project.Models.PatientDrug", b =>
+                {
+                    b.HasOne("Graduation_Project.Models.Patient", "Patient")
+                        .WithMany("PatientDrugs")
+                        .HasForeignKey("PatientID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Patient");
+                });
+
             modelBuilder.Entity("Graduation_Project.Models.Place", b =>
                 {
                     b.HasOne("Graduation_Project.Models.Patient", "Patient")
@@ -1482,11 +1560,25 @@ namespace Graduation_Project.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Graduation_Project.Models.Assistant", b =>
+                {
+                    b.Navigation("AssistantDoctors");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.Clinic", b =>
+                {
+                    b.Navigation("Assistants");
+
+                    b.Navigation("ClinicDoctors");
+                });
+
             modelBuilder.Entity("Graduation_Project.Models.Doctor", b =>
                 {
                     b.Navigation("Appointments");
 
-                    b.Navigation("Clinics");
+                    b.Navigation("AssistantDoctors");
+
+                    b.Navigation("ClinicDoctors");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.Patient", b =>

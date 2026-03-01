@@ -1,6 +1,7 @@
 ﻿using Graduation_Project.Data;
 using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Graduation_Project.Repository
 {
@@ -35,5 +36,22 @@ namespace Graduation_Project.Repository
         }
 
         public void Save() => _context.SaveChanges();
+
+        public IEnumerable<Alert> GetUnreadByPatientIds(IEnumerable<int> patientIds, int count) =>
+            _context.Alerts
+                .AsNoTracking()
+                .Include(a => a.Patient)
+                    .ThenInclude(p => p.User)
+                .Where(a => patientIds.Contains(a.PatientID) && !a.IsRead)
+                .OrderByDescending(a => a.DateCreated)
+                .Take(count)
+                .ToList();
+
+        public IEnumerable<int> GetPatientIdsWithUnreadAlerts(IEnumerable<int> patientIds) =>
+            _context.Alerts
+                .Where(a => patientIds.Contains(a.PatientID) && !a.IsRead)
+                .Select(a => a.PatientID)
+                .Distinct()
+                .ToList();
     }
 }

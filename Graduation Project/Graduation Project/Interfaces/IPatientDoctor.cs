@@ -10,5 +10,8 @@ namespace Graduation_Project.Interfaces
         void Update(PatientDoctor patientDoctor);
         void Delete(int doctorId, int patientId);
         void Save();
+        IEnumerable<PatientDoctor> GetApprovedByDoctor(int doctorId);
+        IEnumerable<PatientDoctor> GetApprovedByDoctors(IEnumerable<int> doctorIds);
+        IEnumerable<PatientDoctor> GetByPatientId(int patientId);
     }
 }

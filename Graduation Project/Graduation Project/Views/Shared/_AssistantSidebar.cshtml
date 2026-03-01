@@ -1,0 +1,77 @@
+@{
+    var assistantId = ViewData["AssistantId"] as int? ?? 0;
+    var activePage = ViewData["ActivePage"] as string ?? "";
+}
+
+<aside class="sidebar">
+    <button class="sidebar-close"><i class="fas fa-times"></i></button>
+
+    <!-- Brand Header -->
+    <div class="sidebar-brand">
+        <div class="brand-logo">
+            <div class="brand-icon">
+                <i class="fas fa-user-nurse"></i>
+            </div>
+            <div class="brand-text">
+                <span class="brand-name">MamaCare</span>
+                <span class="brand-badge">Assistant Portal</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Profile Card -->
+    <div class="sidebar-profile">
+        <div class="profile-avatar">
+            <img src="https://ui-avatars.com/api/?name=Assistant&background=7c3aed&color=fff&size=80"
+                 alt="Assistant Avatar" />
+            <span class="online-dot"></span>
+        </div>
+        <div class="profile-info">
+            <span class="profile-name">My Account</span>
+            <span class="profile-role">Assistant #@assistantId</span>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="nav-menu">
+        <div class="nav-section">
+            <span class="nav-section-label">Main</span>
+            <a href="/Assistant/Index/@assistantId"
+               class="nav-item @(activePage == "Dashboard" ? "active" : "")"
+               data-tooltip="Dashboard">
+                <div class="nav-icon"><i class="fas fa-home"></i></div>
+                <span>Dashboard</span>
+            </a>
+            <a href="/Assistant/Appointments/@assistantId"
+               class="nav-item @(activePage == "Appointments" ? "active" : "")"
+               data-tooltip="Appointments">
+                <div class="nav-icon"><i class="fas fa-calendar-alt"></i></div>
+                <span>Appointments</span>
+            </a>
+            <a href="/Assistant/Availability/@assistantId"
+               class="nav-item @(activePage == "Availability" ? "active" : "")"
+               data-tooltip="Manage Availability">
+                <div class="nav-icon"><i class="fas fa-clock"></i></div>
+                <span>Availability</span>
+            </a>
+            <a href="#"
+               class="nav-item @(activePage == "ClinicInvitations" ? "active" : "")"
+               data-tooltip="Clinic Invitations">
+                <div class="nav-icon"><i class="fas fa-user-md"></i></div>
+                <span>Clinic Invitations</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Sidebar Footer -->
+    <div class="sidebar-footer">
+        <a href="#" class="nav-item" data-tooltip="Patient Portal">
+            <div class="nav-icon"><i class="fas fa-exchange-alt"></i></div>
+            <span>Patient Portal</span>
+        </a>
+        <a href="#" class="nav-item logout-item" data-tooltip="Logout">
+            <div class="nav-icon"><i class="fas fa-sign-out-alt"></i></div>
+            <span>Logout</span>
+        </a>
+    </div>
+</aside>

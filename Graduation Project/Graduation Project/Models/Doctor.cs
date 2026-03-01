@@ -20,7 +20,8 @@ namespace Graduation_Project.Models
 
         // Navigation
         public virtual User User { get; set; }
-        public virtual ICollection<Clinic> Clinics { get; set; }
+        public virtual ICollection<ClinicDoctor> ClinicDoctors { get; set; }
+        public virtual ICollection<AssistantDoctor> AssistantDoctors { get; set; }
         public virtual ICollection<Appointment> Appointments { get; set; }
     }
 }

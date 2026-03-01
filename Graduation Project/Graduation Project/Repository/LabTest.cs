@@ -42,5 +42,11 @@ namespace Graduation_Project.Repository
                 .OrderByDescending(lt => lt.UploadDate)
                 .FirstOrDefault();
         }
+
+        public int CountByDoctorSince(int doctorId, DateTime since) =>
+            _context.LabTests.Count(lt => lt.DoctorID == doctorId && lt.UploadDate >= since);
+
+        public int CountByDoctorsSince(IEnumerable<int> doctorIds, DateTime since) =>
+            _context.LabTests.Count(lt => doctorIds.Contains(lt.DoctorID) && lt.UploadDate >= since);
     }
 }

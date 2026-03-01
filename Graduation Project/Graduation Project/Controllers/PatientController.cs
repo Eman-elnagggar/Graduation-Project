@@ -20,6 +20,9 @@ namespace Graduation_Project.Controllers
         private readonly IPrescription _prescriptionRepository;
         private readonly IMedicalHistory _medicalHistoryRepository;
         private readonly IPlace _placeRepository;
+        private readonly IPatientDoctor _patientDoctorRepository;
+        private readonly IDoctor _doctorRepository;
+        private readonly IBooking _bookingRepository;
 
         public PatientController(
             IPatient patientRepository,
@@ -33,7 +36,10 @@ namespace Graduation_Project.Controllers
             INote noteRepository,
             IPrescription prescriptionRepository,
             IMedicalHistory medicalHistoryRepository,
-            IPlace placeRepository)
+            IPlace placeRepository,
+            IPatientDoctor patientDoctorRepository,
+            IDoctor doctorRepository,
+            IBooking bookingRepository)
         {
             _patientRepository = patientRepository;
             _patientBloodPressure = patientBloodPressure;
@@ -47,6 +53,9 @@ namespace Graduation_Project.Controllers
             _prescriptionRepository = prescriptionRepository;
             _medicalHistoryRepository = medicalHistoryRepository;
             _placeRepository = placeRepository;
+            _patientDoctorRepository = patientDoctorRepository;
+            _doctorRepository = doctorRepository;
+            _bookingRepository = bookingRepository;
         }
 
         public IActionResult Index(int id)
@@ -158,7 +167,8 @@ namespace Graduation_Project.Controllers
                 {
                     Title = "Upcoming Appointment",
                     Description = $"Dr. {nextAppt.Doctor?.User?.FirstName} - {nextAppt.Date:MMM dd, yyyy}",
-                    DateTime = nextAppt.Date,
+                    DateTime = DateTime.Now,
+                    OverrideTime = nextAppt.Date.ToString("MMM dd, yyyy"),
                     IconClass = "fas fa-calendar-check",
                     IconBgColor = "#fff3e0",
                     IconColor = "#ff9800"
@@ -642,6 +652,185 @@ namespace Graduation_Project.Controllers
             _placeRepository.Save();
 
             return Json(new { success = true });
+        }
+
+        // ---------------------------------------------------------------
+        // GET: /Patient/Appointments/5
+        // ---------------------------------------------------------------
+        public IActionResult Appointments(int id)
+        {
+            var patient = _patientRepository.GetById(id);
+            if (patient == null) return NotFound();
+
+            var allAppointments = _appointment.GetByPatientId(id).ToList();
+            var upcoming = allAppointments
+                .Where(a => a.Date.Date >= DateTime.Today && a.isBooked)
+                .OrderBy(a => a.Date).ThenBy(a => a.Time)
+                .ToList();
+            var past = _appointment.GetPastByPatientId(id).ToList();
+
+            var myDoctors = _patientDoctorRepository.GetByPatientId(id)
+                .Where(pd => pd.Status == "Approved")
+                .ToList();
+            var primaryDoctor = myDoctors.FirstOrDefault(pd => pd.IsPrimary);
+            var unreadAlerts = _alertRepository.GetByPatientId(id).Count(a => !a.IsRead);
+
+            var viewModel = new PatientAppointmentsViewModel
+            {
+                Patient = patient,
+                UserName = patient.User?.FirstName ?? "Patient",
+                UpcomingAppointments = upcoming,
+                PastAppointments = past,
+                MyDoctors = myDoctors,
+                PrimaryDoctor = primaryDoctor,
+                UnreadAlertsCount = unreadAlerts
+            };
+
+            return View(viewModel);
+        }
+
+        // ---------------------------------------------------------------
+        // GET: /Patient/BookAppointment/5
+        // ---------------------------------------------------------------
+        public IActionResult BookAppointment(int id, int? doctorId = null)
+        {
+            var patient = _patientRepository.GetById(id);
+            if (patient == null) return NotFound();
+
+            var allDoctors = _doctorRepository.GetAllWithDetails().ToList();
+            var availableDoctors = allDoctors
+                .Select(d =>
+                {
+                    var clinicDoctor = d.ClinicDoctors?.FirstOrDefault();
+                    var firstAvailable = _appointment.GetFirstAvailableForDoctor(d.DoctorID);
+                    var clinics = d.ClinicDoctors?.Select(cd => new ClinicInfo
+                    {
+                        ClinicID = cd.ClinicID,
+                        ClinicName = cd.Clinic?.Name ?? "Clinic",
+                        ClinicLocation = cd.Clinic?.Location ?? string.Empty
+                    }).ToList() ?? new List<ClinicInfo>();
+                    return new DoctorBookingInfo
+                    {
+                        DoctorID = d.DoctorID,
+                        FullName = d.User != null ? $"Dr. {d.User.FirstName} {d.User.LastName}".Trim() : "Doctor",
+                        Specialization = d.Specialization ?? string.Empty,
+                        ClinicID = clinicDoctor?.ClinicID ?? 0,
+                        ClinicName = clinicDoctor?.Clinic?.Name ?? "Clinic",
+                        ClinicLocation = clinicDoctor?.Clinic?.Location ?? string.Empty,
+                        NextAvailableDate = firstAvailable?.Date,
+                        NextAvailableTime = firstAvailable?.Time,
+                        Clinics = clinics
+                    };
+                })
+                .ToList();
+
+            var viewModel = new PatientBookAppointmentViewModel
+            {
+                Patient = patient,
+                UserName = patient.User?.FirstName ?? "Patient",
+                AvailableDoctors = availableDoctors,
+                PreSelectedDoctorId = doctorId
+            };
+
+            return View(viewModel);
+        }
+
+        // ---------------------------------------------------------------
+        // GET: /Patient/GetDoctorSlots  (AJAX)
+        // ---------------------------------------------------------------
+        [HttpGet]
+        public IActionResult GetDoctorSlots(int patientId, int doctorId, string date, int? clinicId = null)
+        {
+            if (!DateTime.TryParse(date, out var parsedDate))
+                return BadRequest();
+
+            var slots = clinicId.HasValue
+                ? _appointment.GetAvailableByDoctorClinicAndDate(doctorId, clinicId.Value, parsedDate)
+                : _appointment.GetAvailableByDoctorAndDate(doctorId, parsedDate);
+            return Json(slots.Select(a => new
+            {
+                appointmentId = a.AppointmentID,
+                time = a.Time.ToString(@"hh\:mm"),
+                timeDisplay = DateTime.Today.Add(a.Time).ToString("hh:mm tt"),
+                hourOf24 = (int)a.Time.TotalHours,
+                clinicId = a.ClinicID
+            }));
+        }
+
+        // ---------------------------------------------------------------
+        // GET: /Patient/GetAvailableDates  (AJAX)
+        // ---------------------------------------------------------------
+        [HttpGet]
+        public IActionResult GetAvailableDates(int patientId, int doctorId, int year, int month, int? clinicId = null)
+        {
+            var dates = clinicId.HasValue
+                ? _appointment.GetAvailableDatesByDoctorAndClinic(doctorId, clinicId.Value, year, month)
+                : _appointment.GetAvailableDatesByDoctor(doctorId, year, month);
+            return Json(dates.Select(d => d.ToString("yyyy-MM-dd")));
+        }
+
+        // ---------------------------------------------------------------
+        // POST: /Patient/ConfirmBooking  (AJAX)
+        // ---------------------------------------------------------------
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult ConfirmBooking(int patientId, int appointmentId, string reason, string? notes)
+        {
+            var patient = _patientRepository.GetById(patientId);
+            if (patient == null)
+                return Json(new { success = false, message = "Patient not found." });
+
+            var appointment = _appointment.GetByIdWithBooking(appointmentId);
+            if (appointment == null || appointment.isBooked)
+                return Json(new { success = false, message = "This slot is no longer available." });
+
+            // Check if the doctor is already booked at the same date/time at another clinic
+            if (_appointment.HasDoctorConflict(appointment.DoctorID, appointment.Date, appointment.Time, appointmentId))
+                return Json(new { success = false, message = "This doctor is already booked at this time at another clinic. Please choose a different slot." });
+
+            appointment.PatientID = patientId;
+            appointment.isBooked = true;
+            _appointment.Update(appointment);
+
+            var booking = new Booking
+            {
+                AppointmentID = appointmentId,
+                PatientID = patientId,
+                DoctorID = appointment.DoctorID,
+                ClinicID = appointment.ClinicID,
+                Status = "Confirmed",
+                Reason = reason ?? string.Empty,
+                Notes = notes ?? string.Empty
+            };
+            _bookingRepository.Add(booking);
+            _bookingRepository.Save();
+
+            return Json(new { success = true, message = "Appointment booked successfully!" });
+        }
+
+        // ---------------------------------------------------------------
+        // POST: /Patient/CancelAppointment  (AJAX)
+        // ---------------------------------------------------------------
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult CancelAppointment(int patientId, int appointmentId)
+        {
+            var appointment = _appointment.GetByIdWithBooking(appointmentId);
+            if (appointment == null || appointment.PatientID != patientId)
+                return Json(new { success = false, message = "Appointment not found." });
+
+            appointment.isBooked = false;
+            appointment.PatientID = null;
+            _appointment.Update(appointment);
+
+            if (appointment.Booking != null)
+            {
+                appointment.Booking.Status = "Cancelled";
+                _bookingRepository.Update(appointment.Booking);
+            }
+
+            _appointment.Save();
+            return Json(new { success = true, message = "Appointment cancelled successfully." });
         }
 
         public IActionResult Edit(int id)

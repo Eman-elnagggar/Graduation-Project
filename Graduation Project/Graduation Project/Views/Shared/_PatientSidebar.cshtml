@@ -46,7 +46,7 @@
                 <div class="nav-icon"><i class="fas fa-flask"></i></div>
                 <span>Tests Upload</span>
             </a>
-            <a href="#" class="nav-item @(activePage == "Products" ? "active" : "")" data-tooltip="Product Safety">
+            <a href="/ProductScan/Index/@patientId" class="nav-item @(activePage == "Products" ? "active" : "")" data-tooltip="Product Safety">
                 <div class="nav-icon"><i class="fas fa-shield-alt"></i></div>
                 <span>Product Safety</span>
             </a>
@@ -55,7 +55,8 @@
                 <div class="nav-icon"><i class="fas fa-map-marker-alt"></i></div>
                 <span>My Places</span>
             </a>
-            <a href="#" class="nav-item @(activePage == "Appointments" ? "active" : "")" data-tooltip="Appointments">
+            <a href="/Patient/Appointments/@patientId"
+               class="nav-item @(activePage == "Appointments" ? "active" : "")" data-tooltip="Appointments">
                 <div class="nav-icon"><i class="fas fa-calendar-check"></i></div>
                 <span>Appointments</span>
             </a>
@@ -64,11 +65,11 @@
         <!-- Health & Community Section -->
         <div class="nav-section">
             <span class="nav-section-label">Health & Community</span>
-            <a href="#" class="nav-item @(activePage == "Chatbot" ? "active" : "")" data-tooltip="Chatbot">
+            <a href="/Chatbot/Index/@patientId" class="nav-item @(activePage == "Chatbot" ? "active" : "")" data-tooltip="Chatbot">
                 <div class="nav-icon"><i class="fas fa-robot"></i></div>
                 <span>Chatbot</span>
             </a>
-            <a href="#" class="nav-item @(activePage == "Community" ? "active" : "")" data-tooltip="Community">
+            <a href="/Community/Index/@patientId" class="nav-item @(activePage == "Community" ? "active" : "")" data-tooltip="Community">
                 <div class="nav-icon"><i class="fas fa-users"></i></div>
                 <span>Community</span>
             </a>
@@ -89,7 +90,8 @@
                 <div class="nav-icon"><i class="fas fa-bell"></i></div>
                 <span>Alerts</span>
             </a>
-            <a href="#" class="nav-item @(activePage == "Profile" ? "active" : "")" data-tooltip="My Profile">
+            <a href="/PatientProfile/Index/@patientId"
+               class="nav-item @(activePage == "Profile" ? "active" : "")" data-tooltip="My Profile">
                 <div class="nav-icon"><i class="fas fa-user-circle"></i></div>
                 <span>My Profile</span>
             </a>
