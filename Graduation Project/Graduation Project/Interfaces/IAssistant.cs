@@ -6,6 +6,8 @@ namespace Graduation_Project.Interfaces
     {
         IEnumerable<Assistant> GetAll();
         Assistant GetById(int id);
+        Assistant GetByIdWithUser(int id);
+        Assistant GetByIdWithDoctors(int id);
         void Add(Assistant assistant);
         void Update(Assistant assistant);
         void Delete(int id);

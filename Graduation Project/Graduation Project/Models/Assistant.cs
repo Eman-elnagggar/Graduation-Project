@@ -17,5 +17,6 @@ namespace Graduation_Project.Models
         // Navigation
         public virtual Clinic Clinic { get; set; }
         public virtual User User { get; set; }
+        public virtual ICollection<AssistantDoctor> AssistantDoctors { get; set; }
     }
 }

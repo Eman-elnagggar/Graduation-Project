@@ -55,7 +55,8 @@
                 <div class="nav-icon"><i class="fas fa-map-marker-alt"></i></div>
                 <span>My Places</span>
             </a>
-            <a href="#" class="nav-item @(activePage == "Appointments" ? "active" : "")" data-tooltip="Appointments">
+            <a href="/Patient/Appointments/@patientId"
+               class="nav-item @(activePage == "Appointments" ? "active" : "")" data-tooltip="Appointments">
                 <div class="nav-icon"><i class="fas fa-calendar-check"></i></div>
                 <span>Appointments</span>
             </a>

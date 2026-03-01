@@ -1,6 +1,7 @@
 ﻿using Graduation_Project.Data;
 using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Graduation_Project.Repository
 {
@@ -30,5 +31,30 @@ namespace Graduation_Project.Repository
         }
 
         public void Save() => _context.SaveChanges();
+
+        public IEnumerable<PatientDoctor> GetApprovedByDoctor(int doctorId) =>
+            _context.PatientDoctors
+                .Include(pd => pd.Patient)
+                    .ThenInclude(p => p.User)
+                .Where(pd => pd.DoctorID == doctorId && pd.Status == "Approved")
+                .ToList();
+
+        public IEnumerable<PatientDoctor> GetApprovedByDoctors(IEnumerable<int> doctorIds) =>
+            _context.PatientDoctors
+                .AsNoTracking()
+                .Include(pd => pd.Patient)
+                    .ThenInclude(p => p.User)
+                .Include(pd => pd.Doctor)
+                    .ThenInclude(d => d.User)
+                .Where(pd => doctorIds.Contains(pd.DoctorID) && pd.Status == "Approved")
+                .AsSplitQuery()
+                .ToList();
+
+        public IEnumerable<PatientDoctor> GetByPatientId(int patientId) =>
+            _context.PatientDoctors
+                .Include(pd => pd.Doctor).ThenInclude(d => d.User)
+                .Include(pd => pd.Doctor).ThenInclude(d => d.ClinicDoctors).ThenInclude(cd => cd.Clinic)
+                .Where(pd => pd.PatientID == patientId)
+                .ToList();
     }
 }

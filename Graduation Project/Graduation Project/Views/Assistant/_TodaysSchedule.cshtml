@@ -1,0 +1,69 @@
+@model List<Graduation_Project.Models.Appointment>
+
+@if (Model.Any())
+{
+    <div class="request-list">
+        @foreach (var appt in Model)
+        {
+            var patientName = appt.Patient?.User != null
+                ? $"{appt.Patient.User.FirstName} {appt.Patient.User.LastName}"
+                : "Unknown";
+            var doctorName = appt.Doctor?.User != null
+                ? $"Dr. {appt.Doctor.User.FirstName} {appt.Doctor.User.LastName}"
+                : "Doctor";
+            var statusClass = appt.Booking != null
+                ? (appt.Booking.Status?.ToLower() switch
+                {
+                    "confirmed" => "confirmed",
+                    "cancelled" => "cancelled",
+                    "modified" => "modified",
+                    _ => "pending"
+                })
+                : (appt.isBooked ? "confirmed" : "pending");
+            var statusText = appt.Booking?.Status ?? (appt.isBooked ? "Booked" : "Available");
+
+            <div class="request-card">
+                <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(patientName)&background=1baebe&color=fff&size=60"
+                     alt="@patientName" class="patient-avatar" />
+                <div class="request-info">
+                    <h4>@patientName</h4>
+                    <div class="meta">
+                        @ViewBag.ClinicName &mdash;
+                        <strong>@doctorName</strong>
+                    </div>
+                    <div class="request-details">
+                        <span><i class="fas fa-clock"></i> @appt.Time.ToString(@"hh\:mm")</span>
+                        <span><i class="fas fa-calendar"></i> @appt.Date.ToString("MMM dd, yyyy")</span>
+                        @if (appt.Booking != null && !string.IsNullOrEmpty(appt.Booking.Reason))
+                        {
+                            <span><i class="fas fa-notes-medical"></i> @appt.Booking.Reason</span>
+                        }
+                    </div>
+                </div>
+                <div class="request-actions">
+                    <span class="appointment-status @statusClass">@statusText</span>
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="privacy-notice" style="border-left-color: var(--info);">
+        <i class="fas fa-info-circle" style="color: var(--info);"></i>
+        <p>
+            @if (ViewBag.SelectedDoctorID != null)
+            {
+                @:No appointments scheduled for @ViewBag.SelectedDoctorName today.
+            }
+            else if (ViewBag.HasDoctors != null && !(bool)ViewBag.HasDoctors)
+            {
+                @:No doctors linked yet. Contact your clinic administrator.
+            }
+            else
+            {
+                @:No appointments scheduled for today.
+            }
+        </p>
+    </div>
+}

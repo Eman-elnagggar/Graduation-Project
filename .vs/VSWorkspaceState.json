@@ -1,9 +1,15 @@
 {
   "ExpandedNodes": [
     "",
+<<<<<<< HEAD
     "\\Graduation Project",
     "\\Graduation Project\\Graduation Project"
   ],
   "SelectedNode": "\\Graduation Project",
+=======
+    "\\Graduation Project"
+  ],
+  "SelectedNode": "\\Graduation Project\\Graduation Project.sln",
+>>>>>>> origin/Kareem-shakl
   "PreviewInSolutionExplorer": false
 }

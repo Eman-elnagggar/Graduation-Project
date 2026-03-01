@@ -1,6 +1,7 @@
 ﻿using Graduation_Project.Data;
 using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Graduation_Project.Repository
 {
@@ -29,5 +30,11 @@ namespace Graduation_Project.Repository
         }
 
         public void Save() => _context.SaveChanges();
+
+        public IEnumerable<Doctor> GetAllWithDetails() =>
+            _context.Doctors
+                .Include(d => d.User)
+                .Include(d => d.ClinicDoctors).ThenInclude(cd => cd.Clinic)
+                .ToList();
     }
 }

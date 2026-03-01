@@ -1,0 +1,950 @@
+﻿@model Graduation_Project.ViewModels.PatientBookAppointmentViewModel
+@{
+    Layout = "~/Views/Shared/_PatientLayout.cshtml";
+    ViewData["Title"] = "Book Appointment";
+    ViewData["PatientId"] = Model.Patient.PatientID;
+    ViewData["ActivePage"] = "Appointments";
+    var patientId = Model.Patient.PatientID;
+    var fullName = $"{Model.Patient.User?.FirstName} {Model.Patient.User?.LastName}".Trim();
+    var distinctSpecialties = Model.AvailableDoctors
+        .Select(d => d.Specialization).Where(s => !string.IsNullOrEmpty(s))
+        .Distinct().OrderBy(s => s).ToList();
+    var distinctLocations = Model.AvailableDoctors
+        .Select(d => d.ClinicName).Where(s => !string.IsNullOrEmpty(s))
+        .Distinct().OrderBy(s => s).ToList();
+}
+@section Head {
+    @Html.AntiForgeryToken()
+}
+
+<header class="header">
+                <div class="header-left" style="display:flex; align-items:center; gap:16px;">
+                    <button class="btn btn-outline"
+                            onclick="window.location.href='@Url.Action("Appointments", "Patient", new { id = patientId })'">
+                        <i class="fas fa-arrow-left"></i> Back to Appointments
+                    </button>
+                    <div>
+                        <h1>Book New Appointment 📅</h1>
+                        <p>Find and schedule an appointment with your doctor</p>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="notification">
+                        <i class="fas fa-bell"></i>
+                    </div>
+                    <div class="profile">
+                        <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(fullName)&background=1BAEBE&color=fff&size=40"
+                             alt="Profile" />
+                        <span>@fullName</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Booking Progress -->
+            <div class="booking-progress">
+                <div class="progress-step active" data-step="1">
+                    <div class="step-icon"><i class="fas fa-user-md"></i></div>
+                    <div class="step-info">
+                        <span class="step-label">Step 1</span>
+                        <span class="step-title">Select Doctor</span>
+                    </div>
+                </div>
+                <div class="progress-line"></div>
+                <div class="progress-step" data-step="2">
+                    <div class="step-icon"><i class="fas fa-calendar"></i></div>
+                    <div class="step-info">
+                        <span class="step-label">Step 2</span>
+                        <span class="step-title">Location & Date</span>
+                    </div>
+                </div>
+                <div class="progress-line"></div>
+                <div class="progress-step" data-step="3">
+                    <div class="step-icon"><i class="fas fa-clock"></i></div>
+                    <div class="step-info">
+                        <span class="step-label">Step 3</span>
+                        <span class="step-title">Pick Time</span>
+                    </div>
+                </div>
+                <div class="progress-line"></div>
+                <div class="progress-step" data-step="4">
+                    <div class="step-icon"><i class="fas fa-check"></i></div>
+                    <div class="step-info">
+                        <span class="step-label">Step 4</span>
+                        <span class="step-title">Confirm</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Booking Steps Content -->
+            <section class="book-appointment-page">
+                <div class="card">
+                    <!-- Step 1: Select Doctor -->
+                    <div class="booking-step" id="step1">
+                        <h4 class="step-title">
+                            <span class="step-number">1</span>
+                            Find & Select a Doctor
+                        </h4>
+
+                        <!-- Doctor Search & Filters -->
+                        <div class="doctor-search-section">
+                            <div class="search-bar">
+                                <i class="fas fa-search"></i>
+                                <input type="text"
+                                       id="doctorSearch"
+                                       class="search-input"
+                                       placeholder="Search by doctor name, specialty, or location..." />
+                            </div>
+                            <div class="search-filters">
+                                <select id="specialtyFilter" class="filter-select">
+                                    <option value="">All Specialties</option>
+                                    @foreach (var spec in distinctSpecialties)
+                                    {
+                                        <option value="@spec">@spec</option>
+                                    }
+                                </select>
+                                <select id="locationFilter" class="filter-select">
+                                    <option value="">All Locations</option>
+                                    @foreach (var loc in distinctLocations)
+                                    {
+                                        <option value="@loc">@loc</option>
+                                    }
+                                </select>
+                                <select id="availabilityFilter" class="filter-select">
+                                    <option value="">Any Time</option>
+                                    <option value="today">Available Today</option>
+                                    <option value="tomorrow">Available Tomorrow</option>
+                                    <option value="week">This Week</option>
+                                </select>
+                                <button class="btn btn-sm btn-outline" id="clearFilters">
+                                    <i class="fas fa-times"></i> Clear
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="doctors-selection" id="doctorsSelection">
+                            @if (!Model.AvailableDoctors.Any())
+                            {
+                                <div style="text-align:center; padding:32px; color:#94a3b8;">
+                                    <i class="fas fa-user-md" style="font-size:2rem; margin-bottom:12px; display:block;"></i>
+                                    <p>No doctors are currently available for booking.</p>
+                                </div>
+                            }
+                            @foreach (var d in Model.AvailableDoctors)
+                            {
+                                string avail = "";
+                                if (d.NextAvailableDate.HasValue)
+                                {
+                                    if (d.NextAvailableDate.Value.Date == DateTime.Today) avail = "today";
+                                    else if (d.NextAvailableDate.Value.Date == DateTime.Today.AddDays(1)) avail = "tomorrow";
+                                    else if (d.NextAvailableDate.Value.Date <= DateTime.Today.AddDays(7)) avail = "week";
+                                }
+                                string nextAvailLabel = d.NextAvailableDate.HasValue && d.NextAvailableTime.HasValue
+                                    ? d.NextAvailableDate.Value.ToString("MMM d") + ", " + DateTime.Today.Add(d.NextAvailableTime.Value).ToString("h:mm tt")
+                                    : "No slots available";
+                                var clinicsJson = System.Text.Json.JsonSerializer.Serialize(d.Clinics.Select(c => new { id = c.ClinicID, name = c.ClinicName, location = c.ClinicLocation }));
+                                var allLocationNames = string.Join(", ", d.Clinics.Select(c => c.ClinicName));
+                                <div class="doctor-select-card"
+                                     data-doctor-id="@d.DoctorID"
+                                     data-name="@d.FullName"
+                                     data-specialty="@d.Specialization"
+                                     data-location="@d.ClinicName"
+                                     data-clinic-id="@d.ClinicID"
+                                     data-clinic-name="@d.ClinicName"
+                                     data-clinics="@clinicsJson"
+                                     data-availability="@avail">
+                                    <div class="doctor-avatar">
+                                        <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(d.FullName)&background=1BAEBE&color=fff&size=80"
+                                             alt="@d.FullName" />
+                                        <span class="online-status@(d.NextAvailableDate.HasValue ? "" : " offline")"></span>
+                                    </div>
+                                    <div class="doctor-details">
+                                        <h4>@d.FullName</h4>
+                                        <p class="specialty">
+                                            <i class="fas fa-stethoscope"></i> @d.Specialization
+                                        </p>
+                                        <p class="location">
+                                            <i class="fas fa-map-marker-alt"></i>
+                                            @if (d.Clinics.Count > 1)
+                                            {
+                                                @($"{d.Clinics.Count} locations")
+                                            }
+                                            else
+                                            {
+                                                @allLocationNames
+                                            }
+                                        </p>
+                                        @if (d.Clinics.Count > 1)
+                                        {
+                                            <p class="location" style="font-size:0.8rem; color:#94a3b8;">
+                                                <i class="fas fa-map-pin"></i> @allLocationNames
+                                            </p>
+                                        }
+                                        else if (!string.IsNullOrEmpty(d.ClinicLocation))
+                                        {
+                                            <p class="location" style="font-size:0.8rem; color:#94a3b8;">
+                                                <i class="fas fa-map-pin"></i> @d.ClinicLocation
+                                            </p>
+                                        }
+                                    </div>
+                                    <div class="doctor-availability">
+                                        <span class="next-available">Next Available:</span>
+                                        <span class="available-date">@nextAvailLabel</span>
+                                    </div>
+                                    <div class="select-indicator">
+                                        <i class="fas fa-check-circle"></i>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Select Date -->
+                    <div class="booking-step" id="step2" style="display: none">
+                        <h4 class="step-title">
+                            <span class="step-number">2</span>
+                            Select Location & Date
+                        </h4>
+                        <div class="selected-doctor-mini">
+                            <img id="miniDoctorImg" src="https://ui-avatars.com/api/?name=Doctor&background=1BAEBE&color=fff&size=40"
+                                 alt="Doctor" />
+                            <span id="miniDoctorName">Selected Doctor</span>
+                            <button class="btn btn-sm" id="changeDoctor">Change</button>
+                        </div>
+
+                        <!-- Clinic / Location Picker -->
+                        <div class="form-group" id="clinicPickerGroup" style="margin-bottom:20px;">
+                            <label for="clinicPicker"><i class="fas fa-map-marker-alt"></i> Select Location</label>
+                            <select id="clinicPicker" class="form-select">
+                                <option value="">— Choose a clinic —</option>
+                            </select>
+                            <p id="clinicAddress" style="font-size:0.85rem; color:#94a3b8; margin-top:4px;"></p>
+                        </div>
+
+                        <div class="calendar-container">
+                            <div class="calendar-header">
+                                <button class="calendar-nav" id="prevMonth">
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                                <h4 id="currentMonth">March 2025</h4>
+                                <button class="calendar-nav" id="nextMonth">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                            <div class="calendar-weekdays">
+                                <span>Sun</span>
+                                <span>Mon</span>
+                                <span>Tue</span>
+                                <span>Wed</span>
+                                <span>Thu</span>
+                                <span>Fri</span>
+                                <span>Sat</span>
+                            </div>
+                            <div class="calendar-days">
+                                <span class="day disabled">23</span>
+                                <span class="day disabled">24</span>
+                                <span class="day disabled">25</span>
+                                <span class="day disabled">26</span>
+                                <span class="day disabled">27</span>
+                                <span class="day disabled">28</span>
+                                <span class="day calendar-date">1</span>
+                                <span class="day calendar-date">2</span>
+                                <span class="day calendar-date available">3</span>
+                                <span class="day calendar-date available">4</span>
+                                <span class="day calendar-date available">5</span>
+                                <span class="day calendar-date available">6</span>
+                                <span class="day calendar-date">7</span>
+                                <span class="day calendar-date">8</span>
+                                <span class="day calendar-date">9</span>
+                                <span class="day calendar-date available selected">10</span>
+                                <span class="day calendar-date available">11</span>
+                                <span class="day calendar-date available">12</span>
+                                <span class="day calendar-date available">13</span>
+                                <span class="day calendar-date">14</span>
+                                <span class="day calendar-date">15</span>
+                                <span class="day calendar-date">16</span>
+                                <span class="day calendar-date available">17</span>
+                                <span class="day calendar-date available">18</span>
+                                <span class="day calendar-date available">19</span>
+                                <span class="day calendar-date available">20</span>
+                                <span class="day calendar-date">21</span>
+                                <span class="day calendar-date">22</span>
+                                <span class="day calendar-date">23</span>
+                                <span class="day calendar-date available">24</span>
+                                <span class="day calendar-date available">25</span>
+                                <span class="day calendar-date available">26</span>
+                                <span class="day calendar-date available">27</span>
+                                <span class="day calendar-date">28</span>
+                                <span class="day calendar-date">29</span>
+                                <span class="day calendar-date">30</span>
+                                <span class="day calendar-date available">31</span>
+                            </div>
+                            <div class="calendar-legend">
+                                <span><i class="fas fa-circle available"></i> Available</span>
+                                <span><i class="fas fa-circle selected"></i> Selected</span>
+                                <span><i class="fas fa-circle disabled"></i> Unavailable</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Select Time -->
+                    <div class="booking-step" id="step3" style="display: none">
+                        <h4 class="step-title">
+                            <span class="step-number">3</span>
+                            Select Time Slot
+                        </h4>
+                        <div class="selected-date-mini">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span id="miniDateLabel">Select a date</span>
+                            <button class="btn btn-sm" id="changeDate">Change</button>
+                        </div>
+                        <div id="timeSlotsContainer" class="time-slots-container">
+                            <p style="text-align:center; color:#94a3b8; padding:24px;">
+                                Select a date to see available time slots.
+                            </p>
+                        </div>
+                        <div class="slot-legend">
+                            <span><i class="fas fa-square available"></i> Available</span>
+                            <span><i class="fas fa-square selected"></i> Selected</span>
+                            <span><i class="fas fa-square booked"></i> Booked</span>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Confirm -->
+                    <div class="booking-step" id="step4" style="display: none">
+                        <h4 class="step-title">
+                            <span class="step-number">4</span>
+                            Appointment Details & Confirm
+                        </h4>
+
+                        <div class="appointment-type-section">
+                            <label>Appointment Type</label>
+                            <div class="appointment-types">
+                                <div class="type-option selected">
+                                    <i class="fas fa-hospital"></i>
+                                    <span>In-Person Visit</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="visitReason">Reason for Visit</label>
+                            <select id="visitReason" class="form-select">
+                                <option value="">Select reason</option>
+                                <option value="checkup">Regular Checkup</option>
+                                <option value="ultrasound">Ultrasound Scan</option>
+                                <option value="followup">Follow-up Visit</option>
+                                <option value="concern">Specific Concern</option>
+                                <option value="emergency">Urgent Consultation</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="additionalNotes">Additional Notes (Optional)</label>
+                            <textarea id="additionalNotes"
+                                      class="form-textarea"
+                                      placeholder="Any symptoms or concerns you'd like to discuss..."></textarea>
+                        </div>
+
+                        <!-- Booking Summary -->
+                        <div class="booking-summary">
+                            <h5><i class="fas fa-receipt"></i> Booking Summary</h5>
+                            <div class="summary-content">
+                                <div class="summary-row">
+                                    <span class="label">Doctor:</span>
+                                    <span class="value" id="summaryDoctor">—</span>
+                                </div>
+                                <div class="summary-row">
+                                    <span class="label">Specialty:</span>
+                                    <span class="value" id="summarySpecialty">—</span>
+                                </div>
+                                <div class="summary-row">
+                                    <span class="label">Date:</span>
+                                    <span class="value" id="summaryDate">—</span>
+                                </div>
+                                <div class="summary-row">
+                                    <span class="label">Time:</span>
+                                    <span class="value" id="summaryTime">—</span>
+                                </div>
+                                <div class="summary-row">
+                                    <span class="label">Location:</span>
+                                    <span class="value" id="summaryLocation">—</span>
+                                </div>
+                                <div class="summary-row">
+                                    <span class="label">Type:</span>
+                                    <span class="value">In-Person Visit</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Navigation Buttons -->
+                    <div class="booking-navigation">
+                        <button class="btn btn-outline"
+                                id="prevStep"
+                                style="display: none">
+                            <i class="fas fa-arrow-left"></i> Previous
+                        </button>
+                        <button class="btn btn-primary" id="nextStep">
+                            Next <i class="fas fa-arrow-right"></i>
+                        </button>
+                        <button class="btn btn-success"
+                                id="confirmBooking"
+                                style="display: none">
+                            <i class="fas fa-check"></i> Confirm Booking
+                        </button>
+                    </div>
+                </div>
+            </section>
+@section Scripts {
+    <script>
+        // ================================
+        // Book Appointment Page JavaScript
+        // ================================
+
+        document.addEventListener("DOMContentLoaded", function () {
+          const patientId = @patientId;
+          const antiForgeryToken =
+            document.querySelector('[name="__RequestVerificationToken"]')
+              ?.value ?? "";
+
+          let currentStep = 1;
+          const totalSteps = 4;
+
+          const step1 = document.getElementById("step1");
+          const step2 = document.getElementById("step2");
+          const step3 = document.getElementById("step3");
+          const step4 = document.getElementById("step4");
+
+          const prevBtn = document.getElementById("prevStep");
+          const nextBtn = document.getElementById("nextStep");
+          const confirmBtn = document.getElementById("confirmBooking");
+          const progressSteps = document.querySelectorAll(".progress-step");
+          const doctorCards = document.querySelectorAll(".doctor-select-card");
+
+          const doctorSearch = document.getElementById("doctorSearch");
+          const specialtyFilter = document.getElementById("specialtyFilter");
+          const locationFilter = document.getElementById("locationFilter");
+          const availabilityFilter = document.getElementById("availabilityFilter");
+          const clearFiltersBtn = document.getElementById("clearFilters");
+
+          // Selected state
+          let selectedDoctor = null; // { id, name, specialty, clinicId, clinicName, clinics }
+          let selectedClinicId = null;
+          let selectedClinicName = null;
+          let selectedDate = null;   // "YYYY-MM-DD"
+          let selectedSlotId = null;
+          let selectedSlotTimeDisplay = null;
+
+          // ================================
+          // Filter doctors
+          // ================================
+          function filterDoctors() {
+            const searchTerm = doctorSearch?.value.toLowerCase() ?? "";
+            const specialty = specialtyFilter?.value ?? "";
+            const location = locationFilter?.value ?? "";
+            const availability = availabilityFilter?.value ?? "";
+
+            doctorCards.forEach((card) => {
+              const name = card.dataset.name?.toLowerCase() ?? "";
+              const matchesSearch = name.includes(searchTerm) || searchTerm === "";
+              const matchesSpecialty =
+                specialty === "" || card.dataset.specialty === specialty;
+              const matchesLocation =
+                location === "" || card.dataset.location === location;
+              const matchesAvailability =
+                availability === "" || card.dataset.availability === availability;
+
+              card.style.display =
+                matchesSearch && matchesSpecialty && matchesLocation && matchesAvailability
+                  ? "flex"
+                  : "none";
+            });
+          }
+
+          doctorSearch?.addEventListener("input", filterDoctors);
+          specialtyFilter?.addEventListener("change", filterDoctors);
+          locationFilter?.addEventListener("change", filterDoctors);
+          availabilityFilter?.addEventListener("change", filterDoctors);
+          clearFiltersBtn?.addEventListener("click", function () {
+            if (doctorSearch) doctorSearch.value = "";
+            if (specialtyFilter) specialtyFilter.value = "";
+            if (locationFilter) locationFilter.value = "";
+            if (availabilityFilter) availabilityFilter.value = "";
+            filterDoctors();
+          });
+
+          // ================================
+          // Progress bar
+          // ================================
+          function updateProgress(step) {
+            progressSteps.forEach((s, i) => {
+              s.classList.remove("active", "completed");
+              if (i < step - 1) s.classList.add("completed");
+              else if (i === step - 1) s.classList.add("active");
+            });
+          }
+
+          function updateNavigation() {
+            if (prevBtn)
+              prevBtn.style.display = currentStep === 1 ? "none" : "inline-flex";
+            if (nextBtn && confirmBtn) {
+              if (currentStep === totalSteps) {
+                nextBtn.style.display = "none";
+                confirmBtn.style.display = "inline-flex";
+              } else {
+                nextBtn.style.display = "inline-flex";
+                confirmBtn.style.display = "none";
+              }
+            }
+          }
+
+          function showStep(step) {
+            [step1, step2, step3, step4].forEach((s) => {
+              if (s) s.style.display = "none";
+            });
+            const steps = { 1: step1, 2: step2, 3: step3, 4: step4 };
+            if (steps[step]) steps[step].style.display = "block";
+
+            if (step === 2 && selectedDoctor) {
+              const miniName = document.getElementById("miniDoctorName");
+              const miniImg = document.getElementById("miniDoctorImg");
+              if (miniName) miniName.textContent = selectedDoctor.name;
+              if (miniImg)
+                miniImg.src =
+                  "https://ui-avatars.com/api/?name=" +
+                  encodeURIComponent(selectedDoctor.name) +
+                  "&background=1BAEBE&color=fff&size=40";
+              populateClinicPicker();
+            }
+            if (step === 4) updateSummary();
+            updateProgress(step);
+            updateNavigation();
+          }
+
+          // ================================
+          // Doctor selection
+          // ================================
+          doctorCards.forEach((card) => {
+            card.addEventListener("click", function () {
+              doctorCards.forEach((c) => c.classList.remove("selected"));
+              this.classList.add("selected");
+              let clinics = [];
+              try { clinics = JSON.parse(this.dataset.clinics || "[]"); } catch { }
+              selectedDoctor = {
+                id: parseInt(this.dataset.doctorId),
+                name: this.dataset.name,
+                specialty: this.dataset.specialty,
+                clinicId: parseInt(this.dataset.clinicId),
+                clinicName: this.dataset.clinicName,
+                clinics: clinics,
+              };
+              // Reset clinic and date selection when doctor changes
+              selectedClinicId = null;
+              selectedClinicName = null;
+              selectedDate = null;
+              selectedSlotId = null;
+              selectedSlotTimeDisplay = null;
+            });
+          });
+
+          // ================================
+          // Calendar navigation
+          // ================================
+          const prevMonth = document.getElementById("prevMonth");
+          const nextMonth = document.getElementById("nextMonth");
+          const currentMonthEl = document.getElementById("currentMonth");
+
+          let currentMonthIndex = new Date().getMonth();
+          let currentYear = new Date().getFullYear();
+          const months = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December",
+          ];
+
+          // Track available dates for the current month
+          let availableDatesSet = new Set();
+
+          // ================================
+          // Clinic Picker
+          // ================================
+          const clinicPicker = document.getElementById("clinicPicker");
+          const clinicPickerGroup = document.getElementById("clinicPickerGroup");
+          const clinicAddress = document.getElementById("clinicAddress");
+
+          function populateClinicPicker() {
+            if (!clinicPicker || !selectedDoctor) return;
+            const clinics = selectedDoctor.clinics || [];
+
+            clinicPicker.innerHTML = '';
+            if (clinics.length === 0) {
+              // No clinic data — hide picker, use default
+              clinicPickerGroup.style.display = "none";
+              selectedClinicId = selectedDoctor.clinicId;
+              selectedClinicName = selectedDoctor.clinicName;
+              loadAvailableDates(selectedDoctor.id, currentMonthIndex, currentYear);
+              return;
+            }
+
+            if (clinics.length === 1) {
+              // Auto-select the only clinic
+              clinicPickerGroup.style.display = "none";
+              selectedClinicId = clinics[0].id;
+              selectedClinicName = clinics[0].name;
+              loadAvailableDates(selectedDoctor.id, currentMonthIndex, currentYear);
+              return;
+            }
+
+            // Multiple clinics — show picker
+            clinicPickerGroup.style.display = "block";
+            clinicPicker.innerHTML = '<option value="">— Choose a clinic —</option>';
+            clinics.forEach(function (c) {
+              const opt = document.createElement("option");
+              opt.value = c.id;
+              opt.textContent = c.name + (c.location ? " — " + c.location : "");
+              clinicPicker.appendChild(opt);
+            });
+
+            // If a clinic was already selected, re-select it
+            if (selectedClinicId) {
+              clinicPicker.value = selectedClinicId;
+              const sel = clinics.find(c => c.id === selectedClinicId);
+              if (clinicAddress && sel) clinicAddress.textContent = sel.location || "";
+              loadAvailableDates(selectedDoctor.id, currentMonthIndex, currentYear);
+            } else {
+              if (clinicAddress) clinicAddress.textContent = "";
+              availableDatesSet = new Set();
+              renderCalendar(currentMonthIndex, currentYear);
+            }
+          }
+
+          if (clinicPicker) {
+            clinicPicker.addEventListener("change", function () {
+              const val = parseInt(this.value);
+              if (!val) {
+                selectedClinicId = null;
+                selectedClinicName = null;
+                if (clinicAddress) clinicAddress.textContent = "";
+                availableDatesSet = new Set();
+                renderCalendar(currentMonthIndex, currentYear);
+                return;
+              }
+              selectedClinicId = val;
+              const clinics = selectedDoctor?.clinics || [];
+              const sel = clinics.find(c => c.id === val);
+              selectedClinicName = sel?.name || "";
+              if (clinicAddress) clinicAddress.textContent = sel?.location || "";
+              selectedDate = null;
+              selectedSlotId = null;
+              selectedSlotTimeDisplay = null;
+              loadAvailableDates(selectedDoctor.id, currentMonthIndex, currentYear);
+            });
+          }
+
+          async function loadAvailableDates(doctorId, month, year) {
+            try {
+              let url = `/Patient/GetAvailableDates?patientId=${patientId}&doctorId=${doctorId}&year=${year}&month=${month + 1}`;
+              if (selectedClinicId) url += `&clinicId=${selectedClinicId}`;
+              const res = await fetch(url);
+              const dates = await res.json();
+              availableDatesSet = new Set(dates.map((d) => d.split("T")[0]));
+              renderCalendar(month, year);
+            } catch {
+              renderCalendar(month, year);
+            }
+          }
+
+          function renderCalendar(month, year) {
+            if (currentMonthEl)
+              currentMonthEl.textContent = months[month] + " " + year;
+
+            const calendarDays = document.querySelector(".calendar-days");
+            if (!calendarDays) return;
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            let html = "";
+            // Empty cells before first day
+            for (let i = 0; i < firstDay; i++) {
+              html += '<span class="day disabled"></span>';
+            }
+            for (let d = 1; d <= daysInMonth; d++) {
+              const dateObj = new Date(year, month, d);
+              const dateStr =
+                year +
+                "-" +
+                String(month + 1).padStart(2, "0") +
+                "-" +
+                String(d).padStart(2, "0");
+              const isPast = dateObj < today;
+              const isAvailable = availableDatesSet.has(dateStr);
+              let classes = "day calendar-date";
+              if (isPast) classes += " disabled";
+              else if (isAvailable) classes += " available";
+              html += `<span class="${classes}" data-date="${dateStr}">${d}</span>`;
+            }
+            calendarDays.innerHTML = html;
+            attachDateClickHandlers();
+          }
+
+          function attachDateClickHandlers() {
+            document.querySelectorAll(".calendar-date:not(.disabled)").forEach((d) => {
+              d.addEventListener("click", async function () {
+                document
+                  .querySelectorAll(".calendar-date")
+                  .forEach((x) => x.classList.remove("selected"));
+                this.classList.add("selected");
+                selectedDate = this.dataset.date;
+                const miniDate = document.getElementById("miniDateLabel");
+                if (miniDate && selectedDate) {
+                  const dt = new Date(selectedDate + "T00:00:00");
+                  miniDate.textContent = dt.toLocaleDateString("en-US", {
+                    weekday: "long", year: "numeric", month: "long", day: "numeric",
+                  });
+                }
+                if (selectedDoctor) {
+                  await loadTimeSlots(selectedDoctor.id, selectedDate);
+                }
+              });
+            });
+          }
+
+          if (prevMonth) {
+            prevMonth.addEventListener("click", function () {
+              currentMonthIndex--;
+              if (currentMonthIndex < 0) { currentMonthIndex = 11; currentYear--; }
+              if (selectedDoctor)
+                loadAvailableDates(selectedDoctor.id, currentMonthIndex, currentYear);
+              else
+                renderCalendar(currentMonthIndex, currentYear);
+            });
+          }
+
+          if (nextMonth) {
+            nextMonth.addEventListener("click", function () {
+              currentMonthIndex++;
+              if (currentMonthIndex > 11) { currentMonthIndex = 0; currentYear++; }
+              if (selectedDoctor)
+                loadAvailableDates(selectedDoctor.id, currentMonthIndex, currentYear);
+              else
+                renderCalendar(currentMonthIndex, currentYear);
+            });
+          }
+
+          // Initial calendar render
+          renderCalendar(currentMonthIndex, currentYear);
+
+          // ================================
+          // Time slots via AJAX
+          // ================================
+          async function loadTimeSlots(doctorId, date) {
+            const container = document.getElementById("timeSlotsContainer");
+            if (!container) return;
+            container.innerHTML =
+              '<p style="text-align:center;padding:24px;color:#94a3b8;">Loading slots...</p>';
+
+            try {
+              let url = `/Patient/GetDoctorSlots?patientId=${patientId}&doctorId=${doctorId}&date=${date}`;
+              if (selectedClinicId) url += `&clinicId=${selectedClinicId}`;
+              const res = await fetch(url);
+              const slots = await res.json();
+
+              if (!slots.length) {
+                container.innerHTML =
+                  '<p style="text-align:center;padding:24px;color:#94a3b8;">No available slots for this date.</p>';
+                return;
+              }
+
+              const morning = slots.filter((s) => s.hourOf24 < 12);
+              const afternoon = slots.filter((s) => s.hourOf24 >= 12 && s.hourOf24 < 17);
+              const evening = slots.filter((s) => s.hourOf24 >= 17);
+
+              function renderPeriod(label, icon, list) {
+                if (!list.length) return "";
+                const btns = list
+                  .map(
+                    (s) =>
+                      `<button class="time-slot available" data-appointment-id="${s.appointmentId}" data-time-display="${s.timeDisplay}">${s.timeDisplay}</button>`
+                  )
+                  .join("");
+                return `<div class="time-period"><h5><i class="fas ${icon}"></i> ${label}</h5><div class="slots-grid">${btns}</div></div>`;
+              }
+
+              container.innerHTML =
+                renderPeriod("Morning", "fa-sun", morning) +
+                renderPeriod("Afternoon", "fa-cloud-sun", afternoon) +
+                renderPeriod("Evening", "fa-moon", evening);
+
+              container.querySelectorAll(".time-slot.available").forEach((btn) => {
+                btn.addEventListener("click", function () {
+                  container
+                    .querySelectorAll(".time-slot.available")
+                    .forEach((b) => b.classList.remove("selected"));
+                  this.classList.add("selected");
+                  selectedSlotId = parseInt(this.dataset.appointmentId);
+                  selectedSlotTimeDisplay = this.dataset.timeDisplay;
+                });
+              });
+            } catch {
+              container.innerHTML =
+                '<p style="text-align:center;padding:24px;color:#e74c3c;">Error loading slots. Please try again.</p>';
+            }
+          }
+
+          // ================================
+          // Navigation buttons
+          // ================================
+          if (nextBtn) {
+            nextBtn.addEventListener("click", function () {
+              if (currentStep === 1 && !selectedDoctor) {
+                alert("Please select a doctor first.");
+                return;
+              }
+              if (currentStep === 2 && !selectedClinicId) {
+                alert("Please select a clinic location first.");
+                return;
+              }
+              if (currentStep === 2 && !selectedDate) {
+                alert("Please select a date first.");
+                return;
+              }
+              if (currentStep === 3 && !selectedSlotId) {
+                alert("Please select a time slot first.");
+                return;
+              }
+              if (currentStep < totalSteps) {
+                currentStep++;
+                showStep(currentStep);
+              }
+            });
+          }
+
+          if (prevBtn) {
+            prevBtn.addEventListener("click", function () {
+              if (currentStep > 1) { currentStep--; showStep(currentStep); }
+            });
+          }
+
+          document.getElementById("changeDoctor")?.addEventListener("click", function () {
+            currentStep = 1; showStep(1);
+          });
+          document.getElementById("changeDate")?.addEventListener("click", function () {
+            currentStep = 2; showStep(2);
+          });
+
+          // ================================
+          // Summary update
+          // ================================
+          function updateSummary() {
+            if (selectedDoctor) {
+              const el = document.getElementById("summaryDoctor");
+              if (el) el.textContent = selectedDoctor.name;
+              const sp = document.getElementById("summarySpecialty");
+              if (sp) sp.textContent = selectedDoctor.specialty;
+              const loc = document.getElementById("summaryLocation");
+              if (loc) loc.textContent = selectedClinicName || selectedDoctor.clinicName;
+            }
+            if (selectedDate) {
+              const dt = new Date(selectedDate + "T00:00:00");
+              const el = document.getElementById("summaryDate");
+              if (el)
+                el.textContent = dt.toLocaleDateString("en-US", {
+                  weekday: "long", year: "numeric", month: "long", day: "numeric",
+                });
+            }
+            if (selectedSlotTimeDisplay) {
+              const el = document.getElementById("summaryTime");
+              if (el) el.textContent = selectedSlotTimeDisplay;
+            }
+          }
+
+          // ================================
+          // Confirm Booking
+          // ================================
+          if (confirmBtn) {
+            confirmBtn.addEventListener("click", async function () {
+              const reason = document.getElementById("visitReason")?.value ?? "";
+              const notes = document.getElementById("additionalNotes")?.value ?? "";
+
+              if (!selectedSlotId) {
+                alert("Please select a time slot.");
+                return;
+              }
+
+              confirmBtn.disabled = true;
+              confirmBtn.textContent = "Booking...";
+
+              try {
+                const res = await fetch("/Patient/ConfirmBooking", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                  body: new URLSearchParams({
+                    __RequestVerificationToken: antiForgeryToken,
+                    patientId: patientId,
+                    appointmentId: selectedSlotId,
+                    reason: reason,
+                    notes: notes,
+                  }),
+                });
+                const result = await res.json();
+                if (result.success) {
+                  showNotification(result.message, "success");
+                  setTimeout(() => {
+                    window.location.href = `/Patient/Appointments/${patientId}`;
+                  }, 1500);
+                } else {
+                  showNotification(result.message || "Booking failed.", "error");
+                  confirmBtn.disabled = false;
+                  confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirm Booking';
+                }
+              } catch {
+                showNotification("Error processing booking.", "error");
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirm Booking';
+              }
+            });
+          }
+
+          updateNavigation();
+          updateProgress(1);
+
+          // ================================
+          // Pre-select doctor if supplied
+          // ================================
+          const preSelectedDoctorId = @(Model.PreSelectedDoctorId.HasValue ? Model.PreSelectedDoctorId.Value.ToString() : "null");
+          if (preSelectedDoctorId !== null) {
+            const preCard = document.querySelector(`.doctor-select-card[data-doctor-id="${preSelectedDoctorId}"]`);
+            if (preCard) {
+              preCard.click();
+              currentStep = 2;
+              showStep(2);
+            }
+          }
+
+          // ================================
+          // Global Notification
+          // ================================
+          function showNotification(message, type) {
+            const existing = document.querySelector(".global-notification");
+            if (existing) existing.remove();
+            const n = document.createElement("div");
+            n.className = "global-notification " + (type || "info");
+            const icon =
+              type === "success"
+                ? "fa-check-circle"
+                : type === "error"
+                ? "fa-exclamation-circle"
+                : "fa-info-circle";
+            n.innerHTML =
+              `<i class="fas ${icon}"></i><span>${message}</span>` +
+              `<button class="notification-close"><i class="fas fa-times"></i></button>`;
+            document.body.appendChild(n);
+            n.querySelector(".notification-close").addEventListener("click", () => n.remove());
+            setTimeout(() => { if (n.parentNode) n.remove(); }, 4000);
+          }
+          window.showNotification = showNotification;
+        });
+    </script>
+}

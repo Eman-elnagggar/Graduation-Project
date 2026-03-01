@@ -12,5 +12,7 @@ namespace Graduation_Project.Interfaces
         void Save();
         IEnumerable<LabTest> GetLabTestsByPatientId(int patientId);
         LabTest GetLastLabTestByPatientId(int patientId);
+        int CountByDoctorSince(int doctorId, DateTime since);
+        int CountByDoctorsSince(IEnumerable<int> doctorIds, DateTime since);
     }
 }

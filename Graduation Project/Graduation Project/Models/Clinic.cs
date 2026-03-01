@@ -8,13 +8,11 @@ namespace Graduation_Project.Models
         [Key]
         public int ClinicID { get; set; }
 
-        [ForeignKey("Doctor")]
-        public int DoctorID { get; set; }
-
         public string Name { get; set; }
         public string Location { get; set; }
 
         // Navigation
-        public virtual Doctor Doctor { get; set; }
+        public virtual ICollection<ClinicDoctor> ClinicDoctors { get; set; }
+        public virtual ICollection<Assistant> Assistants { get; set; }
     }
 }

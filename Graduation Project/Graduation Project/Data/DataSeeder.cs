@@ -51,7 +51,9 @@ namespace Graduation_Project.Data
                     // Assistants
                     new User { RoleID = roleAssistant.RoleID, FirstName = "Layla",   LastName = "Omar",    Email = "layla.omar@mamacare.com",     PasswordHash = "AQAAAAIAAYagAAAAEHb", Phone = "01601234567", DateOfBirth = new DateTime(1990, 1, 8),   IsActive = true, CreatedDate = new DateTime(2024, 1, 10) },
                     new User { RoleID = roleAssistant.RoleID, FirstName = "Dina",    LastName = "Samir",   Email = "dina.samir@mamacare.com",     PasswordHash = "AQAAAAIAAYagAAAAEHc", Phone = "01609876543", DateOfBirth = new DateTime(1992, 3, 17),  IsActive = true, CreatedDate = new DateTime(2024, 1, 11) },
-                    new User { RoleID = roleAssistant.RoleID, FirstName = "Noura",   LastName = "Youssef", Email = "noura.youssef@mamacare.com",  PasswordHash = "AQAAAAIAAYagAAAAEHd", Phone = "01612233445", DateOfBirth = new DateTime(1988, 7, 29),  IsActive = true, CreatedDate = new DateTime(2024, 1, 12) }
+                    new User { RoleID = roleAssistant.RoleID, FirstName = "Noura",   LastName = "Youssef", Email = "noura.youssef@mamacare.com",  PasswordHash = "AQAAAAIAAYagAAAAEHd", Phone = "01612233445", DateOfBirth = new DateTime(1988, 7, 29),  IsActive = true, CreatedDate = new DateTime(2024, 1, 12) },
+                    new User { RoleID = roleAssistant.RoleID, FirstName = "Amira",   LastName = "Tarek",   Email = "amira.tarek@mamacare.com",    PasswordHash = "AQAAAAIAAYagAAAAEHe", Phone = "01622334456", DateOfBirth = new DateTime(1991, 5, 14),  IsActive = true, CreatedDate = new DateTime(2024, 1, 13) },
+                    new User { RoleID = roleAssistant.RoleID, FirstName = "Heba",    LastName = "Adel",    Email = "heba.adel@mamacare.com",      PasswordHash = "AQAAAAIAAYagAAAAEHf", Phone = "01632445567", DateOfBirth = new DateTime(1994, 10, 2),  IsActive = true, CreatedDate = new DateTime(2024, 1, 14) }
                 );
                 await context.SaveChangesAsync();
             }
@@ -70,6 +72,8 @@ namespace Graduation_Project.Data
             var uLayla   = context.Users.First(u => u.Email == "layla.omar@mamacare.com");
             var uDina    = context.Users.First(u => u.Email == "dina.samir@mamacare.com");
             var uNoura   = context.Users.First(u => u.Email == "noura.youssef@mamacare.com");
+            var uAmira   = context.Users.First(u => u.Email == "amira.tarek@mamacare.com");
+            var uHeba    = context.Users.First(u => u.Email == "heba.adel@mamacare.com");
 
             // ============================================================
             // 3. DOCTORS
@@ -98,12 +102,12 @@ namespace Graduation_Project.Data
             if (!context.Clinics.Any())
             {
                 context.Clinics.AddRange(
-                    new Clinic { DoctorID = dAhmed.DoctorID, Name = "MamaCare Central",      Location = "15 Tahrir St, Cairo"     },
-                    new Clinic { DoctorID = dAhmed.DoctorID, Name = "MamaCare Heliopolis",   Location = "30 Heliopolis, Cairo"    },
-                    new Clinic { DoctorID = dMona.DoctorID,  Name = "Fetal Health Clinic",   Location = "22 Nasr City, Cairo"    },
-                    new Clinic { DoctorID = dKarim.DoctorID, Name = "Alexandria OBG Center", Location = "7 Corniche, Alexandria"  },
-                    new Clinic { DoctorID = dNadia.DoctorID, Name = "Endocrine & Maternal",  Location = "30 Heliopolis, Cairo"    },
-                    new Clinic { DoctorID = dOmar.DoctorID,  Name = "Dokki General Clinic",  Location = "5 Dokki, Giza"           }
+                    new Clinic { Name = "MamaCare Central",      Location = "15 Tahrir St, Cairo"     },
+                    new Clinic { Name = "MamaCare Heliopolis",   Location = "30 Heliopolis, Cairo"    },
+                    new Clinic { Name = "Fetal Health Clinic",   Location = "22 Nasr City, Cairo"    },
+                    new Clinic { Name = "Alexandria OBG Center", Location = "7 Corniche, Alexandria"  },
+                    new Clinic { Name = "Endocrine & Maternal",  Location = "30 Heliopolis, Cairo"    },
+                    new Clinic { Name = "Dokki General Clinic",  Location = "5 Dokki, Giza"           }
                 );
                 await context.SaveChangesAsync();
             }
@@ -116,6 +120,26 @@ namespace Graduation_Project.Data
             var cDokki     = context.Clinics.First(c => c.Name == "Dokki General Clinic");
 
             // ============================================================
+            // 4b. CLINIC-DOCTOR RELATIONSHIPS
+            // ============================================================
+            if (!context.ClinicDoctors.Any())
+            {
+                context.ClinicDoctors.AddRange(
+                    new ClinicDoctor { ClinicID = cCentral.ClinicID,   DoctorID = dAhmed.DoctorID },
+                    new ClinicDoctor { ClinicID = cHelio.ClinicID,     DoctorID = dAhmed.DoctorID },
+                    new ClinicDoctor { ClinicID = cFetal.ClinicID,     DoctorID = dMona.DoctorID  },
+                    new ClinicDoctor { ClinicID = cAlex.ClinicID,      DoctorID = dKarim.DoctorID },
+                    new ClinicDoctor { ClinicID = cEndocrine.ClinicID, DoctorID = dNadia.DoctorID },
+                    new ClinicDoctor { ClinicID = cDokki.ClinicID,     DoctorID = dOmar.DoctorID  },
+                    // Multi-doctor clinics
+                    new ClinicDoctor { ClinicID = cCentral.ClinicID,   DoctorID = dMona.DoctorID  },
+                    new ClinicDoctor { ClinicID = cFetal.ClinicID,     DoctorID = dKarim.DoctorID },
+                    new ClinicDoctor { ClinicID = cAlex.ClinicID,      DoctorID = dNadia.DoctorID }
+                );
+                await context.SaveChangesAsync();
+            }
+
+            // ============================================================
             // 5. ASSISTANTS
             // ============================================================
             if (!context.Assistants.Any())
@@ -123,7 +147,36 @@ namespace Graduation_Project.Data
                 context.Assistants.AddRange(
                     new Assistant { UserID = uLayla.UserID, ClinicID = cCentral.ClinicID },
                     new Assistant { UserID = uDina.UserID,  ClinicID = cFetal.ClinicID   },
-                    new Assistant { UserID = uNoura.UserID, ClinicID = cAlex.ClinicID    }
+                    new Assistant { UserID = uNoura.UserID, ClinicID = cAlex.ClinicID    },
+                    new Assistant { UserID = uAmira.UserID, ClinicID = cCentral.ClinicID },  // second assistant at Central — no AssistantDoctor records (fallback)
+                    new Assistant { UserID = uHeba.UserID,  ClinicID = cDokki.ClinicID   }   // clinic with pending-verification doctor, no approved patients
+                );
+                await context.SaveChangesAsync();
+            }
+
+            var aLayla = context.Assistants.First(a => a.UserID == uLayla.UserID);
+            var aDina  = context.Assistants.First(a => a.UserID == uDina.UserID);
+            var aNoura = context.Assistants.First(a => a.UserID == uNoura.UserID);
+            var aAmira = context.Assistants.First(a => a.UserID == uAmira.UserID);
+            var aHeba  = context.Assistants.First(a => a.UserID == uHeba.UserID);
+
+            // ============================================================
+            // 5b. ASSISTANT-DOCTOR RELATIONSHIPS
+            // ============================================================
+            if (!context.AssistantDoctors.Any())
+            {
+                context.AssistantDoctors.AddRange(
+                    // Layla: handles Ahmed + Mona (full overlap at Central which has Ahmed + Mona)
+                    new AssistantDoctor { AssistantID = aLayla.AssistantID, DoctorID = dAhmed.DoctorID },
+                    new AssistantDoctor { AssistantID = aLayla.AssistantID, DoctorID = dMona.DoctorID  },
+                    // Dina: handles Mona + Karim (full overlap at Fetal which has Mona + Karim)
+                    new AssistantDoctor { AssistantID = aDina.AssistantID,  DoctorID = dMona.DoctorID  },
+                    new AssistantDoctor { AssistantID = aDina.AssistantID,  DoctorID = dKarim.DoctorID },
+                    // Noura: handles only Karim (partial overlap — Alex has Karim + Nadia, Noura sees only Karim)
+                    new AssistantDoctor { AssistantID = aNoura.AssistantID, DoctorID = dKarim.DoctorID },
+                    // Heba: handles Omar (single doctor at Dokki, pending verification, no approved patients)
+                    new AssistantDoctor { AssistantID = aHeba.AssistantID,  DoctorID = dOmar.DoctorID  }
+                    // NOTE: Amira has NO AssistantDoctor entries ? dashboard falls back to all clinic doctors
                 );
                 await context.SaveChangesAsync();
             }
@@ -180,7 +233,13 @@ namespace Graduation_Project.Data
                     new PatientDoctor { DoctorID = dMona.DoctorID,  PatientID = pYasmine.PatientID, Status = "Approved", RequestDate = new DateTime(2025, 1, 12),  ResponseDate = new DateTime(2025, 1, 13),  IsPrimary = true  },
                     new PatientDoctor { DoctorID = dKarim.DoctorID, PatientID = pHana.PatientID,    Status = "Approved", RequestDate = new DateTime(2024, 8, 25),  ResponseDate = new DateTime(2024, 8, 26),  IsPrimary = true  },
                     new PatientDoctor { DoctorID = dNadia.DoctorID, PatientID = pReem.PatientID,    Status = "Approved", RequestDate = new DateTime(2024, 12, 8),  ResponseDate = new DateTime(2024, 12, 9),  IsPrimary = true  },
-                    new PatientDoctor { DoctorID = dMona.DoctorID,  PatientID = pSarah.PatientID,   Status = "Pending",  RequestDate = new DateTime(2025, 1, 20),  ResponseDate = null,                        IsPrimary = false }
+                    new PatientDoctor { DoctorID = dMona.DoctorID,  PatientID = pSarah.PatientID,   Status = "Pending",  RequestDate = new DateTime(2025, 1, 20),  ResponseDate = null,                        IsPrimary = false },
+                    // Shared patients across doctors at the same clinic
+                    new PatientDoctor { DoctorID = dMona.DoctorID,  PatientID = pFatima.PatientID,  Status = "Approved", RequestDate = new DateTime(2025, 2, 1),   ResponseDate = new DateTime(2025, 2, 2),    IsPrimary = false },
+                    new PatientDoctor { DoctorID = dKarim.DoctorID, PatientID = pReem.PatientID,    Status = "Approved", RequestDate = new DateTime(2025, 2, 10),  ResponseDate = new DateTime(2025, 2, 11),   IsPrimary = false },
+                    // Pending requests (doctor has no approved patients / cross-clinic referrals)
+                    new PatientDoctor { DoctorID = dOmar.DoctorID,  PatientID = pYasmine.PatientID, Status = "Pending",  RequestDate = new DateTime(2025, 3, 1),   ResponseDate = null,                        IsPrimary = false },
+                    new PatientDoctor { DoctorID = dAhmed.DoctorID, PatientID = pHana.PatientID,    Status = "Pending",  RequestDate = new DateTime(2025, 3, 5),   ResponseDate = null,                        IsPrimary = false }
                 );
                 await context.SaveChangesAsync();
             }
@@ -220,7 +279,24 @@ namespace Graduation_Project.Data
                     new Appointment { DoctorID = dMona.DoctorID,  PatientID = pFatima.PatientID,  ClinicID = cFetal.ClinicID,     Date = new DateTime(2025, 4, 8),  Time = new TimeSpan(11, 30, 0), isBooked = false },
                     new Appointment { DoctorID = dOmar.DoctorID,  PatientID = pYasmine.PatientID, ClinicID = cDokki.ClinicID,     Date = new DateTime(2025, 4, 10), Time = new TimeSpan(12, 0, 0),  isBooked = false },
                     new Appointment { DoctorID = dKarim.DoctorID, PatientID = pReem.PatientID,    ClinicID = cAlex.ClinicID,      Date = new DateTime(2025, 4, 12), Time = new TimeSpan(15, 0, 0),  isBooked = false },
-                    new Appointment { DoctorID = dNadia.DoctorID, PatientID = pHana.PatientID,    ClinicID = cEndocrine.ClinicID, Date = new DateTime(2025, 4, 15), Time = new TimeSpan(10, 0, 0),  isBooked = false }
+                    new Appointment { DoctorID = dNadia.DoctorID, PatientID = pHana.PatientID,    ClinicID = cEndocrine.ClinicID, Date = new DateTime(2025, 4, 15), Time = new TimeSpan(10, 0, 0),  isBooked = false },
+                    // ?? Today's appointments: Central clinic (Layla handles Ahmed+Mona, Amira sees all via fallback) ??
+                    new Appointment { DoctorID = dAhmed.DoctorID, PatientID = pSarah.PatientID,   ClinicID = cCentral.ClinicID,   Date = DateTime.Today, Time = new TimeSpan(9,  0,  0), isBooked = true  },
+                    new Appointment { DoctorID = dAhmed.DoctorID, PatientID = pFatima.PatientID,  ClinicID = cCentral.ClinicID,   Date = DateTime.Today, Time = new TimeSpan(10, 30, 0), isBooked = true  },
+                    new Appointment { DoctorID = dMona.DoctorID,  PatientID = pYasmine.PatientID, ClinicID = cCentral.ClinicID,   Date = DateTime.Today, Time = new TimeSpan(11, 0,  0), isBooked = true  },
+                    new Appointment { DoctorID = dMona.DoctorID,  PatientID = pFatima.PatientID,  ClinicID = cCentral.ClinicID,   Date = DateTime.Today, Time = new TimeSpan(14, 0,  0), isBooked = true  },
+                    new Appointment { DoctorID = dAhmed.DoctorID, PatientID = pSarah.PatientID,   ClinicID = cCentral.ClinicID,   Date = DateTime.Today, Time = new TimeSpan(15, 30, 0), isBooked = false },
+                    // ?? Today's appointments: Fetal Health clinic (Dina handles Mona+Karim) ??
+                    new Appointment { DoctorID = dMona.DoctorID,  PatientID = pYasmine.PatientID, ClinicID = cFetal.ClinicID,     Date = DateTime.Today, Time = new TimeSpan(9,  30, 0), isBooked = true  },
+                    new Appointment { DoctorID = dKarim.DoctorID, PatientID = pHana.PatientID,    ClinicID = cFetal.ClinicID,     Date = DateTime.Today, Time = new TimeSpan(11, 0,  0), isBooked = true  },
+                    // ?? Today's appointments: Alexandria clinic (Noura handles only Karim — Nadia's appointment hidden) ??
+                    new Appointment { DoctorID = dKarim.DoctorID, PatientID = pHana.PatientID,    ClinicID = cAlex.ClinicID,      Date = DateTime.Today, Time = new TimeSpan(14, 0,  0), isBooked = true  },
+                    new Appointment { DoctorID = dNadia.DoctorID, PatientID = pReem.PatientID,    ClinicID = cAlex.ClinicID,      Date = DateTime.Today, Time = new TimeSpan(15, 30, 0), isBooked = true  },
+                    // ?? Today's appointments: Endocrine clinic (no assistant assigned) ??
+                    new Appointment { DoctorID = dNadia.DoctorID, PatientID = pReem.PatientID,    ClinicID = cEndocrine.ClinicID, Date = DateTime.Today, Time = new TimeSpan(10, 0,  0), isBooked = true  },
+                    // ?? Today's appointments: Dokki clinic (Heba — Omar has no approved patients, open slots) ??
+                    new Appointment { DoctorID = dOmar.DoctorID,  PatientID = pYasmine.PatientID, ClinicID = cDokki.ClinicID,     Date = DateTime.Today, Time = new TimeSpan(12, 0,  0), isBooked = false },
+                    new Appointment { DoctorID = dOmar.DoctorID,  PatientID = pHana.PatientID,    ClinicID = cDokki.ClinicID,     Date = DateTime.Today, Time = new TimeSpan(14, 0,  0), isBooked = false }
                 );
                 await context.SaveChangesAsync();
             }
@@ -230,14 +306,24 @@ namespace Graduation_Project.Data
             // ============================================================
             if (!context.Bookings.Any())
             {
-                var bookedAppts = context.Appointments.Where(a => a.isBooked).OrderBy(a => a.Date).ToList();
-                context.Bookings.AddRange(
-                    new Booking { AppointmentID = bookedAppts[0].AppointmentID, PatientID = bookedAppts[0].PatientID, DoctorID = bookedAppts[0].DoctorID, ClinicID = bookedAppts[0].ClinicID, Status = "Confirmed", Reason = "Routine prenatal check-up",   Notes = "Patient should bring previous test results"   },
-                    new Booking { AppointmentID = bookedAppts[1].AppointmentID, PatientID = bookedAppts[1].PatientID, DoctorID = bookedAppts[1].DoctorID, ClinicID = bookedAppts[1].ClinicID, Status = "Confirmed", Reason = "Blood pressure follow-up",      Notes = "Monitor BP readings from last week"           },
-                    new Booking { AppointmentID = bookedAppts[2].AppointmentID, PatientID = bookedAppts[2].PatientID, DoctorID = bookedAppts[2].DoctorID, ClinicID = bookedAppts[2].ClinicID, Status = "Confirmed", Reason = "First trimester consultation",  Notes = "Discuss first trimester screening results"    },
-                    new Booking { AppointmentID = bookedAppts[3].AppointmentID, PatientID = bookedAppts[3].PatientID, DoctorID = bookedAppts[3].DoctorID, ClinicID = bookedAppts[3].ClinicID, Status = "Confirmed", Reason = "Third trimester check-up",      Notes = "Review birth plan options"                    },
-                    new Booking { AppointmentID = bookedAppts[4].AppointmentID, PatientID = bookedAppts[4].PatientID, DoctorID = bookedAppts[4].DoctorID, ClinicID = bookedAppts[4].ClinicID, Status = "Confirmed", Reason = "Diabetes screening follow-up",  Notes = "Review GTT results"                           }
-                );
+                var bookedAppts = context.Appointments.Where(a => a.isBooked).OrderBy(a => a.Date).ThenBy(a => a.Time).ToList();
+                var reasons = new[] { "Routine prenatal check-up", "Blood pressure follow-up", "First trimester consultation", "Third trimester check-up", "Diabetes screening follow-up", "Pregnancy monitoring", "Ultrasound follow-up", "Lab results review", "General check-up", "Gestational diabetes follow-up", "Fetal monitoring", "Growth scan review", "Prenatal screening", "Pre-delivery assessment", "Weekly follow-up", "Medication review" };
+                var notesArr = new[] { "Patient should bring previous test results", "Monitor BP readings from last week", "Discuss first trimester screening results", "Review birth plan options", "Review GTT results", "Follow-up on previous visit", "Check ultrasound measurements", "Review lab test results", "Standard prenatal visit", "Monitor blood sugar levels", "Check fetal heart rate", "Compare growth measurements", "Discuss screening options", "Pre-delivery checklist", "Weekly progress check", "Review current medications" };
+                var statuses = new[] { "Confirmed", "Confirmed", "Confirmed", "Confirmed", "Confirmed", "Modified", "Confirmed", "Confirmed", "Confirmed", "Confirmed", "Confirmed", "Confirmed", "Cancelled", "Confirmed", "Confirmed", "Confirmed" };
+
+                for (int i = 0; i < bookedAppts.Count; i++)
+                {
+                    context.Bookings.Add(new Booking
+                    {
+                        AppointmentID = bookedAppts[i].AppointmentID,
+                        PatientID     = bookedAppts[i].PatientID!.Value,
+                        DoctorID      = bookedAppts[i].DoctorID,
+                        ClinicID      = bookedAppts[i].ClinicID,
+                        Status        = statuses[i % statuses.Length],
+                        Reason        = reasons[i % reasons.Length],
+                        Notes         = notesArr[i % notesArr.Length]
+                    });
+                }
                 await context.SaveChangesAsync();
             }
 
@@ -503,7 +589,13 @@ namespace Graduation_Project.Data
                     new Alert { PatientID = pHana.PatientID,    Title = "Iron Deficiency Anemia",    Message = "Your ferritin level is critically low at 8 ng/mL. IV iron therapy has been prescribed.",         AlertType = "Critical", DateCreated = new DateTime(2025, 3, 1),  IsRead = false },
                     new Alert { PatientID = pHana.PatientID,    Title = "Upcoming Appointment",      Message = "Your appointment with Dr. Karim Mostafa is on March 25 at 2:00 PM.",                             AlertType = "Info",     DateCreated = new DateTime(2025, 3, 20), IsRead = false },
                     new Alert { PatientID = pReem.PatientID,    Title = "HbA1c Above Target",        Message = "Your HbA1c is 6.8%, above the gestational diabetes target. Dietary adjustments recommended.",    AlertType = "Warning",  DateCreated = new DateTime(2025, 3, 5),  IsRead = false },
-                    new Alert { PatientID = pReem.PatientID,    Title = "Prenatal Vitamin Reminder", Message = "Remember to take your daily prenatal vitamin and folic acid supplement.",                         AlertType = "Info",     DateCreated = new DateTime(2025, 3, 18), IsRead = false }
+                    new Alert { PatientID = pReem.PatientID,    Title = "Prenatal Vitamin Reminder", Message = "Remember to take your daily prenatal vitamin and folic acid supplement.",                         AlertType = "Info",     DateCreated = new DateTime(2025, 3, 18), IsRead = false },
+                    // Today's alerts
+                    new Alert { PatientID = pSarah.PatientID,   Title = "Appointment Today",         Message = "You have appointments at MamaCare Central today. Please arrive 15 minutes early.",                AlertType = "Info",     DateCreated = DateTime.Today,             IsRead = false },
+                    new Alert { PatientID = pFatima.PatientID,  Title = "Appointment Today",         Message = "You have appointments today with Dr. Ahmed and Dr. Mona. Bring your recent test results.",       AlertType = "Info",     DateCreated = DateTime.Today,             IsRead = false },
+                    new Alert { PatientID = pHana.PatientID,    Title = "Iron Therapy Reminder",     Message = "Your weekly IV iron infusion is due. Contact the clinic to schedule your appointment.",            AlertType = "Warning",  DateCreated = DateTime.Today,             IsRead = false },
+                    new Alert { PatientID = pYasmine.PatientID, Title = "First Trimester Update",    Message = "Your first trimester is progressing well. Next screening scheduled soon.",                         AlertType = "Success",  DateCreated = DateTime.Today,             IsRead = false },
+                    new Alert { PatientID = pReem.PatientID,    Title = "Blood Sugar Alert",         Message = "Your recent blood sugar readings are above target. Please follow the adjusted dietary plan.",      AlertType = "Critical", DateCreated = DateTime.Today,             IsRead = false }
                 );
                 await context.SaveChangesAsync();
             }
