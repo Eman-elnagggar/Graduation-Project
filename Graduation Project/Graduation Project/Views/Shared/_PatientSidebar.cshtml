@@ -46,7 +46,7 @@
                 <div class="nav-icon"><i class="fas fa-flask"></i></div>
                 <span>Tests Upload</span>
             </a>
-            <a href="#" class="nav-item @(activePage == "Products" ? "active" : "")" data-tooltip="Product Safety">
+            <a href="/ProductScan/Index/@patientId" class="nav-item @(activePage == "Products" ? "active" : "")" data-tooltip="Product Safety">
                 <div class="nav-icon"><i class="fas fa-shield-alt"></i></div>
                 <span>Product Safety</span>
             </a>
@@ -64,11 +64,11 @@
         <!-- Health & Community Section -->
         <div class="nav-section">
             <span class="nav-section-label">Health & Community</span>
-            <a href="#" class="nav-item @(activePage == "Chatbot" ? "active" : "")" data-tooltip="Chatbot">
+            <a href="/Chatbot/Index/@patientId" class="nav-item @(activePage == "Chatbot" ? "active" : "")" data-tooltip="Chatbot">
                 <div class="nav-icon"><i class="fas fa-robot"></i></div>
                 <span>Chatbot</span>
             </a>
-            <a href="#" class="nav-item @(activePage == "Community" ? "active" : "")" data-tooltip="Community">
+            <a href="/Community/Index/@patientId" class="nav-item @(activePage == "Community" ? "active" : "")" data-tooltip="Community">
                 <div class="nav-icon"><i class="fas fa-users"></i></div>
                 <span>Community</span>
             </a>
