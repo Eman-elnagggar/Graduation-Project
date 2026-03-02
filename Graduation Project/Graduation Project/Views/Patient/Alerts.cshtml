@@ -19,24 +19,22 @@
     @Html.AntiForgeryToken()
 }
 
-<!-- ══════════════════ PAGE HEADER ══════════════════ -->
-<header class="al-header">
-    <div class="al-header-left">
-        <div class="al-title-wrap">
-            <div class="al-title-icon">
-                <i class="fas fa-bell"></i>
-                @if (Model.UnreadCount > 0)
-                {
-                    <span class="al-title-badge">@Model.UnreadCount</span>
-                }
-            </div>
-            <div>
-                <h1 class="al-title">Alerts &amp; Notifications</h1>
-                <p class="al-subtitle">Stay informed about your health and appointments</p>
-            </div>
+<!-- ══════════════════ HERO HEADER ══════════════════ -->
+<header class="al-hero">
+    <div class="al-hero-left">
+        <div class="al-hero-icon">
+            <i class="fas fa-bell"></i>
+            @if (Model.UnreadCount > 0)
+            {
+                <span class="al-hero-badge">@Model.UnreadCount</span>
+            }
+        </div>
+        <div>
+            <h1 class="al-hero-title">Alerts &amp; Notifications</h1>
+            <p class="al-hero-sub">Stay informed about your health and appointments</p>
         </div>
     </div>
-    <div class="al-header-right">
+    <div class="al-hero-right">
         <div class="al-notif-btn">
             <i class="fas fa-bell"></i>
             <span class="al-notif-badge" id="headerBadge" style="@(Model.UnreadCount == 0 ? "display:none" : "")">@Model.UnreadCount</span>
@@ -387,7 +385,7 @@ document.addEventListener("DOMContentLoaded", function () {
             body: `patientId=${patientId}&__RequestVerificationToken=${encodeURIComponent(antiForgery)}`
         })
         .then(r => r.json())
-        .then(data => {
+        .then data => {
             if (data.success) {
                 document.querySelectorAll(".alert-card.al-unread").forEach(card => {
                     card.classList.remove("al-unread");
@@ -479,24 +477,51 @@ document.addEventListener("DOMContentLoaded", function () {
 }
 
 /* ─────────────────────────────────────────
-   HEADER
+   HERO HEADER
 ───────────────────────────────────────── */
-.al-header {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 1.75rem; flex-wrap: wrap; gap: 1rem;
-}
-.al-header-left  { display: flex; align-items: center; }
-.al-title-wrap   { display: flex; align-items: center; gap: 1rem; }
-.al-title-icon   {
+.al-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #0f2942 0%, #1a4a6e 50%, #0d3d5c 100%);
+    border-radius: 18px;
+    padding: 1.8rem 2rem;
+    margin-bottom: 1.75rem;
+    flex-wrap: wrap;
+    gap: 1rem;
     position: relative;
-    width: 52px; height: 52px;
-    background: linear-gradient(135deg,#e91e63,#c2185b);
-    border-radius: 14px;
-    display: flex; align-items: center; justify-content: center;
-    color: #fff; font-size: 1.3rem;
-    box-shadow: 0 4px 14px rgba(233,30,99,.35);
+    overflow: hidden;
 }
-.al-title-badge {
+.al-hero::before {
+    content: "";
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(27,174,190,.25) 0%, transparent 70%);
+    pointer-events: none;
+}
+.al-hero::after {
+    content: "";
+    position: absolute;
+    bottom: -60px; left: 20%;
+    width: 260px; height: 260px;
+    background: radial-gradient(circle, rgba(0,180,216,.12) 0%, transparent 70%);
+    pointer-events: none;
+}
+.al-hero-left {
+    display: flex; align-items: center; gap: 1.1rem; z-index: 1;
+}
+.al-hero-icon {
+    position: relative;
+    width: 56px; height: 56px;
+    background: linear-gradient(135deg, #e91e63, #c2185b);
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; color: #fff;
+    box-shadow: 0 6px 20px rgba(233,30,99,.45);
+    flex-shrink: 0;
+}
+.al-hero-badge {
     position: absolute; top: -5px; right: -5px;
     background: var(--al-red); color: #fff;
     font-size: .6rem; font-weight: 700;
@@ -504,19 +529,26 @@ document.addEventListener("DOMContentLoaded", function () {
     padding: 0 4px; border: 2px solid #fff;
     display: flex; align-items: center; justify-content: center;
 }
-.al-title    { margin: 0; font-size: 1.6rem; font-weight: 700; color: var(--al-text); }
-.al-subtitle { margin: .15rem 0 0; font-size: .88rem; color: var(--al-muted); }
-
-.al-header-right { display: flex; align-items: center; gap: .9rem; }
+.al-hero-title {
+    margin: 0; font-size: 1.7rem; font-weight: 800;
+    color: #f1f5f9; letter-spacing: -.3px;
+}
+.al-hero-sub {
+    margin: .2rem 0 0; font-size: .88rem; color: #94a3b8;
+}
+.al-hero-right {
+    display: flex; align-items: center; gap: .9rem; z-index: 1;
+}
 .al-notif-btn {
     position: relative; width: 42px; height: 42px;
-    background: #fff; border-radius: 12px;
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 12px;
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,.07);
-    color: var(--al-muted); font-size: 1.05rem; cursor: pointer;
-    transition: box-shadow .2s;
+    color: #cbd5e1; font-size: 1.05rem; cursor: pointer;
+    transition: background .2s;
 }
-.al-notif-btn:hover { box-shadow: var(--al-shadow-hov); }
+.al-notif-btn:hover { background: rgba(255,255,255,.18); }
 .al-notif-badge {
     position: absolute; top: -4px; right: -4px;
     background: var(--al-red); color: #fff;
@@ -526,14 +558,15 @@ document.addEventListener("DOMContentLoaded", function () {
 }
 .al-profile-chip {
     display: flex; align-items: center; gap: .55rem;
-    background: #fff; border-radius: 24px;
-    padding: .45rem .9rem .45rem .6rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,.07);
-    font-size: .88rem; font-weight: 500; color: var(--al-text);
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 24px;
+    padding: .4rem .9rem .4rem .5rem;
+    font-size: .87rem; font-weight: 500; color: #e2e8f0;
 }
 .al-avatar {
     width: 30px; height: 30px;
-    background: linear-gradient(135deg,var(--al-primary),var(--al-primary-dk));
+    background: linear-gradient(135deg, var(--al-primary), var(--al-primary-dk));
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     color: #fff; font-size: .8rem;
