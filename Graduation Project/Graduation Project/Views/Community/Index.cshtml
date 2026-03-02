@@ -5,20 +5,20 @@
     var patientId = ViewData["PatientId"] as int? ?? 0;
 }
 
-<!-- ??????????????????????????????????????????????????
-     PAGE HEADER
-?????????????????????????????????????????????????? -->
-<header class="cm-header">
-    <div class="cm-header-left">
-        <div class="cm-header-icon">
+<!-- ???????????????????????????????????????????
+     HERO HEADER
+??????????????????????????????????????????? -->
+<header class="cm-hero">
+    <div class="cm-hero-left">
+        <div class="cm-hero-icon">
             <i class="fas fa-users"></i>
         </div>
         <div>
-            <h1 class="cm-title">Community</h1>
-            <p class="cm-subtitle">Connect, share and grow with other expecting mothers</p>
+            <h1 class="cm-hero-title">Community</h1>
+            <p class="cm-hero-sub">Connect, share and grow with other expecting mothers</p>
         </div>
     </div>
-    <div class="cm-header-right">
+    <div class="cm-hero-right">
         <div class="cm-members-pill">
             <i class="fas fa-circle cm-online-dot"></i>
             <span>2,841 members online</span>
@@ -516,51 +516,97 @@
 }
 
 /* ??????????????????????????????????????????????????????????????
-   HEADER
+   HERO HEADER
 ?????????????????????????????????????????????????????????????? */
-.cm-header {
-    display: flex; justify-content: space-between; align-items: center;
-    flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;
+.cm-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #0f2942 0%, #1a4a6e 50%, #0d3d5c 100%);
+    border-radius: 18px;
+    padding: 1.8rem 2rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+    position: relative;
+    overflow: hidden;
 }
-.cm-header-left { display: flex; align-items: center; gap: 1rem; }
-.cm-header-icon {
-    width: 54px; height: 54px; flex-shrink: 0;
+.cm-hero::before {
+    content: "";
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(27,174,190,.25) 0%, transparent 70%);
+    pointer-events: none;
+}
+.cm-hero::after {
+    content: "";
+    position: absolute;
+    bottom: -60px; left: 20%;
+    width: 260px; height: 260px;
+    background: radial-gradient(circle, rgba(0,180,216,.12) 0%, transparent 70%);
+    pointer-events: none;
+}
+.cm-hero-left {
+    display: flex; align-items: center; gap: 1.1rem; z-index: 1;
+}
+.cm-hero-icon {
+    width: 56px; height: 56px;
     background: linear-gradient(135deg, var(--cm-primary), var(--cm-primary-dk));
-    border-radius: 14px;
+    border-radius: 16px;
     display: flex; align-items: center; justify-content: center;
-    color: #fff; font-size: 1.4rem;
-    box-shadow: 0 4px 14px rgba(27,174,190,.35);
+    font-size: 1.4rem; color: #fff;
+    box-shadow: 0 6px 20px rgba(27,174,190,.45);
+    flex-shrink: 0;
 }
-.cm-title    { margin: 0; font-size: 1.6rem; font-weight: 700; color: var(--cm-text); }
-.cm-subtitle { margin: .15rem 0 0; font-size: .88rem; color: var(--cm-muted); }
+.cm-hero-title {
+    margin: 0; font-size: 1.7rem; font-weight: 800;
+    color: #f1f5f9; letter-spacing: -.3px;
+}
+.cm-hero-sub {
+    margin: .2rem 0 0; font-size: .88rem; color: #94a3b8;
+}
+.cm-hero-right {
+    display: flex; align-items: center; gap: .85rem; z-index: 1;
+}
 
-.cm-header-right { display: flex; align-items: center; gap: .85rem; }
+/* ????????????????????????????????????????????
+   HERO RIGHT PILLS
+???????????????????????????????????????????? */
 .cm-members-pill {
     display: inline-flex; align-items: center; gap: .45rem;
-    background: #e8f5e9; border: 1px solid #a5d6a7;
-    border-radius: 22px; padding: .38rem .95rem;
-    font-size: .82rem; font-weight: 600; color: #2e7d32;
+    padding: .4rem 1rem; border-radius: 22px;
+    background: rgba(255,255,255,.1);
+    border: 1.5px solid rgba(255,255,255,.18);
+    font-size: .82rem; font-weight: 600; color: #e2f8fa;
+    white-space: nowrap;
+    backdrop-filter: blur(4px);
 }
 .cm-online-dot {
-    font-size: .5rem; color: #4caf50;
+    font-size: .55rem; color: #4ade80;
     animation: cmPulse 2s ease infinite;
 }
 @@keyframes cmPulse {
-    0%,100% { opacity:1; text-shadow: 0 0 0 rgba(76,175,80,.4); }
-    50%      { opacity:.6; text-shadow: 0 0 6px rgba(76,175,80,.5); }
+    0%, 100% { opacity: 1; }
+    50%       { opacity: .45; }
 }
 .cm-profile-chip {
-    display: flex; align-items: center; gap: .55rem;
-    background: #fff; border-radius: 24px;
-    padding: .42rem .9rem .42rem .55rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,.07);
-    font-size: .87rem; font-weight: 500; color: var(--cm-text);
+    display: inline-flex; align-items: center; gap: .55rem;
+    padding: .38rem .95rem .38rem .45rem; border-radius: 22px;
+    background: rgba(255,255,255,.12);
+    border: 1.5px solid rgba(255,255,255,.2);
+    font-size: .82rem; font-weight: 700; color: #f1f5f9;
+    white-space: nowrap;
+    backdrop-filter: blur(4px);
+    transition: background .2s;
 }
+.cm-profile-chip:hover { background: rgba(255,255,255,.2); }
 .cm-chip-avatar {
-    width: 30px; height: 30px;
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
     background: linear-gradient(135deg, var(--cm-primary), var(--cm-primary-dk));
-    border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    color: #fff; font-size: .8rem;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .75rem; color: #fff;
+    box-shadow: 0 2px 8px rgba(27,174,190,.4);
 }
 
 /* ??????????????????????????????????????????????????????????????
