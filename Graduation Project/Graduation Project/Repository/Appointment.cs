@@ -34,7 +34,7 @@ namespace Graduation_Project.Repository
         public Appointment GetNextAppointmentForPatient(int patientId)
         {
             return _context.Appointments
-                .Where(a => a.PatientID == patientId && a.Date > DateTime.Now)
+                .Where(a => a.PatientID == patientId && a.isBooked && a.Date.Date >= DateTime.Today)
                 .Include(a => a.Doctor)
                 .ThenInclude(d => d.User) // Include doctor details
                 .OrderBy(a => a.Date)
