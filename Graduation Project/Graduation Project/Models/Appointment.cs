@@ -22,6 +22,9 @@ namespace Graduation_Project.Models
 
         public bool isBooked { get; set; }
 
+        [Timestamp]
+        public byte[] RowVersion { get; set; }
+
         [ForeignKey("CreatedByAssistant")]
         public int? CreatedByAssistantID { get; set; }
 

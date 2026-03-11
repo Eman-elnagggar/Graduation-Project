@@ -177,6 +177,9 @@
                 <button class="btn btn-sm btn-outline danger" onclick="blockAllSlots()">
                     <i class="fas fa-ban"></i> Block All
                 </button>
+                <button class="btn btn-sm btn-primary" onclick="toggleCustomSlotForm()">
+                    <i class="fas fa-plus"></i> Add Slot
+                </button>
             </div>
         </div>
 
@@ -199,6 +202,20 @@
             </div>
         </div>
 
+        <!-- Custom Slot Form -->
+        <div id="customSlotForm" style="display:none; align-items:center; gap:10px; flex-wrap:wrap; padding:12px 0 10px; border-bottom:1px solid #f1f5f9; margin-bottom:10px;">
+            <label style="font-size:0.83rem; font-weight:600; color:var(--text-secondary);">
+                <i class="fas fa-clock" style="color:var(--assistant-primary);"></i> Custom Time
+            </label>
+            <input type="time" id="customSlotTime" class="qs-select" style="width:auto; min-width:130px;" />
+            <button id="addCustomSlotBtn" class="btn btn-sm btn-primary" onclick="createCustomSlot()">
+                <i class="fas fa-plus"></i> Add Slot
+            </button>
+            <button class="btn btn-sm btn-outline" onclick="toggleCustomSlotForm()">
+                <i class="fas fa-times"></i> Cancel
+            </button>
+        </div>
+
         <div id="timeSlotsContainer">
             <div class="empty-state">
                 <i class="fas fa-calendar-day"></i>
@@ -214,6 +231,10 @@
             <div class="avail-legend-item">
                 <span class="avail-legend-swatch booked-swatch"></span>
                 Booked
+            </div>
+            <div class="avail-legend-item">
+                <span class="avail-legend-swatch booked-swatch"></span>
+                Other Clinic
             </div>
             <div class="avail-legend-item">
                 <span class="avail-legend-swatch blocked-swatch"></span>
@@ -522,45 +543,93 @@
         const container = document.getElementById('timeSlotsContainer');
         container.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading slots…</p></div>';
 
-        let existing = [];
+        let data = {};
         try {
-            existing = await api(`@Url.Action("GetAvailabilitySlots", "Assistant")?id=${assistantId}&doctorId=${selectedDoctorId}&date=${selectedDate}`);
+            data = await api(`@Url.Action("GetAvailabilitySlots", "Assistant")?id=${assistantId}&doctorId=${selectedDoctorId}&date=${selectedDate}`);
         } catch {
             container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Failed to load slots</p></div>';
             return;
         }
 
+        const existing = data.slots || [];
+        const otherClinic = data.otherClinicSlots || [];
+
         const slotMap = {};
         existing.forEach(s => { slotMap[s.time] = s; });
 
+        const otherClinicMap = {};
+        otherClinic.forEach(s => { otherClinicMap[s.time] = s; });
+
         const grid       = generateTimeGrid(SLOT_START, SLOT_END, SLOT_DURATION);
         const isPastDate = selectedDate < todayISO();
+        const isToday    = selectedDate === todayISO();
+        const nowTime    = (() => { const n = new Date(); return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`; })();
 
-        if (!grid.length) {
-            container.innerHTML = '<div class="empty-state"><p>No time slots configured</p></div>';
-            return;
+        function isSlotPast(time) {
+            return isPastDate || (isToday && time <= nowTime);
         }
 
         let available = 0, booked = 0, blocked = 0;
         const amTimes = [], pmTimes = [];
+        const gridSet = new Set(grid);
 
         grid.forEach(time => {
+            if (isSlotPast(time)) return;
             const h    = parseInt(time.split(':')[0]);
             const slot = slotMap[time];
-            if (!slot)            blocked++;
+            const other = otherClinicMap[time];
+            if (!slot) {
+                if (other)  booked++;
+                else        blocked++;
+            }
             else if (slot.isBooked) booked++;
             else                  available++;
             (h < 12 ? amTimes : pmTimes).push(time);
         });
 
+        // Include custom DB slots that fall outside the configured time grid
+        Object.keys(slotMap).forEach(time => {
+            if (gridSet.has(time) || isSlotPast(time)) return;
+            const h = parseInt(time.split(':')[0]);
+            if (slotMap[time].isBooked) booked++;
+            else available++;
+            (h < 12 ? amTimes : pmTimes).push(time);
+        });
+
+        amTimes.sort();
+        pmTimes.sort();
+
+        if (!amTimes.length && !pmTimes.length) {
+            container.innerHTML = '<div class="empty-state"><p>No time slots configured</p></div>';
+            updateStats(0, 0, 0);
+            return;
+        }
+
         updateStats(available, booked, blocked);
 
         function buildSlotCard(time) {
             const slot  = slotMap[time];
+            const other = otherClinicMap[time];
             const label = formatTime12(time);
             const id    = `slot-${time.replace(':', '')}`;
 
             if (!slot) {
+                // Time not in this clinic — check if it's taken in another clinic
+                if (other) {
+                    return `
+                        <div class="slot-item booked" id="${id}">
+                            <div class="slot-icon-col">
+                                <span class="slot-icon booked-icon"><i class="fas fa-user"></i></span>
+                            </div>
+                            <div class="slot-body">
+                                <span class="slot-time">${label}</span>
+                                <span class="slot-status booked-text">
+                                    ${other.isBooked ? 'Booked' : 'Reserved'}
+                                </span>
+                                <span class="slot-location"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(other.clinicName)}</span>
+                            </div>
+                        </div>`;
+                }
                 return `
                     <div class="slot-item blocked" id="${id}">
                         <div class="slot-icon-col">
@@ -570,11 +639,11 @@
                             <span class="slot-time">${label}</span>
                             <span class="slot-status blocked-text">Blocked</span>
                         </div>
-                        ${!isPastDate ? `<div class="slot-action">
+                        <div class="slot-action">
                             <button class="btn btn-sm btn-outline" onclick="createSlot('${time}')">
                                 <i class="fas fa-plus"></i> Enable
                             </button>
-                        </div>` : ''}
+                        </div>
                     </div>`;
             }
             if (slot.isBooked) {
@@ -602,11 +671,11 @@
                         <span class="slot-status available-text">Available</span>
                         <span class="slot-location"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(clinicName)}</span>
                     </div>
-                    ${!isPastDate ? `<div class="slot-action">
+                    <div class="slot-action">
                         <button class="btn btn-sm btn-outline danger" onclick="deleteSlot(${slot.appointmentId})">
                             <i class="fas fa-ban"></i> Block
                         </button>
-                    </div>` : ''}
+                    </div>
                 </div>`;
         }
 
@@ -710,6 +779,39 @@
             else              showToast(data.message, 'error');
         } catch {}
         setButtonLoading(btn, false);
+    }
+
+    // -- Custom Slot ----------------------------------------------------------
+    function toggleCustomSlotForm() {
+        if (!selectedDoctorId) { showToast('Select a doctor first.', 'error'); return; }
+        if (selectedDate < todayISO()) { showToast('Cannot add slots in the past.', 'error'); return; }
+        const form = document.getElementById('customSlotForm');
+        const visible = form.style.display !== 'none';
+        form.style.display = visible ? 'none' : 'flex';
+        if (!visible) document.getElementById('customSlotTime').focus();
+    }
+
+    async function createCustomSlot() {
+        const timeInput = document.getElementById('customSlotTime');
+        const time = timeInput.value;
+        if (!time) { showToast('Please enter a valid time.', 'error'); return; }
+        const btn = document.getElementById('addCustomSlotBtn');
+        setButtonLoading(btn, true);
+        try {
+            const data = await api(
+                `@Url.Action("CreateAvailabilitySlot", "Assistant")?id=${assistantId}&doctorId=${selectedDoctorId}&date=${selectedDate}&time=${time}`,
+                { method: 'POST' }
+            );
+            if (data.success) {
+                showToast('Custom slot added.', 'success');
+                timeInput.value = '';
+                document.getElementById('customSlotForm').style.display = 'none';
+                loadSlots();
+            } else {
+                showToast(data.message, 'error');
+                setButtonLoading(btn, false);
+            }
+        } catch { setButtonLoading(btn, false); }
     }
 
     // -- Init -----------------------------------------------------------------

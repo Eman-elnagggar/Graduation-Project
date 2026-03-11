@@ -86,11 +86,13 @@ namespace Graduation_Project.Controllers
             var weekStart = today.AddDays(-(int)today.DayOfWeek);
 
             var allTodaysAppointments = _appointmentRepository
-                .GetByClinicAndDate(clinic.ClinicID, today).ToList();
+                .GetByClinicAndDate(clinic.ClinicID, today)
+                .Where(a => a.isBooked)
+                .ToList();
             var allApprovedPatientDoctors = _patientDoctorRepository
                 .GetApprovedByDoctors(relevantDoctorIds).ToList();
 
-            // Pre-aggregate counts per doctor
+            // Pre-aggregate counts per doctor (booked only)
             var appointmentCountsByDoctor = allTodaysAppointments
                 .GroupBy(a => a.DoctorID)
                 .ToDictionary(g => g.Key, g => g.Count());
@@ -98,7 +100,7 @@ namespace Graduation_Project.Controllers
                 .GroupBy(pd => pd.DoctorID)
                 .ToDictionary(g => g.Key, g => g.Count());
 
-            // Filtered counts
+            // Filtered counts (booked only)
             var filteredAppointmentCount = isFiltered
                 ? allTodaysAppointments.Count(a => a.DoctorID == doctorId!.Value)
                 : allTodaysAppointments.Count;
@@ -147,8 +149,8 @@ namespace Graduation_Project.Controllers
                 .GetByClinicAndDate(clinic.ClinicID, DateTime.Today).ToList();
 
             var filteredAppointments = isFiltered
-                ? allTodaysAppointments.Where(a => a.DoctorID == doctorId!.Value).ToList()
-                : allTodaysAppointments;
+                ? allTodaysAppointments.Where(a => a.isBooked && a.DoctorID == doctorId!.Value).ToList()
+                : allTodaysAppointments.Where(a => a.isBooked).ToList();
 
             ViewBag.ClinicName = clinic.Name ?? "Clinic";
             ViewBag.SelectedDoctorID = isFiltered ? doctorId : null;
@@ -325,10 +327,13 @@ namespace Graduation_Project.Controllers
                     ? $"{appointment.Patient.User.FirstName} {appointment.Patient.User.LastName}" : "Unknown",
                 doctorName = appointment.Doctor?.User != null
                     ? $"Dr. {appointment.Doctor.User.FirstName} {appointment.Doctor.User.LastName}" : "Unknown",
+                clinicName = appointment.Clinic?.Name ?? string.Empty,
+                clinicLocation = appointment.Clinic?.Location ?? string.Empty,
                 date = appointment.Date.ToString("yyyy-MM-dd"),
                 time = appointment.Time.ToString(@"hh\:mm"),
                 status = appointment.Booking?.Status ?? "Confirmed",
-                reason = appointment.Booking?.Reason ?? string.Empty
+                reason = appointment.Booking?.Reason ?? string.Empty,
+                notes = appointment.Booking?.Notes ?? string.Empty
             });
         }
 
@@ -357,6 +362,9 @@ namespace Graduation_Project.Controllers
 
             if (parsedDate.Date < DateTime.Today)
                 return Json(new { success = false, message = "Cannot schedule an appointment in the past." });
+
+            if (_appointmentRepository.HasDoctorConflict(appointment.DoctorID, parsedDate, parsedTime, appointmentId))
+                return Json(new { success = false, message = "The doctor already has an appointment at this time in another clinic." });
 
             appointment.Date = parsedDate;
             appointment.Time = parsedTime;
@@ -393,6 +401,7 @@ namespace Graduation_Project.Controllers
                 return Json(new { success = false, message = "Access denied." });
 
             appointment.isBooked = false;
+            appointment.PatientID = null;
             _appointmentRepository.Update(appointment);
 
             if (appointment.Booking != null)
@@ -455,6 +464,16 @@ namespace Graduation_Project.Controllers
 
             var appointments = _appointmentRepository.GetByClinicDoctorAndDate(clinic.ClinicID, doctorId, parsedDate);
 
+            var otherClinicSlots = _appointmentRepository
+                .GetByDoctorAndDate(doctorId, parsedDate)
+                .Where(a => a.ClinicID != clinic.ClinicID)
+                .Select(a => new
+                {
+                    time = a.Time.ToString(@"hh\:mm"),
+                    isBooked = a.isBooked,
+                    clinicName = a.Clinic?.Name ?? "Other Clinic"
+                }).ToList();
+
             var result = appointments.Select(a => new
             {
                 appointmentId = a.AppointmentID,
@@ -466,7 +485,7 @@ namespace Graduation_Project.Controllers
                 clinicLocation = clinic.Location ?? string.Empty
             }).ToList();
 
-            return Json(result);
+            return Json(new { slots = result, otherClinicSlots });
         }
 
         [HttpPost]
@@ -491,11 +510,11 @@ namespace Graduation_Project.Controllers
             if (parsedDate.Date < DateTime.Today)
                 return Json(new { success = false, message = "Cannot create slots in the past." });
 
-            var existing = _appointmentRepository
-                .GetByClinicDoctorAndDate(clinic.ClinicID, doctorId, parsedDate)
+            var existingAcrossAllClinics = _appointmentRepository
+                .GetByDoctorAndDate(doctorId, parsedDate)
                 .Any(a => a.Time == parsedTime);
-            if (existing)
-                return Json(new { success = false, message = "Slot already exists." });
+            if (existingAcrossAllClinics)
+                return Json(new { success = false, message = "The doctor already has a slot at this time in another clinic." });
 
             var slot = new Appointment
             {
@@ -504,7 +523,8 @@ namespace Graduation_Project.Controllers
                 PatientID = null,
                 Date = parsedDate,
                 Time = parsedTime,
-                isBooked = false
+                isBooked = false,
+                CreatedByAssistantID = id
             };
             _appointmentRepository.Add(slot);
             _appointmentRepository.Save();
@@ -562,7 +582,7 @@ namespace Graduation_Project.Controllers
                 return Json(new { success = false, message = "Invalid time range." });
 
             var existingTimes = _appointmentRepository
-                .GetByClinicDoctorAndDate(clinic.ClinicID, doctorId, parsedDate)
+                .GetByDoctorAndDate(doctorId, parsedDate)
                 .Select(a => a.Time).ToHashSet();
 
             var newSlots = new List<Appointment>();
@@ -578,7 +598,8 @@ namespace Graduation_Project.Controllers
                         PatientID = null,
                         Date = parsedDate,
                         Time = current,
-                        isBooked = false
+                        isBooked = false,
+                        CreatedByAssistantID = id
                     });
                 }
                 current = current.Add(TimeSpan.FromMinutes(slotDuration));
@@ -644,7 +665,7 @@ namespace Graduation_Project.Controllers
             var endDate = today.AddDays(request.WeeksAhead * 7);
 
             var existingSet = _appointmentRepository
-                .GetByClinicDoctorAndDateRange(clinic.ClinicID, request.DoctorId, today, endDate)
+                .GetByDoctorAndDateRange(request.DoctorId, today, endDate)
                 .Select(a => (a.Date.Date, a.Time))
                 .ToHashSet();
 
@@ -665,7 +686,8 @@ namespace Graduation_Project.Controllers
                             PatientID = null,
                             Date = d,
                             Time = current,
-                            isBooked = false
+                            isBooked = false,
+                            CreatedByAssistantID = id
                         });
                     }
                     current = current.Add(TimeSpan.FromMinutes(request.SlotDuration));
