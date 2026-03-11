@@ -10,18 +10,18 @@
         .ToList();
 }
 
-<!-- ══════════════════ PAGE HEADER ══════════════════ -->
-<header class="mh-header">
-    <div class="mh-header-left">
-        <div class="mh-title-wrap">
-            <div class="mh-title-icon"><i class="fas fa-notes-medical"></i></div>
-            <div>
-                <h1 class="mh-title">Medical History</h1>
-                <p class="mh-subtitle">Your complete pregnancy journey and medical records</p>
-            </div>
+<!-- ══════════════════ HERO HEADER ══════════════════ -->
+<header class="mh-hero">
+    <div class="mh-hero-left">
+        <div class="mh-hero-icon">
+            <i class="fas fa-notes-medical"></i>
+        </div>
+        <div>
+            <h1 class="mh-hero-title">Medical History</h1>
+            <p class="mh-hero-sub">Your complete pregnancy journey and medical records</p>
         </div>
     </div>
-    <div class="mh-header-right">
+    <div class="mh-hero-right">
         <div class="mh-notif-btn">
             <i class="fas fa-bell"></i>
             @if (Model.AlertCount > 0)
@@ -658,42 +658,73 @@ document.addEventListener("DOMContentLoaded", function () {
 }
 
 /* ─────────────────────────────────────────
-   HEADER
+   HERO HEADER
 ───────────────────────────────────────── */
-.mh-header {
+.mh-hero {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background: linear-gradient(135deg, #0f2942 0%, #1a4a6e 50%, #0d3d5c 100%);
+    border-radius: 18px;
+    padding: 1.8rem 2rem;
     margin-bottom: 1.75rem;
     flex-wrap: wrap;
     gap: 1rem;
+    position: relative;
+    overflow: hidden;
 }
-.mh-header-left { display: flex; align-items: center; }
-.mh-title-wrap  { display: flex; align-items: center; gap: 1rem; }
-.mh-title-icon  {
-    width: 52px; height: 52px;
-    background: linear-gradient(135deg, var(--mh-primary), #0d7a8e);
-    border-radius: 14px;
+.mh-hero::before {
+    content: "";
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(27,174,190,.25) 0%, transparent 70%);
+    pointer-events: none;
+}
+.mh-hero::after {
+    content: "";
+    position: absolute;
+    bottom: -60px; left: 20%;
+    width: 260px; height: 260px;
+    background: radial-gradient(circle, rgba(0,180,216,.12) 0%, transparent 70%);
+    pointer-events: none;
+}
+.mh-hero-left {
+    display: flex; align-items: center; z-index: 1;
+}
+.mh-hero-icon {
+    width: 56px; height: 56px;
+    background: linear-gradient(135deg, var(--mh-primary), var(--mh-primary-dk));
+    border-radius: 16px;
     display: flex; align-items: center; justify-content: center;
-    color: #fff; font-size: 1.3rem;
-    box-shadow: 0 4px 14px rgba(27,174,190,.35);
+    font-size: 1.4rem; color: #fff;
+    box-shadow: 0 6px 20px rgba(27,174,190,.45);
+    flex-shrink: 0;
+    margin-right: 1.1rem;
 }
-.mh-title    { margin: 0; font-size: 1.6rem; font-weight: 700; color: var(--mh-text); }
-.mh-subtitle { margin: .15rem 0 0; font-size: .88rem; color: var(--mh-muted); }
-
-.mh-header-right { display: flex; align-items: center; gap: .9rem; }
+.mh-hero-title {
+    margin: 0; font-size: 1.7rem; font-weight: 800;
+    color: #f1f5f9; letter-spacing: -.3px;
+}
+.mh-hero-sub {
+    margin: .2rem 0 0; font-size: .88rem; color: #94a3b8;
+}
+.mh-hero-right {
+    display: flex; align-items: center; gap: .9rem; z-index: 1;
+}
 .mh-notif-btn {
     position: relative;
     width: 42px; height: 42px;
-    background: #fff; border-radius: 12px;
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 12px;
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,.07);
     cursor: pointer;
-    color: var(--mh-muted);
+    color: #cbd5e1;
     font-size: 1.05rem;
-    transition: box-shadow .2s;
+    transition: background .2s;
 }
-.mh-notif-btn:hover { box-shadow: var(--mh-shadow-hover); }
+.mh-notif-btn:hover { background: rgba(255,255,255,.18); }
 .mh-notif-badge {
     position: absolute; top: -4px; right: -4px;
     background: #ef4444; color: #fff;
@@ -705,14 +736,15 @@ document.addEventListener("DOMContentLoaded", function () {
 }
 .mh-profile-chip {
     display: flex; align-items: center; gap: .55rem;
-    background: #fff; border-radius: 24px;
-    padding: .45rem .9rem .45rem .6rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,.07);
-    font-size: .88rem; font-weight: 500; color: var(--mh-text);
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 24px;
+    padding: .4rem .9rem .4rem .5rem;
+    font-size: .87rem; font-weight: 500; color: #e2e8f0;
 }
 .mh-avatar {
     width: 30px; height: 30px;
-    background: linear-gradient(135deg, var(--mh-primary), #0d7a8e);
+    background: linear-gradient(135deg, var(--mh-primary), var(--mh-primary-dk));
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     color: #fff; font-size: .8rem;

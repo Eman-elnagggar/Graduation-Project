@@ -84,6 +84,12 @@
                 <div class="nav-icon"><i class="fas fa-file-medical"></i></div>
                 <span>Medical History</span>
             </a>
+            <a href="/Prescription/Index/@patientId"
+               class="nav-item @(activePage == "Prescriptions" ? "active" : "")"
+               data-tooltip="Prescriptions">
+                <div class="nav-icon"><i class="fas fa-prescription-bottle-alt"></i></div>
+                <span>Prescriptions</span>
+            </a>
             <a href="/Patient/Alerts/@patientId"
                class="nav-item @(activePage == "Alerts" ? "active" : "")"
                data-tooltip="Alerts">
