@@ -27,5 +27,7 @@ namespace Graduation_Project.Interfaces
         bool HasDoctorConflict(int doctorId, DateTime date, TimeSpan time, int excludeAppointmentId);
         IEnumerable<DateTime> GetAvailableDatesByDoctorAndClinic(int doctorId, int clinicId, int year, int month);
         IEnumerable<Appointment> GetAvailableByDoctorClinicAndDate(int doctorId, int clinicId, DateTime date);
+        IEnumerable<Appointment> GetByDoctorAndDate(int doctorId, DateTime date);
+        IEnumerable<Appointment> GetByDoctorAndDateRange(int doctorId, DateTime startDate, DateTime endDate);
     }
 }

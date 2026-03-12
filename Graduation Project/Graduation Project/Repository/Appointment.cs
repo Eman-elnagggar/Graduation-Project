@@ -36,7 +36,8 @@ namespace Graduation_Project.Repository
             return _context.Appointments
                 .Where(a => a.PatientID == patientId && a.isBooked && a.Date.Date >= DateTime.Today)
                 .Include(a => a.Doctor)
-                .ThenInclude(d => d.User) // Include doctor details
+                    .ThenInclude(d => d.User)
+                .Include(a => a.Clinic)
                 .OrderBy(a => a.Date)
                 .FirstOrDefault();
         }
@@ -115,6 +116,7 @@ namespace Graduation_Project.Repository
                 .Include(a => a.Booking)
                 .Include(a => a.Patient).ThenInclude(p => p.User)
                 .Include(a => a.Doctor).ThenInclude(d => d.User)
+                .Include(a => a.Clinic)
                 .FirstOrDefault(a => a.AppointmentID == id);
 
         public void AddRange(IEnumerable<Appointment> appointments) =>
@@ -148,19 +150,19 @@ namespace Graduation_Project.Repository
 
         public Appointment GetFirstAvailableForDoctor(int doctorId)
         {
-            var bookedSlots = _context.Appointments
-                .Where(a => a.DoctorID == doctorId && a.isBooked && a.Date.Date >= DateTime.Today)
-                .Select(a => new { a.Date, a.Time })
-                .ToList();
-
-            var bookedSet = new HashSet<(DateTime, TimeSpan)>(
-                bookedSlots.Select(s => (s.Date.Date, s.Time)));
-
+            var today = DateTime.Today;
             return _context.Appointments
-                .Where(a => a.DoctorID == doctorId && !a.isBooked && a.Date.Date >= DateTime.Today)
-                .OrderBy(a => a.Date).ThenBy(a => a.Time)
-                .AsEnumerable()
-                .FirstOrDefault(a => !bookedSet.Contains((a.Date.Date, a.Time)));
+                .Where(a => a.DoctorID == doctorId
+                         && !a.isBooked
+                         && a.Date >= today
+                         && !_context.Appointments.Any(b =>
+                                b.DoctorID == doctorId
+                             && b.isBooked
+                             && b.Date.Date == a.Date.Date
+                             && b.Time == a.Time))
+                .OrderBy(a => a.Date)
+                .ThenBy(a => a.Time)
+                .FirstOrDefault();
         }
 
         public IEnumerable<DateTime> GetAvailableDatesByDoctor(int doctorId, int year, int month)
@@ -250,5 +252,24 @@ namespace Graduation_Project.Repository
                 .Where(a => !bookedTimes.Contains(a.Time))
                 .ToList();
         }
+
+        public IEnumerable<Appointment> GetByDoctorAndDate(int doctorId, DateTime date) =>
+            _context.Appointments
+                .AsNoTracking()
+                .Include(a => a.Clinic)
+                .Include(a => a.Patient)
+                    .ThenInclude(p => p.User)
+                .Where(a => a.DoctorID == doctorId && a.Date.Date == date.Date)
+                .OrderBy(a => a.Time)
+                .ToList();
+
+        public IEnumerable<Appointment> GetByDoctorAndDateRange(int doctorId, DateTime startDate, DateTime endDate) =>
+            _context.Appointments
+                .AsNoTracking()
+                .Where(a => a.DoctorID == doctorId
+                         && a.Date.Date >= startDate.Date
+                         && a.Date.Date <= endDate.Date)
+                .OrderBy(a => a.Date).ThenBy(a => a.Time)
+                .ToList();
     }
 }

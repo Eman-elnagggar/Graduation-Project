@@ -3,6 +3,7 @@ using Graduation_Project.Models;
 using Graduation_Project.Services;
 using Graduation_Project.ViewModels;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Graduation_Project.Controllers
 {
@@ -790,7 +791,6 @@ namespace Graduation_Project.Controllers
 
             appointment.PatientID = patientId;
             appointment.isBooked = true;
-            _appointment.Update(appointment);
 
             var booking = new Booking
             {
@@ -803,9 +803,35 @@ namespace Graduation_Project.Controllers
                 Notes = notes ?? string.Empty
             };
             _bookingRepository.Add(booking);
-            _bookingRepository.Save();
 
-            return Json(new { success = true, message = "Appointment booked successfully!" });
+            try
+            {
+                _bookingRepository.Save(); // saves BOTH the appointment update AND the new booking
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return Json(new { success = false, message = "This slot was just booked by someone else. Please choose another." });
+            }
+
+            return Json(new
+            {
+                success = true,
+                message = "Appointment booked successfully!",
+                bookingId = booking.BookingID,
+                appointmentId = appointment.AppointmentID,
+                doctorName = appointment.Doctor?.User != null
+                    ? $"Dr. {appointment.Doctor.User.FirstName} {appointment.Doctor.User.LastName}".Trim()
+                    : "Doctor",
+                clinicName = appointment.Clinic?.Name ?? string.Empty,
+                clinicLocation = appointment.Clinic?.Location ?? string.Empty,
+                date = appointment.Date.ToString("yyyy-MM-dd"),
+                dateDisplay = appointment.Date.ToString("MMM dd, yyyy"),
+                time = appointment.Time.ToString(@"hh\:mm"),
+                timeDisplay = DateTime.Today.Add(appointment.Time).ToString("hh:mm tt"),
+                status = booking.Status,
+                reason = booking.Reason,
+                notes = booking.Notes
+            });
         }
 
         // ---------------------------------------------------------------
@@ -830,7 +856,18 @@ namespace Graduation_Project.Controllers
             }
 
             _appointment.Save();
-            return Json(new { success = true, message = "Appointment cancelled successfully." });
+            return Json(new
+            {
+                success = true,
+                message = "Appointment cancelled successfully.",
+                appointmentId = appointment.AppointmentID,
+                doctorName = appointment.Doctor?.User != null
+                    ? $"Dr. {appointment.Doctor.User.FirstName} {appointment.Doctor.User.LastName}".Trim()
+                    : "Doctor",
+                date = appointment.Date.ToString("yyyy-MM-dd"),
+                time = appointment.Time.ToString(@"hh\:mm"),
+                status = appointment.Booking?.Status ?? "Cancelled"
+            });
         }
 
         public IActionResult Edit(int id)

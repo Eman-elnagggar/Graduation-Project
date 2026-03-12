@@ -74,7 +74,7 @@
                                 </div>
                                 <div class="primary-doctor-actions">
                                     <button class="btn btn-primary"
-                                            onclick="window.location.href='@Url.Action("BookAppointment", "Patient", new { id = patientId })'">
+                                            onclick="window.location.href='@Url.Action("BookAppointment", "Patient", new { id = patientId, doctorId = doc.DoctorID })'">
                                         <i class="fas fa-calendar-plus"></i> Book Appointment
                                     </button>
                                 </div>
@@ -131,7 +131,7 @@
                                         <p>@(clinicDoc?.Clinic?.Name ?? "")</p>
                                     </div>
                                     <button class="btn btn-sm btn-outline"
-                                            onclick="window.location.href='@Url.Action("BookAppointment", "Patient", new { id = patientId })'">
+                                            onclick="window.location.href='@Url.Action("BookAppointment", "Patient", new { id = patientId, doctorId = doc.DoctorID })'">
                                         Book
                                     </button>
                                 </div>
