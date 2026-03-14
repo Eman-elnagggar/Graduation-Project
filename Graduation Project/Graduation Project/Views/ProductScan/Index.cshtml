@@ -14,7 +14,7 @@
         </div>
         <div>
             <h1 class="ps-hero-title">Product Safety Checker</h1>
-            <p class="ps-hero-sub">Analyze ingredient labels for pregnancy safety — skincare, food &amp; household products</p>
+            <p class="ps-hero-sub">Analyze ingredient labels for pregnancy safety ï¿½ skincare, food &amp; household products</p>
         </div>
     </div>
     <div class="ps-hero-right">
@@ -84,7 +84,7 @@
                 <p class="ps-upload-sub">or <span class="ps-upload-link">click to browse</span></p>
                 <div class="ps-upload-hint">
                     <i class="fas fa-info-circle"></i>
-                    JPG · PNG · WebP &nbsp;·&nbsp; max 5 MB
+                    JPG ï¿½ PNG ï¿½ WebP &nbsp;ï¿½&nbsp; max 5 MB
                 </div>
                 <input type="file" id="imageFile" accept="image/jpeg,image/png,image/webp" style="display:none" />
             </div>
@@ -105,8 +105,8 @@
             <!-- Loading -->
             <div id="psLoadingOverlay" class="ps-loading-overlay" style="display:none;">
                 <div class="ps-loading-spinner"><i class="fas fa-spinner fa-spin"></i></div>
-                <p class="ps-loading-title">Analyzing ingredients…</p>
-                <p class="ps-loading-sub">Reading label text via OCR — this may take a few seconds</p>
+                <p class="ps-loading-title">Analyzing ingredientsï¿½</p>
+                <p class="ps-loading-sub">Reading label text via OCR ï¿½ this may take a few seconds</p>
                 <div class="ps-loading-bar"><div class="ps-loading-bar-fill"></div></div>
             </div>
 
@@ -132,7 +132,7 @@
                 </label>
                 <p class="ps-field-hint">Separate each ingredient by a comma or new line</p>
                 <textarea id="ingredientsInput" class="ps-input ps-textarea" rows="6"
-                          placeholder="e.g., Water, Glycerin, Paraben, Retinol…"></textarea>
+                          placeholder="e.g., Water, Glycerin, Paraben, Retinolï¿½"></textarea>
             </div>
             <button class="ps-btn ps-btn-primary ps-btn-analyze" id="checkProduct" type="button">
                 <i class="fas fa-search"></i> Analyze Ingredients
@@ -244,7 +244,7 @@
 @section Styles {
 <style>
 /* ????????????????????????????????????????????????????????????
-   Product Safety – Page Variables
+   Product Safety ï¿½ Page Variables
 ???????????????????????????????????????????????????????????? */
 :root {
     --ps-primary:     #1BAEBE;
@@ -259,7 +259,7 @@
 }
 
 /* ????????????????????????????????????????????????????????????
-   PAGE HEADER  — dark gradient hero (matches Community / Alerts)
+   PAGE HEADER  ï¿½ dark gradient hero (matches Community / Alerts)
 ???????????????????????????????????????????????????????????? */
 .ps-hero {
     display: flex;
@@ -781,6 +781,8 @@
     const psLoadingOverlay  = document.getElementById('psLoadingOverlay');
     const analyzeBtn        = document.getElementById('analyzeBtn');
     const checkProduct      = document.getElementById('checkProduct');
+    const productNameInput  = document.getElementById('productName');
+    const ingredientsInput  = document.getElementById('ingredientsInput');
     const resultsPlaceholder = document.getElementById('resultsPlaceholder');
     const dynamicResult      = document.getElementById('dynamicResult');
 
@@ -857,7 +859,50 @@
         }
     });
 
-    checkProduct?.addEventListener('click', () => notify('Manual analysis coming soon.', 'info'));
+    checkProduct?.addEventListener('click', async () => {
+        const productName = (productNameInput?.value ?? '').trim();
+        const ingredientsRaw = (ingredientsInput?.value ?? '').trim();
+
+        if (!ingredientsRaw) {
+            notify('Please enter ingredients before analyzing.', 'warning');
+            ingredientsInput?.focus();
+            return;
+        }
+
+        const normalizedIngredients = normalizeIngredients(ingredientsRaw);
+        const payloadText = productName
+            ? `Product Name: ${productName}\nIngredients: ${normalizedIngredients}`
+            : normalizedIngredients;
+
+        setButtonLoading(checkProduct, true, 'Analyzing...');
+        clearResult();
+
+        try {
+            const body = new URLSearchParams();
+            body.append('text', payloadText);
+
+            const res = await fetch('/ProductScan/AnalyzeText', {
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': TOKEN,
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+                },
+                body
+            });
+
+            const data = await res.json();
+            if (!res.ok) {
+                notify(data.error ?? 'Analysis failed. Please try again.', 'error');
+                return;
+            }
+
+            renderResult(data);
+        } catch {
+            notify('Network error. Please check your connection and try again.', 'error');
+        } finally {
+            setButtonLoading(checkProduct, false, 'Analyze Ingredients');
+        }
+    });
 
     function showLoading(on) {
         if (!psLoadingOverlay) return;
@@ -934,8 +979,32 @@
         else console.warn(msg);
     }
 
+    function normalizeIngredients(raw) {
+        return raw
+            .split(/[\n,]+/)
+            .map(item => item.trim())
+            .filter(Boolean)
+            .join(', ');
+    }
+
+    function setButtonLoading(button, loading, loadingText) {
+        if (!button) return;
+        if (!button.dataset.originalHtml) button.dataset.originalHtml = button.innerHTML;
+
+        button.disabled = loading;
+        if (loading) {
+            button.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${loadingText}`;
+        } else {
+            button.innerHTML = button.dataset.originalHtml;
+        }
+    }
+
     function escHtml(str) {
-        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        return String(str ?? '')
+            .replace(/&/g,'&amp;')
+            .replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;');
     }
 }());
 </script>
