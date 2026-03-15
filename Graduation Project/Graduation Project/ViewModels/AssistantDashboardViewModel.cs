@@ -6,6 +6,8 @@ namespace Graduation_Project.ViewModels
     {
         public Assistant Assistant { get; set; } = null!;
         public string AssistantName { get; set; } = string.Empty;
+        public DateTime SelectedDate { get; set; } = DateTime.Today;
+        public string SelectedScheduleStatus { get; set; } = "Booked";
 
         // Clinic info
         public Clinic Clinic { get; set; } = null!;

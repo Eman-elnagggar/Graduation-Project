@@ -8,6 +8,7 @@
 
 @section Head {
     <meta name="assistant-id" content="@Model.Assistant.AssistantID" />
+    <meta name="selected-date" content="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
 }
 
 <!-- Header -->
@@ -44,9 +45,7 @@
     <div class="progress-card assistant-hero">
         <div class="progress-info">
             <h3>Today's Overview</h3>
-            <p>
-                <span class="week-number" id="todayDate">@DateTime.Today.ToString("MMMM dd, yyyy")</span>
-            </p>
+            <p><span class="week-number" id="todayDate">@Model.SelectedDate.ToString("dddd, MMMM dd, yyyy")</span></p>
         </div>
         <div class="progress-details">
             <span>
@@ -61,6 +60,24 @@
     </div>
 </section>
 
+<section class="card" style="margin-bottom: 1.5rem;">
+    <div class="card-header">
+        <h3><i class="fas fa-calendar-day"></i> Schedule Date</h3>
+    </div>
+    <div style="display:flex; gap:.6rem; align-items:center; flex-wrap:wrap; padding:1rem;">
+        <button type="button" class="btn btn-outline btn-sm" id="prevDateBtn">
+            <i class="fas fa-chevron-left"></i> Previous
+        </button>
+        <input type="date" id="dashboardDatePicker" class="form-input" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" style="max-width: 200px;" />
+        <button type="button" class="btn btn-outline btn-sm" id="nextDateBtn">
+            Next <i class="fas fa-chevron-right"></i>
+        </button>
+        <button type="button" class="btn btn-outline btn-sm" id="todayBtn">
+            <i class="fas fa-calendar-day"></i> Today
+        </button>
+    </div>
+</section>
+
 <!-- Doctor Filter Tabs -->
 @if (Model.Doctors.Count > 1)
 {
@@ -69,7 +86,7 @@
             <h3><i class="fas fa-filter"></i> Filter by Doctor</h3>
         </div>
         <div class="doctor-filter-tabs" style="display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 1rem;">
-            <a href="@Url.Action("Index", new { id = Model.Assistant.AssistantID })"
+            <a href="@Url.Action("Index", new { id = Model.Assistant.AssistantID, date = Model.SelectedDate.ToString("yyyy-MM-dd"), status = Model.SelectedScheduleStatus })"
                class="doctor-filter-tab @(Model.SelectedDoctorID == null ? "active" : "")"
                data-doctor-id=""
                style="padding: 0.5rem 1rem; border-radius: 20px; text-decoration: none;
@@ -86,7 +103,7 @@
             @foreach (var doc in Model.Doctors)
             {
                 var isSelected = Model.SelectedDoctorID == doc.DoctorID;
-                <a href="@Url.Action("Index", new { id = Model.Assistant.AssistantID, doctorId = doc.DoctorID })"
+                <a href="@Url.Action("Index", new { id = Model.Assistant.AssistantID, doctorId = doc.DoctorID, date = Model.SelectedDate.ToString("yyyy-MM-dd"), status = Model.SelectedScheduleStatus })"
                    class="doctor-filter-tab @(isSelected ? "active" : "")"
                    data-doctor-id="@doc.DoctorID"
                    style="padding: 0.5rem 1rem; border-radius: 20px; text-decoration: none;
@@ -141,12 +158,17 @@
     <div class="card">
         <div class="card-header">
             <h3>
-                <i class="fas fa-clock"></i> Today's Schedule
+                <i class="fas fa-clock"></i> Schedule
                 <span id="schedule-doctor-label" style="font-size: 0.85rem; color: #6b7280; font-weight: 400;@(Model.SelectedDoctorID == null ? " display:none;" : "")">
                     &mdash; <span id="schedule-doctor-name">@Model.SelectedDoctorName</span>
                 </span>
             </h3>
             <a href="#">View All</a>
+        </div>
+        <div style="display:flex; gap:.5rem; padding:0 1rem 1rem; flex-wrap:wrap;">
+            <button type="button" class="btn btn-sm schedule-status-btn @(Model.SelectedScheduleStatus == "Booked" ? "btn-primary" : "btn-outline")" data-status="Booked">Booked</button>
+            <button type="button" class="btn btn-sm schedule-status-btn @(Model.SelectedScheduleStatus == "Available" ? "btn-primary" : "btn-outline")" data-status="Available">Available</button>
+            <button type="button" class="btn btn-sm schedule-status-btn @(Model.SelectedScheduleStatus == "Cancelled" ? "btn-primary" : "btn-outline")" data-status="Cancelled">Cancelled</button>
         </div>
         <div id="schedule-container">
             <div style="text-align: center; padding: 2rem; color: #6b7280;">
@@ -230,15 +252,34 @@
 
             // Update today's date dynamically
             const todayDateEl = document.getElementById("todayDate");
-            if (todayDateEl) {
-                todayDateEl.textContent = new Date().toLocaleDateString("en-US", {
+            const datePicker = document.getElementById('dashboardDatePicker');
+            const prevDateBtn = document.getElementById('prevDateBtn');
+            const nextDateBtn = document.getElementById('nextDateBtn');
+            const todayBtn = document.getElementById('todayBtn');
+
+            const formatDisplayDate = (isoDate) => {
+                const [y, m, d] = isoDate.split('-').map(Number);
+                const dt = new Date(y, m - 1, d);
+                return dt.toLocaleDateString("en-US", {
                     weekday: "long", year: "numeric", month: "long", day: "numeric"
                 });
-            }
+            };
+
+            let currentDate = document.querySelector('meta[name="selected-date"]')?.content || new Date().toISOString().slice(0, 10);
+            if (datePicker) datePicker.value = currentDate;
+            if (todayDateEl) todayDateEl.textContent = formatDisplayDate(currentDate);
+
+            const shiftDate = (isoDate, days) => {
+                const [y, m, d] = isoDate.split('-').map(Number);
+                const dt = new Date(y, m - 1, d);
+                dt.setDate(dt.getDate() + days);
+                return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+            };
 
             // --- Dashboard AJAX setup ---
             const assistantId = @Model.Assistant.AssistantID;
             let currentDoctorId = @(Model.SelectedDoctorID.HasValue ? Model.SelectedDoctorID.Value.ToString() : "null");
+            let currentScheduleStatus = '@Model.SelectedScheduleStatus';
             const baseStatsUrl = '@Url.Action("GetDashboardStats", "Assistant")';
             const baseScheduleUrl = '@Url.Action("GetTodaysSchedule", "Assistant")';
             const baseIndexUrl = '@Url.Action("Index", "Assistant")';
@@ -254,17 +295,21 @@
             const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
 
             // --- Core: load dashboard data via AJAX ---
-            function loadDashboardData(doctorId, pushState) {
+            function loadDashboardData(doctorId, selectedDate, pushState, scheduleStatus) {
                 currentDoctorId = doctorId;
+                currentDate = selectedDate;
+                currentScheduleStatus = scheduleStatus || currentScheduleStatus;
+                if (datePicker) datePicker.value = currentDate;
 
                 // Update browser URL without reload
                 if (pushState !== false) {
-                    const newUrl = baseIndexUrl + '?id=' + assistantId + (doctorId !== null ? '&doctorId=' + doctorId : '');
-                    history.pushState({ assistantId: assistantId, doctorId: doctorId }, '', newUrl);
+                    const newUrl = baseIndexUrl + '?id=' + assistantId + '&date=' + currentDate + '&status=' + encodeURIComponent(currentScheduleStatus) + (doctorId !== null ? '&doctorId=' + doctorId : '');
+                    history.pushState({ assistantId: assistantId, doctorId: doctorId, date: currentDate, status: currentScheduleStatus }, '', newUrl);
                 }
 
                 // Update filter tab active states
                 updateTabStyles(doctorId);
+                updateScheduleStatusButtons();
 
                 // Update schedule header
                 const label = document.getElementById('schedule-doctor-label');
@@ -283,11 +328,12 @@
                     '<div style="text-align:center;padding:2rem;color:#6b7280;"><i class="fas fa-spinner fa-spin" style="font-size:1.5rem;"></i><p style="margin-top:0.5rem;">Loading schedule...</p></div>';
 
                 // Fire both requests in parallel
-                const qs = '?id=' + assistantId + (doctorId !== null ? '&doctorId=' + doctorId : '');
+                const qs = '?id=' + assistantId + '&date=' + encodeURIComponent(currentDate) + (doctorId !== null ? '&doctorId=' + doctorId : '');
 
                 fetch(baseStatsUrl + qs)
                     .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
                     .then(data => {
+                        if (todayDateEl) todayDateEl.textContent = data.selectedDateLabel || formatDisplayDate(currentDate);
                         setTxt('stat-today-appointments', data.todayAppointmentsCount);
                         setTxt('stat-total-patients', data.totalPatients);
                         setTxt('hero-appointment-count', data.todayAppointmentsCount);
@@ -317,7 +363,7 @@
                         ['stat-today-appointments', 'stat-total-patients', 'hero-appointment-count'].forEach(id => setTxt(id, '!'));
                     });
 
-                fetch(baseScheduleUrl + qs)
+                fetch(baseScheduleUrl + qs + '&status=' + encodeURIComponent(currentScheduleStatus))
                     .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
                     .then(html => {
                         document.getElementById('schedule-container').innerHTML = html;
@@ -326,6 +372,14 @@
                         document.getElementById('schedule-container').innerHTML =
                             '<div class="privacy-notice" style="border-left-color:var(--danger)"><i class="fas fa-exclamation-circle" style="color:var(--danger)"></i><p>Failed to load schedule. Please refresh the page.</p></div>';
                     });
+            }
+
+            function updateScheduleStatusButtons() {
+                document.querySelectorAll('.schedule-status-btn').forEach(btn => {
+                    const isActive = btn.dataset.status === currentScheduleStatus;
+                    btn.classList.toggle('btn-primary', isActive);
+                    btn.classList.toggle('btn-outline', !isActive);
+                });
             }
 
             // --- Update filter tab visual states ---
@@ -357,7 +411,7 @@
                     const tabId = tab.dataset.doctorId;
                     const newDoctorId = (tabId === '' || tabId === undefined) ? null : parseInt(tabId);
                     if (newDoctorId === currentDoctorId) return;
-                    loadDashboardData(newDoctorId);
+                    loadDashboardData(newDoctorId, currentDate);
                 });
 
                 // Hover effects (event delegation — auto-skips active tabs)
@@ -375,22 +429,50 @@
             document.querySelectorAll('.team-card[data-doctor-id]').forEach(card => {
                 card.addEventListener('click', () => {
                     const docId = parseInt(card.dataset.doctorId);
-                    if (docId !== currentDoctorId) loadDashboardData(docId);
+                    if (docId !== currentDoctorId) loadDashboardData(docId, currentDate);
+                });
+            });
+
+            document.querySelectorAll('.schedule-status-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const selectedStatus = btn.dataset.status || 'Booked';
+                    if (selectedStatus === currentScheduleStatus) return;
+                    loadDashboardData(currentDoctorId, currentDate, true, selectedStatus);
                 });
             });
 
             // --- Browser back/forward support ---
             window.addEventListener('popstate', e => {
                 if (e.state && e.state.assistantId) {
-                    loadDashboardData(e.state.doctorId, false);
+                    loadDashboardData(e.state.doctorId, e.state.date || currentDate, false, e.state.status || 'Booked');
                 }
             });
 
+            if (datePicker) {
+                datePicker.addEventListener('change', () => {
+                    if (!datePicker.value) return;
+                    loadDashboardData(currentDoctorId, datePicker.value);
+                });
+            }
+
+            prevDateBtn?.addEventListener('click', () => {
+                loadDashboardData(currentDoctorId, shiftDate(currentDate, -1));
+            });
+
+            nextDateBtn?.addEventListener('click', () => {
+                loadDashboardData(currentDoctorId, shiftDate(currentDate, 1));
+            });
+
+            todayBtn?.addEventListener('click', () => {
+                const todayIso = new Date().toISOString().slice(0, 10);
+                loadDashboardData(currentDoctorId, todayIso);
+            });
+
             // --- Replace initial history entry (so popstate works from the start) ---
-            history.replaceState({ assistantId: assistantId, doctorId: currentDoctorId }, '', location.href);
+            history.replaceState({ assistantId: assistantId, doctorId: currentDoctorId, date: currentDate, status: currentScheduleStatus }, '', location.href);
 
             // --- Initial load ---
-            loadDashboardData(currentDoctorId, false);
+            loadDashboardData(currentDoctorId, currentDate, false, currentScheduleStatus);
         })();
     </script>
 }
