@@ -28,15 +28,6 @@
             <p class="pl-hero-sub">Manage your healthcare locations all in one place</p>
         </div>
     </div>
-    <div class="pl-hero-right">
-        <div class="pl-notif-btn">
-            <i class="fas fa-bell"></i>
-        </div>
-        <div class="pl-profile-chip">
-            <div class="pl-avatar"><i class="fas fa-user"></i></div>
-            <span>@Model.UserName</span>
-        </div>
-    </div>
 </header>
 
 <!-- ═══════════════════════════════════════════
@@ -327,7 +318,7 @@
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
                 btn.disabled = true;
 
-                fetch("/Patient/SavePlace", {
+                fetch("/PatientPlaces/SavePlace", {
                     method: "POST",
                     headers: { "Content-Type": "application/x-www-form-urlencoded" },
                     body: `patientId=${patientId}&name=${encodeURIComponent(name)}&type=${encodeURIComponent(type)}&address=${encodeURIComponent(address)}&phone=${encodeURIComponent(phone)}&__RequestVerificationToken=${encodeURIComponent(antiForgery)}`
@@ -357,7 +348,7 @@
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
                 btn.disabled = true;
 
-                fetch("/Patient/DeletePlace", {
+                fetch("/PatientPlaces/DeletePlace", {
                             method: "POST",
                             headers: { "Content-Type": "application/x-www-form-urlencoded" },
                             body: `placeId=${placeId}&patientId=${patientId}&__RequestVerificationToken=${encodeURIComponent(antiForgery)}`
@@ -412,7 +403,7 @@
                 this.disabled = true;
                 const self = this;
 
-                fetch("/Patient/UpdatePlace", {
+                fetch("/PatientPlaces/UpdatePlace", {
                     method: "POST",
                     headers: { "Content-Type": "application/x-www-form-urlencoded" },
                     body: `placeId=${placeId}&patientId=${patientId}&name=${encodeURIComponent(name)}&type=${encodeURIComponent(type)}&address=${encodeURIComponent(address)}&phone=${encodeURIComponent(phone)}&__RequestVerificationToken=${encodeURIComponent(antiForgery)}`

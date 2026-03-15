@@ -34,16 +34,6 @@
             <p class="al-hero-sub">Stay informed about your health and appointments</p>
         </div>
     </div>
-    <div class="al-hero-right">
-        <div class="al-notif-btn">
-            <i class="fas fa-bell"></i>
-            <span class="al-notif-badge" id="headerBadge" style="@(Model.UnreadCount == 0 ? "display:none" : "")">@Model.UnreadCount</span>
-        </div>
-        <div class="al-profile-chip">
-            <div class="al-avatar"><i class="fas fa-user"></i></div>
-            <span>@Model.UserName</span>
-        </div>
-    </div>
 </header>
 
 <!-- ══════════════════ STAT CARDS ══════════════════ -->
@@ -352,7 +342,7 @@ document.addEventListener("DOMContentLoaded", function () {
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         btn.disabled = true;
 
-        fetch("/Patient/MarkAlertRead", {
+        fetch("/PatientAlerts/MarkAlertRead", {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
             body: `alertId=${alertId}&patientId=${patientId}&__RequestVerificationToken=${encodeURIComponent(antiForgery)}`
@@ -379,13 +369,13 @@ document.addEventListener("DOMContentLoaded", function () {
         this.disabled = true;
         const self = this;
 
-        fetch("/Patient/MarkAllAlertsRead", {
+        fetch("/PatientAlerts/MarkAllAlertsRead", {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
             body: `patientId=${patientId}&__RequestVerificationToken=${encodeURIComponent(antiForgery)}`
         })
         .then(r => r.json())
-        .then data => {
+        .then(data => {
             if (data.success) {
                 document.querySelectorAll(".alert-card.al-unread").forEach(card => {
                     card.classList.remove("al-unread");

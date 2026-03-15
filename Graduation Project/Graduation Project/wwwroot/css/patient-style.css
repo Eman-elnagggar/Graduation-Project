@@ -1,4 +1,4 @@
-/* ================================
+ /* ================================
    Patient Portal - Style Overrides
    Imports shared styles and adds patient-specific styling
 ================================ */
@@ -317,6 +317,341 @@
 .global-notification.success { border-left-color: #10b981; }
 .global-notification.error   { border-left-color: #ef4444; }
 .global-notification.info    { border-left-color: var(--primary); }
+
+/* ================================
+   Global Patient Notifications Panel
+================================ */
+.pp-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1150;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.pp-topbar-inner {
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: 10px var(--content-padding-x);
+}
+
+.pp-topbar-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+}
+
+.pp-topbar .db-date-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: #fff;
+  border-radius: 22px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #64748b;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--border-color);
+}
+
+.pp-topbar .db-profile-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: #fff;
+  border-radius: 24px;
+  padding: 0.45rem 0.9rem 0.45rem 0.6rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.pp-topbar .db-avatar {
+  width: 30px;
+  height: 30px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 0.8rem;
+}
+
+.pp-notif-toggle {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  background: var(--bg-white);
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  z-index: 1;
+}
+
+.pp-notif-toggle:hover {
+  background: rgba(27, 174, 190, 0.08);
+  border-color: rgba(27, 174, 190, 0.35);
+}
+
+.pp-notif-toggle i {
+  font-size: 1rem;
+}
+
+.pp-notif-badge {
+  position: absolute;
+  top: -5px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg-white);
+}
+
+.pp-notif-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.35);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  z-index: 1290;
+}
+
+.pp-notif-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: min(360px, 92vw);
+  height: 100vh;
+  background: var(--bg-white);
+  border-left: 1px solid var(--border-color);
+  box-shadow: -12px 0 28px rgba(15, 23, 42, 0.15);
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  z-index: 1300;
+  display: flex;
+  flex-direction: column;
+}
+
+body.pp-notif-open {
+  overflow: hidden;
+}
+
+body.pp-notif-open .pp-notif-overlay {
+  opacity: 1;
+  visibility: visible;
+}
+
+body.pp-notif-open .pp-notif-panel {
+  transform: translateX(0);
+}
+
+.pp-notif-header {
+  height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px 0 18px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.pp-notif-header h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pp-notif-close {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-white);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.pp-notif-list {
+  padding: 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pp-notif-item {
+  border: 1px solid var(--border-color);
+  border-left: 4px solid transparent;
+  border-radius: 10px;
+  padding: 12px;
+  background: #fff;
+}
+
+.pp-notif-item.unread {
+  border-color: rgba(27, 174, 190, 0.45);
+  background: rgba(27, 174, 190, 0.06);
+}
+
+.pp-notif-item.pp-notif-critical {
+  border-left-color: #ef4444;
+}
+
+.pp-notif-item.pp-notif-warning {
+  border-left-color: #f59e0b;
+}
+
+.pp-notif-item.pp-notif-info {
+  border-left-color: #3b82f6;
+}
+
+.pp-notif-item-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.pp-notif-item-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pp-risk-pill {
+  width: fit-content;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  border: 1px solid transparent;
+}
+
+.pp-risk-pill.pp-risk-critical {
+  background: #fff1f2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+.pp-risk-pill.pp-risk-warning {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #b45309;
+}
+
+.pp-risk-pill.pp-risk-info {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.pp-notif-item-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.pp-notif-item-time {
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.pp-notif-item-message {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.pp-notif-item-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.pp-mark-read-btn {
+  border: 1px solid #22c55e;
+  background: #f0fdf4;
+  color: #15803d;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pp-mark-read-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pp-read-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: #15803d;
+  font-weight: 700;
+}
+
+.pp-notif-empty {
+  text-align: center;
+  padding: 20px 12px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.pp-notif-error {
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 768px) {
+  .pp-topbar-inner {
+    padding: 8px var(--content-padding-x);
+  }
+
+  .pp-topbar .db-profile-chip span {
+    max-width: 90px;
+    font-size: 0.88rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .pp-topbar .db-date-chip {
+    font-size: 0.76rem;
+    padding: 0.36rem 0.7rem;
+  }
+}
 
 .global-notification i {
   font-size: 1.1rem;
