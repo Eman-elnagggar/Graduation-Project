@@ -1,0 +1,427 @@
+@{
+    Layout = null;
+    ViewData["Title"] = "Register as Patient — MamaCare";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>@ViewData["Title"]</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="~/css/auth.css" />
+</head>
+<body>
+
+<div class="auth-shell">
+  <aside class="auth-panel">
+    <div class="panel-brand">
+      <div class="panel-brand-icon"><i class="fas fa-heartbeat"></i></div>
+      <div>
+        <div class="panel-brand-name">MamaCare</div>
+        <div class="panel-brand-badge">Patient Portal</div>
+      </div>
+    </div>
+
+    <div class="panel-content">
+      <h2 class="panel-headline">Start your<br><span>care journey</span></h2>
+      <p class="panel-desc">Create your account in minutes. Your health profile helps us give you the most relevant care.</p>
+    </div>
+
+    <div class="panel-features">
+      <div class="panel-feature">
+        <div class="panel-feature-ico"><i class="fas fa-baby"></i></div>
+        <div class="panel-feature-text">Pregnancy tracking &amp; milestones</div>
+      </div>
+      <div class="panel-feature">
+        <div class="panel-feature-ico"><i class="fas fa-flask"></i></div>
+        <div class="panel-feature-text">AI-powered lab test analysis</div>
+      </div>
+      <div class="panel-feature">
+        <div class="panel-feature-ico"><i class="fas fa-comments"></i></div>
+        <div class="panel-feature-text">Direct messaging with your doctor</div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="auth-form-area" style="align-items: flex-start; padding-top: 2.5rem;">
+    <div class="auth-form-wrap" style="max-width: 540px;">
+
+      <div class="mobile-brand">
+        <div class="mobile-brand-icon"><i class="fas fa-heartbeat"></i></div>
+        <div class="mobile-brand-name">MamaCare</div>
+      </div>
+
+      <div class="mc-steps" id="stepIndicator">
+        <div class="mc-step active" id="si1">
+          <div class="mc-step-circle">1</div>
+          <div class="mc-step-label">Your Info</div>
+        </div>
+        <div class="mc-step-conn" id="sc1"></div>
+        <div class="mc-step active" id="si2" style="opacity:.45">
+          <div class="mc-step-circle">2</div>
+          <div class="mc-step-label">Health Profile</div>
+        </div>
+      </div>
+
+      <div id="step1Panel">
+        <div class="auth-card">
+          <div class="auth-card-header">
+            <div class="auth-card-title">Create your account</div>
+            <div class="auth-card-sub">Step 1 of 2 — Personal details</div>
+          </div>
+
+          <div class="auth-card-body">
+            <form id="step1Form" novalidate>
+              @Html.AntiForgeryToken()
+
+              <div class="mc-row">
+                <div class="mc-form-group">
+                  <label class="mc-label" for="FirstName">
+                    <i class="fas fa-user"></i> First Name <span class="req">*</span>
+                  </label>
+                  <input type="text" id="FirstName" name="FirstName" class="mc-input"
+                         placeholder="Sarah" required autocomplete="given-name" />
+                </div>
+                <div class="mc-form-group">
+                  <label class="mc-label" for="LastName">
+                    <i class="fas fa-user"></i> Last Name <span class="req">*</span>
+                  </label>
+                  <input type="text" id="LastName" name="LastName" class="mc-input"
+                         placeholder="Ahmed" required autocomplete="family-name" />
+                </div>
+              </div>
+
+              <div class="mc-form-group">
+                <label class="mc-label" for="Email">
+                  <i class="fas fa-envelope"></i> Email Address <span class="req">*</span>
+                </label>
+                <div class="mc-input-wrap">
+                  <input type="email" id="Email" name="Email" class="mc-input has-icon"
+                         placeholder="you@example.com" required autocomplete="email" />
+                  <i class="mc-input-icon fas fa-envelope"></i>
+                </div>
+              </div>
+
+              <div class="mc-row">
+                <div class="mc-form-group">
+                  <label class="mc-label" for="Password">
+                    <i class="fas fa-lock"></i> Password <span class="req">*</span>
+                  </label>
+                  <div class="mc-input-wrap">
+                    <input type="password" id="Password" name="Password" class="mc-input has-eye"
+                           placeholder="Min. 8 characters" required data-min-length="8"
+                           autocomplete="new-password" />
+                    <button type="button" class="mc-input-eye"><i class="fas fa-eye"></i></button>
+                  </div>
+                  <div class="mc-pwd-strength">
+                    <div class="mc-pwd-strength-bar"><div class="mc-pwd-strength-fill" id="pwdBar"></div></div>
+                    <div class="mc-pwd-strength-label" id="pwdLabel"></div>
+                  </div>
+                </div>
+                <div class="mc-form-group">
+                  <label class="mc-label" for="ConfirmPassword">
+                    <i class="fas fa-lock"></i> Confirm Password <span class="req">*</span>
+                  </label>
+                  <div class="mc-input-wrap">
+                    <input type="password" id="ConfirmPassword" name="ConfirmPassword" class="mc-input has-eye"
+                           placeholder="Repeat password" required data-match="Password"
+                           autocomplete="new-password" />
+                    <button type="button" class="mc-input-eye"><i class="fas fa-eye"></i></button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mc-row">
+                <div class="mc-form-group">
+                  <label class="mc-label" for="PhoneNumber">
+                    <i class="fas fa-phone"></i> Phone Number <span class="req">*</span>
+                  </label>
+                  <div class="mc-input-wrap">
+                    <input type="tel" id="PhoneNumber" name="PhoneNumber" class="mc-input has-icon"
+                           placeholder="+20 xxx xxx xxxx" required autocomplete="tel" />
+                    <i class="mc-input-icon fas fa-phone"></i>
+                  </div>
+                </div>
+                <div class="mc-form-group">
+                  <label class="mc-label" for="DateOfBirth">
+                    <i class="fas fa-calendar"></i> Date of Birth <span class="req">*</span>
+                  </label>
+                  <input type="date" id="DateOfBirth" name="DateOfBirth" class="mc-input"
+                         required autocomplete="bday" />
+                </div>
+              </div>
+
+              <div class="mc-form-group">
+                <label class="mc-label" for="Address">
+                  <i class="fas fa-map-marker-alt"></i> Address <span class="req">*</span>
+                </label>
+                <input type="text" id="Address" name="Address" class="mc-input"
+                       placeholder="123 Nile Street, Cairo" required autocomplete="street-address" />
+              </div>
+
+              <button type="submit" class="mc-btn mc-btn-primary mt-2">
+                <i class="fas fa-arrow-right"></i> Continue to Health Profile
+              </button>
+            </form>
+          </div>
+
+          <div class="auth-card-footer">
+            Already have an account?
+            <a href="@Url.Action("Login", "Account")" class="mc-link">Sign in</a>
+          </div>
+        </div>
+      </div>
+
+      <div id="step2Panel" style="display:none;">
+        <div class="auth-card">
+          <div class="auth-card-header">
+            <div style="display:flex; align-items:center; gap:.6rem;">
+              <div style="width:36px;height:36px;border-radius:10px;background:rgba(27,174,190,.12);color:var(--mc-primary);display:flex;align-items:center;justify-content:center;">
+                <i class="fas fa-notes-medical"></i>
+              </div>
+              <div>
+                <div class="auth-card-title" style="font-size:1.1rem;">Complete your health profile</div>
+                <div class="auth-card-sub">Step 2 of 2 — Optional but recommended</div>
+              </div>
+            </div>
+            <div style="margin-top:.5rem;font-size:.75rem;color:var(--mc-muted);background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:.4rem .75rem;display:inline-block;">
+              <i class="fas fa-info-circle" style="color:#0ea5e9;"></i>
+              You can always update this later in your profile
+            </div>
+          </div>
+
+          <div class="auth-card-body">
+            <form id="step2Form" novalidate>
+              @Html.AntiForgeryToken()
+
+              <div class="mc-row">
+                <div class="mc-form-group">
+                  <label class="mc-label" for="Height">
+                    <i class="fas fa-ruler-vertical"></i> Height <span class="mc-optional">optional</span>
+                  </label>
+                  <div class="mc-input-wrap">
+                    <input type="number" id="Height" name="Height" class="mc-input has-icon"
+                           placeholder="165" min="100" max="220" />
+                    <i class="mc-input-icon fas fa-ruler-vertical"></i>
+                  </div>
+                  <div class="mc-feedback hint"><i class="fas fa-info-circle"></i> centimeters (cm)</div>
+                </div>
+                <div class="mc-form-group">
+                  <label class="mc-label" for="Weight">
+                    <i class="fas fa-weight"></i> Weight <span class="mc-optional">optional</span>
+                  </label>
+                  <div class="mc-input-wrap">
+                    <input type="number" id="Weight" name="Weight" class="mc-input has-icon"
+                           placeholder="65" min="30" max="250" />
+                    <i class="mc-input-icon fas fa-weight"></i>
+                  </div>
+                  <div class="mc-feedback hint"><i class="fas fa-info-circle"></i> kilograms (kg)</div>
+                </div>
+              </div>
+
+              <div class="mc-section-header preg">
+                <i class="fas fa-baby"></i>
+                <div>
+                  <h6>Pregnancy</h6>
+                  <span>Current pregnancy details</span>
+                </div>
+              </div>
+
+              <div class="mc-row">
+                <div class="mc-form-group">
+                  <label class="mc-label" for="LastMenstrualPeriod">
+                    <i class="fas fa-calendar-alt"></i> Last Menstrual Period
+                  </label>
+                  <input type="date" id="LastMenstrualPeriod" name="LastMenstrualPeriod" class="mc-input" />
+                </div>
+                <div class="mc-form-group">
+                  <label class="mc-label">
+                    <i class="fas fa-question-circle"></i> First pregnancy?
+                  </label>
+                  <div class="mc-radio-group">
+                    <label class="mc-radio-btn">
+                      <input type="radio" name="IsFirstPregnancy" value="true" /> Yes
+                    </label>
+                    <label class="mc-radio-btn">
+                      <input type="radio" name="IsFirstPregnancy" value="false" /> No
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mc-section-header med" style="margin-top:.5rem;">
+                <i class="fas fa-heartbeat"></i>
+                <div>
+                  <h6>Medical</h6>
+                  <span>Health conditions &amp; medications</span>
+                </div>
+              </div>
+
+              <div class="mc-form-group">
+                <label class="mc-label">
+                  <i class="fas fa-tint"></i> Blood pressure issues?
+                </label>
+                <div class="mc-radio-group" id="bpRadioGroup">
+                  <label class="mc-radio-btn">
+                    <input type="radio" name="HasBloodPressureIssues" value="true" /> Yes
+                  </label>
+                  <label class="mc-radio-btn">
+                    <input type="radio" name="HasBloodPressureIssues" value="false" /> No
+                  </label>
+                </div>
+                <div id="bpWarning" style="display:none;" class="mc-warning-box mt-1">
+                  <i class="fas fa-exclamation-triangle"></i>
+                  <p><strong>Important:</strong> Blood pressure issues during pregnancy require close monitoring. Please ensure your doctor is aware and follow their guidance on medication and lifestyle adjustments.</p>
+                </div>
+              </div>
+
+              <div class="mc-form-group">
+                <label class="mc-label">
+                  <i class="fas fa-pills"></i> Current Medications <span class="mc-optional">optional</span>
+                </label>
+                <div id="medicationsList"></div>
+                <button type="button" class="mc-btn mc-btn-ghost mc-btn-sm mt-1" id="addMedBtn" style="width:auto;">
+                  <i class="fas fa-plus"></i> Add Medication
+                </button>
+              </div>
+
+              <div class="mc-section-header life" style="margin-top:.5rem;">
+                <i class="fas fa-leaf"></i>
+                <div>
+                  <h6>Lifestyle</h6>
+                  <span>Daily habits &amp; choices</span>
+                </div>
+              </div>
+
+              <div class="mc-row">
+                <div class="mc-form-group">
+                  <label class="mc-label">
+                    <i class="fas fa-smoking"></i> Smoking?
+                  </label>
+                  <div class="mc-radio-group">
+                    <label class="mc-radio-btn">
+                      <input type="radio" name="Smoking" value="true" /> Yes
+                    </label>
+                    <label class="mc-radio-btn">
+                      <input type="radio" name="Smoking" value="false" /> No
+                    </label>
+                  </div>
+                </div>
+                <div class="mc-form-group">
+                  <label class="mc-label">
+                    <i class="fas fa-wine-glass-alt"></i> Alcohol?
+                  </label>
+                  <div class="mc-radio-group">
+                    <label class="mc-radio-btn">
+                      <input type="radio" name="Alcohol" value="true" /> Yes
+                    </label>
+                    <label class="mc-radio-btn">
+                      <input type="radio" name="Alcohol" value="false" /> No
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:.75rem; margin-top:1.25rem;">
+                <button type="button" class="mc-btn mc-btn-ghost" id="skipProfileBtn">
+                  <i class="fas fa-forward"></i> Skip for now
+                </button>
+                <button type="submit" class="mc-btn mc-btn-primary">
+                  <i class="fas fa-check"></i> Finish Registration
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="~/js/auth.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  initLiveValidation('step1Form');
+  initPasswordStrength('Password', 'pwdBar', 'pwdLabel');
+
+  function goStep2() {
+    document.getElementById('step1Panel').style.display = 'none';
+    document.getElementById('step2Panel').style.display = 'block';
+    const s1 = document.getElementById('si1');
+    const s2 = document.getElementById('si2');
+    const c1 = document.getElementById('sc1');
+    s1.classList.remove('active'); s1.classList.add('done');
+    s1.querySelector('.mc-step-circle').textContent = '';
+    s1.querySelector('.mc-step-circle').innerHTML = '<i class="fas fa-check" style="font-size:.72rem;"></i>';
+    c1.classList.add('done');
+    s2.style.opacity = '1'; s2.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  document.getElementById('step1Form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!validateForm('step1Form')) {
+      showToast('Please fix the errors before continuing.', 'error');
+      return;
+    }
+    goStep2();
+  });
+
+  document.getElementById('skipProfileBtn').addEventListener('click', function () {
+    showToast('Account created! Redirecting…', 'success');
+    setTimeout(() => { window.location.href = '@Url.Action("Index", "Patient")'; }, 1500);
+  });
+
+  document.getElementById('step2Form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    showToast('Registration complete! Redirecting…', 'success');
+    setTimeout(() => { window.location.href = '@Url.Action("Index", "Patient")'; }, 1500);
+  });
+
+  document.querySelectorAll('input[name="HasBloodPressureIssues"]').forEach(radio => {
+    radio.addEventListener('change', function () {
+      document.getElementById('bpWarning').style.display = this.value === 'true' ? 'flex' : 'none';
+    });
+  });
+
+  let medCount = 0;
+  document.getElementById('addMedBtn').addEventListener('click', function () {
+    medCount++;
+    const id = 'med' + medCount;
+    const div = document.createElement('div');
+    div.className = 'mc-med-card';
+    div.id = id;
+    div.innerHTML = `
+      <button type="button" class="mc-med-remove" onclick="document.getElementById('${id}').remove()">
+        <i class="fas fa-times"></i>
+      </button>
+      <div style="font-size:.76rem; font-weight:700; color:var(--mc-muted); margin-bottom:.55rem; text-transform:uppercase; letter-spacing:.05em;">
+        Medication ${medCount}
+      </div>
+      <div class="mc-med-grid">
+        <div class="mc-form-group mb-0">
+          <label class="mc-label" for="${id}_name"><i class="fas fa-pills"></i> Name</label>
+          <input type="text" id="${id}_name" name="Medications[${medCount - 1}].Name" class="mc-input" placeholder="e.g. Folic Acid" />
+        </div>
+        <div class="mc-form-group mb-0">
+          <label class="mc-label" for="${id}_dose"><i class="fas fa-syringe"></i> Dose</label>
+          <input type="text" id="${id}_dose" name="Medications[${medCount - 1}].Dose" class="mc-input" placeholder="e.g. 5mg" />
+        </div>
+        <div class="mc-form-group mb-0">
+          <label class="mc-label" for="${id}_dur"><i class="fas fa-clock"></i> Duration</label>
+          <input type="text" id="${id}_dur" name="Medications[${medCount - 1}].Duration" class="mc-input" placeholder="e.g. 3 months" />
+        </div>
+      </div>`;
+    document.getElementById('medicationsList').appendChild(div);
+    initPasswordToggles();
+  });
+
+  initRadioGroups();
+}());
+</script>
+</body>
+</html>

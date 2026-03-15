@@ -1,0 +1,146 @@
+@{
+    Layout = null;
+    ViewData["Title"] = "Login — MamaCare";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>@ViewData["Title"]</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="~/css/auth.css" />
+</head>
+<body>
+
+<div class="auth-shell">
+  <aside class="auth-panel">
+    <div class="panel-brand">
+      <div class="panel-brand-icon"><i class="fas fa-heartbeat"></i></div>
+      <div>
+        <div class="panel-brand-name">MamaCare</div>
+        <div class="panel-brand-badge">Patient Portal</div>
+      </div>
+    </div>
+
+    <div class="panel-content">
+      <h2 class="panel-headline">Your pregnancy,<br><span>beautifully managed.</span></h2>
+      <p class="panel-desc">Track your health, connect with your care team, and stay informed every step of the way.</p>
+    </div>
+
+    <div class="panel-features">
+      <div class="panel-feature">
+        <div class="panel-feature-ico"><i class="fas fa-shield-alt"></i></div>
+        <div class="panel-feature-text">Secure health records &amp; test results</div>
+      </div>
+      <div class="panel-feature">
+        <div class="panel-feature-ico"><i class="fas fa-calendar-check"></i></div>
+        <div class="panel-feature-text">Appointment scheduling &amp; reminders</div>
+      </div>
+      <div class="panel-feature">
+        <div class="panel-feature-ico"><i class="fas fa-robot"></i></div>
+        <div class="panel-feature-text">AI-powered pregnancy assistant</div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="auth-form-area">
+    <div class="auth-form-wrap">
+      <div class="mobile-brand">
+        <div class="mobile-brand-icon"><i class="fas fa-heartbeat"></i></div>
+        <div class="mobile-brand-name">MamaCare</div>
+      </div>
+
+      <div class="auth-card">
+        <div class="auth-card-header">
+          <div class="auth-card-title">Welcome back</div>
+          <div class="auth-card-sub">Sign in to your MamaCare account</div>
+        </div>
+
+        <div class="auth-card-body">
+          @using (Html.BeginForm("Login", "Account", FormMethod.Post, new { id = "loginForm", novalidate = "novalidate" }))
+          {
+            @Html.AntiForgeryToken()
+
+            <div class="mc-form-group">
+              <label class="mc-label" for="Email">
+                <i class="fas fa-envelope"></i> Email address <span class="req">*</span>
+              </label>
+              <div class="mc-input-wrap">
+                <input type="email" id="Email" name="Email" class="mc-input has-icon"
+                       placeholder="you@example.com" required autocomplete="email" />
+                <i class="mc-input-icon fas fa-envelope"></i>
+              </div>
+            </div>
+
+            <div class="mc-form-group">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.38rem;">
+                <label class="mc-label mb-0" for="Password" style="margin-bottom:0">
+                  <i class="fas fa-lock"></i> Password <span class="req">*</span>
+                </label>
+                <a href="@Url.Action("ForgotPassword", "Account")" class="mc-link" style="font-size:.78rem;">
+                  Forgot password?
+                </a>
+              </div>
+              <div class="mc-input-wrap">
+                <input type="password" id="Password" name="Password" class="mc-input has-icon has-eye"
+                       placeholder="Enter your password" required autocomplete="current-password" />
+                <i class="mc-input-icon fas fa-lock"></i>
+                <button type="button" class="mc-input-eye" aria-label="Toggle password">
+                  <i class="fas fa-eye"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="mc-form-group">
+              <label class="mc-check-group">
+                <input type="checkbox" id="RememberMe" name="RememberMe" class="mc-check" value="true" />
+                <span class="mc-check-label">Remember me for 30 days</span>
+              </label>
+            </div>
+
+            <button type="submit" class="mc-btn mc-btn-primary mt-2" id="loginBtn">
+              <i class="fas fa-sign-in-alt"></i> Sign In
+            </button>
+          }
+        </div>
+
+        <div class="auth-card-footer">
+          <p style="font-size:.8rem; color:var(--mc-muted); margin-bottom:.65rem;">New to MamaCare? Register as:</p>
+          <div class="mc-role-links">
+            <a href="@Url.Action("RegisterPatient", "Account")" class="mc-role-link">
+              <i class="fas fa-baby"></i>
+              <span>Patient</span>
+            </a>
+            <a href="@Url.Action("RegisterDoctor", "Account")" class="mc-role-link">
+              <i class="fas fa-user-md"></i>
+              <span>Doctor</span>
+            </a>
+            <a href="@Url.Action("RegisterAssistant", "Account")" class="mc-role-link">
+              <i class="fas fa-user-nurse"></i>
+              <span>Assistant</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="~/js/auth.js"></script>
+<script>
+(function () {
+  'use strict';
+  initLiveValidation('loginForm');
+
+  document.getElementById('loginForm').addEventListener('submit', function (e) {
+    if (!validateForm('loginForm')) {
+      e.preventDefault();
+      showToast('Please fix the errors before continuing.', 'error');
+    }
+  });
+}());
+</script>
+</body>
+</html>
