@@ -18,22 +18,9 @@
                 </div>
                 <div class="header-right">
                     <button class="btn btn-primary"
-                            onclick="window.location.href='@Url.Action("BookAppointment", "Patient", new { id = patientId })'"
-                            style="margin-right: 20px">
+                            onclick="window.location.href='@Url.Action("BookAppointment", "PatientAppointments", new { id = patientId })'">
                         <i class="fas fa-plus-circle"></i> Book New Appointment
                     </button>
-                    <div class="notification">
-                        <i class="fas fa-bell"></i>
-                        @if (Model.UnreadAlertsCount > 0)
-                        {
-                            <span class="badge">@Model.UnreadAlertsCount</span>
-                        }
-                    </div>
-                    <div class="profile">
-                        <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(fullName)&background=1BAEBE&color=fff&size=40"
-                             alt="Profile" />
-                        <span>@fullName</span>
-                    </div>
                 </div>
             </header>
 
@@ -74,7 +61,7 @@
                                 </div>
                                 <div class="primary-doctor-actions">
                                     <button class="btn btn-primary"
-                                            onclick="window.location.href='@Url.Action("BookAppointment", "Patient", new { id = patientId, doctorId = doc.DoctorID })'">
+                                            onclick="window.location.href='@Url.Action("BookAppointment", "PatientAppointments", new { id = patientId, doctorId = doc.DoctorID })'">
                                         <i class="fas fa-calendar-plus"></i> Book Appointment
                                     </button>
                                 </div>
@@ -92,7 +79,7 @@
                                     care provider
                                 </p>
                                 <button class="btn btn-primary"
-                                        onclick="window.location.href='@Url.Action("BookAppointment", "Patient", new { id = patientId })'">
+                                        onclick="window.location.href='@Url.Action("BookAppointment", "PatientAppointments", new { id = patientId })'">
                                     <i class="fas fa-search"></i> Find &amp; Select Doctor
                                 </button>
                             </div>
@@ -131,7 +118,7 @@
                                         <p>@(clinicDoc?.Clinic?.Name ?? "")</p>
                                     </div>
                                     <button class="btn btn-sm btn-outline"
-                                            onclick="window.location.href='@Url.Action("BookAppointment", "Patient", new { id = patientId, doctorId = doc.DoctorID })'">
+                                            onclick="window.location.href='@Url.Action("BookAppointment", "PatientAppointments", new { id = patientId, doctorId = doc.DoctorID })'">
                                         Book
                                     </button>
                                 </div>
@@ -156,7 +143,7 @@
                             <div style="text-align:center; padding: 32px; color: #94a3b8;">
                                 <i class="fas fa-calendar-times" style="font-size:2rem; margin-bottom:12px; display:block;"></i>
                                 <p>No upcoming appointments.
-                                    <a href="@Url.Action("BookAppointment", "Patient", new { id = patientId })">Book one now</a>
+                                    <a href="@Url.Action("BookAppointment", "PatientAppointments", new { id = patientId })">Book one now</a>
                                 </p>
                             </div>
                         }
@@ -284,7 +271,7 @@
               const patientId = parseInt(this.dataset.patientId);
 
               try {
-                const response = await fetch("/Patient/CancelAppointment", {
+                const response = await fetch("/PatientAppointments/CancelAppointment", {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/x-www-form-urlencoded",

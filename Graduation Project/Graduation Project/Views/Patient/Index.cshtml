@@ -24,23 +24,6 @@
             </div>
         </div>
     </div>
-    <div class="db-header-right">
-        <div class="db-date-chip">
-            <i class="fas fa-calendar-alt"></i>
-            <span id="dbTodayLabel"></span>
-        </div>
-        <div class="db-notif-btn">
-            <i class="fas fa-bell"></i>
-            @if (Model.HealthAlerts != null && Model.HealthAlerts.Any(a => !a.IsRead))
-            {
-                <span class="db-notif-badge">@Model.HealthAlerts.Count(a => !a.IsRead)</span>
-            }
-        </div>
-        <div class="db-profile-chip">
-            <div class="db-avatar"><i class="fas fa-user"></i></div>
-            <span>@Model.UserName</span>
-        </div>
-    </div>
 </header>
 
 <!-- ══════════════════ PREGNANCY PROGRESS ══════════════════ -->
@@ -173,7 +156,7 @@
                 <div class="db-card-icon-wrap activity"><i class="fas fa-history"></i></div>
                 <h3>Recent Activity</h3>
             </div>
-            <a href="/Patient/MedicalHistory/@Model.Patient.PatientID" class="db-view-all">
+            <a href="/PatientMedicalHistory/MedicalHistory/@Model.Patient.PatientID" class="db-view-all">
                 View All <i class="fas fa-arrow-right"></i>
             </a>
         </div>
@@ -211,7 +194,7 @@
                 <div class="db-card-icon-wrap alerts"><i class="fas fa-bell"></i></div>
                 <h3>Health Alerts</h3>
             </div>
-            <a href="/Patient/Alerts/@Model.Patient.PatientID" class="db-view-all">
+            <a href="/PatientAlerts/Alerts/@Model.Patient.PatientID" class="db-view-all">
                 View All <i class="fas fa-arrow-right"></i>
             </a>
         </div>
@@ -375,7 +358,7 @@
                             <p class="db-no-data">No readings recorded yet.</p>
                         }
                     </div>
-                    <a href="/Patient/MedicalHistory/@Model.Patient.PatientID" class="db-view-all-link">View Full History <i class="fas fa-arrow-right"></i></a>
+            <a href="/PatientMedicalHistory/MedicalHistory/@Model.Patient.PatientID" class="db-view-all-link">View Full History <i class="fas fa-arrow-right"></i></a>
                 </div>
             </div>
 
@@ -521,7 +504,7 @@
                             <p class="db-no-data">No readings recorded yet.</p>
                         }
                     </div>
-                    <a href="/Patient/MedicalHistory/@Model.Patient.PatientID" class="db-view-all-link">View Full History <i class="fas fa-arrow-right"></i></a>
+            <a href="/PatientMedicalHistory/MedicalHistory/@Model.Patient.PatientID" class="db-view-all-link">View Full History <i class="fas fa-arrow-right"></i></a>
                 </div>
             </div>
 

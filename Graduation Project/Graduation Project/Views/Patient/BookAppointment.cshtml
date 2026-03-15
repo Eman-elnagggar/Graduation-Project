@@ -20,22 +20,12 @@
 <header class="header">
                 <div class="header-left" style="display:flex; align-items:center; gap:16px;">
                     <button class="btn btn-outline"
-                            onclick="window.location.href='@Url.Action("Appointments", "Patient", new { id = patientId })'">
+                            onclick="window.location.href='@Url.Action("Appointments", "PatientAppointments", new { id = patientId })'">
                         <i class="fas fa-arrow-left"></i> Back to Appointments
                     </button>
                     <div>
                         <h1>Book New Appointment 📅</h1>
                         <p>Find and schedule an appointment with your doctor</p>
-                    </div>
-                </div>
-                <div class="header-right">
-                    <div class="notification">
-                        <i class="fas fa-bell"></i>
-                    </div>
-                    <div class="profile">
-                        <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(fullName)&background=1BAEBE&color=fff&size=40"
-                             alt="Profile" />
-                        <span>@fullName</span>
                     </div>
                 </div>
             </header>
@@ -642,7 +632,7 @@
 
           async function loadAvailableDates(doctorId, month, year) {
             try {
-              let url = `/Patient/GetAvailableDates?patientId=${patientId}&doctorId=${doctorId}&year=${year}&month=${month + 1}`;
+              let url = `/PatientAppointments/GetAvailableDates?patientId=${patientId}&doctorId=${doctorId}&year=${year}&month=${month + 1}`;
               if (selectedClinicId) url += `&clinicId=${selectedClinicId}`;
               const res = await fetch(url);
               const dates = await res.json();
@@ -746,7 +736,7 @@
               '<p style="text-align:center;padding:24px;color:#94a3b8;">Loading slots...</p>';
 
             try {
-              let url = `/Patient/GetDoctorSlots?patientId=${patientId}&doctorId=${doctorId}&date=${date}`;
+              let url = `/PatientAppointments/GetDoctorSlots?patientId=${patientId}&doctorId=${doctorId}&date=${date}`;
               if (selectedClinicId) url += `&clinicId=${selectedClinicId}`;
               const res = await fetch(url);
               const slots = await res.json();
@@ -877,7 +867,7 @@
               confirmBtn.textContent = "Booking...";
 
               try {
-                const res = await fetch("/Patient/ConfirmBooking", {
+                const res = await fetch("/PatientAppointments/ConfirmBooking", {
                   method: "POST",
                   headers: { "Content-Type": "application/x-www-form-urlencoded" },
                   body: new URLSearchParams({
@@ -892,7 +882,7 @@
                 if (result.success) {
                   showNotification(result.message, "success");
                   setTimeout(() => {
-                    window.location.href = `/Patient/Appointments/${patientId}`;
+                    window.location.href = `/PatientAppointments/Appointments/${patientId}`;
                   }, 1500);
                 } else {
                   showNotification(result.message || "Booking failed.", "error");
