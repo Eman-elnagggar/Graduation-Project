@@ -1,5 +1,6 @@
 using Graduation_Project.Services;
 using Microsoft.AspNetCore.Mvc;
+using Graduation_Project.Models;
 
 namespace Graduation_Project.Controllers
 {
@@ -53,34 +54,59 @@ namespace Graduation_Project.Controllers
             try
             {
                 var ocrResult = await _ocrClient.AnalyzeImageAsync(image);
-
-                if (ocrResult?.Results == null)
-                    return StatusCode(502, new { error = "The analysis service returned an unexpected response. Please try again." });
-
-                var results = ocrResult.Results;
-
-                // ?? Determine status ?????????????????????????????????????
-                string status;
-                if (results.Avoid.Count > 0)
-                    status = "Unsafe";
-                else if (results.Risky.Count > 0)
-                    status = "NeedsReview";
-                else
-                    status = "Safe";
-
-                return Json(new
-                {
-                    status,
-                    safe  = results.Safe,
-                    risky = results.Risky,
-                    avoid = results.Avoid
-                });
+                return BuildAnalysisResponse(ocrResult);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected error while analyzing product image.");
                 return StatusCode(500, new { error = "An unexpected error occurred. Please try again later." });
             }
+        }
+
+        // POST /ProductScan/AnalyzeText
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AnalyzeText([FromForm] string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return BadRequest(new { error = "Please enter product ingredients first." });
+
+            try
+            {
+                var ocrResult = await _ocrClient.AnalyzeTextAsync(text.Trim());
+                return BuildAnalysisResponse(ocrResult);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error while analyzing manual product text.");
+                return StatusCode(500, new { error = "An unexpected error occurred. Please try again later." });
+            }
+        }
+
+        private IActionResult BuildAnalysisResponse(OcrApiResponse? ocrResult)
+        {
+            if (ocrResult?.Results == null)
+                return StatusCode(502, new { error = "The analysis service returned an unexpected response. Please try again." });
+
+            var safe = ocrResult.Results.Safe ?? new List<string>();
+            var risky = ocrResult.Results.Risky ?? new List<string>();
+            var avoid = ocrResult.Results.Avoid ?? new List<string>();
+
+            string status;
+            if (avoid.Count > 0)
+                status = "Unsafe";
+            else if (risky.Count > 0)
+                status = "NeedsReview";
+            else
+                status = "Safe";
+
+            return Json(new
+            {
+                status,
+                safe,
+                risky,
+                avoid
+            });
         }
     }
 }

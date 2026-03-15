@@ -75,5 +75,58 @@ namespace Graduation_Project.Services
                 }
             }
         }
+
+        public async Task<OcrApiResponse?> AnalyzeTextAsync(string text)
+        {
+            const int maxRetries = 2;
+            int attempt = 0;
+
+            while (true)
+            {
+                attempt++;
+                try
+                {
+                    var client = _httpClientFactory.CreateClient("ProductOcr");
+
+                    using var content = new FormUrlEncodedContent(new Dictionary<string, string>
+                    {
+                        ["text"] = text
+                    });
+
+                    var response = await client.PostAsync("/analyze-text", content);
+
+                    if (_retryStatusCodes.Contains((int)response.StatusCode) && attempt <= maxRetries)
+                    {
+                        int delayMs = (int)Math.Pow(2, attempt) * 500; // 1s, 2s
+                        _logger.LogWarning(
+                            "OCR text API returned {StatusCode} (attempt {Attempt}/{Max}). Retrying in {Delay}ms...",
+                            (int)response.StatusCode, attempt, maxRetries, delayMs);
+                        await Task.Delay(delayMs);
+                        continue;
+                    }
+
+                    response.EnsureSuccessStatusCode();
+
+                    var json = await response.Content.ReadAsStringAsync();
+                    _logger.LogDebug("OCR text API raw response: {Json}", json);
+
+                    var result = JsonSerializer.Deserialize<OcrApiResponse>(json);
+                    return result;
+                }
+                catch (Exception ex) when (attempt <= maxRetries)
+                {
+                    int delayMs = (int)Math.Pow(2, attempt) * 500;
+                    _logger.LogWarning(ex,
+                        "OCR text API call failed (attempt {Attempt}/{Max}). Retrying in {Delay}ms...",
+                        attempt, maxRetries, delayMs);
+                    await Task.Delay(delayMs);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "OCR text API call failed after {Attempts} attempts.", attempt);
+                    return null;
+                }
+            }
+        }
     }
 }

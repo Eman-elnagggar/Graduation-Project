@@ -144,7 +144,16 @@
     <div class="db-stat-card db-stat-appt">
         <div class="db-stat-icon"><i class="fas fa-calendar-alt"></i></div>
         <div class="db-stat-body">
-            <span class="db-stat-num db-stat-num-sm">@(Model.NextAppointment?.Date.ToString("MMM dd") ?? "—")</span>
+            <span class="db-stat-num db-stat-num-sm">
+                @if (Model.NextAppointment != null)
+                {
+                    @(Model.NextAppointment.Date.Date == DateTime.Today ? "Today" : Model.NextAppointment.Date.ToString("MMM dd"))
+                }
+                else
+                {
+                    @:—
+                }
+            </span>
             <span class="db-stat-lbl">Next Appointment</span>
             <span class="db-stat-tag db-tag-upcoming">
                 @(Model.NextAppointment != null ? "Dr. " + Model.NextAppointment.Doctor?.User?.FirstName : "None scheduled")

@@ -330,7 +330,7 @@ namespace Graduation_Project.Controllers
                     EventType = "bp-reading",
                     Status = status,
                     Title = "Blood Pressure Reading",
-                    SubTitle = $"{bp.BloodPressure} mmHg{(bp.MeasurementTime != null ? $" · {bp.MeasurementTime}" : "")}",
+                    SubTitle = $"{bp.BloodPressure} mmHg{(bp.MeasurementTime != null ? $" ï¿½ {bp.MeasurementTime}" : "")}",
                     BloodPressure = bp
                 });
             }
@@ -347,7 +347,7 @@ namespace Graduation_Project.Controllers
                     EventType = "blood-sugar",
                     Status = status,
                     Title = "Blood Sugar Reading",
-                    SubTitle = $"{bs.BloodSugar} mg/dL{(bs.MeasurementTime != null ? $" · {bs.MeasurementTime}" : "")}",
+                    SubTitle = $"{bs.BloodSugar} mg/dL{(bs.MeasurementTime != null ? $" ï¿½ {bs.MeasurementTime}" : "")}",
                     BloodSugar = bs
                 });
             }
@@ -390,7 +390,7 @@ namespace Graduation_Project.Controllers
                     DateTime = appt.Date,
                     EventType = "appointment",
                     Status = "normal",
-                    Title = isPast ? "Appointment – Completed" : "Upcoming Appointment",
+                    Title = isPast ? "Appointment ï¿½ Completed" : "Upcoming Appointment",
                     DoctorName = appt.Doctor?.User != null
                         ? $"Dr. {appt.Doctor.User.FirstName} {appt.Doctor.User.LastName}"
                         : null,
@@ -425,7 +425,7 @@ namespace Graduation_Project.Controllers
                     Status = "normal",
                     Title = "Doctor's Note",
                     SubTitle = note.Content?.Length > 120
-                        ? note.Content[..120] + "…"
+                        ? note.Content[..120] + "ï¿½"
                         : note.Content,
                     DoctorName = note.Doctor?.User != null
                         ? $"Dr. {note.Doctor.User.FirstName} {note.Doctor.User.LastName}"
@@ -892,6 +892,18 @@ namespace Graduation_Project.Controllers
         public IActionResult DeleteConfirmed(int id)
         {
             throw new NotImplementedException();
+        }
+
+        // -- Tests Upload (view only) --
+        public IActionResult TestsUpload(int id)
+        {
+            var patient = _patientRepository.GetById(id);
+            if (patient == null)
+                return NotFound();
+
+            ViewBag.PatientId = id;
+            ViewBag.UserName  = patient.User?.FirstName ?? "Patient";
+            return View();
         }
     }
 }
