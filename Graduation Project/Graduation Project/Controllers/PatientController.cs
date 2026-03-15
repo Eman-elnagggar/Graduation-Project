@@ -792,17 +792,57 @@ namespace Graduation_Project.Controllers
             appointment.PatientID = patientId;
             appointment.isBooked = true;
 
-            var booking = new Booking
+            // Ensure booked doctor appears in the patient's doctors list
+            var existingPatientDoctor = _patientDoctorRepository.GetById(appointment.DoctorID, patientId);
+            if (existingPatientDoctor == null)
             {
-                AppointmentID = appointmentId,
-                PatientID = patientId,
-                DoctorID = appointment.DoctorID,
-                ClinicID = appointment.ClinicID,
-                Status = "Confirmed",
-                Reason = reason ?? string.Empty,
-                Notes = notes ?? string.Empty
-            };
-            _bookingRepository.Add(booking);
+                _patientDoctorRepository.Add(new PatientDoctor
+                {
+                    DoctorID = appointment.DoctorID,
+                    PatientID = patientId,
+                    Status = "Approved",
+                    RequestDate = DateTime.Now,
+                    ResponseDate = DateTime.Now,
+                    IsPrimary = false
+                });
+            }
+            else
+            {
+                if (!string.Equals(existingPatientDoctor.Status, "Approved", StringComparison.OrdinalIgnoreCase))
+                {
+                    existingPatientDoctor.Status = "Approved";
+                    existingPatientDoctor.ResponseDate = DateTime.Now;
+                }
+
+                _patientDoctorRepository.Update(existingPatientDoctor);
+            }
+
+            Booking booking;
+            if (appointment.Booking != null)
+            {
+                booking = appointment.Booking;
+                booking.PatientID = patientId;
+                booking.DoctorID = appointment.DoctorID;
+                booking.ClinicID = appointment.ClinicID;
+                booking.Status = "Confirmed";
+                booking.Reason = reason ?? string.Empty;
+                booking.Notes = notes ?? string.Empty;
+                _bookingRepository.Update(booking);
+            }
+            else
+            {
+                booking = new Booking
+                {
+                    AppointmentID = appointmentId,
+                    PatientID = patientId,
+                    DoctorID = appointment.DoctorID,
+                    ClinicID = appointment.ClinicID,
+                    Status = "Confirmed",
+                    Reason = reason ?? string.Empty,
+                    Notes = notes ?? string.Empty
+                };
+                _bookingRepository.Add(booking);
+            }
 
             try
             {
@@ -811,6 +851,10 @@ namespace Graduation_Project.Controllers
             catch (DbUpdateConcurrencyException)
             {
                 return Json(new { success = false, message = "This slot was just booked by someone else. Please choose another." });
+            }
+            catch (DbUpdateException)
+            {
+                return Json(new { success = false, message = "This slot is temporarily unavailable. Please refresh and try again." });
             }
 
             return Json(new

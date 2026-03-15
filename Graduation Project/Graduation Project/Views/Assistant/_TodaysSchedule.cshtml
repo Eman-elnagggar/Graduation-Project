@@ -54,7 +54,7 @@ else
         <p>
             @if (ViewBag.SelectedDoctorID != null)
             {
-                @:No appointments scheduled for @ViewBag.SelectedDoctorName today.
+                @:No @ViewBag.SelectedStatusLabel entries for @ViewBag.SelectedDoctorName on @ViewBag.SelectedDateLabel.
             }
             else if (ViewBag.HasDoctors != null && !(bool)ViewBag.HasDoctors)
             {
@@ -62,7 +62,7 @@ else
             }
             else
             {
-                @:No appointments scheduled for today.
+                @:No @ViewBag.SelectedStatusLabel entries for @ViewBag.SelectedDateLabel.
             }
         </p>
     </div>
