@@ -2,6 +2,7 @@ using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
 using Graduation_Project.ViewModels;
 using Microsoft.AspNetCore.Mvc;
+using System.Globalization;
 
 namespace Graduation_Project.Controllers
 {
@@ -33,7 +34,7 @@ namespace Graduation_Project.Controllers
             _labTestRepository = labTestRepository;
         }
 
-        public IActionResult Index(int id, int? doctorId)
+        public IActionResult Index(int id, int? doctorId, DateTime? date, string? status)
         {
             // Fast initial load — only 2 DB queries (assistant + clinic)
             var assistant = _assistantRepository.GetByIdWithDoctors(id);
@@ -43,6 +44,9 @@ namespace Graduation_Project.Controllers
             var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
             if (clinic == null)
                 return NotFound();
+
+            var selectedDate = date?.Date ?? DateTime.Today;
+            var selectedStatus = NormalizeScheduleStatus(status);
 
             var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
             var doctorSummaries = BuildDoctorSummaries(assistant, clinic, relevantDoctorIds);
@@ -61,6 +65,8 @@ namespace Graduation_Project.Controllers
                     : "Assistant",
                 Clinic = clinic,
                 ClinicName = clinic.Name ?? "Clinic",
+                SelectedDate = selectedDate,
+                SelectedScheduleStatus = selectedStatus,
                 Doctors = doctorSummaries,
                 SelectedDoctorID = isFiltered ? doctorId : null,
                 SelectedDoctorName = selectedDoctorName
@@ -70,7 +76,7 @@ namespace Graduation_Project.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetDashboardStats(int id, int? doctorId)
+        public IActionResult GetDashboardStats(int id, int? doctorId, string? date)
         {
             var assistant = _assistantRepository.GetByIdWithDoctors(id);
             if (assistant == null) return NotFound();
@@ -78,15 +84,15 @@ namespace Graduation_Project.Controllers
             var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
             if (clinic == null) return NotFound();
 
+            var targetDate = ParseDashboardDate(date);
             var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
             bool isFiltered = doctorId.HasValue && relevantDoctorIds.Contains(doctorId.Value);
             var activeDoctorIds = isFiltered ? new List<int> { doctorId.Value } : relevantDoctorIds;
 
-            var today = DateTime.Today;
-            var weekStart = today.AddDays(-(int)today.DayOfWeek);
+            var weekStart = targetDate.AddDays(-(int)targetDate.DayOfWeek);
 
             var allTodaysAppointments = _appointmentRepository
-                .GetByClinicAndDate(clinic.ClinicID, today)
+                .GetByClinicAndDate(clinic.ClinicID, targetDate)
                 .Where(a => a.isBooked)
                 .ToList();
             var allApprovedPatientDoctors = _patientDoctorRepository
@@ -120,6 +126,8 @@ namespace Graduation_Project.Controllers
 
             return Json(new
             {
+                selectedDate = targetDate.ToString("yyyy-MM-dd"),
+                selectedDateLabel = targetDate.ToString("dddd, MMM dd, yyyy"),
                 todayAppointmentsCount = filteredAppointmentCount,
                 totalPatients = uniquePatientIds.Count,
                 pendingAlertsCount,
@@ -134,7 +142,7 @@ namespace Graduation_Project.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetTodaysSchedule(int id, int? doctorId)
+        public IActionResult GetTodaysSchedule(int id, int? doctorId, string? date, string? status)
         {
             var assistant = _assistantRepository.GetByIdWithDoctors(id);
             if (assistant == null) return NotFound();
@@ -142,15 +150,30 @@ namespace Graduation_Project.Controllers
             var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
             if (clinic == null) return NotFound();
 
+            var targetDate = ParseDashboardDate(date);
+            var selectedStatus = NormalizeScheduleStatus(status);
             var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
             bool isFiltered = doctorId.HasValue && relevantDoctorIds.Contains(doctorId.Value);
 
             var allTodaysAppointments = _appointmentRepository
-                .GetByClinicAndDate(clinic.ClinicID, DateTime.Today).ToList();
+                .GetByClinicAndDate(clinic.ClinicID, targetDate).ToList();
 
-            var filteredAppointments = isFiltered
-                ? allTodaysAppointments.Where(a => a.isBooked && a.DoctorID == doctorId!.Value).ToList()
-                : allTodaysAppointments.Where(a => a.isBooked).ToList();
+            var scopeAppointments = isFiltered
+                ? allTodaysAppointments.Where(a => a.DoctorID == doctorId!.Value)
+                : allTodaysAppointments.AsEnumerable();
+
+            var filteredAppointments = selectedStatus switch
+            {
+                "Available" => scopeAppointments
+                    .Where(a => !a.isBooked && !string.Equals(a.Booking?.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))
+                    .ToList(),
+                "Cancelled" => scopeAppointments
+                    .Where(a => string.Equals(a.Booking?.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))
+                    .ToList(),
+                _ => scopeAppointments
+                    .Where(a => a.isBooked)
+                    .ToList()
+            };
 
             ViewBag.ClinicName = clinic.Name ?? "Clinic";
             ViewBag.SelectedDoctorID = isFiltered ? doctorId : null;
@@ -158,9 +181,30 @@ namespace Graduation_Project.Controllers
                 ? BuildDoctorSummaries(assistant, clinic, relevantDoctorIds)
                     .FirstOrDefault(d => d.DoctorID == doctorId!.Value)?.FullName ?? "Doctor"
                 : "All Doctors";
+            ViewBag.SelectedDateLabel = targetDate.ToString("MMM dd, yyyy");
+            ViewBag.SelectedStatusLabel = selectedStatus;
             ViewBag.HasDoctors = relevantDoctorIds.Any();
 
             return PartialView("_TodaysSchedule", filteredAppointments);
+        }
+
+        private static DateTime ParseDashboardDate(string? date)
+        {
+            if (DateTime.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
+                return parsed.Date;
+
+            return DateTime.Today;
+        }
+
+        private static string NormalizeScheduleStatus(string? status)
+        {
+            if (string.Equals(status, "available", StringComparison.OrdinalIgnoreCase))
+                return "Available";
+
+            if (string.Equals(status, "cancelled", StringComparison.OrdinalIgnoreCase))
+                return "Cancelled";
+
+            return "Booked";
         }
 
         private List<int> GetRelevantDoctorIds(Assistant assistant, Clinic clinic)
@@ -363,6 +407,9 @@ namespace Graduation_Project.Controllers
             if (parsedDate.Date < DateTime.Today)
                 return Json(new { success = false, message = "Cannot schedule an appointment in the past." });
 
+            if (parsedDate.Date == DateTime.Today && parsedTime <= DateTime.Now.TimeOfDay)
+                return Json(new { success = false, message = "Cannot schedule an appointment in the past time today." });
+
             if (_appointmentRepository.HasDoctorConflict(appointment.DoctorID, parsedDate, parsedTime, appointmentId))
                 return Json(new { success = false, message = "The doctor already has an appointment at this time in another clinic." });
 
@@ -510,6 +557,9 @@ namespace Graduation_Project.Controllers
             if (parsedDate.Date < DateTime.Today)
                 return Json(new { success = false, message = "Cannot create slots in the past." });
 
+            if (parsedDate.Date == DateTime.Today && parsedTime <= DateTime.Now.TimeOfDay)
+                return Json(new { success = false, message = "Cannot create slots for past times today." });
+
             var existingAcrossAllClinics = _appointmentRepository
                 .GetByDoctorAndDate(doctorId, parsedDate)
                 .Any(a => a.Time == parsedTime);
@@ -581,6 +631,14 @@ namespace Graduation_Project.Controllers
             if (!TimeSpan.TryParse(startTime, out var start) || !TimeSpan.TryParse(endTime, out var end))
                 return Json(new { success = false, message = "Invalid time range." });
 
+            if (slotDuration <= 0)
+                return Json(new { success = false, message = "Slot duration must be greater than 0." });
+
+            if (start >= end)
+                return Json(new { success = false, message = "Start time must be earlier than end time." });
+
+            var nowTime = DateTime.Now.TimeOfDay;
+
             var existingTimes = _appointmentRepository
                 .GetByDoctorAndDate(doctorId, parsedDate)
                 .Select(a => a.Time).ToHashSet();
@@ -589,6 +647,12 @@ namespace Graduation_Project.Controllers
             var current = start;
             while (current < end)
             {
+                if (parsedDate.Date == DateTime.Today && current <= nowTime)
+                {
+                    current = current.Add(TimeSpan.FromMinutes(slotDuration));
+                    continue;
+                }
+
                 if (!existingTimes.Contains(current))
                 {
                     newSlots.Add(new Appointment
@@ -661,8 +725,18 @@ namespace Graduation_Project.Controllers
             if (!TimeSpan.TryParse(request.StartTime, out var start) || !TimeSpan.TryParse(request.EndTime, out var end))
                 return Json(new { success = false, message = "Invalid time range." });
 
+            if (request.SlotDuration <= 0)
+                return Json(new { success = false, message = "Slot duration must be greater than 0." });
+
+            if (request.WeeksAhead <= 0)
+                return Json(new { success = false, message = "Weeks ahead must be greater than 0." });
+
+            if (start >= end)
+                return Json(new { success = false, message = "Start time must be earlier than end time." });
+
             var today = DateTime.Today;
             var endDate = today.AddDays(request.WeeksAhead * 7);
+            var nowTime = DateTime.Now.TimeOfDay;
 
             var existingSet = _appointmentRepository
                 .GetByDoctorAndDateRange(request.DoctorId, today, endDate)
@@ -677,6 +751,12 @@ namespace Graduation_Project.Controllers
                 var current = start;
                 while (current < end)
                 {
+                    if (d.Date == today && current <= nowTime)
+                    {
+                        current = current.Add(TimeSpan.FromMinutes(request.SlotDuration));
+                        continue;
+                    }
+
                     if (!existingSet.Contains((d, current)))
                     {
                         newSlots.Add(new Appointment
