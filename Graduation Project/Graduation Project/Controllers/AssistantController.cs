@@ -2,6 +2,7 @@ using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
 using Graduation_Project.ViewModels;
 using Microsoft.AspNetCore.Mvc;
+using System.Globalization;
 
 namespace Graduation_Project.Controllers
 {
@@ -189,7 +190,7 @@ namespace Graduation_Project.Controllers
 
         private static DateTime ParseDashboardDate(string? date)
         {
-            if (DateTime.TryParse(date, out var parsed))
+            if (DateTime.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
                 return parsed.Date;
 
             return DateTime.Today;
@@ -405,6 +406,9 @@ namespace Graduation_Project.Controllers
 
             if (parsedDate.Date < DateTime.Today)
                 return Json(new { success = false, message = "Cannot schedule an appointment in the past." });
+
+            if (parsedDate.Date == DateTime.Today && parsedTime <= DateTime.Now.TimeOfDay)
+                return Json(new { success = false, message = "Cannot schedule an appointment in the past time today." });
 
             if (_appointmentRepository.HasDoctorConflict(appointment.DoctorID, parsedDate, parsedTime, appointmentId))
                 return Json(new { success = false, message = "The doctor already has an appointment at this time in another clinic." });
@@ -627,6 +631,12 @@ namespace Graduation_Project.Controllers
             if (!TimeSpan.TryParse(startTime, out var start) || !TimeSpan.TryParse(endTime, out var end))
                 return Json(new { success = false, message = "Invalid time range." });
 
+            if (slotDuration <= 0)
+                return Json(new { success = false, message = "Slot duration must be greater than 0." });
+
+            if (start >= end)
+                return Json(new { success = false, message = "Start time must be earlier than end time." });
+
             var nowTime = DateTime.Now.TimeOfDay;
 
             var existingTimes = _appointmentRepository
@@ -715,8 +725,18 @@ namespace Graduation_Project.Controllers
             if (!TimeSpan.TryParse(request.StartTime, out var start) || !TimeSpan.TryParse(request.EndTime, out var end))
                 return Json(new { success = false, message = "Invalid time range." });
 
+            if (request.SlotDuration <= 0)
+                return Json(new { success = false, message = "Slot duration must be greater than 0." });
+
+            if (request.WeeksAhead <= 0)
+                return Json(new { success = false, message = "Weeks ahead must be greater than 0." });
+
+            if (start >= end)
+                return Json(new { success = false, message = "Start time must be earlier than end time." });
+
             var today = DateTime.Today;
             var endDate = today.AddDays(request.WeeksAhead * 7);
+            var nowTime = DateTime.Now.TimeOfDay;
 
             var existingSet = _appointmentRepository
                 .GetByDoctorAndDateRange(request.DoctorId, today, endDate)
@@ -731,6 +751,12 @@ namespace Graduation_Project.Controllers
                 var current = start;
                 while (current < end)
                 {
+                    if (d.Date == today && current <= nowTime)
+                    {
+                        current = current.Add(TimeSpan.FromMinutes(request.SlotDuration));
+                        continue;
+                    }
+
                     if (!existingSet.Contains((d, current)))
                     {
                         newSlots.Add(new Appointment
