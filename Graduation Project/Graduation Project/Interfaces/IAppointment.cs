@@ -16,7 +16,10 @@ namespace Graduation_Project.Interfaces
         IEnumerable<Appointment> GetByClinicDoctorAndDate(int clinicId, int doctorId, DateTime date);
         Dictionary<int, DateTime> GetLastVisitDates(IEnumerable<int> patientIds, int doctorId);
         Dictionary<int, DateTime> GetLastVisitDatesForDoctors(IEnumerable<int> patientIds, IEnumerable<int> doctorIds);
-        IEnumerable<Appointment> GetByClinicDoctorsAndStatus(int clinicId, IEnumerable<int> doctorIds, string status);
+        IEnumerable<Appointment> GetByClinicDoctorsStatusAndDate(int clinicId, IEnumerable<int> doctorIds, string status, DateTime date);
+        Dictionary<string, int> GetStatusCountsByClinicDoctorsAndDate(int clinicId, IEnumerable<int> doctorIds, DateTime date, IEnumerable<string> statuses);
+        IEnumerable<Appointment> GetPagedByClinicDoctorsStatusAndDate(int clinicId, IEnumerable<int> doctorIds, string status, DateTime date, string? search, int page, int pageSize);
+        int CountByClinicDoctorsStatusAndDate(int clinicId, IEnumerable<int> doctorIds, string status, DateTime date, string? search);
         Appointment GetByIdWithBooking(int id);
         void AddRange(IEnumerable<Appointment> appointments);
         IEnumerable<Appointment> GetByClinicDoctorAndDateRange(int clinicId, int doctorId, DateTime startDate, DateTime endDate);

@@ -97,7 +97,7 @@ namespace Graduation_Project.Repository
                 .Select(g => new { PatientID = g.Key, LastDate = g.Max(a => a.Date) })
                 .ToDictionary(x => x.PatientID, x => x.LastDate);
 
-        public IEnumerable<Appointment> GetByClinicDoctorsAndStatus(int clinicId, IEnumerable<int> doctorIds, string status) =>
+        public IEnumerable<Appointment> GetByClinicDoctorsStatusAndDate(int clinicId, IEnumerable<int> doctorIds, string status, DateTime date) =>
             _context.Appointments
                 .AsNoTracking()
                 .Include(a => a.Patient).ThenInclude(p => p.User)
@@ -106,10 +106,96 @@ namespace Graduation_Project.Repository
                 .Where(a => a.ClinicID == clinicId
                          && doctorIds.Contains(a.DoctorID)
                          && a.Booking != null
-                         && a.Booking.Status == status)
-                .OrderByDescending(a => a.Date).ThenBy(a => a.Time)
+                         && a.Booking.Status == status
+                         && a.Date.Date == date.Date)
+                .OrderBy(a => a.Time)
                 .AsSplitQuery()
                 .ToList();
+
+        public Dictionary<string, int> GetStatusCountsByClinicDoctorsAndDate(int clinicId, IEnumerable<int> doctorIds, DateTime date, IEnumerable<string> statuses)
+        {
+            var normalizedStatuses = statuses
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .ToList();
+
+            var counts = _context.Appointments
+                .AsNoTracking()
+                .Where(a => a.ClinicID == clinicId
+                         && doctorIds.Contains(a.DoctorID)
+                         && a.Booking != null
+                         && a.Date.Date == date.Date
+                         && normalizedStatuses.Contains(a.Booking!.Status))
+                .GroupBy(a => a.Booking!.Status)
+                .Select(g => new { Status = g.Key, Count = g.Count() })
+                .ToDictionary(x => x.Status, x => x.Count);
+
+            foreach (var status in normalizedStatuses)
+            {
+                if (!counts.ContainsKey(status))
+                    counts[status] = 0;
+            }
+
+            return counts;
+        }
+
+        public IEnumerable<Appointment> GetPagedByClinicDoctorsStatusAndDate(int clinicId, IEnumerable<int> doctorIds, string status, DateTime date, string? search, int page, int pageSize)
+        {
+            var query = _context.Appointments
+                .AsNoTracking()
+                .Include(a => a.Patient).ThenInclude(p => p.User)
+                .Include(a => a.Doctor).ThenInclude(d => d.User)
+                .Include(a => a.Booking)
+                .Where(a => a.ClinicID == clinicId
+                         && doctorIds.Contains(a.DoctorID)
+                         && a.Booking != null
+                         && a.Booking.Status == status
+                         && a.Date.Date == date.Date);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim();
+                query = query.Where(a =>
+                    ((a.Patient != null && a.Patient.User != null) &&
+                        (((a.Patient.User.FirstName ?? "") + " " + (a.Patient.User.LastName ?? "")).Contains(term)
+                         || (a.Patient.User.Phone ?? "").Contains(term)))
+                    || ((a.Doctor != null && a.Doctor.User != null) &&
+                        (((a.Doctor.User.FirstName ?? "") + " " + (a.Doctor.User.LastName ?? "")).Contains(term))));
+            }
+
+            var safePage = Math.Max(1, page);
+            var safePageSize = Math.Clamp(pageSize, 5, 100);
+
+            return query
+                .OrderBy(a => a.Time)
+                .Skip((safePage - 1) * safePageSize)
+                .Take(safePageSize)
+                .AsSplitQuery()
+                .ToList();
+        }
+
+        public int CountByClinicDoctorsStatusAndDate(int clinicId, IEnumerable<int> doctorIds, string status, DateTime date, string? search)
+        {
+            var query = _context.Appointments
+                .AsNoTracking()
+                .Where(a => a.ClinicID == clinicId
+                         && doctorIds.Contains(a.DoctorID)
+                         && a.Booking != null
+                         && a.Booking.Status == status
+                         && a.Date.Date == date.Date);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim();
+                query = query.Where(a =>
+                    ((a.Patient != null && a.Patient.User != null) &&
+                        (((a.Patient.User.FirstName ?? "") + " " + (a.Patient.User.LastName ?? "")).Contains(term)
+                         || (a.Patient.User.Phone ?? "").Contains(term)))
+                    || ((a.Doctor != null && a.Doctor.User != null) &&
+                        (((a.Doctor.User.FirstName ?? "") + " " + (a.Doctor.User.LastName ?? "")).Contains(term))));
+            }
+
+            return query.Count();
+        }
 
         public Appointment GetByIdWithBooking(int id) =>
             _context.Appointments

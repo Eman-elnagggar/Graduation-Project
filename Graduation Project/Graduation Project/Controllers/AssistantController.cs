@@ -1,5 +1,6 @@
 using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
+using Graduation_Project.Services;
 using Graduation_Project.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using System.Globalization;
@@ -15,6 +16,7 @@ namespace Graduation_Project.Controllers
         private readonly IPatientDoctor _patientDoctorRepository;
         private readonly IAlert _alertRepository;
         private readonly ILabTest _labTestRepository;
+        private readonly AssistantScheduleService _assistantScheduleService;
 
         public AssistantController(
             IAssistant assistantRepository,
@@ -23,7 +25,8 @@ namespace Graduation_Project.Controllers
             IBooking bookingRepository,
             IPatientDoctor patientDoctorRepository,
             IAlert alertRepository,
-            ILabTest labTestRepository)
+            ILabTest labTestRepository,
+            AssistantScheduleService assistantScheduleService)
         {
             _assistantRepository = assistantRepository;
             _clinicRepository = clinicRepository;
@@ -32,6 +35,7 @@ namespace Graduation_Project.Controllers
             _patientDoctorRepository = patientDoctorRepository;
             _alertRepository = alertRepository;
             _labTestRepository = labTestRepository;
+            _assistantScheduleService = assistantScheduleService;
         }
 
         public IActionResult Index(int id, int? doctorId, DateTime? date, string? status)
@@ -142,7 +146,7 @@ namespace Graduation_Project.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetTodaysSchedule(int id, int? doctorId, string? date, string? status)
+        public IActionResult GetScheduleByDate(int id, int? doctorId, string? date, string? status)
         {
             var assistant = _assistantRepository.GetByIdWithDoctors(id);
             if (assistant == null) return NotFound();
@@ -164,9 +168,6 @@ namespace Graduation_Project.Controllers
 
             var filteredAppointments = selectedStatus switch
             {
-                "Available" => scopeAppointments
-                    .Where(a => !a.isBooked && !string.Equals(a.Booking?.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))
-                    .ToList(),
                 "Cancelled" => scopeAppointments
                     .Where(a => string.Equals(a.Booking?.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))
                     .ToList(),
@@ -188,6 +189,10 @@ namespace Graduation_Project.Controllers
             return PartialView("_TodaysSchedule", filteredAppointments);
         }
 
+        [HttpGet]
+        public IActionResult GetTodaysSchedule(int id, int? doctorId, string? date, string? status)
+            => GetScheduleByDate(id, doctorId, date, status);
+
         private static DateTime ParseDashboardDate(string? date)
         {
             if (DateTime.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
@@ -198,9 +203,6 @@ namespace Graduation_Project.Controllers
 
         private static string NormalizeScheduleStatus(string? status)
         {
-            if (string.Equals(status, "available", StringComparison.OrdinalIgnoreCase))
-                return "Available";
-
             if (string.Equals(status, "cancelled", StringComparison.OrdinalIgnoreCase))
                 return "Cancelled";
 
@@ -251,7 +253,7 @@ namespace Graduation_Project.Controllers
             return summaries;
         }
 
-        public IActionResult Appointments(int id, int? doctorId)
+        public IActionResult Appointments(int id, int? doctorId, DateTime? date)
         {
             var assistant = _assistantRepository.GetByIdWithDoctors(id);
             if (assistant == null) return NotFound();
@@ -262,6 +264,7 @@ namespace Graduation_Project.Controllers
             var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
             var doctorSummaries = BuildDoctorSummaries(assistant, clinic, relevantDoctorIds);
             bool isFiltered = doctorId.HasValue && relevantDoctorIds.Contains(doctorId.Value);
+            var selectedDate = date?.Date ?? DateTime.Today;
 
             var viewModel = new AssistantAppointmentsViewModel
             {
@@ -271,6 +274,7 @@ namespace Graduation_Project.Controllers
                     : "Assistant",
                 Clinic = clinic,
                 ClinicName = clinic.Name ?? "Clinic",
+                SelectedDate = selectedDate,
                 Doctors = doctorSummaries,
                 SelectedDoctorID = isFiltered ? doctorId : null
             };
@@ -279,38 +283,21 @@ namespace Graduation_Project.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetAppointments(int id, int? doctorId, string status = "Confirmed")
+        public IActionResult GetAppointments(int id, int? doctorId, string status = "Confirmed", string? date = null, int page = 1, int pageSize = 20, string? search = null)
         {
-            var assistant = _assistantRepository.GetByIdWithDoctors(id);
-            if (assistant == null) return NotFound();
+            var targetDate = ParseDashboardDate(date);
+            var scope = _assistantScheduleService.BuildScope(id, doctorId);
+            if (scope == null) return NotFound();
 
-            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
-            if (clinic == null) return NotFound();
-
-            var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
-            bool isFiltered = doctorId.HasValue && relevantDoctorIds.Contains(doctorId.Value);
-            var activeDoctorIds = isFiltered ? new List<int> { doctorId!.Value } : relevantDoctorIds;
-
-            var appointments = _appointmentRepository.GetByClinicDoctorsAndStatus(clinic.ClinicID, activeDoctorIds, status);
-
-            var result = appointments.Select(a => new
+            var result = _assistantScheduleService.GetAppointmentsPage(scope, status, targetDate, page, pageSize, search);
+            return Json(new
             {
-                appointmentId = a.AppointmentID,
-                patientName = a.Patient?.User != null
-                    ? $"{a.Patient.User.FirstName} {a.Patient.User.LastName}" : "Unknown",
-                patientPhone = a.Patient?.User?.Phone ?? string.Empty,
-                doctorName = a.Doctor?.User != null
-                    ? $"Dr. {a.Doctor.User.FirstName} {a.Doctor.User.LastName}" : "Unknown",
-                doctorSpecialization = a.Doctor?.Specialization ?? string.Empty,
-                date = a.Date.ToString("yyyy-MM-dd"),
-                time = a.Time.ToString(@"hh\:mm"),
-                status = a.Booking?.Status ?? "Confirmed",
-                reason = a.Booking?.Reason ?? string.Empty,
-                notes = a.Booking?.Notes ?? string.Empty,
-                isToday = a.Date.Date == DateTime.Today
-            }).ToList();
-
-            return Json(result);
+                items = result.Items,
+                total = result.Total,
+                page = result.Page,
+                pageSize = result.PageSize,
+                totalPages = result.TotalPages
+            });
         }
 
         /// <summary>
@@ -318,31 +305,20 @@ namespace Graduation_Project.Controllers
         /// avoiding the cost of serializing full appointment objects.
         /// </summary>
         [HttpGet]
-        public IActionResult GetAppointmentCounts(int id, int? doctorId)
+        public IActionResult GetAppointmentCounts(int id, int? doctorId, string? date = null)
         {
-            var assistant = _assistantRepository.GetByIdWithDoctors(id);
-            if (assistant == null) return NotFound();
+            var targetDate = ParseDashboardDate(date);
+            var scope = _assistantScheduleService.BuildScope(id, doctorId);
+            if (scope == null) return NotFound();
 
-            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
-            if (clinic == null) return NotFound();
-
-            var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
-            bool isFiltered = doctorId.HasValue && relevantDoctorIds.Contains(doctorId.Value);
-            var activeDoctorIds = isFiltered ? new List<int> { doctorId!.Value } : relevantDoctorIds;
-
-            var confirmed = _appointmentRepository
-                .GetByClinicDoctorsAndStatus(clinic.ClinicID, activeDoctorIds, "Confirmed").Count();
-            var modified = _appointmentRepository
-                .GetByClinicDoctorsAndStatus(clinic.ClinicID, activeDoctorIds, "Modified").Count();
-            var cancelled = _appointmentRepository
-                .GetByClinicDoctorsAndStatus(clinic.ClinicID, activeDoctorIds, "Cancelled").Count();
+            var counts = _assistantScheduleService.GetCounts(scope, targetDate);
 
             return Json(new
             {
-                confirmed,
-                modified,
-                cancelled,
-                total = confirmed + modified + cancelled
+                confirmed = counts.Confirmed,
+                modified = counts.Modified,
+                cancelled = counts.Cancelled,
+                total = counts.Total
             });
         }
 
@@ -382,6 +358,7 @@ namespace Graduation_Project.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult ModifyAppointment(int id, int appointmentId, string newDate, string newTime, string reason)
         {
             var assistant = _assistantRepository.GetByIdWithDoctors(id);
@@ -431,6 +408,7 @@ namespace Graduation_Project.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult CancelAppointment(int id, int appointmentId, string reason)
         {
             var assistant = _assistantRepository.GetByIdWithDoctors(id);
@@ -536,6 +514,7 @@ namespace Graduation_Project.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult CreateAvailabilitySlot(int id, int doctorId, string date, string time)
         {
             var assistant = _assistantRepository.GetByIdWithDoctors(id);
@@ -583,6 +562,7 @@ namespace Graduation_Project.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult DeleteAvailabilitySlot(int id, int appointmentId)
         {
             var assistant = _assistantRepository.GetByIdWithDoctors(id);
@@ -609,6 +589,7 @@ namespace Graduation_Project.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult SetAllSlotsAvailable(int id, int doctorId, string date,
             string startTime, string endTime, int slotDuration)
         {
@@ -679,6 +660,7 @@ namespace Graduation_Project.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult BlockAllAvailabilitySlots(int id, int doctorId, string date)
         {
             var assistant = _assistantRepository.GetByIdWithDoctors(id);
@@ -707,6 +689,7 @@ namespace Graduation_Project.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult ApplyQuickSetupSchedule(int id, [FromBody] QuickSetupRequest request)
         {
             var assistant = _assistantRepository.GetByIdWithDoctors(id);
@@ -783,7 +766,6 @@ namespace Graduation_Project.Controllers
             return Json(new { success = true, message = $"Schedule applied. {newSlots.Count} slot(s) created." });
         }
 
-        // ── CRUD stubs ───────────────────────────────────────────────────────
 
         public IActionResult Details(int id)
         {

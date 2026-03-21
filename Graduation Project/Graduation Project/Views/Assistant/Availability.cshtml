@@ -6,6 +6,10 @@
     ViewData["ActivePage"] = "Availability";
 }
 
+<div style="display:none;">
+    @Html.AntiForgeryToken()
+</div>
+
 <!-- Page Header -->
 <header class="header">
     <div class="header-left">
@@ -120,6 +124,7 @@
             {
                 var isSelected = Model.SelectedDoctorID == doc.DoctorID;
                 <a href="@Url.Action("Availability", new { id = Model.Assistant.AssistantID, doctorId = doc.DoctorID })"
+                   data-doctor-id="@doc.DoctorID"
                    class="doctor-pill @(isSelected ? "active-blue" : "")">
                     <i class="fas fa-user-md"></i> @doc.FullName
                 </a>
@@ -193,7 +198,7 @@
             <div class="slot-ctrl">
                 <label><i class="fas fa-stopwatch"></i> Slot Duration</label>
                 <select id="slotDurationPicker" class="qs-select"
-                        onchange="SLOT_DURATION = parseInt(this.value); if (selectedDoctorId) loadSlots();">
+                        onchange="SLOT_DURATION = parseInt(this.value); if (currentDoctorId) loadSlots();">
                     <option value="15">15 min</option>
                     <option value="30" selected>30 min</option>
                     <option value="45">45 min</option>
@@ -373,8 +378,9 @@
 <script>
     // -- Constants ------------------------------------------------------------
     const assistantId      = @Model.Assistant.AssistantID;
-    const selectedDoctorId = @(Model.SelectedDoctorID.HasValue ? Model.SelectedDoctorID.Value.ToString() : "null");
+    let currentDoctorId    = @(Model.SelectedDoctorID.HasValue ? Model.SelectedDoctorID.Value.ToString() : "null");
     const clinicName       = '@Html.Raw(Model.ClinicName?.Replace("'", "\\'") ?? "Clinic")';
+    const antiForgeryToken = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
 
     let SLOT_START    = '08:00';
     let SLOT_END      = '18:00';
@@ -441,6 +447,15 @@
 
     // -- API ------------------------------------------------------------------
     async function api(url, options = {}) {
+        const method = (options.method || 'GET').toUpperCase();
+        const headers = new Headers(options.headers || {});
+
+        if (method !== 'GET' && method !== 'HEAD' && antiForgeryToken && !headers.has('RequestVerificationToken')) {
+            headers.set('RequestVerificationToken', antiForgeryToken);
+        }
+
+        options.headers = headers;
+
         let resp;
         try {
             resp = await fetch(url, options);
@@ -510,7 +525,7 @@
         document.getElementById('heroDateLabel').textContent = label;
         const dp = document.getElementById('slotDatePicker');
         if (dp) dp.value = dateStr;
-        if (selectedDoctorId !== null) loadSlots();
+        if (currentDoctorId !== null) loadSlots();
         else showNoDoctorMessage();
     }
 
@@ -523,13 +538,32 @@
         document.getElementById('heroDateLabel').textContent = label;
         const dp = document.getElementById('slotDatePicker');
         if (dp) dp.value = selectedDate;
-        if (selectedDoctorId !== null) loadSlots(); else showNoDoctorMessage();
+        if (currentDoctorId !== null) loadSlots(); else showNoDoctorMessage();
     }
 
     function onSlotDateChange(dateStr) {
         const [y, m, d] = dateStr.split('-').map(Number);
         currentCalDate = new Date(y, m - 1, d);
         selectCalendarDate(dateStr);
+    }
+
+    function syncAvailabilityUrl() {
+        const url = new URL(window.location.href);
+        url.searchParams.set('id', assistantId);
+        if (currentDoctorId !== null) {
+            url.searchParams.set('doctorId', currentDoctorId);
+        } else {
+            url.searchParams.delete('doctorId');
+        }
+        history.replaceState({}, '', url);
+    }
+
+    function updateDoctorPillStyles() {
+        document.querySelectorAll('.doctor-filter-pills .doctor-pill[data-doctor-id]').forEach(link => {
+            const doctorId = parseInt(link.dataset.doctorId, 10);
+            const isActive = currentDoctorId !== null && doctorId === currentDoctorId;
+            link.classList.toggle('active-blue', isActive);
+        });
     }
 
     // -- Slot Rendering --------------------------------------------------------
@@ -545,7 +579,7 @@
 
         let data = {};
         try {
-            data = await api(`@Url.Action("GetAvailabilitySlots", "Assistant")?id=${assistantId}&doctorId=${selectedDoctorId}&date=${selectedDate}`);
+            data = await api(`@Url.Action("GetAvailabilitySlots", "Assistant")?id=${assistantId}&doctorId=${currentDoctorId}&date=${selectedDate}`);
         } catch {
             container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Failed to load slots</p></div>';
             return;
@@ -702,7 +736,7 @@
         setButtonLoading(btn, true);
         try {
             const data = await api(
-                `@Url.Action("CreateAvailabilitySlot", "Assistant")?id=${assistantId}&doctorId=${selectedDoctorId}&date=${selectedDate}&time=${time}`,
+                `@Url.Action("CreateAvailabilitySlot", "Assistant")?id=${assistantId}&doctorId=${currentDoctorId}&date=${selectedDate}&time=${time}`,
                 { method: 'POST' }
             );
             if (data.success) { showToast('Slot enabled.', 'success'); loadSlots(); }
@@ -724,14 +758,14 @@
     }
 
     async function setAllAvailable() {
-        if (!selectedDoctorId) { showToast('Select a doctor first.', 'error'); return; }
+        if (!currentDoctorId) { showToast('Select a doctor first.', 'error'); return; }
         if (selectedDate < todayISO()) { showToast('Cannot modify past dates.', 'error'); return; }
         const start = document.getElementById('startTime').value;
         const end   = document.getElementById('endTime').value;
         const dur   = document.getElementById('slotDuration').value;
         try {
             const data = await api(
-                `@Url.Action("SetAllSlotsAvailable", "Assistant")?id=${assistantId}&doctorId=${selectedDoctorId}&date=${selectedDate}&startTime=${start}&endTime=${end}&slotDuration=${dur}`,
+                `@Url.Action("SetAllSlotsAvailable", "Assistant")?id=${assistantId}&doctorId=${currentDoctorId}&date=${selectedDate}&startTime=${start}&endTime=${end}&slotDuration=${dur}`,
                 { method: 'POST' }
             );
             if (data.success) { showToast(data.message, 'success'); loadSlots(); }
@@ -740,11 +774,11 @@
     }
 
     async function blockAllSlots() {
-        if (!selectedDoctorId) { showToast('Select a doctor first.', 'error'); return; }
+        if (!currentDoctorId) { showToast('Select a doctor first.', 'error'); return; }
         if (selectedDate < todayISO()) { showToast('Cannot modify past dates.', 'error'); return; }
         try {
             const data = await api(
-                `@Url.Action("BlockAllAvailabilitySlots", "Assistant")?id=${assistantId}&doctorId=${selectedDoctorId}&date=${selectedDate}`,
+                `@Url.Action("BlockAllAvailabilitySlots", "Assistant")?id=${assistantId}&doctorId=${currentDoctorId}&date=${selectedDate}`,
                 { method: 'POST' }
             );
             if (data.success) { showToast(data.message, 'success'); loadSlots(); }
@@ -753,7 +787,7 @@
     }
 
     async function applyQuickSetup() {
-        if (!selectedDoctorId) { showToast('Select a doctor first.', 'error'); return; }
+        if (!currentDoctorId) { showToast('Select a doctor first.', 'error'); return; }
         const workingDays = [];
         for (let i = 0; i <= 6; i++) {
             const cb = document.querySelector(`input[value="${i}"]`);
@@ -761,7 +795,7 @@
         }
         if (!workingDays.length) { showToast('Please select at least one working day.', 'error'); return; }
         const request = {
-            doctorId:     selectedDoctorId,
+            doctorId:     currentDoctorId,
             workingDays,
             startTime:    document.getElementById('startTime').value,
             endTime:      document.getElementById('endTime').value,
@@ -783,7 +817,7 @@
 
     // -- Custom Slot ----------------------------------------------------------
     function toggleCustomSlotForm() {
-        if (!selectedDoctorId) { showToast('Select a doctor first.', 'error'); return; }
+        if (!currentDoctorId) { showToast('Select a doctor first.', 'error'); return; }
         if (selectedDate < todayISO()) { showToast('Cannot add slots in the past.', 'error'); return; }
         const form = document.getElementById('customSlotForm');
         const visible = form.style.display !== 'none';
@@ -799,7 +833,7 @@
         setButtonLoading(btn, true);
         try {
             const data = await api(
-                `@Url.Action("CreateAvailabilitySlot", "Assistant")?id=${assistantId}&doctorId=${selectedDoctorId}&date=${selectedDate}&time=${time}`,
+                `@Url.Action("CreateAvailabilitySlot", "Assistant")?id=${assistantId}&doctorId=${currentDoctorId}&date=${selectedDate}&time=${time}`,
                 { method: 'POST' }
             );
             if (data.success) {
@@ -850,13 +884,29 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+        const doctorPillsContainer = document.querySelector('.doctor-filter-pills');
+        if (doctorPillsContainer) {
+            doctorPillsContainer.addEventListener('click', e => {
+                const pill = e.target.closest('.doctor-pill[data-doctor-id]');
+                if (!pill) return;
+                e.preventDefault();
+                const newDoctorId = parseInt(pill.dataset.doctorId, 10);
+                if (Number.isNaN(newDoctorId) || newDoctorId === currentDoctorId) return;
+                currentDoctorId = newDoctorId;
+                updateDoctorPillStyles();
+                syncAvailabilityUrl();
+                loadSlots();
+            });
+        }
+
         renderCalendar();
         const label = formatDateLabel(selectedDate);
         document.getElementById('selectedDateDisplay').textContent = label;
         document.getElementById('heroDateLabel').textContent = label;
         const dp = document.getElementById('slotDatePicker');
         if (dp) dp.value = selectedDate;
-        if (selectedDoctorId !== null) loadSlots();
+        syncAvailabilityUrl();
+        if (currentDoctorId !== null) loadSlots();
         else if (@Model.Doctors.Count == 0) { /* no doctors */ }
         else showNoDoctorMessage();
         updateQsSummary();
