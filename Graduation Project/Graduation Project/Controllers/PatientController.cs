@@ -72,6 +72,10 @@ namespace Graduation_Project.Controllers
             var recentBPReadings = _patientBloodPressure.GetRecentByPatientId(id, 10).ToList();
             var recentBSReadings = _patientBloodSugar.GetRecentByPatientId(id, 10).ToList();
 
+            // Fetch a larger window for weekly chart aggregation
+            var weeklyBPReadings = _patientBloodPressure.GetRecentByPatientId(id, 40).ToList();
+            var weeklyBSReadings = _patientBloodSugar.GetRecentByPatientId(id, 40).ToList();
+
             // Evaluate patient data and persist any new critical alerts.
             // Pass ALL recent readings so every abnormal value generates an alert,
             // not just whichever reading happens to be "last".
@@ -178,6 +182,8 @@ namespace Graduation_Project.Controllers
                 NextAppointment = nextAppt,
                 RecentBloodPressureReadings = recentBPReadings,
                 RecentBloodSugarReadings = recentBSReadings,
+                WeeklyBloodPressureReadings = weeklyBPReadings,
+                WeeklyBloodSugarReadings = weeklyBSReadings,
                 RecentActivities = activities,
                 HealthAlerts = healthAlerts
             };
