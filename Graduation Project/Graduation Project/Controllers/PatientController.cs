@@ -2,10 +2,12 @@ using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
 using Graduation_Project.Services;
 using Graduation_Project.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Graduation_Project.Controllers
 {
+    [Authorize(Roles = "Patient")]
     public class PatientController : Controller
     {
         private readonly IPatient _patientRepository;

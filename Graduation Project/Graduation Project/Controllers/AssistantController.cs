@@ -2,11 +2,13 @@ using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
 using Graduation_Project.Services;
 using Graduation_Project.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Globalization;
 
 namespace Graduation_Project.Controllers
 {
+    [Authorize(Roles = "Assistant")]
     public class AssistantController : Controller
     {
         private readonly IAssistant _assistantRepository;

@@ -6,7 +6,7 @@ namespace Graduation_Project.ViewModels
     {
         // Core patient/user objects
     public Patient Patient { get; set; }
-   public User User { get; set; }
+   public ApplicationUser User { get; set; }
 
         // Convenience display fields
         public string UserName { get; set; }

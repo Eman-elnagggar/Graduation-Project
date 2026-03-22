@@ -26,11 +26,13 @@ function showToast(message, type = 'info') {
 function initPasswordToggles() {
   document.querySelectorAll('.mc-input-eye').forEach(btn => {
     btn.addEventListener('click', function () {
-      const input = this.previousElementSibling;
-      if (!input || input.tagName !== 'INPUT') return;
+      const wrap = this.closest('.mc-input-wrap');
+      const input = wrap ? wrap.querySelector('input[type="password"], input[type="text"]') : null;
+      if (!input) return;
       const show = input.type === 'password';
       input.type = show ? 'text' : 'password';
       this.querySelector('i').className = show ? 'fas fa-eye-slash' : 'fas fa-eye';
+      this.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
     });
   });
 }
@@ -70,7 +72,9 @@ function validateField(input) {
   let error = '';
 
   if (input.required && !val) {
-    error = 'This field is required.';
+    if (input.id === 'Email') error = 'Email address is required.';
+    else if (input.id === 'Password') error = 'Password is required.';
+    else error = 'This field is required.';
   } else if (input.type === 'email' && val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
     error = 'Please enter a valid email address.';
   } else if (input.dataset.minLength && val.length < parseInt(input.dataset.minLength)) {

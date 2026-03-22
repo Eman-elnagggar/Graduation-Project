@@ -72,6 +72,14 @@
           </div>
 
           <div class="auth-card-body">
+            @if (TempData["AuthError"] is string authError)
+            {
+              <div class="mc-warning-box" style="display:flex; margin-bottom:.9rem;">
+                <i class="fas fa-exclamation-circle"></i>
+                <p>@authError</p>
+              </div>
+            }
+
             <form id="step1Form" novalidate>
               @Html.AntiForgeryToken()
 
@@ -192,7 +200,7 @@
           </div>
 
           <div class="auth-card-body">
-            <form id="step2Form" novalidate>
+            <form id="step2Form" method="post" action="@Url.Action("RegisterPatient", "Account")" novalidate>
               @Html.AntiForgeryToken()
 
               <div class="mc-row">
@@ -368,18 +376,42 @@
       showToast('Please fix the errors before continuing.', 'error');
       return;
     }
+
+    const step2Form = document.getElementById('step2Form');
+    const step1Data = new FormData(this);
+    for (const [key, value] of step1Data.entries()) {
+      if (key === '__RequestVerificationToken') continue;
+      let existing = step2Form.querySelector(`input[type="hidden"][name="${key}"]`);
+      if (!existing) {
+        existing = document.createElement('input');
+        existing.type = 'hidden';
+        existing.name = key;
+        step2Form.appendChild(existing);
+      }
+      existing.value = value;
+    }
+
     goStep2();
   });
 
   document.getElementById('skipProfileBtn').addEventListener('click', function () {
-    showToast('Account created! Redirecting…', 'success');
-    setTimeout(() => { window.location.href = '@Url.Action("Index", "Patient")'; }, 1500);
+    const step2Form = document.getElementById('step2Form');
+    let skipInput = step2Form.querySelector('input[type="hidden"][name="SkipProfile"]');
+    if (!skipInput) {
+      skipInput = document.createElement('input');
+      skipInput.type = 'hidden';
+      skipInput.name = 'SkipProfile';
+      step2Form.appendChild(skipInput);
+    }
+    skipInput.value = 'true';
+    step2Form.submit();
   });
 
   document.getElementById('step2Form').addEventListener('submit', function (e) {
-    e.preventDefault();
-    showToast('Registration complete! Redirecting…', 'success');
-    setTimeout(() => { window.location.href = '@Url.Action("Index", "Patient")'; }, 1500);
+    if (!validateForm('step2Form')) {
+      e.preventDefault();
+      showToast('Please fix the errors before submitting.', 'error');
+    }
   });
 
   document.querySelectorAll('input[name="HasBloodPressureIssues"]').forEach(radio => {
