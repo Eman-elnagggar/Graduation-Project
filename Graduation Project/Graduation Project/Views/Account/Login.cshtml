@@ -109,7 +109,7 @@
 
             <div class="mc-form-group">
               <label class="mc-check-group">
-                <input type="checkbox" id="RememberMe" name="RememberMe" class="mc-check" value="true" />
+                <input type="checkbox" id="RememberMe" name="RememberMe" class="mc-check" value="true" @(ViewBag.RememberMe == true ? "checked" : "") />
                 <span class="mc-check-label">Remember me for 30 days</span>
               </label>
             </div>

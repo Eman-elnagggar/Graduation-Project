@@ -5,6 +5,7 @@ using Graduation_Project.Repository;
 using Graduation_Project.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System;
 
 namespace Graduation_Project
 {
@@ -36,6 +37,8 @@ namespace Graduation_Project
             {
                 options.LoginPath = "/Account/Login";
                 options.AccessDeniedPath = "/Account/AccessDenied";
+                options.ExpireTimeSpan = TimeSpan.FromDays(30);
+                options.SlidingExpiration = true;
             });
 
             // Register Repositories

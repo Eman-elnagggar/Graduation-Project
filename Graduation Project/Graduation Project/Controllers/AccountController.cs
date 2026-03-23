@@ -46,6 +46,7 @@ namespace Graduation_Project.Controllers
         public async Task<IActionResult> Login(string email, string password, bool rememberMe = false)
         {
             ViewBag.Email = email;
+            ViewBag.RememberMe = rememberMe;
 
             if (string.IsNullOrWhiteSpace(email) && string.IsNullOrWhiteSpace(password))
             {
