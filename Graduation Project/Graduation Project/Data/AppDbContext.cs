@@ -47,6 +47,7 @@ namespace Graduation_Project.Data
         public DbSet<TestReport> TestReports { get; set; }
         public DbSet<UltrasoundImage> UltrasoundImages { get; set; }
         public DbSet<WeightTracking> WeightTrackings { get; set; }
+        public DbSet<ChatMessage> ChatMessages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -305,6 +306,39 @@ namespace Graduation_Project.Data
                     .WithOne()
                     .HasForeignKey<Ferritin_Test>(d => d.LabTestID)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ============================================================
+            // CHATMESSAGES
+            // ============================================================
+            modelBuilder.Entity<ChatMessage>(entity =>
+            {
+                entity.HasKey(e => e.ChatMessageId);
+
+                entity.Property(e => e.SenderUserId)
+                    .HasMaxLength(450)
+                    .IsRequired();
+
+                entity.Property(e => e.ReceiverUserId)
+                    .HasMaxLength(450)
+                    .IsRequired();
+
+                entity.Property(e => e.Message)
+                    .HasMaxLength(2000)
+                    .IsRequired();
+
+                entity.HasOne(e => e.SenderUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.SenderUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.ReceiverUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.ReceiverUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => new { e.SenderUserId, e.ReceiverUserId, e.SentAtUtc });
+                entity.HasIndex(e => new { e.ReceiverUserId, e.IsRead });
             });
 
             // ============================================================

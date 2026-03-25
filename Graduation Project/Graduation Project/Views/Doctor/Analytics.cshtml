@@ -1,0 +1,206 @@
+@model DoctorAnalyticsViewModel
+@{
+  Layout = "~/Views/Shared/_DoctorLayout.cshtml";
+  ViewData["Title"] = "Analytics";
+  ViewData["ActivePage"] = "Analytics";
+  ViewData["DoctorId"] = Model.Doctor.DoctorID;
+  ViewData["DoctorName"] = Model.DoctorName;
+  ViewData["PageTitle"] = "Practice Analytics";
+  ViewData["PageSubtitle"] = "Insights and trends from your patient care data";
+}
+
+<div class="page-header">
+  <div>
+    <h1>Practice Analytics</h1>
+    <p>Insights and trends from your patient care data</p>
+  </div>
+  <div class="header-actions">
+    <select class="period-select" id="periodSelect">
+      <option value="7">Last 7 days</option>
+      <option value="30" selected>Last 30 days</option>
+      <option value="90">Last 3 months</option>
+      <option value="365">Last year</option>
+    </select>
+    <button class="btn btn-outline" id="exportReportBtn">
+      <i class="fas fa-download"></i> Export Report
+    </button>
+  </div>
+</div>
+
+<div class="analytics-stats">
+  <div class="analytics-stat-card">
+    <div class="stat-icon patients"><i class="fas fa-users"></i></div>
+    <div class="stat-details">
+      <span class="stat-value">@Model.ActivePatientsCount</span>
+      <span class="stat-label">Active Patients</span>
+      <span class="stat-trend positive"><i class="fas fa-arrow-up"></i> +@Model.NewPatientsThisMonth this month</span>
+    </div>
+  </div>
+  <div class="analytics-stat-card">
+    <div class="stat-icon appointments"><i class="fas fa-calendar-check"></i></div>
+    <div class="stat-details">
+      <span class="stat-value">@Model.CompletedAppointmentsCount</span>
+      <span class="stat-label">Completed Appointments</span>
+      <span class="stat-trend positive"><i class="fas fa-arrow-up"></i> @Model.AppointmentsTrend% vs last period</span>
+    </div>
+  </div>
+  <div class="analytics-stat-card">
+    <div class="stat-icon completion"><i class="fas fa-percentage"></i></div>
+    <div class="stat-details">
+      <span class="stat-value">@Model.CompletionRate%</span>
+      <span class="stat-label">Completion Rate</span>
+      <span class="stat-trend @(Model.CompletionRate >= 80 ? "positive" : "negative")">
+        <i class="fas fa-@(Model.CompletionRate >= 80 ? "thumbs-up" : "arrow-down")"></i>
+        @(Model.CompletionRate >= 80 ? "On track" : "Below target")
+      </span>
+    </div>
+  </div>
+  <div class="analytics-stat-card">
+    <div class="stat-icon risk"><i class="fas fa-exclamation-triangle"></i></div>
+    <div class="stat-details">
+      <span class="stat-value">@Model.HighRiskPatientsCount</span>
+      <span class="stat-label">High-Risk Patients</span>
+      <span class="stat-trend @(Model.HighRiskPatientsCount > 0 ? "negative" : "positive")">
+        <i class="fas fa-eye"></i> Monitoring required
+      </span>
+    </div>
+  </div>
+</div>
+
+<div class="analytics-grid">
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="fas fa-chart-pie"></i> Patient Risk Distribution</h3>
+    </div>
+    @{
+      var total = Model.ActivePatientsCount > 0 ? Model.ActivePatientsCount : 1;
+      var lowPct = (int)Math.Round((double)Model.LowRiskCount / total * 100);
+      var medPct = (int)Math.Round((double)Model.MediumRiskCount / total * 100);
+      var highPct = (int)Math.Round((double)Model.HighRiskPatientsCount / total * 100);
+    }
+    <div class="risk-distribution">
+      <div class="risk-bar-item">
+        <div class="risk-bar-label">
+          <span>Low Risk</span><span>@Model.LowRiskCount pts · @lowPct%</span>
+        </div>
+        <div class="risk-bar-track">
+          <div class="risk-bar-fill low" style="width:@lowPct%"></div>
+        </div>
+      </div>
+      <div class="risk-bar-item">
+        <div class="risk-bar-label">
+          <span>Medium Risk</span><span>@Model.MediumRiskCount pts · @medPct%</span>
+        </div>
+        <div class="risk-bar-track">
+          <div class="risk-bar-fill medium" style="width:@medPct%"></div>
+        </div>
+      </div>
+      <div class="risk-bar-item">
+        <div class="risk-bar-label">
+          <span>High Risk</span><span>@Model.HighRiskPatientsCount pts · @highPct%</span>
+        </div>
+        <div class="risk-bar-track">
+          <div class="risk-bar-fill high" style="width:@highPct%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="fas fa-calendar-week"></i> Appointments This Week</h3>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.55rem;margin-top:.25rem;">
+      @{
+        string[] days = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+      }
+      @if (Model.WeeklyAppointmentCounts != null)
+      {
+        @for (int i = 0; i < 7; i++)
+        {
+          var count = i < Model.WeeklyAppointmentCounts.Count ? Model.WeeklyAppointmentCounts[i] : 0;
+          var maxCount = Model.WeeklyAppointmentCounts.Any() ? Model.WeeklyAppointmentCounts.Max() : 1;
+          var pct = maxCount > 0 ? (int)Math.Round((double)count / maxCount * 100) : 0;
+          var isToday = i == (int)DateTime.Today.DayOfWeek;
+          <div style="display:flex;align-items:center;gap:.75rem;">
+            <span style="width:32px;font-size:.78rem;font-weight:600;color:@(isToday?"var(--dr-primary)":"var(--dr-muted)");">@days[i]</span>
+            <div style="flex:1;height:10px;background:var(--dr-border);border-radius:5px;overflow:hidden;">
+              <div style="height:100%;width:@pct%;background:@(isToday?"var(--dr-primary)":"#94d9cc");border-radius:5px;transition:width .4s;"></div>
+            </div>
+            <span style="font-size:.78rem;font-weight:700;color:var(--dr-text);width:20px;text-align:right;">@count</span>
+          </div>
+        }
+      }
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="fas fa-baby"></i> Patients by Trimester</h3>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.75rem;margin-top:.25rem;">
+      @{
+        string[] trimNames = { "1st Trimester (wk 1-12)", "2nd Trimester (wk 13-26)", "3rd Trimester (wk 27-40)" };
+        string[] trimColors = { "#14967f", "#1aad94", "#94d9cc" };
+        var trimCounts = Model.TrimesterCounts ?? new[] { 0, 0, 0 };
+        var trimTotal = trimCounts.Sum() > 0 ? trimCounts.Sum() : 1;
+      }
+      @for (int i = 0; i < 3; i++)
+      {
+        var pct = (int)Math.Round((double)trimCounts[i] / trimTotal * 100);
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:.78rem;font-weight:600;margin-bottom:.35rem;">
+            <span>@trimNames[i]</span><span style="color:var(--dr-primary);">@trimCounts[i] patients · @pct%</span>
+          </div>
+          <div style="height:10px;background:var(--dr-border);border-radius:5px;overflow:hidden;">
+            <div style="height:100%;width:@pct%;background:@trimColors[i];border-radius:5px;transition:width .4s;"></div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="fas fa-flask"></i> Recent Lab Tests</h3>
+      <a href="/Doctor/Patients/@Model.Doctor.DoctorID">View Patients</a>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.55rem;">
+      @if (Model.RecentLabTests != null && Model.RecentLabTests.Any())
+      {
+        @foreach (var test in Model.RecentLabTests.Take(5))
+        {
+          <div class="schedule-item" style="border-left-color:var(--dr-primary);">
+            <div class="schedule-content">
+              <h4>@((test.Patient?.User?.FirstName ?? "Patient") + " " + (test.Patient?.User?.LastName ?? ""))</h4>
+              <p>@test.TestType · @test.UploadDate.ToString("MMM dd, yyyy")</p>
+            </div>
+            <div class="schedule-status">
+              <span class="status-tag @(test.IsReviewed ? "completed" : "pending")">
+                @(test.IsReviewed ? "Reviewed" : "Pending")
+              </span>
+            </div>
+          </div>
+        }
+      }
+      else
+      {
+        <div class="no-appointments" style="padding:1.5rem;">
+          <i class="fas fa-flask" style="font-size:1.5rem;"></i>
+          <p>No recent lab tests</p>
+        </div>
+      }
+    </div>
+  </div>
+</div>
+
+@section Scripts {
+<script>
+document.getElementById('exportReportBtn')?.addEventListener('click', () => {
+  if (typeof showToast === 'function') showToast('Export feature coming soon', 'info');
+});
+document.getElementById('periodSelect')?.addEventListener('change', function () {
+  if (typeof showToast === 'function') showToast('Loading data for selected period...', 'info');
+});
+</script>
+}

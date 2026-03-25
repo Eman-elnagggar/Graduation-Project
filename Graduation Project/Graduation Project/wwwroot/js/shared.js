@@ -374,8 +374,54 @@ function handleFileSelection(file, uploadZone, uploadedFile, fileNameEl) {
 }
 
 // ================================
+// Top-Bar Notifications Panel
+// ================================
+function initTopbarNotifications() {
+  const notificationBtn = document.getElementById("notificationBtn");
+  const notificationsPanel = document.getElementById("notificationsPanel");
+  const closeNotifications = document.getElementById("closeNotifications");
+  const notificationBadge = document.getElementById("notificationBadge");
+  const notificationsList = document.getElementById("notificationsList");
+
+  if (!notificationBtn || !notificationsPanel) return;
+  if (notificationBtn.dataset.notificationsInitialized === "true") return;
+  notificationBtn.dataset.notificationsInitialized = "true";
+
+  const unreadCount = notificationsList
+    ? notificationsList.querySelectorAll(".unread, [data-unread='true']").length
+    : 0;
+
+  if (notificationBadge) {
+    notificationBadge.textContent = unreadCount > 0 ? String(unreadCount) : "";
+    notificationBadge.style.display = unreadCount > 0 ? "block" : "none";
+  }
+
+  notificationBtn.addEventListener("click", function (e) {
+    e.stopPropagation();
+    notificationsPanel.classList.toggle("open");
+  });
+
+  if (closeNotifications) {
+    closeNotifications.addEventListener("click", function () {
+      notificationsPanel.classList.remove("open");
+    });
+  }
+
+  document.addEventListener("click", function (e) {
+    if (
+      notificationsPanel.classList.contains("open") &&
+      !notificationsPanel.contains(e.target) &&
+      !notificationBtn.contains(e.target)
+    ) {
+      notificationsPanel.classList.remove("open");
+    }
+  });
+}
+
+// ================================
 // Initialize on DOM Ready
 // ================================
 document.addEventListener("DOMContentLoaded", function () {
   initSharedSidebar();
+  initTopbarNotifications();
 });

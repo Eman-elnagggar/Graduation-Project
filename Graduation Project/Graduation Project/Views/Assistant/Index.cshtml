@@ -1,9 +1,19 @@
-﻿@model Graduation_Project.ViewModels.AssistantDashboardViewModel
+﻿@using System.Globalization
+@using System.Linq
+@model Graduation_Project.ViewModels.AssistantDashboardViewModel
 @{
     Layout = "~/Views/Shared/_AssistantLayout.cshtml";
     ViewData["Title"] = "Dashboard";
     ViewData["AssistantId"] = Model.Assistant.AssistantID;
+    ViewData["AssistantName"] = Model.AssistantName;
     ViewData["ActivePage"] = "Dashboard";
+
+    var now = DateTime.Now;
+    var greeting = now.Hour < 12 ? "Good morning" : now.Hour < 17 ? "Good afternoon" : "Good evening";
+    var assistantFirstName = (Model.AssistantName ?? "Assistant").Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Assistant";
+    ViewData["PageTitle"] = $"{greeting}, {assistantFirstName} 👋";
+    ViewData["PageTitleHtml"] = $"{greeting}, <span class='topbar-accent'>{assistantFirstName}</span> 👋";
+    ViewData["PageSubtitle"] = now.ToString("dddd, MMMM dd, yyyy", CultureInfo.InvariantCulture);
 }
 
 @section Head {

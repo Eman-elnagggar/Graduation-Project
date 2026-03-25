@@ -1,0 +1,126 @@
+@model DoctorClinicTeamViewModel
+@{
+  Layout = "~/Views/Shared/_DoctorLayout.cshtml";
+  ViewData["Title"] = "Clinic Team";
+  ViewData["ActivePage"] = "ClinicTeam";
+  ViewData["DoctorId"] = Model.Doctor.DoctorID;
+  ViewData["DoctorName"] = Model.DoctorName;
+  ViewData["PageTitle"] = "Clinic Team";
+  ViewData["PageSubtitle"] = "Manage your clinic assistants";
+}
+
+<section class="card">
+  <div class="card-header">
+    <h3><i class="fas fa-user-plus"></i> Invite Assistant</h3>
+  </div>
+  <p style="color:var(--dr-muted);font-size:.88rem;margin-bottom:1rem;">
+    Enter the assistant's email address to send them an invitation to join your clinic team.
+  </p>
+  @using (Html.BeginForm("InviteAssistant", "Doctor", FormMethod.Post, new { id = "inviteForm" }))
+  {
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="doctorId" value="@Model.Doctor.DoctorID" />
+    <div class="invite-form">
+      <div class="form-group" style="margin-bottom:0;">
+        <label for="assistantEmail"><i class="fas fa-envelope" style="color:var(--dr-primary);margin-right:.3rem;"></i> Assistant Email</label>
+        <input type="email" id="assistantEmail" name="assistantEmail" class="form-input" placeholder="assistant@clinic.com" required />
+      </div>
+      <div style="padding-top:1.6rem;">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane"></i> Send Invitation</button>
+      </div>
+    </div>
+  }
+
+  @if (TempData["InviteSuccess"] != null)
+  {
+    <div class="privacy-notice" style="margin-top:1rem;border-left-color:var(--dr-success);background:#f0fdf4;">
+      <i class="fas fa-check-circle" style="color:var(--dr-success);"></i>
+      <p style="color:#15803d;">@TempData["InviteSuccess"]</p>
+    </div>
+  }
+  @if (TempData["InviteError"] != null)
+  {
+    <div class="privacy-notice" style="margin-top:1rem;border-left-color:var(--dr-danger);background:#fef2f2;">
+      <i class="fas fa-exclamation-circle" style="color:var(--dr-danger);"></i>
+      <p style="color:#b91c1c;">@TempData["InviteError"]</p>
+    </div>
+  }
+</section>
+
+<section class="card">
+  <div class="card-header">
+    <h3><i class="fas fa-users"></i> Active Team Members</h3>
+    <span style="font-size:.8rem;color:var(--dr-muted);">@(Model.Assistants?.Count ?? 0) assistant(s)</span>
+  </div>
+
+  @if (Model.Assistants != null && Model.Assistants.Any())
+  {
+    <div class="team-grid">
+      @foreach (var a in Model.Assistants)
+      {
+        <div class="team-card">
+          <img class="avatar"
+               src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString((a.User?.FirstName ?? "A") + " " + (a.User?.LastName ?? ""))&background=14967f&color=fff&size=88"
+               alt="@(a.User?.FirstName)" />
+          <h4>@((a.User?.FirstName ?? "Assistant") + " " + (a.User?.LastName ?? ""))</h4>
+          <div class="role">Medical Assistant</div>
+          <div style="display:flex;gap:.5rem;justify-content:center;margin:.65rem 0;">
+            <span class="status-dot online">Active</span>
+          </div>
+          <div style="display:flex;gap:.5rem;justify-content:center;">
+            <button class="btn btn-sm btn-outline"
+                    onclick="if(confirm('Remove this assistant from your clinic team?'))document.getElementById('removeForm_@a.AssistantID').submit()">
+              <i class="fas fa-user-minus"></i> Remove
+            </button>
+          </div>
+          @using (Html.BeginForm("RemoveAssistant", "Doctor", FormMethod.Post, new { id = "removeForm_" + a.AssistantID, style = "display:none" }))
+          {
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="doctorId" value="@Model.Doctor.DoctorID" />
+            <input type="hidden" name="assistantId" value="@a.AssistantID" />
+          }
+        </div>
+      }
+    </div>
+  }
+  else
+  {
+    <div class="privacy-notice">
+      <i class="fas fa-info-circle"></i>
+      <p>No assistants linked yet. Use the invitation form above to add team members.</p>
+    </div>
+  }
+</section>
+
+@if (Model.PendingInvitations != null && Model.PendingInvitations.Any())
+{
+  <section class="card">
+    <div class="card-header">
+      <h3><i class="fas fa-envelope-open-text"></i> Pending Invitations</h3>
+      <span style="font-size:.8rem;color:var(--dr-muted);">@Model.PendingInvitations.Count pending</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.6rem;">
+      @foreach (var inv in Model.PendingInvitations)
+      {
+        <div class="schedule-item" style="border-left-color:var(--dr-warning);">
+          <div class="schedule-content">
+            <h4>@inv.Email</h4>
+            <p>Sent @inv.SentAt.ToString("MMM dd, yyyy")</p>
+          </div>
+          <div class="schedule-status">
+            <span class="status-tag pending">Pending</span>
+            @using (Html.BeginForm("CancelInvitation", "Doctor", FormMethod.Post))
+            {
+              @Html.AntiForgeryToken()
+              <input type="hidden" name="invitationId" value="@inv.InvitationID" />
+              <input type="hidden" name="id" value="@Model.Doctor.DoctorID" />
+              <button type="submit" class="action-btn" title="Cancel invitation" style="color:#c62828;">
+                <i class="fas fa-times"></i>
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+}

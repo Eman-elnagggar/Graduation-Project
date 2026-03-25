@@ -1,0 +1,147 @@
+@model DoctorProfileViewModel
+@{
+  Layout = "~/Views/Shared/_DoctorLayout.cshtml";
+  ViewData["Title"] = "My Profile";
+  ViewData["ActivePage"] = "Profile";
+  ViewData["DoctorId"] = Model.Doctor.DoctorID;
+  ViewData["DoctorName"] = Model.DoctorName;
+  ViewData["PageTitle"] = "My Profile";
+  ViewData["PageSubtitle"] = "Manage your account and professional information";
+}
+
+<div class="profile-page">
+  <div class="profile-header-card">
+    <div class="profile-cover"></div>
+    <div class="profile-header-content">
+      <div class="profile-avatar-section">
+        <div class="profile-avatar-large">
+          <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(Model.DoctorName)&background=14967f&color=fff&size=160"
+               alt="Dr. @Model.DoctorName" id="profileAvatarImg" />
+          <button class="avatar-edit-btn" title="Change Photo"><i class="fas fa-camera"></i></button>
+        </div>
+        <div class="profile-title-info">
+          <h1>Dr. @Model.DoctorName</h1>
+          <p class="specialty">@(Model.Doctor.Specialization ?? "General Practitioner")</p>
+          <div class="profile-badges">
+            <span class="badge-verified"><i class="fas fa-check-circle"></i> Verified</span>
+            @if (Model.AverageRating > 0)
+            {
+              <span class="badge-rating"><i class="fas fa-star"></i> @Model.AverageRating.ToString("0.0") Rating</span>
+            }
+          </div>
+        </div>
+      </div>
+      <div class="profile-header-actions">
+        <button class="btn btn-outline" id="editProfileBtn"><i class="fas fa-edit"></i> Edit Profile</button>
+        <button class="btn btn-outline"><i class="fas fa-share-alt"></i> Share Profile</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="profile-grid">
+    <div class="profile-card">
+      <div class="card-header">
+        <h3><i class="fas fa-user"></i> Personal Information</h3>
+      </div>
+      <div class="card-body">
+        <div class="info-row"><label>Full Name</label><span>Dr. @Model.DoctorName</span></div>
+        <div class="info-row"><label>Email</label><span>@(Model.Doctor.User?.Email ?? "-")</span></div>
+        <div class="info-row"><label>Phone</label><span>@(Model.Doctor.User?.PhoneNumber ?? "-")</span></div>
+        <div class="info-row"><label>Status</label><span>@(Model.Doctor.User?.IsActive == true ? "Active" : "Inactive")</span></div>
+      </div>
+    </div>
+
+    <div class="profile-card">
+      <div class="card-header">
+        <h3><i class="fas fa-stethoscope"></i> Professional Information</h3>
+      </div>
+      <div class="card-body">
+        <div class="info-row"><label>Specialty</label><span>@(Model.Doctor.Specialization ?? "-")</span></div>
+        <div class="info-row"><label>License Number</label><span>@(Model.Doctor.LicenseNumber ?? "-")</span></div>
+        <div class="info-row"><label>Experience</label><span>@(Model.YearsOfExperience > 0 ? Model.YearsOfExperience + "+ Years" : "-")</span></div>
+        <div class="info-row"><label>Education</label><span>@(Model.Education ?? "-")</span></div>
+        <div class="info-row"><label>Languages</label><span>@(Model.Languages ?? "Arabic, English")</span></div>
+      </div>
+    </div>
+
+    <div class="profile-card">
+      <div class="card-header">
+        <h3><i class="fas fa-hospital"></i> Clinic Information</h3>
+      </div>
+      <div class="card-body">
+        <div class="info-row"><label>Clinic Name</label><span>@(Model.ClinicName ?? "-")</span></div>
+        <div class="info-row"><label>Address</label><span>@(Model.ClinicAddress ?? Model.Doctor.Address ?? "-")</span></div>
+        <div class="info-row"><label>Working Hours</label><span>@(Model.WorkingHours ?? "-")</span></div>
+        <div class="info-row"><label>Consultation Fee</label><span>@(Model.ConsultationFee > 0 ? Model.ConsultationFee.ToString("N0") + " EGP" : "-")</span></div>
+        <div class="info-row"><label>Clinic Phone</label><span>@(Model.ClinicPhone ?? "-")</span></div>
+      </div>
+    </div>
+
+    <div class="profile-card">
+      <div class="card-header">
+        <h3><i class="fas fa-chart-bar"></i> My Statistics</h3>
+      </div>
+      <div class="card-body">
+        <div class="stats-grid">
+          <div class="stat-item">
+            <span class="stat-number">@Model.TotalPatientsEver</span>
+            <span class="stat-label">Total Patients</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">@Model.TotalAppointments</span>
+            <span class="stat-label">Appointments</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">@Model.AverageRating.ToString("0.0")</span>
+            <span class="stat-label">Avg. Rating</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">@Model.SatisfactionRate%</span>
+            <span class="stat-label">Satisfaction</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="profile-card full-width">
+      <div class="card-header">
+        <h3><i class="fas fa-cog"></i> Account Settings</h3>
+      </div>
+      <div class="card-body">
+        <div class="settings-list">
+          <div class="setting-item">
+            <div class="setting-info">
+              <i class="fas fa-bell"></i>
+              <div><h4>Notifications</h4><p>Manage email and push notifications</p></div>
+            </div>
+            <button class="btn btn-sm btn-outline">Configure</button>
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <i class="fas fa-lock"></i>
+              <div><h4>Password &amp; Security</h4><p>Update password and two-factor authentication</p></div>
+            </div>
+            <a href="/Account/ChangePassword" class="btn btn-sm btn-outline">Update</a>
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <i class="fas fa-sign-out-alt"></i>
+              <div><h4>Sign Out</h4><p>Log out from all devices</p></div>
+            </div>
+            <a asp-controller="Account" asp-action="LogoutGet" class="btn btn-sm btn-outline" style="color:#c62828;border-color:#ef4444;">
+              Sign Out
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+@section Scripts {
+<script>
+document.getElementById('editProfileBtn')?.addEventListener('click', () => {
+  window.location.href = '/Doctor/EditProfile/@Model.Doctor.DoctorID';
+});
+</script>
+}

@@ -1,3 +1,5 @@
+@using System.Globalization
+@using System.Linq
 <!doctype html>
 <html lang="en">
 <head>
@@ -18,6 +20,13 @@
     var layoutUserName = ViewData["UserName"] as string
         ?? User?.Identity?.Name
         ?? "Patient";
+    var shortPatientName = layoutUserName.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? layoutUserName;
+    var now = DateTime.Now;
+    var greeting = now.Hour < 12 ? "Good morning" : now.Hour < 17 ? "Good afternoon" : "Good evening";
+    var headerDateChip = now.ToString("ddd, MMM d", new CultureInfo("en-US"));
+    var pageTitleHtml = ViewData["PageTitleHtml"] as string;
+    var fallbackPageTitleHtml = $"{greeting}, <span class='topbar-accent'>{shortPatientName}</span> 👋";
+    var pageSubtitle = ViewData["PageSubtitle"] as string ?? now.ToString("dddd, MMMM dd, yyyy", CultureInfo.InvariantCulture);
 }
 
 <body data-patient-id="@layoutPatientId">
@@ -33,21 +42,29 @@
 
     <!-- Main Content -->
     <main class="main-content">
-        <header class="pp-topbar">
-            <div class="pp-topbar-inner">
-                <div class="pp-topbar-actions">
-                    <div class="db-date-chip">
-                        <i class="fas fa-calendar-alt"></i>
-                        <span id="ppTopbarDateLabel"></span>
-                    </div>
-                    <button class="pp-notif-toggle" id="patientNotificationToggle" type="button" aria-label="Open notifications" title="Notifications">
-                        <i class="fas fa-bell"></i>
-                        <span class="pp-notif-badge" id="patientNotificationBadge" hidden>0</span>
-                    </button>
-                    <div class="db-profile-chip" title="@layoutUserName">
-                        <div class="db-avatar"><i class="fas fa-user"></i></div>
-                        <span id="ppTopbarUserName">@layoutUserName</span>
-                    </div>
+        <header class="top-bar">
+            <div class="topbar-left">
+                <div class="topbar-greeting">
+                    <h1 class="page-title">@Html.Raw(!string.IsNullOrWhiteSpace(pageTitleHtml) ? pageTitleHtml : fallbackPageTitleHtml)</h1>
+                    <p class="page-subtitle">@pageSubtitle</p>
+                </div>
+            </div>
+            <div class="topbar-right">
+                <div class="date-chip">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>@headerDateChip</span>
+                </div>
+                <button class="icon-btn" id="patientNotificationToggle" type="button" aria-label="Open notifications" title="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="dot" id="patientNotificationBadge" hidden>0</span>
+                </button>
+                <button class="icon-btn" title="Search" type="button">
+                    <i class="fas fa-search"></i>
+                </button>
+                <div class="topbar-avatar user-menu" title="@layoutUserName">
+                    <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(layoutUserName)&background=1baebe&color=fff&size=80"
+                         alt="@layoutUserName" />
+                    <span id="ppTopbarUserName">@shortPatientName</span>
                 </div>
             </div>
         </header>

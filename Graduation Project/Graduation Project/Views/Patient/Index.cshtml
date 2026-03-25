@@ -1,9 +1,19 @@
-﻿@model PatientDashboardViewModel
+﻿@using System.Globalization
+@using System.Linq
+@model PatientDashboardViewModel
 @{
     Layout = "~/Views/Shared/_PatientLayout.cshtml";
     ViewData["Title"] = "Dashboard";
     ViewData["PatientId"]  = Model.Patient.PatientID;
     ViewData["ActivePage"] = "Dashboard";
+    ViewData["UserName"] = Model.UserName;
+
+    var now = DateTime.Now;
+    var greeting = now.Hour < 12 ? "Good morning" : now.Hour < 17 ? "Good afternoon" : "Good evening";
+    var patientFirstName = (Model.UserName ?? "Patient").Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Patient";
+    ViewData["PageTitle"] = $"{greeting}, {patientFirstName} 👋";
+    ViewData["PageTitleHtml"] = $"{greeting}, <span class='topbar-accent'>{patientFirstName}</span> 👋";
+    ViewData["PageSubtitle"] = now.ToString("dddd, MMMM dd, yyyy", CultureInfo.InvariantCulture);
 }
 
 @section Head {

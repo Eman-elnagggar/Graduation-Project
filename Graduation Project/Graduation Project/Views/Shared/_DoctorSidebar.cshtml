@@ -1,0 +1,101 @@
+@{
+  var doctorId = ViewData["DoctorId"] as int? ?? 0;
+  var activePage = ViewData["ActivePage"] as string ?? "";
+  var doctorName = ViewData["DoctorName"] as string ?? "Doctor";
+}
+
+<aside class="sidebar">
+  <button class="sidebar-close"><i class="fas fa-times"></i></button>
+
+  <!-- Brand Header -->
+  <div class="sidebar-brand">
+    <div class="brand-logo">
+      <div class="brand-icon"><i class="fas fa-heartbeat"></i></div>
+      <div class="brand-text">
+        <span class="brand-name">NABD - نبض</span>
+        <span class="brand-badge">Doctor Portal</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Profile Card -->
+  <div class="sidebar-profile">
+    <div class="profile-avatar">
+      <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(doctorName)&background=14967f&color=fff&size=80"
+           alt="Dr. @doctorName" />
+      <span class="online-dot"></span>
+    </div>
+    <div class="profile-info">
+      <span class="profile-name">My Account</span>
+      <span class="profile-role">Doctor #@doctorId</span>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="nav-menu">
+    <div class="nav-section">
+      <span class="nav-section-label">Main</span>
+
+      <a href="/Doctor/Index/@doctorId"
+         class="nav-item @(activePage == "Dashboard" ? "active" : "")"
+         data-tooltip="Dashboard">
+        <div class="nav-icon"><i class="fas fa-home"></i></div>
+        <span>Dashboard</span>
+      </a>
+
+      <a href="/Doctor/Schedule/@doctorId"
+         class="nav-item @(activePage == "Schedule" ? "active" : "")"
+         data-tooltip="My Schedule">
+        <div class="nav-icon"><i class="fas fa-calendar-alt"></i></div>
+        <span>My Schedule</span>
+      </a>
+
+      <a href="/Doctor/Patients/@doctorId"
+         class="nav-item @(activePage == "Patients" ? "active" : "")"
+         data-tooltip="My Patients">
+        <div class="nav-icon"><i class="fas fa-users"></i></div>
+        <span>My Patients</span>
+      </a>
+
+      <a href="/Doctor/Messages/@doctorId"
+         class="nav-item @(activePage == "Messages" ? "active" : "")"
+         data-tooltip="Messages">
+        <div class="nav-icon"><i class="fas fa-comments"></i></div>
+        <span>Messages</span>
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <span class="nav-section-label">Clinic</span>
+
+      <a href="/Doctor/ClinicTeam/@doctorId"
+         class="nav-item @(activePage == "ClinicTeam" ? "active" : "")"
+         data-tooltip="Clinic Team">
+        <div class="nav-icon"><i class="fas fa-user-nurse"></i></div>
+        <span>Clinic Team</span>
+      </a>
+
+      <a href="/Doctor/Analytics/@doctorId"
+         class="nav-item @(activePage == "Analytics" ? "active" : "")"
+         data-tooltip="Analytics">
+        <div class="nav-icon"><i class="fas fa-chart-line"></i></div>
+        <span>Analytics</span>
+      </a>
+
+      <a href="/Doctor/Profile/@doctorId"
+         class="nav-item @(activePage == "Profile" ? "active" : "")"
+         data-tooltip="My Profile">
+        <div class="nav-icon"><i class="fas fa-user-cog"></i></div>
+        <span>My Profile</span>
+      </a>
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <a asp-controller="Account" asp-action="LogoutGet"
+       class="nav-item logout-item" data-tooltip="Logout">
+      <div class="nav-icon"><i class="fas fa-sign-out-alt"></i></div>
+      <span>Logout</span>
+    </a>
+  </div>
+</aside>

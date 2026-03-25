@@ -1,4 +1,5 @@
 using Graduation_Project.Data;
+using Graduation_Project.Hubs;
 using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
 using Graduation_Project.Repository;
@@ -17,6 +18,7 @@ namespace Graduation_Project
 
             // Add services to the container.
             builder.Services.AddControllersWithViews();
+            builder.Services.AddSignalR();
 
             // Database Connection (single registration)
             builder.Services.AddDbContext<AppDbContext>(options =>
@@ -91,6 +93,32 @@ namespace Graduation_Project
             using (var scope = app.Services.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+                // Ensure chat persistence table exists for real-time messaging.
+                await db.Database.ExecuteSqlRawAsync(@"
+IF OBJECT_ID(N'dbo.ChatMessages', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[ChatMessages](
+        [ChatMessageId] BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        [SenderUserId] NVARCHAR(450) NOT NULL,
+        [ReceiverUserId] NVARCHAR(450) NOT NULL,
+        [Message] NVARCHAR(2000) NOT NULL,
+        [SentAtUtc] DATETIME2 NOT NULL,
+        [IsRead] BIT NOT NULL,
+        [ReadAtUtc] DATETIME2 NULL,
+        CONSTRAINT [FK_ChatMessages_AspNetUsers_SenderUserId]
+            FOREIGN KEY ([SenderUserId]) REFERENCES [dbo].[AspNetUsers]([Id]),
+        CONSTRAINT [FK_ChatMessages_AspNetUsers_ReceiverUserId]
+            FOREIGN KEY ([ReceiverUserId]) REFERENCES [dbo].[AspNetUsers]([Id])
+    );
+
+    CREATE INDEX [IX_ChatMessages_SenderUserId_ReceiverUserId_SentAtUtc]
+        ON [dbo].[ChatMessages]([SenderUserId], [ReceiverUserId], [SentAtUtc]);
+
+    CREATE INDEX [IX_ChatMessages_ReceiverUserId_IsRead]
+        ON [dbo].[ChatMessages]([ReceiverUserId], [IsRead]);
+END");
+
                 await DataSeeder.SeedAsync(db);
             }
             // ????????????????????????????????????????????????????????????
@@ -113,6 +141,8 @@ namespace Graduation_Project
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
+
+            app.MapHub<ChatHub>("/chatHub");
 
             app.Run();
         }
