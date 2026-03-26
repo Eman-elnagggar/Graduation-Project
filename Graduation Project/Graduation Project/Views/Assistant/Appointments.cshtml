@@ -6,6 +6,10 @@
     ViewData["ActivePage"] = "Appointments";
 }
 
+<div style="display:none;">
+    @Html.AntiForgeryToken()
+</div>
+
 <!-- Page Header -->
 <header class="header">
     <div class="header-left">
@@ -18,9 +22,9 @@
         </div>
     </div>
     <div class="header-right">
-        <div class="header-date-chip">
+        <div class="header-date-chip" id="appointmentsHeaderDate">
             <i class="fas fa-calendar-day"></i>
-            @DateTime.Today.ToString("MMM dd, yyyy")
+            @Model.SelectedDate.ToString("MMM dd, yyyy")
         </div>
         <div class="notification" id="notifBell" title="Notifications">
             <i class="fas fa-bell"></i>
@@ -40,7 +44,7 @@
         <div class="progress-info">
             <h3><i class="fas fa-calendar-check" style="margin-right: 8px;"></i>Appointments Overview</h3>
             <p>
-                <span class="week-number">@DateTime.Today.ToString("dddd, MMMM dd, yyyy")</span>
+                <span class="week-number" id="appointmentsHeroDate">@Model.SelectedDate.ToString("dddd, MMMM dd, yyyy")</span>
             </p>
         </div>
         <div class="progress-details">
@@ -59,6 +63,24 @@
                 <span class="hero-stat-value" id="heroCancelledCount">--</span> Cancelled
             </div>
         </div>
+    </div>
+</section>
+
+<section class="card" style="margin-bottom: 1.5rem;">
+    <div class="card-header">
+        <h3><i class="fas fa-calendar-day"></i> Appointments Date</h3>
+    </div>
+    <div style="display:flex; gap:.6rem; align-items:center; flex-wrap:wrap; padding:1rem;">
+        <button type="button" class="btn btn-outline btn-sm" id="prevAppointmentsDateBtn">
+            <i class="fas fa-chevron-left"></i> Previous
+        </button>
+        <input type="date" id="appointmentsDatePicker" class="form-input" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" style="max-width: 200px;" />
+        <button type="button" class="btn btn-outline btn-sm" id="nextAppointmentsDateBtn">
+            Next <i class="fas fa-chevron-right"></i>
+        </button>
+        <button type="button" class="btn btn-outline btn-sm" id="todayAppointmentsDateBtn">
+            <i class="fas fa-calendar-day"></i> Today
+        </button>
     </div>
 </section>
 
@@ -123,14 +145,16 @@
             <h3><i class="fas fa-user-md"></i> Filter by Doctor</h3>
         </div>
         <div class="doctor-filter-pills">
-            <a href="@Url.Action("Appointments", new { id = Model.Assistant.AssistantID })"
+            <a href="@Url.Action("Appointments", new { id = Model.Assistant.AssistantID, date = Model.SelectedDate.ToString("yyyy-MM-dd") })"
+               data-doctor-id=""
                class="doctor-pill @(Model.SelectedDoctorID == null ? "active" : "")">
                 <i class="fas fa-users"></i> All Doctors
             </a>
             @foreach (var doc in Model.Doctors)
             {
                 var isSelected = Model.SelectedDoctorID == doc.DoctorID;
-                <a href="@Url.Action("Appointments", new { id = Model.Assistant.AssistantID, doctorId = doc.DoctorID })"
+                <a href="@Url.Action("Appointments", new { id = Model.Assistant.AssistantID, doctorId = doc.DoctorID, date = Model.SelectedDate.ToString("yyyy-MM-dd") })"
+                   data-doctor-id="@doc.DoctorID"
                    class="doctor-pill @(isSelected ? "active-blue" : "")">
                     <i class="fas fa-user-md"></i> @doc.FullName
                 </a>
@@ -145,7 +169,7 @@
         <div class="appt-search-wrap">
             <i class="fas fa-search"></i>
             <input type="text" id="appointmentSearch" placeholder="Search by patient name, doctor, or phone…"
-                   oninput="filterAppointments(this.value)" />
+                   oninput="handleSearchInput(this.value)" />
         </div>
     </div>
     <div class="tabs-bar">
@@ -177,6 +201,8 @@
         <div class="tab-content" id="Cancelled-tab" style="display: none;">
             <div class="request-list" id="CancelledAppointmentsList"></div>
         </div>
+
+        <div id="appointmentsPager" style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap;margin-top:1rem;"></div>
     </div>
 </div>
 
@@ -232,13 +258,23 @@
         const assistantId      = @Model.Assistant.AssistantID;
         const selectedDoctorId = @(Model.SelectedDoctorID.HasValue? Model.SelectedDoctorID.Value.ToString() : "null");
         const ALL_STATUSES     = ['Confirmed', 'Modified', 'Cancelled'];
+        const PAGE_SIZE        = 20;
         const AUTO_REFRESH_MS  = 60_000; // 1 minute
+        let currentDate        = '@Model.SelectedDate.ToString("yyyy-MM-dd")';
+        const antiForgeryToken = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
 
         let currentTab             = 'Confirmed';
         let modifyingAppointmentId = null;
         let modifyingDoctorId      = null;
         let autoRefreshTimer       = null;
         let isBusy                 = false;   // global guard against overlapping mutations
+        let currentSearch          = '';
+        let searchDebounce         = null;
+        const paginationState      = {
+            Confirmed: { page: 1, totalPages: 1, total: 0 },
+            Modified: { page: 1, totalPages: 1, total: 0 },
+            Cancelled: { page: 1, totalPages: 1, total: 0 }
+        };
 
         // In-memory cache: { Confirmed: [...], Modified: [...], Cancelled: [...] }
         const cache = {};
@@ -334,7 +370,69 @@
         function buildParams(extra = {}) {
             const p = new URLSearchParams({ id: assistantId, ...extra });
             if (selectedDoctorId !== null) p.append('doctorId', selectedDoctorId);
+            p.append('date', currentDate);
             return p;
+        }
+
+        function formatLongDate(dateStr) {
+            if (!dateStr) return '–';
+            const [y, m, d] = dateStr.split('-').map(Number);
+            if (!y || !m || !d) return dateStr;
+            const date = new Date(y, m - 1, d);
+            return date.toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric'
+            });
+        }
+
+        function updateSelectedDateUI() {
+            const heroDate = document.getElementById('appointmentsHeroDate');
+            const headerDate = document.getElementById('appointmentsHeaderDate');
+            const picker = document.getElementById('appointmentsDatePicker');
+            if (heroDate) heroDate.textContent = formatLongDate(currentDate);
+            if (headerDate) {
+                const short = formatDate(currentDate);
+                headerDate.innerHTML = `<i class="fas fa-calendar-day"></i> ${short}`;
+            }
+            if (picker && picker.value !== currentDate) picker.value = currentDate;
+        }
+
+        function setCurrentDate(newDate) {
+            if (!newDate || newDate === currentDate) return;
+            currentDate = newDate;
+            updateSelectedDateUI();
+            syncUrlState();
+            updateDoctorFilterLinks();
+            reloadAfterMutation();
+        }
+
+        function syncUrlState() {
+            const url = new URL(window.location.href);
+            url.searchParams.set('id', assistantId);
+            url.searchParams.set('date', currentDate);
+            if (selectedDoctorId !== null) {
+                url.searchParams.set('doctorId', selectedDoctorId);
+            } else {
+                url.searchParams.delete('doctorId');
+            }
+            history.replaceState({}, '', url);
+        }
+
+        function updateDoctorFilterLinks() {
+            document.querySelectorAll('.doctor-pill[data-doctor-id]').forEach(link => {
+                const doctorId = link.dataset.doctorId;
+                const href = new URL(link.getAttribute('href'), window.location.origin);
+                href.searchParams.set('id', assistantId);
+                href.searchParams.set('date', currentDate);
+                if (doctorId) {
+                    href.searchParams.set('doctorId', doctorId);
+                } else {
+                    href.searchParams.delete('doctorId');
+                }
+                link.setAttribute('href', `${href.pathname}${href.search}`);
+            });
         }
 
         // ── Rendering ─────────────────────────────────────────────────────────
@@ -451,50 +549,70 @@
             }).join('');
         }
 
+        function renderPager(status) {
+            const pager = document.getElementById('appointmentsPager');
+            if (!pager) return;
+
+            const state = paginationState[status] || { page: 1, totalPages: 1, total: 0 };
+            if (state.totalPages <= 1) {
+                pager.innerHTML = state.total > 0
+                    ? `<span style="color:var(--text-secondary);font-size:.9rem;">${state.total} result(s)</span>`
+                    : '';
+                return;
+            }
+
+            pager.innerHTML = `
+                <span style="color:var(--text-secondary);font-size:.9rem;">${state.total} result(s)</span>
+                <div style="display:flex;gap:.5rem;align-items:center;">
+                    <button class="btn btn-outline btn-sm" ${state.page <= 1 ? 'disabled' : ''} onclick="changePage(-1)">
+                        <i class="fas fa-chevron-left"></i> Prev
+                    </button>
+                    <span style="font-size:.9rem;color:var(--text-secondary);">Page ${state.page} / ${state.totalPages}</span>
+                    <button class="btn btn-outline btn-sm" ${state.page >= state.totalPages ? 'disabled' : ''} onclick="changePage(1)">
+                        Next <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>`;
+        }
+
         // ── Data Loading ───────────────────────────────────────────────────────
 
         /** Load a single tab (with optional cache). */
-        async function loadTab(status, useCache = false) {
-            if (useCache && cache[status]) {
-                renderAppointments(cache[status], status);
-                return cache[status].length;
+        async function loadTab(status, page = 1, useCache = false) {
+            const cacheKey = `${status}|${page}|${currentSearch}`;
+            if (useCache && cache[cacheKey]) {
+                const cached = cache[cacheKey];
+                paginationState[status] = {
+                    page: cached.page,
+                    totalPages: cached.totalPages,
+                    total: cached.total
+                };
+                renderAppointments(cached.items, status);
+                renderPager(status);
+                return cached.items.length;
             }
             renderLoading(status);
             try {
-                const data = await api(`@Url.Action("GetAppointments", "Assistant")?${buildParams({ status })}`);
-                cache[status] = data;
-                renderAppointments(data, status);
-                return data.length;
+                const data = await api(`@Url.Action("GetAppointments", "Assistant")?${buildParams({ status, page, pageSize: PAGE_SIZE, search: currentSearch })}`);
+                cache[cacheKey] = data;
+                paginationState[status] = {
+                    page: data.page || 1,
+                    totalPages: data.totalPages || 1,
+                    total: data.total || 0
+                };
+                renderAppointments(data.items || [], status);
+                renderPager(status);
+                return (data.items || []).length;
             } catch {
                 renderError(status);
+                renderPager(status);
                 return 0;
             }
         }
 
-        /** Load all three statuses in parallel, update counts everywhere. */
+        /** Refresh counts then load active tab page. */
         async function loadAllData() {
-            renderLoading(currentTab);
-
-            const results = await Promise.allSettled(
-                ALL_STATUSES.map(async status => {
-                    const data = await api(`@Url.Action("GetAppointments", "Assistant")?${buildParams({ status })}`);
-                    cache[status] = data;
-                    return { status, count: data.length };
-                })
-            );
-
-            const counts = { Confirmed: 0, Modified: 0, Cancelled: 0 };
-            ALL_STATUSES.forEach((status, i) => {
-                const r = results[i];
-                if (r.status === 'fulfilled') {
-                    counts[status] = r.value.count;
-                    if (status === currentTab) renderAppointments(cache[status], status);
-                } else if (status === currentTab) {
-                    renderError(status);
-                }
-            });
-
-            applyCountsToUI(counts);
+            await refreshCounts();
+            await loadTab(currentTab, 1);
         }
 
         /** Lightweight refresh: fetch only counts, then reload the active tab. */
@@ -528,7 +646,8 @@
 
         /** Invalidate cache and reload everything after a mutation. */
         function reloadAfterMutation() {
-            ALL_STATUSES.forEach(s => delete cache[s]);
+            Object.keys(cache).forEach(k => delete cache[k]);
+            ALL_STATUSES.forEach(s => paginationState[s] = { page: 1, totalPages: 1, total: 0 });
             loadAllData();
         }
 
@@ -544,16 +663,25 @@
             const pane = document.getElementById(`${tab}-tab`);
             if (pane) pane.style.display = 'block';
 
-            // Clear search when switching tabs
-            const searchInput = document.getElementById('appointmentSearch');
-            if (searchInput) searchInput.value = '';
+            const page = paginationState[tab]?.page || 1;
+            loadTab(tab, page, true);
+        }
 
-            // Use cache when available; fetch otherwise
-            if (cache[tab]) {
-                renderAppointments(cache[tab], tab);
-            } else {
-                loadTab(tab);
-            }
+        function changePage(delta) {
+            const state = paginationState[currentTab] || { page: 1, totalPages: 1 };
+            const next = Math.min(Math.max(1, state.page + delta), state.totalPages);
+            if (next === state.page) return;
+            loadTab(currentTab, next);
+        }
+
+        function handleSearchInput(value) {
+            currentSearch = (value || '').trim();
+            if (searchDebounce) clearTimeout(searchDebounce);
+            searchDebounce = setTimeout(() => {
+                Object.keys(cache).forEach(k => delete cache[k]);
+                ALL_STATUSES.forEach(s => paginationState[s].page = 1);
+                loadTab(currentTab, 1);
+            }, 300);
         }
 
         // ── Modify Modal ───────────────────────────────────────────────────────
@@ -624,7 +752,8 @@
                     body: new URLSearchParams({
                         id: assistantId,
                         appointmentId: modifyingAppointmentId,
-                        newDate, newTime, reason
+                        newDate, newTime, reason,
+                        __RequestVerificationToken: antiForgeryToken
                     })
                 });
 
@@ -682,7 +811,12 @@
                 const result = await api('@Url.Action("CancelAppointment", "Assistant")', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({ id: assistantId, appointmentId, reason })
+                    body: new URLSearchParams({
+                        id: assistantId,
+                        appointmentId,
+                        reason,
+                        __RequestVerificationToken: antiForgeryToken
+                    })
                 });
                 if (result.success) {
                     showToast(result.message, 'success');
@@ -705,7 +839,8 @@
                     document.getElementById('modifyModal').style.display === 'none' &&
                     !isBusy) {
                     refreshCounts();
-                    loadTab(currentTab); // Refresh active tab data
+                    const page = paginationState[currentTab]?.page || 1;
+                    loadTab(currentTab, page); // Refresh active tab data
                 }
             }, AUTO_REFRESH_MS);
         }
@@ -740,38 +875,43 @@
 
         // ── Search / Filter ────────────────────────────────────────────────────
 
-        function filterAppointments(query) {
-            const q = (query || '').toLowerCase().trim();
-            const listEl = document.getElementById(`${currentTab}AppointmentsList`);
-            if (!listEl) return;
-            const items = listEl.querySelectorAll('.request-item');
-            let visible = 0;
-            items.forEach(item => {
-                const data = item.dataset.search || '';
-                const match = !q || data.includes(q);
-                item.style.display = match ? '' : 'none';
-                if (match) visible++;
-            });
-            // Show/hide "no results" message
-            let noRes = listEl.querySelector('.search-no-results');
-            if (visible === 0 && items.length > 0 && q) {
-                if (!noRes) {
-                    noRes = document.createElement('div');
-                    noRes.className = 'empty-state search-no-results';
-                    noRes.innerHTML = '<i class="fas fa-search"></i><p>No appointments match your search</p>';
-                    listEl.appendChild(noRes);
-                }
-                noRes.style.display = '';
-            } else if (noRes) {
-                noRes.style.display = 'none';
-            }
+        function exportAppointmentsCsv() {
+            const params = buildParams({ status: currentTab, search: currentSearch });
+            window.location.href = `@Url.Action("ExportAppointmentsCsv", "Assistant")?${params.toString()}`;
         }
 
         // ── Init ───────────────────────────────────────────────────────────────
 
         document.addEventListener('DOMContentLoaded', () => {
+            updateSelectedDateUI();
+            updateDoctorFilterLinks();
+            syncUrlState();
             loadAllData();
             startAutoRefresh();
+
+            const picker = document.getElementById('appointmentsDatePicker');
+            const prevBtn = document.getElementById('prevAppointmentsDateBtn');
+            const nextBtn = document.getElementById('nextAppointmentsDateBtn');
+            const todayBtn = document.getElementById('todayAppointmentsDateBtn');
+
+            picker?.addEventListener('change', e => {
+                const value = e.target?.value;
+                if (value) setCurrentDate(value);
+            });
+
+            prevBtn?.addEventListener('click', () => {
+                const d = new Date(currentDate + 'T00:00:00');
+                d.setDate(d.getDate() - 1);
+                setCurrentDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+            });
+
+            nextBtn?.addEventListener('click', () => {
+                const d = new Date(currentDate + 'T00:00:00');
+                d.setDate(d.getDate() + 1);
+                setCurrentDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+            });
+
+            todayBtn?.addEventListener('click', () => setCurrentDate(todayISO()));
 
             // Deep-link: ?modify=123 opens the modal for that appointment
             const modifyId = new URLSearchParams(location.search).get('modify');

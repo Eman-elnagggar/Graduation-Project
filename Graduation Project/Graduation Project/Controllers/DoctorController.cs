@@ -1,9 +1,11 @@
 using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Graduation_Project.Controllers
 {
+    [Authorize(Roles = "Doctor")]
     public class DoctorController : Controller
     {
         private readonly IDoctor _doctorRepository;

@@ -24,6 +24,8 @@ namespace Graduation_Project.ViewModels
         // Recent readings for the trackers
         public List<PatientBloodPressure> RecentBloodPressureReadings { get; set; } = new();
         public List<PatientBloodSugar> RecentBloodSugarReadings { get; set; } = new();
+        public List<PatientBloodPressure> WeeklyBloodPressureReadings { get; set; } = new();
+        public List<PatientBloodSugar> WeeklyBloodSugarReadings { get; set; } = new();
 
         // Recent activity feed
         public List<RecentActivityItem> RecentActivities { get; set; } = new();

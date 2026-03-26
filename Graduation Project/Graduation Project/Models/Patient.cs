@@ -9,7 +9,7 @@ namespace Graduation_Project.Models
         public int PatientID { get; set; }
 
         [ForeignKey("User")]
-        public int UserID { get; set; }
+        public string UserID { get; set; }
 
         public string Address { get; set; }
         public DateTime? DateOfPregnancy { get; set; }
@@ -27,7 +27,7 @@ namespace Graduation_Project.Models
         public bool AlcoholUse { get; set; }
 
         // Navigation
-        public virtual User User { get; set; }
+        public virtual ApplicationUser User { get; set; }
         public virtual ICollection<PatientDrug> PatientDrugs { get; set; }
     }
 }

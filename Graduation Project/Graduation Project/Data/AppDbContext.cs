@@ -1,9 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Graduation_Project.Models;
 
 namespace Graduation_Project.Data
 {
-    public class AppDbContext : DbContext
+    public class AppDbContext : IdentityDbContext<ApplicationUser>
     {
         public AppDbContext()
         {
@@ -43,28 +44,13 @@ namespace Graduation_Project.Data
         public DbSet<Place> Places { get; set; }
         public DbSet<Prescription> Prescriptions { get; set; }
         public DbSet<PrescriptionItem> PrescriptionItems { get; set; }
-        public DbSet<Role> Roles { get; set; }
         public DbSet<TestReport> TestReports { get; set; }
         public DbSet<UltrasoundImage> UltrasoundImages { get; set; }
-        public DbSet<User> Users { get; set; }
         public DbSet<WeightTracking> WeightTrackings { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-
-            // ============================================================
-            // 1. USER -> ROLE (One User has One Role)
-            // ============================================================
-            modelBuilder.Entity<User>(entity =>
-            {
-                entity.HasKey(e => e.UserID);
-
-                entity.HasOne(d => d.Role)
-                    .WithMany(p => p.Users)
-                    .HasForeignKey(d => d.RoleID)
-                    .OnDelete(DeleteBehavior.Restrict);
-            });
 
             // ============================================================
             // APPOINTMENT -> PATIENT (optional — availability slots have no patient)

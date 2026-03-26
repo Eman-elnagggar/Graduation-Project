@@ -2,10 +2,12 @@ using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
 using Graduation_Project.Services;
 using Graduation_Project.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Graduation_Project.Controllers
 {
+    [Authorize(Roles = "Patient")]
     public class PatientController : Controller
     {
         private readonly IPatient _patientRepository;
@@ -69,6 +71,10 @@ namespace Graduation_Project.Controllers
             // Fetch recent readings for the tracker panels
             var recentBPReadings = _patientBloodPressure.GetRecentByPatientId(id, 10).ToList();
             var recentBSReadings = _patientBloodSugar.GetRecentByPatientId(id, 10).ToList();
+
+            // Fetch a larger window for weekly chart aggregation
+            var weeklyBPReadings = _patientBloodPressure.GetRecentByPatientId(id, 40).ToList();
+            var weeklyBSReadings = _patientBloodSugar.GetRecentByPatientId(id, 40).ToList();
 
             // Evaluate patient data and persist any new critical alerts.
             // Pass ALL recent readings so every abnormal value generates an alert,
@@ -176,6 +182,8 @@ namespace Graduation_Project.Controllers
                 NextAppointment = nextAppt,
                 RecentBloodPressureReadings = recentBPReadings,
                 RecentBloodSugarReadings = recentBSReadings,
+                WeeklyBloodPressureReadings = weeklyBPReadings,
+                WeeklyBloodSugarReadings = weeklyBSReadings,
                 RecentActivities = activities,
                 HealthAlerts = healthAlerts
             };

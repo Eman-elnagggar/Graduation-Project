@@ -1,7 +1,9 @@
 using Graduation_Project.Data;
 using Graduation_Project.Interfaces;
+using Graduation_Project.Models;
 using Graduation_Project.Repository;
 using Graduation_Project.Services;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Graduation_Project
@@ -18,6 +20,23 @@ namespace Graduation_Project
             // Database Connection (single registration)
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+            builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+            {
+                options.Password.RequireDigit = true;
+                options.Password.RequireLowercase = true;
+                options.Password.RequireUppercase = true;
+                options.Password.RequireNonAlphanumeric = false;
+                options.Password.RequiredLength = 6;
+            })
+            .AddEntityFrameworkStores<AppDbContext>()
+            .AddDefaultTokenProviders();
+
+            builder.Services.ConfigureApplicationCookie(options =>
+            {
+                options.LoginPath = "/Account/Login";
+                options.AccessDeniedPath = "/Account/AccessDenied";
+            });
 
             // Register Repositories
             builder.Services.AddScoped<IAIModel, AIModelRepository>();
@@ -44,16 +63,15 @@ namespace Graduation_Project
             builder.Services.AddScoped<IPlace, PlaceRepository>();
             builder.Services.AddScoped<IPrescription, PrescriptionRepository>();
             builder.Services.AddScoped<IPrescriptionItem, PrescriptionItemRepository>();
-            builder.Services.AddScoped<IRole, RoleRepository>();
             builder.Services.AddScoped<ITestReport, TestReportRepository>();
             builder.Services.AddScoped<ITSH_Test, TSH_TestRepository>();
             builder.Services.AddScoped<IUltrasoundImage, UltrasoundImageRepository>();
             builder.Services.AddScoped<IUrinalysis_Test, Urinalysis_TestRepository>();
-            builder.Services.AddScoped<IUser, UserRepository>();
             builder.Services.AddScoped<IWeightTracking, WeightTrackingRepository>();
 
             // Register Services
             builder.Services.AddScoped<AlertService>();
+            builder.Services.AddScoped<AssistantScheduleService>();
 
             // ?? Product OCR ????????????????????????????????????????????????
             builder.Services.AddHttpClient("ProductOcr", client =>
@@ -91,6 +109,7 @@ namespace Graduation_Project
 
             app.UseRouting();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapControllerRoute(

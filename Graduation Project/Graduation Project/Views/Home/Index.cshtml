@@ -29,7 +29,7 @@
                     <a href="#features" class="nav-link">Features</a>
                     <a href="#how-it-works" class="nav-link">How It Works</a>
                     <a href="#faq" class="nav-link">FAQ</a>
-                    <button class="btn-primary" onclick="scrollToSection('contact')">Get Started</button>
+                    <button class="btn-primary" onclick="window.location.href='@Url.Action("Login", "Account")'">Get Started</button>
                 </div>
 
                 <button class="mobile-menu-btn" id="mobileMenuBtn">
@@ -45,7 +45,7 @@
             <a href="#features" class="mobile-link">Features</a>
             <a href="#how-it-works" class="mobile-link">How It Works</a>
             <a href="#faq" class="mobile-link">FAQ</a>
-            <button class="btn-primary" onclick="scrollToSection('contact')">Get Started</button>
+            <button class="btn-primary" onclick="window.location.href='@Url.Action("Login", "Account")'">Get Started</button>
         </div>
     </nav>
 
@@ -563,7 +563,7 @@
                 <p class="cta-description">
                     Join us in building a healthier future for mothers and babies
                 </p>
-                <button class="btn-primary btn-large">
+                <button class="btn-primary btn-large" onclick="window.location.href='@Url.Action("Login", "Account")'">
                     <span>Get Started Today</span>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M5 12h14M12 5l7 7-7 7" />

@@ -44,13 +44,13 @@
 <section class="pregnancy-progress">
     <div class="progress-card assistant-hero">
         <div class="progress-info">
-            <h3>Today's Overview</h3>
+            <h3>Schedule Overview</h3>
             <p><span class="week-number" id="todayDate">@Model.SelectedDate.ToString("dddd, MMMM dd, yyyy")</span></p>
         </div>
         <div class="progress-details">
             <span>
                 <i class="fas fa-calendar-check"></i>
-                <span id="hero-appointment-count">--</span> Appointments Today
+                <span id="hero-appointment-count">--</span> Appointments on Selected Date
             </span>
             <span>
                 <i class="fas fa-user-md"></i>
@@ -131,7 +131,7 @@
             </div>
         </div>
         <div class="stat-value" id="stat-today-appointments">--</div>
-        <div class="stat-label">Today's Appointments</div>
+        <div class="stat-label">Selected Date Appointments</div>
     </div>
     <div class="quick-stat-card">
         <div class="stat-header">
@@ -167,7 +167,6 @@
         </div>
         <div style="display:flex; gap:.5rem; padding:0 1rem 1rem; flex-wrap:wrap;">
             <button type="button" class="btn btn-sm schedule-status-btn @(Model.SelectedScheduleStatus == "Booked" ? "btn-primary" : "btn-outline")" data-status="Booked">Booked</button>
-            <button type="button" class="btn btn-sm schedule-status-btn @(Model.SelectedScheduleStatus == "Available" ? "btn-primary" : "btn-outline")" data-status="Available">Available</button>
             <button type="button" class="btn btn-sm schedule-status-btn @(Model.SelectedScheduleStatus == "Cancelled" ? "btn-primary" : "btn-outline")" data-status="Cancelled">Cancelled</button>
         </div>
         <div id="schedule-container">
@@ -197,7 +196,7 @@
                     <h4>@doc.FullName</h4>
                     <div class="role">@doc.Specialization</div>
                     <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 0.5rem; font-size: 0.8rem; color: #6b7280;">
-                        <span><i class="fas fa-calendar-check"></i> <span id="doctor-today-@doc.DoctorID">--</span> today</span>
+                        <span><i class="fas fa-calendar-check"></i> <span id="doctor-today-@doc.DoctorID">--</span> on date</span>
                         <span><i class="fas fa-users"></i> <span id="doctor-patients-@doc.DoctorID">--</span> patients</span>
                     </div>
                     <span class="status-dot online">Active</span>
@@ -281,7 +280,7 @@
             let currentDoctorId = @(Model.SelectedDoctorID.HasValue ? Model.SelectedDoctorID.Value.ToString() : "null");
             let currentScheduleStatus = '@Model.SelectedScheduleStatus';
             const baseStatsUrl = '@Url.Action("GetDashboardStats", "Assistant")';
-            const baseScheduleUrl = '@Url.Action("GetTodaysSchedule", "Assistant")';
+            const baseScheduleUrl = '@Url.Action("GetScheduleByDate", "Assistant")';
             const baseIndexUrl = '@Url.Action("Index", "Assistant")';
 
             // Doctor name lookup for schedule header

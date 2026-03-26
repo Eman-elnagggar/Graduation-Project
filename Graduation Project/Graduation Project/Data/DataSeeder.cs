@@ -1,4 +1,5 @@
 using Graduation_Project.Models;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Graduation_Project.Data
@@ -11,69 +12,157 @@ namespace Graduation_Project.Data
             await context.Database.MigrateAsync();
 
             // ============================================================
-            // 1. ROLES
+            // 1. ROLES (Identity)
             // ============================================================
             if (!context.Roles.Any())
             {
                 context.Roles.AddRange(
-                    new Role { RoleName = "Admin",     Description = "System administrator with full access" },
-                    new Role { RoleName = "Doctor",    Description = "Registered medical doctor" },
-                    new Role { RoleName = "Patient",   Description = "Pregnant patient user" },
-                    new Role { RoleName = "Assistant", Description = "Clinic assistant / receptionist" },
-                    new Role { RoleName = "Lab",       Description = "Laboratory technician" }
+                    new IdentityRole { Name = "Admin",     NormalizedName = "ADMIN" },
+                    new IdentityRole { Name = "Doctor",    NormalizedName = "DOCTOR" },
+                    new IdentityRole { Name = "Patient",   NormalizedName = "PATIENT" },
+                    new IdentityRole { Name = "Assistant", NormalizedName = "ASSISTANT" },
+                    new IdentityRole { Name = "Lab",       NormalizedName = "LAB" }
                 );
                 await context.SaveChangesAsync();
             }
 
-            // Load roles by name so we can reference them below
-            var roleDoctor    = context.Roles.First(r => r.RoleName == "Doctor");
-            var rolePatient   = context.Roles.First(r => r.RoleName == "Patient");
-            var roleAssistant = context.Roles.First(r => r.RoleName == "Assistant");
+            var roleDoctor = context.Roles.First(r => r.Name == "Doctor");
+            var rolePatient = context.Roles.First(r => r.Name == "Patient");
+            var roleAssistant = context.Roles.First(r => r.Name == "Assistant");
 
             // ============================================================
-            // 2. USERS
+            // 2. USERS (Identity)
             // ============================================================
             if (!context.Users.Any())
             {
+                const string seedPassword = "Nabd@123";
+                var passwordHasher = new PasswordHasher<ApplicationUser>();
+                var passwordHash = passwordHasher.HashPassword(new ApplicationUser(), seedPassword);
+
                 context.Users.AddRange(
                     // Doctors
-                    new User { RoleID = roleDoctor.RoleID,    FirstName = "Ahmed",   LastName = "Hassan",  Email = "ahmed.hassan@mamacare.com",  PasswordHash = "AQAAAAIAAYagAAAAEH1", Phone = "01001234567", DateOfBirth = new DateTime(1975, 3, 12),  IsActive = true, CreatedDate = new DateTime(2024, 1, 1)  },
-                    new User { RoleID = roleDoctor.RoleID,    FirstName = "Mona",    LastName = "Ibrahim", Email = "mona.ibrahim@mamacare.com",   PasswordHash = "AQAAAAIAAYagAAAAEH2", Phone = "01009876543", DateOfBirth = new DateTime(1980, 7, 22),  IsActive = true, CreatedDate = new DateTime(2024, 1, 2)  },
-                    new User { RoleID = roleDoctor.RoleID,    FirstName = "Karim",   LastName = "Mostafa", Email = "karim.mostafa@mamacare.com",  PasswordHash = "AQAAAAIAAYagAAAAEH3", Phone = "01112233445", DateOfBirth = new DateTime(1978, 11, 5),  IsActive = true, CreatedDate = new DateTime(2024, 1, 3)  },
-                    new User { RoleID = roleDoctor.RoleID,    FirstName = "Nadia",   LastName = "Salem",   Email = "nadia.salem@mamacare.com",    PasswordHash = "AQAAAAIAAYagAAAAEH4", Phone = "01223344556", DateOfBirth = new DateTime(1982, 4, 18),  IsActive = true, CreatedDate = new DateTime(2024, 1, 4)  },
-                    new User { RoleID = roleDoctor.RoleID,    FirstName = "Omar",    LastName = "Fathy",   Email = "omar.fathy@mamacare.com",     PasswordHash = "AQAAAAIAAYagAAAAEH5", Phone = "01334455667", DateOfBirth = new DateTime(1976, 9, 30),  IsActive = true, CreatedDate = new DateTime(2024, 1, 5)  },
+                    new ApplicationUser { FirstName = "Ahmed",   LastName = "Hassan",  UserName = "ahmed.hassan@nabd.com",  NormalizedUserName = "AHMED.HASSAN@NABD.COM",  Email = "ahmed.hassan@nabd.com",  NormalizedEmail = "AHMED.HASSAN@NABD.COM",  EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01001234567", DateOfBirth = new DateTime(1975, 3, 12),  IsActive = true, CreatedDate = new DateTime(2024, 1, 1) },
+                    new ApplicationUser { FirstName = "Mona",    LastName = "Ibrahim", UserName = "mona.ibrahim@nabd.com",   NormalizedUserName = "MONA.IBRAHIM@NABD.COM",   Email = "mona.ibrahim@nabd.com",   NormalizedEmail = "MONA.IBRAHIM@NABD.COM",   EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01009876543", DateOfBirth = new DateTime(1980, 7, 22),  IsActive = true, CreatedDate = new DateTime(2024, 1, 2) },
+                    new ApplicationUser { FirstName = "Karim",   LastName = "Mostafa", UserName = "karim.mostafa@nabd.com",  NormalizedUserName = "KARIM.MOSTAFA@NABD.COM",  Email = "karim.mostafa@nabd.com",  NormalizedEmail = "KARIM.MOSTAFA@NABD.COM",  EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01112233445", DateOfBirth = new DateTime(1978, 11, 5),  IsActive = true, CreatedDate = new DateTime(2024, 1, 3) },
+                    new ApplicationUser { FirstName = "Nadia",   LastName = "Salem",   UserName = "nadia.salem@nabd.com",    NormalizedUserName = "NADIA.SALEM@NABD.COM",    Email = "nadia.salem@nabd.com",    NormalizedEmail = "NADIA.SALEM@NABD.COM",    EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01223344556", DateOfBirth = new DateTime(1982, 4, 18),  IsActive = true, CreatedDate = new DateTime(2024, 1, 4) },
+                    new ApplicationUser { FirstName = "Omar",    LastName = "Fathy",   UserName = "omar.fathy@nabd.com",     NormalizedUserName = "OMAR.FATHY@NABD.COM",     Email = "omar.fathy@nabd.com",     NormalizedEmail = "OMAR.FATHY@NABD.COM",     EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01334455667", DateOfBirth = new DateTime(1976, 9, 30),  IsActive = true, CreatedDate = new DateTime(2024, 1, 5) },
                     // Patients
-                    new User { RoleID = rolePatient.RoleID,   FirstName = "Sarah",   LastName = "Ahmed",   Email = "sarah.ahmed@gmail.com",       PasswordHash = "AQAAAAIAAYagAAAAEH6", Phone = "01501234567", DateOfBirth = new DateTime(1995, 6, 14),  IsActive = true, CreatedDate = new DateTime(2024, 2, 1)  },
-                    new User { RoleID = rolePatient.RoleID,   FirstName = "Fatima",  LastName = "Ali",     Email = "fatima.ali@gmail.com",        PasswordHash = "AQAAAAIAAYagAAAAEH7", Phone = "01509876543", DateOfBirth = new DateTime(1993, 8, 25),  IsActive = true, CreatedDate = new DateTime(2024, 2, 5)  },
-                    new User { RoleID = rolePatient.RoleID,   FirstName = "Yasmine", LastName = "Mahmoud", Email = "yasmine.mahmoud@gmail.com",   PasswordHash = "AQAAAAIAAYagAAAAEH8", Phone = "01512233445", DateOfBirth = new DateTime(1997, 2, 10),  IsActive = true, CreatedDate = new DateTime(2024, 2, 10) },
-                    new User { RoleID = rolePatient.RoleID,   FirstName = "Hana",    LastName = "Khaled",  Email = "hana.khaled@gmail.com",       PasswordHash = "AQAAAAIAAYagAAAAEH9", Phone = "01523344556", DateOfBirth = new DateTime(1991, 12, 3),  IsActive = true, CreatedDate = new DateTime(2024, 2, 15) },
-                    new User { RoleID = rolePatient.RoleID,   FirstName = "Reem",    LastName = "Nasser",  Email = "reem.nasser@gmail.com",       PasswordHash = "AQAAAAIAAYagAAAAEHa", Phone = "01534455667", DateOfBirth = new DateTime(1996, 5, 20),  IsActive = true, CreatedDate = new DateTime(2024, 2, 20) },
+                    new ApplicationUser { FirstName = "Sarah",   LastName = "Ahmed",   UserName = "sarah.ahmed@nabd.com",       NormalizedUserName = "SARAH.AHMED@NABD.COM",       Email = "sarah.ahmed@nabd.com",       NormalizedEmail = "SARAH.AHMED@NABD.COM",       EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01501234567", DateOfBirth = new DateTime(1995, 6, 14),  IsActive = true, CreatedDate = new DateTime(2024, 2, 1) },
+                    new ApplicationUser { FirstName = "Fatima",  LastName = "Ali",     UserName = "fatima.ali@nabd.com",        NormalizedUserName = "FATIMA.ALI@NABD.COM",        Email = "fatima.ali@nabd.com",        NormalizedEmail = "FATIMA.ALI@NABD.COM",        EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01509876543", DateOfBirth = new DateTime(1993, 8, 25),  IsActive = true, CreatedDate = new DateTime(2024, 2, 5) },
+                    new ApplicationUser { FirstName = "Yasmine", LastName = "Mahmoud", UserName = "yasmine.mahmoud@nabd.com",   NormalizedUserName = "YASMINE.MAHMOUD@NABD.COM",   Email = "yasmine.mahmoud@nabd.com",   NormalizedEmail = "YASMINE.MAHMOUD@NABD.COM",   EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01512233445", DateOfBirth = new DateTime(1997, 2, 10),  IsActive = true, CreatedDate = new DateTime(2024, 2, 10) },
+                    new ApplicationUser { FirstName = "Hana",    LastName = "Khaled",  UserName = "hana.khaled@nabd.com",       NormalizedUserName = "HANA.KHALED@NABD.COM",       Email = "hana.khaled@nabd.com",       NormalizedEmail = "HANA.KHALED@NABD.COM",       EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01523344556", DateOfBirth = new DateTime(1991, 12, 3),  IsActive = true, CreatedDate = new DateTime(2024, 2, 15) },
+                    new ApplicationUser { FirstName = "Reem",    LastName = "Nasser",  UserName = "reem.nasser@nabd.com",       NormalizedUserName = "REEM.NASSER@NABD.COM",       Email = "reem.nasser@nabd.com",       NormalizedEmail = "REEM.NASSER@NABD.COM",       EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01534455667", DateOfBirth = new DateTime(1996, 5, 20),  IsActive = true, CreatedDate = new DateTime(2024, 2, 20) },
                     // Assistants
-                    new User { RoleID = roleAssistant.RoleID, FirstName = "Layla",   LastName = "Omar",    Email = "layla.omar@mamacare.com",     PasswordHash = "AQAAAAIAAYagAAAAEHb", Phone = "01601234567", DateOfBirth = new DateTime(1990, 1, 8),   IsActive = true, CreatedDate = new DateTime(2024, 1, 10) },
-                    new User { RoleID = roleAssistant.RoleID, FirstName = "Dina",    LastName = "Samir",   Email = "dina.samir@mamacare.com",     PasswordHash = "AQAAAAIAAYagAAAAEHc", Phone = "01609876543", DateOfBirth = new DateTime(1992, 3, 17),  IsActive = true, CreatedDate = new DateTime(2024, 1, 11) },
-                    new User { RoleID = roleAssistant.RoleID, FirstName = "Noura",   LastName = "Youssef", Email = "noura.youssef@mamacare.com",  PasswordHash = "AQAAAAIAAYagAAAAEHd", Phone = "01612233445", DateOfBirth = new DateTime(1988, 7, 29),  IsActive = true, CreatedDate = new DateTime(2024, 1, 12) },
-                    new User { RoleID = roleAssistant.RoleID, FirstName = "Amira",   LastName = "Tarek",   Email = "amira.tarek@mamacare.com",    PasswordHash = "AQAAAAIAAYagAAAAEHe", Phone = "01622334456", DateOfBirth = new DateTime(1991, 5, 14),  IsActive = true, CreatedDate = new DateTime(2024, 1, 13) },
-                    new User { RoleID = roleAssistant.RoleID, FirstName = "Heba",    LastName = "Adel",    Email = "heba.adel@mamacare.com",      PasswordHash = "AQAAAAIAAYagAAAAEHf", Phone = "01632445567", DateOfBirth = new DateTime(1994, 10, 2),  IsActive = true, CreatedDate = new DateTime(2024, 1, 14) }
+                    new ApplicationUser { FirstName = "Layla",   LastName = "Omar",    UserName = "layla.omar@nabd.com",     NormalizedUserName = "LAYLA.OMAR@NABD.COM",     Email = "layla.omar@nabd.com",     NormalizedEmail = "LAYLA.OMAR@NABD.COM",     EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01601234567", DateOfBirth = new DateTime(1990, 1, 8),   IsActive = true, CreatedDate = new DateTime(2024, 1, 10) },
+                    new ApplicationUser { FirstName = "Dina",    LastName = "Samir",   UserName = "dina.samir@nabd.com",     NormalizedUserName = "DINA.SAMIR@NABD.COM",     Email = "dina.samir@nabd.com",     NormalizedEmail = "DINA.SAMIR@NABD.COM",     EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01609876543", DateOfBirth = new DateTime(1992, 3, 17),  IsActive = true, CreatedDate = new DateTime(2024, 1, 11) },
+                    new ApplicationUser { FirstName = "Noura",   LastName = "Youssef", UserName = "noura.youssef@nabd.com",  NormalizedUserName = "NOURA.YOUSSEF@NABD.COM",  Email = "noura.youssef@nabd.com",  NormalizedEmail = "NOURA.YOUSSEF@NABD.COM",  EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01612233445", DateOfBirth = new DateTime(1988, 7, 29),  IsActive = true, CreatedDate = new DateTime(2024, 1, 12) },
+                    new ApplicationUser { FirstName = "Amira",   LastName = "Tarek",   UserName = "amira.tarek@nabd.com",    NormalizedUserName = "AMIRA.TAREK@NABD.COM",    Email = "amira.tarek@nabd.com",    NormalizedEmail = "AMIRA.TAREK@NABD.COM",    EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01622334456", DateOfBirth = new DateTime(1991, 5, 14),  IsActive = true, CreatedDate = new DateTime(2024, 1, 13) },
+                    new ApplicationUser { FirstName = "Heba",    LastName = "Adel",    UserName = "heba.adel@nabd.com",      NormalizedUserName = "HEBA.ADEL@NABD.COM",      Email = "heba.adel@nabd.com",      NormalizedEmail = "HEBA.ADEL@NABD.COM",      EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01632445567", DateOfBirth = new DateTime(1994, 10, 2),  IsActive = true, CreatedDate = new DateTime(2024, 1, 14) }
                 );
+                await context.SaveChangesAsync();
+            }
+
+            // Normalize any legacy mixed users (old domains) to @nabd.com and unify password
+            {
+                const string seedPassword = "Nabd@123";
+                var passwordHasher = new PasswordHasher<ApplicationUser>();
+
+                var emailMap = new Dictionary<string, string>
+                {
+                    ["ahmed.hassan@mamacare.com"] = "ahmed.hassan@nabd.com",
+                    ["mona.ibrahim@mamacare.com"] = "mona.ibrahim@nabd.com",
+                    ["karim.mostafa@mamacare.com"] = "karim.mostafa@nabd.com",
+                    ["nadia.salem@mamacare.com"] = "nadia.salem@nabd.com",
+                    ["omar.fathy@mamacare.com"] = "omar.fathy@nabd.com",
+                    ["sarah.ahmed@gmail.com"] = "sarah.ahmed@nabd.com",
+                    ["fatima.ali@gmail.com"] = "fatima.ali@nabd.com",
+                    ["yasmine.mahmoud@gmail.com"] = "yasmine.mahmoud@nabd.com",
+                    ["hana.khaled@gmail.com"] = "hana.khaled@nabd.com",
+                    ["reem.nasser@gmail.com"] = "reem.nasser@nabd.com",
+                    ["layla.omar@mamacare.com"] = "layla.omar@nabd.com",
+                    ["dina.samir@mamacare.com"] = "dina.samir@nabd.com",
+                    ["noura.youssef@mamacare.com"] = "noura.youssef@nabd.com",
+                    ["amira.tarek@mamacare.com"] = "amira.tarek@nabd.com",
+                    ["heba.adel@mamacare.com"] = "heba.adel@nabd.com"
+                };
+
+                foreach (var pair in emailMap)
+                {
+                    var oldEmail = pair.Key;
+                    var newEmail = pair.Value;
+
+                    var legacyUser = context.Users.FirstOrDefault(u => u.Email == oldEmail);
+                    var nabdUser = context.Users.FirstOrDefault(u => u.Email == newEmail);
+
+                    if (legacyUser != null && nabdUser == null)
+                    {
+                        legacyUser.Email = newEmail;
+                        legacyUser.UserName = newEmail;
+                        legacyUser.NormalizedEmail = newEmail.ToUpperInvariant();
+                        legacyUser.NormalizedUserName = newEmail.ToUpperInvariant();
+                        legacyUser.PasswordHash = passwordHasher.HashPassword(legacyUser, seedPassword);
+                        continue;
+                    }
+
+                    if (legacyUser != null && nabdUser != null && legacyUser.Id != nabdUser.Id)
+                    {
+                        var doctor = context.Doctors.FirstOrDefault(d => d.UserID == legacyUser.Id);
+                        if (doctor != null) doctor.UserID = nabdUser.Id;
+
+                        var patient = context.Patients.FirstOrDefault(p => p.UserID == legacyUser.Id);
+                        if (patient != null) patient.UserID = nabdUser.Id;
+
+                        var assistant = context.Assistants.FirstOrDefault(a => a.UserID == legacyUser.Id);
+                        if (assistant != null) assistant.UserID = nabdUser.Id;
+
+                        var legacyRoles = context.UserRoles.Where(ur => ur.UserId == legacyUser.Id).ToList();
+                        if (legacyRoles.Count > 0)
+                            context.UserRoles.RemoveRange(legacyRoles);
+
+                        context.Users.Remove(legacyUser);
+                    }
+
+                    if (nabdUser != null)
+                    {
+                        nabdUser.PasswordHash = passwordHasher.HashPassword(nabdUser, seedPassword);
+                    }
+                }
+
+                await context.SaveChangesAsync();
+            }
+
+            if (!context.UserRoles.Any())
+            {
+                var appUsers = context.Users.ToList();
+                var identityUserRoles =
+                    appUsers.Where(u => (u.FirstName == "Ahmed" || u.FirstName == "Mona" || u.FirstName == "Karim" || u.FirstName == "Nadia" || u.FirstName == "Omar"))
+                        .Select(u => new IdentityUserRole<string> { UserId = u.Id, RoleId = roleDoctor.Id })
+                        .Concat(appUsers.Where(u => (u.FirstName == "Sarah" || u.FirstName == "Fatima" || u.FirstName == "Yasmine" || u.FirstName == "Hana" || u.FirstName == "Reem"))
+                            .Select(u => new IdentityUserRole<string> { UserId = u.Id, RoleId = rolePatient.Id }))
+                        .Concat(appUsers.Where(u => (u.FirstName == "Layla" || u.FirstName == "Dina" || u.FirstName == "Noura" || u.FirstName == "Amira" || u.FirstName == "Heba"))
+                            .Select(u => new IdentityUserRole<string> { UserId = u.Id, RoleId = roleAssistant.Id }))
+                        .ToList();
+
+                context.UserRoles.AddRange(identityUserRoles);
                 await context.SaveChangesAsync();
             }
 
             // Fetch users by email so we can wire up foreign keys
-            var uAhmed   = context.Users.First(u => u.Email == "ahmed.hassan@mamacare.com");
-            var uMona    = context.Users.First(u => u.Email == "mona.ibrahim@mamacare.com");
-            var uKarim   = context.Users.First(u => u.Email == "karim.mostafa@mamacare.com");
-            var uNadia   = context.Users.First(u => u.Email == "nadia.salem@mamacare.com");
-            var uOmar    = context.Users.First(u => u.Email == "omar.fathy@mamacare.com");
-            var uSarah   = context.Users.First(u => u.Email == "sarah.ahmed@gmail.com");
-            var uFatima  = context.Users.First(u => u.Email == "fatima.ali@gmail.com");
-            var uYasmine = context.Users.First(u => u.Email == "yasmine.mahmoud@gmail.com");
-            var uHana    = context.Users.First(u => u.Email == "hana.khaled@gmail.com");
-            var uReem    = context.Users.First(u => u.Email == "reem.nasser@gmail.com");
-            var uLayla   = context.Users.First(u => u.Email == "layla.omar@mamacare.com");
-            var uDina    = context.Users.First(u => u.Email == "dina.samir@mamacare.com");
-            var uNoura   = context.Users.First(u => u.Email == "noura.youssef@mamacare.com");
-            var uAmira   = context.Users.First(u => u.Email == "amira.tarek@mamacare.com");
-            var uHeba    = context.Users.First(u => u.Email == "heba.adel@mamacare.com");
+            var uAhmed   = context.Users.First(u => u.Email == "ahmed.hassan@nabd.com");
+            var uMona    = context.Users.First(u => u.Email == "mona.ibrahim@nabd.com");
+            var uKarim   = context.Users.First(u => u.Email == "karim.mostafa@nabd.com");
+            var uNadia   = context.Users.First(u => u.Email == "nadia.salem@nabd.com");
+            var uOmar    = context.Users.First(u => u.Email == "omar.fathy@nabd.com");
+            var uSarah   = context.Users.First(u => u.Email == "sarah.ahmed@nabd.com");
+            var uFatima  = context.Users.First(u => u.Email == "fatima.ali@nabd.com");
+            var uYasmine = context.Users.First(u => u.Email == "yasmine.mahmoud@nabd.com");
+            var uHana    = context.Users.First(u => u.Email == "hana.khaled@nabd.com");
+            var uReem    = context.Users.First(u => u.Email == "reem.nasser@nabd.com");
+            var uLayla   = context.Users.First(u => u.Email == "layla.omar@nabd.com");
+            var uDina    = context.Users.First(u => u.Email == "dina.samir@nabd.com");
+            var uNoura   = context.Users.First(u => u.Email == "noura.youssef@nabd.com");
+            var uAmira   = context.Users.First(u => u.Email == "amira.tarek@nabd.com");
+            var uHeba    = context.Users.First(u => u.Email == "heba.adel@nabd.com");
 
             // ============================================================
             // 3. DOCTORS

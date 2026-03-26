@@ -626,14 +626,14 @@
              <h4>Download My Data</h4>
       <p>Download a copy of all your personal and medical data</p>
    </div>
-        <button class="pf-btn-outline"><i class="fas fa-download"></i> Download</button>
+        <button type="button" class="pf-btn-outline" id="downloadDataBtn"><i class="fas fa-download"></i> Download</button>
             </div>
             <div class="pf-danger-item">
    <div>
               <h4>Delete Account</h4>
                     <p>Permanently delete your account and all associated data</p>
      </div>
-  <button class="pf-btn-danger-outline"><i class="fas fa-trash"></i> Delete Account</button>
+  <button type="button" class="pf-btn-danger-outline" id="deleteAccountBtn"><i class="fas fa-trash"></i> Delete Account</button>
       </div>
         </div>
     </div>
@@ -995,7 +995,7 @@ finally { btn.innerHTML = '<i class="fas fa-plus"></i> Add Medication'; btn.disa
         if (label) label.textContent = text || 'Password strength';
     });
 
-    document.getElementById('passwordForm')?.addEventListener('submit', function (e) {
+    document.getElementById('passwordForm')?.addEventListener('submit', async function (e) {
         e.preventDefault();
         const cur = document.getElementById('currentPassword').value;
    const nw  = document.getElementById('newPassword').value;
@@ -1003,8 +1003,98 @@ finally { btn.innerHTML = '<i class="fas fa-plus"></i> Add Medication'; btn.disa
       if (!cur || !nw || !cf) { toast('Please fill in all password fields.', 'warning'); return; }
         if (nw !== cf)           { toast('New passwords do not match.', 'error'); return; }
         if (nw.length < 8)       { toast('Password must be at least 8 characters.', 'error'); return; }
-    toast('Password updated successfully!');
-        this.reset();
+
+        const fd = new FormData();
+        fd.append('currentPassword', cur);
+        fd.append('newPassword', nw);
+        fd.append('confirmPassword', cf);
+        fd.append('__RequestVerificationToken', TOKEN);
+
+        try {
+            const d = await (await fetch('/Account/ChangePassword', { method: 'POST', body: fd })).json();
+            if (d.success) {
+                toast('Password updated successfully!');
+                this.reset();
+                const fill = document.getElementById('pwFill');
+                const label = document.getElementById('pwLabel');
+                if (fill) { fill.style.width = '0%'; fill.style.background = '#e2e8f0'; }
+                if (label) label.textContent = 'Password strength';
+            } else {
+                toast(d.message || 'Could not update password.', 'error');
+            }
+        } catch {
+            toast('Could not update password. Please try again.', 'error');
+        }
+    });
+
+    // ── Download My Data ─────────────────────────────────────────────
+    document.getElementById('downloadDataBtn')?.addEventListener('click', async function () {
+        const fd = new FormData();
+        fd.append('__RequestVerificationToken', TOKEN);
+
+        const btn = this;
+        const oldHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing...';
+
+        try {
+            const response = await fetch('/Account/DownloadMyData', { method: 'POST', body: fd });
+            if (!response.ok) {
+                toast('Could not download data. Please try again.', 'error');
+                return;
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            const cd = response.headers.get('Content-Disposition') || '';
+            const match = cd.match(/filename="?([^";]+)"?/i);
+            link.href = url;
+            link.download = match?.[1] || 'my-data.csv';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+            toast('Data downloaded successfully!');
+        } catch {
+            toast('Could not download data. Please try again.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = oldHtml;
+        }
+    });
+
+    // ── Delete Account ────────────────────────────────────────────────
+    document.getElementById('deleteAccountBtn')?.addEventListener('click', async function () {
+        const confirmed = confirm('Are you sure you want to delete your account? This action cannot be undone.');
+        if (!confirmed) return;
+
+        const fd = new FormData();
+        fd.append('__RequestVerificationToken', TOKEN);
+
+        const btn = this;
+        const oldHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+
+        try {
+            const response = await fetch('/Account/DeleteAccount', { method: 'POST', body: fd });
+            const data = await response.json();
+            if (data.success) {
+                toast('Your account has been deleted.', 'info');
+                setTimeout(() => {
+                    window.location.href = data.redirectUrl || '/Account/Login';
+                }, 700);
+                return;
+            }
+
+            toast(data.message || 'Could not delete account.', 'error');
+        } catch {
+            toast('Could not delete account. Please try again.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = oldHtml;
+        }
     });
 
     // ── Util ──────────────────────────────────────────────────────────
