@@ -4,9 +4,8 @@ from sklearn.preprocessing import PowerTransformer
 
 class cbc_model_prediction:
     def __init__(self):
-        self.__model=joblib.load("cbc_model.pkl")
-        self.__mlb=joblib.load('mlb.pkl')
-        self.__pt=joblib.load('power_transformer.pkl')
+        self.__model=joblib.load("./CBC/cbc_model.pkl")
+        self.__pt=joblib.load('./CBC/power_transformer.pkl')
         self.__labels=['Leukopenia','Leukocytosis','Anemia','Elevated Hemoglobin','Thrombocytopenia','Thrombocytosis','Microcytosis','Macrocytosis'
                     ,'Lymphopenia','Lymphocytosis']
     
@@ -31,7 +30,7 @@ class cbc_model_prediction:
     def predicit_cbc(self,input_data):
         input_data=self.__input_to_df(input_data)
         input_data=self.__preprocessing(input_data)
-        print(input_data)
+        # print(input_data)
         sample_pred = self.__model.predict(input_data)[0]
         predicted_diagnoses = [self.__labels[i] for i in range(len(self.__labels)) if sample_pred[i] == 1]
         return predicted_diagnoses
@@ -39,15 +38,15 @@ class cbc_model_prediction:
 # if __name__=="__main__":
 
 #     input_data={
-#         "age":48,
-#         "hb":10.9,
-#         "rbc":3.75,
-#         "wbc":231100,
-#         "platelets":333000.0,
-#         "lymp":79.0,
-#         "mcv":75.6,
-#         "mch":24.3,
-#         "mchc":33.1,
+        # "age":48,
+        # "hb":10.9,
+        # "rbc":3.75,
+        # "wbc":231100,
+        # "platelets":333000.0,
+        # "lymp":79.0,
+        # "mcv":75.6,
+        # "mch":24.3,
+        # "mchc":33.1,
 #     }
 #     obj=cbc_model_prediction()
 #     print(obj.predicit_cbc(input_data))

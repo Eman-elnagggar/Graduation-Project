@@ -1,7 +1,7 @@
 
-def evaluate_tsh(input_data:dict,trimester:int)->str:
+def evaluate_tsh(input_data:dict)->str:
     tsh_value=input_data['TSH']
-
+    trimester=input_data['trimester']
     if (trimester==1):
         if ((tsh_value>=0.6)&(tsh_value<=3.4)):
             return "normal"
