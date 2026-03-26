@@ -3,6 +3,7 @@ using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
 using Graduation_Project.Repository;
 using Graduation_Project.Services;
+using Graduation_Project.Hubs;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -72,6 +73,7 @@ namespace Graduation_Project
             // Register Services
             builder.Services.AddScoped<AlertService>();
             builder.Services.AddScoped<AssistantScheduleService>();
+            builder.Services.AddScoped<NotificationService>();
 
             // ?? Product OCR ????????????????????????????????????????????????
             builder.Services.AddHttpClient("ProductOcr", client =>
@@ -115,6 +117,8 @@ namespace Graduation_Project
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
+
+            app.MapHub<NotificationHub>("/hubs/notifications");
 
             app.Run();
         }

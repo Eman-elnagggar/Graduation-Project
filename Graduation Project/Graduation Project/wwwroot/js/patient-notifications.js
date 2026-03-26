@@ -172,6 +172,32 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  let notificationConnection = null;
+
+  const startRealtimeNotifications = async () => {
+    if (!window.signalR || !patientId) return;
+
+    notificationConnection = new signalR.HubConnectionBuilder()
+      .withUrl("/hubs/notifications")
+      .withAutomaticReconnect()
+      .build();
+
+    notificationConnection.on("AlertCreated", async (alert) => {
+      // safest: reload canonical data from DB
+      await loadAlerts();
+    });
+
+    notificationConnection.onreconnected(async () => {
+      await loadAlerts();
+    });
+
+    try {
+      await notificationConnection.start();
+    } catch {
+      // optional: silent fail; polling/open-panel load still works
+    }
+  };
+
   list.addEventListener("click", async (e) => {
     const btn = e.target.closest(".pp-mark-read-btn");
     if (!btn) return;
@@ -195,4 +221,5 @@ document.addEventListener("DOMContentLoaded", () => {
 
   updateTopbarDate();
   loadAlerts();
+  startRealtimeNotifications();
 });

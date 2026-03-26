@@ -12,10 +12,12 @@ namespace Graduation_Project.Services
     public class AlertService
     {
         private readonly IAlert _alertRepository;
+        private readonly NotificationService _notificationService;
 
-        public AlertService(IAlert alertRepository)
+        public AlertService(IAlert alertRepository, NotificationService notificationService)
         {
             _alertRepository = alertRepository;
+            _notificationService = notificationService;
         }
 
         /// <summary>
@@ -208,6 +210,24 @@ namespace Graduation_Project.Services
                     _alertRepository.Add(alert);
 
                 _alertRepository.Save();
+
+                if (!string.IsNullOrWhiteSpace(patient.UserID))
+                {
+                    foreach (var alert in newAlerts)
+                    {
+                        _ = _notificationService.SendAlertAsync(
+                            patient.UserID,
+                            new
+                            {
+                                alertId = alert.AlertID,
+                                title = alert.Title,
+                                message = alert.Message,
+                                alertType = alert.AlertType,
+                                dateCreated = alert.DateCreated,
+                                isRead = alert.IsRead
+                            });
+                    }
+                }
             }
         }
 

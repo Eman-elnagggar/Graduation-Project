@@ -1,7 +1,10 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
+
 namespace Graduation_Project.Hubs
 {
-    public class NotificationHub:Hub
+    [Authorize]
+    public class NotificationHub : Hub
     {
     }
 }
