@@ -1,10 +1,13 @@
 ﻿using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
 using Graduation_Project.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Graduation_Project.Controllers
 {
+    [Authorize(Roles = "Patient")]
     public class PatientProfileController : Controller
     {
         private readonly IPatient _patientRepository;
@@ -19,9 +22,9 @@ namespace Graduation_Project.Controllers
         // GET: /PatientProfile/Index/5
         public IActionResult Index(int id)
         {
-            var patient = _patientRepository.GetById(id);
-            if (patient == null)
-                return NotFound();
+            var (patient, failure) = AuthorizePatientAccess(id);
+            if (failure != null)
+                return failure;
 
             var user = patient.User;
 
@@ -104,9 +107,9 @@ namespace Graduation_Project.Controllers
         public IActionResult SavePersonal(int patientId, string firstName, string lastName,
             string phone, string address, DateTime? dateOfBirth)
         {
-            var patient = _patientRepository.GetById(patientId);
-            if (patient == null)
-  return Json(new { success = false, message = "Patient not found." });
+            var (patient, failure) = AuthorizePatientAccess(patientId, true);
+            if (failure != null)
+                return failure;
 
      if (patient.User != null)
      {
@@ -130,9 +133,9 @@ namespace Graduation_Project.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult SaveMeasurements(int patientId, double weightKg, double heightCm)
     {
-     var patient = _patientRepository.GetById(patientId);
-       if (patient == null)
-           return Json(new { success = false, message = "Patient not found." });
+     var (patient, failure) = AuthorizePatientAccess(patientId, true);
+       if (failure != null)
+           return failure;
 
           if (weightKg > 0) patient.WeightKg = weightKg;
             if (heightCm > 0) patient.HeightCm = heightCm;
@@ -158,9 +161,9 @@ namespace Graduation_Project.Controllers
         public IActionResult SavePregnancy(int patientId, DateTime? pregnancyDate,
             bool isFirstPregnancy, int previousPregnancies, int abortions, int births)
         {
-            var patient = _patientRepository.GetById(patientId);
-    if (patient == null)
-    return Json(new { success = false, message = "Patient not found." });
+            var (patient, failure) = AuthorizePatientAccess(patientId, true);
+    if (failure != null)
+    return failure;
 
     if (pregnancyDate.HasValue) patient.DateOfPregnancy = pregnancyDate;
             patient.IsFirstPregnancy    = isFirstPregnancy;
@@ -180,9 +183,9 @@ patient.Births    = births;
      public IActionResult SaveMedical(int patientId, bool bloodPressureIssue,
             bool smoking, bool alcoholUse)
         {
-            var patient = _patientRepository.GetById(patientId);
-            if (patient == null)
-         return Json(new { success = false, message = "Patient not found." });
+            var (patient, failure) = AuthorizePatientAccess(patientId, true);
+            if (failure != null)
+         return failure;
 
    patient.BloodPressureIssue = bloodPressureIssue;
        patient.Smoking            = smoking;
@@ -200,6 +203,10 @@ patient.Births    = births;
   public IActionResult AddMedication(int patientId, string drugName, string reason,
   double doseMgPerDay, int durationMonths)
  {
+            var (_, failure) = AuthorizePatientAccess(patientId, true);
+            if (failure != null)
+                return failure;
+
      if (string.IsNullOrWhiteSpace(drugName) || string.IsNullOrWhiteSpace(reason))
     return Json(new { success = false, message = "Drug name and reason are required." });
 
@@ -223,6 +230,10 @@ patient.Births    = births;
  [ValidateAntiForgeryToken]
       public IActionResult DeleteMedication(int drugId, int patientId)
         {
+            var (_, failure) = AuthorizePatientAccess(patientId, true);
+            if (failure != null)
+                return failure;
+
        var drug = _patientDrugRepository.GetById(drugId);
           if (drug == null || drug.PatientID != patientId)
            return Json(new { success = false });
@@ -231,6 +242,32 @@ patient.Births    = births;
             _patientDrugRepository.Save();
 
       return Json(new { success = true });
+        }
+
+        private (Patient? patient, IActionResult? failure) AuthorizePatientAccess(int patientId, bool returnJsonOnFailure = false)
+        {
+            var patient = _patientRepository.GetById(patientId);
+            if (patient == null)
+                return (null, NotFound());
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                if (returnJsonOnFailure)
+                    return (null, Unauthorized(new { success = false, message = "Unauthorized." }));
+
+                return (null, Unauthorized());
+            }
+
+            if (!string.Equals(patient.UserID, userId, StringComparison.Ordinal))
+            {
+                if (returnJsonOnFailure)
+                    return (null, StatusCode(StatusCodes.Status403Forbidden, new { success = false, message = "Access denied." }));
+
+                return (null, Forbid());
+            }
+
+            return (patient, null);
         }
     }
 }

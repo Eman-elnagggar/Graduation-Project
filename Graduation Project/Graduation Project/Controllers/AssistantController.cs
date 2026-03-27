@@ -5,6 +5,7 @@ using Graduation_Project.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Globalization;
+using System.Security.Claims;
 
 namespace Graduation_Project.Controllers
 {
@@ -84,8 +85,8 @@ namespace Graduation_Project.Controllers
         [HttpGet]
         public IActionResult GetDashboardStats(int id, int? doctorId, string? date)
         {
-            var assistant = _assistantRepository.GetByIdWithDoctors(id);
-            if (assistant == null) return NotFound();
+            var accessResult = TryResolveAssistant(id, out var assistant, true);
+            if (accessResult != null) return accessResult;
 
             var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
             if (clinic == null) return NotFound();
@@ -150,8 +151,8 @@ namespace Graduation_Project.Controllers
         [HttpGet]
         public IActionResult GetScheduleByDate(int id, int? doctorId, string? date, string? status)
         {
-            var assistant = _assistantRepository.GetByIdWithDoctors(id);
-            if (assistant == null) return NotFound();
+            var accessResult = TryResolveAssistant(id, out var assistant, true);
+            if (accessResult != null) return accessResult;
 
             var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
             if (clinic == null) return NotFound();
@@ -257,8 +258,8 @@ namespace Graduation_Project.Controllers
 
         public IActionResult Appointments(int id, int? doctorId, DateTime? date)
         {
-            var assistant = _assistantRepository.GetByIdWithDoctors(id);
-            if (assistant == null) return NotFound();
+            var accessResult = TryResolveAssistant(id, out var assistant);
+            if (accessResult != null) return accessResult;
 
             var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
             if (clinic == null) return NotFound();
@@ -327,8 +328,8 @@ namespace Graduation_Project.Controllers
         [HttpGet]
         public IActionResult GetAppointmentDetail(int id, int appointmentId)
         {
-            var assistant = _assistantRepository.GetByIdWithDoctors(id);
-            if (assistant == null) return NotFound();
+            var accessResult = TryResolveAssistant(id, out var assistant, true);
+            if (accessResult != null) return accessResult;
 
             var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
             if (clinic == null) return NotFound();
@@ -363,8 +364,8 @@ namespace Graduation_Project.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult ModifyAppointment(int id, int appointmentId, string newDate, string newTime, string reason)
         {
-            var assistant = _assistantRepository.GetByIdWithDoctors(id);
-            if (assistant == null) return NotFound();
+            var accessResult = TryResolveAssistant(id, out var assistant, true);
+            if (accessResult != null) return accessResult;
 
             var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
             if (clinic == null) return NotFound();
@@ -413,8 +414,8 @@ namespace Graduation_Project.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult CancelAppointment(int id, int appointmentId, string reason)
         {
-            var assistant = _assistantRepository.GetByIdWithDoctors(id);
-            if (assistant == null) return NotFound();
+            var accessResult = TryResolveAssistant(id, out var assistant, true);
+            if (accessResult != null) return accessResult;
 
             var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
             if (clinic == null) return NotFound();
@@ -448,8 +449,8 @@ namespace Graduation_Project.Controllers
 
         public IActionResult Availability(int id, int? doctorId)
         {
-            var assistant = _assistantRepository.GetByIdWithDoctors(id);
-            if (assistant == null) return NotFound();
+            var accessResult = TryResolveAssistant(id, out var assistant);
+            if (accessResult != null) return accessResult;
 
             var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
             if (clinic == null) return NotFound();
@@ -476,8 +477,8 @@ namespace Graduation_Project.Controllers
         [HttpGet]
         public IActionResult GetAvailabilitySlots(int id, int doctorId, string date)
         {
-            var assistant = _assistantRepository.GetByIdWithDoctors(id);
-            if (assistant == null) return NotFound();
+            var accessResult = TryResolveAssistant(id, out var assistant, true);
+            if (accessResult != null) return accessResult;
 
             var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
             if (clinic == null) return NotFound();
@@ -519,8 +520,8 @@ namespace Graduation_Project.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult CreateAvailabilitySlot(int id, int doctorId, string date, string time)
         {
-            var assistant = _assistantRepository.GetByIdWithDoctors(id);
-            if (assistant == null) return NotFound();
+            var accessResult = TryResolveAssistant(id, out var assistant, true);
+            if (accessResult != null) return accessResult;
 
             var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
             if (clinic == null) return NotFound();
@@ -567,8 +568,8 @@ namespace Graduation_Project.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult DeleteAvailabilitySlot(int id, int appointmentId)
         {
-            var assistant = _assistantRepository.GetByIdWithDoctors(id);
-            if (assistant == null) return NotFound();
+            var accessResult = TryResolveAssistant(id, out var assistant, true);
+            if (accessResult != null) return accessResult;
 
             var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
             if (clinic == null) return NotFound();
@@ -595,8 +596,8 @@ namespace Graduation_Project.Controllers
         public IActionResult SetAllSlotsAvailable(int id, int doctorId, string date,
             string startTime, string endTime, int slotDuration)
         {
-            var assistant = _assistantRepository.GetByIdWithDoctors(id);
-            if (assistant == null) return NotFound();
+            var accessResult = TryResolveAssistant(id, out var assistant, true);
+            if (accessResult != null) return accessResult;
 
             var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
             if (clinic == null) return NotFound();
@@ -665,8 +666,8 @@ namespace Graduation_Project.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult BlockAllAvailabilitySlots(int id, int doctorId, string date)
         {
-            var assistant = _assistantRepository.GetByIdWithDoctors(id);
-            if (assistant == null) return NotFound();
+            var accessResult = TryResolveAssistant(id, out var assistant, true);
+            if (accessResult != null) return accessResult;
 
             var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
             if (clinic == null) return NotFound();
@@ -694,8 +695,8 @@ namespace Graduation_Project.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult ApplyQuickSetupSchedule(int id, [FromBody] QuickSetupRequest request)
         {
-            var assistant = _assistantRepository.GetByIdWithDoctors(id);
-            if (assistant == null) return NotFound();
+            var accessResult = TryResolveAssistant(id, out var assistant, true);
+            if (accessResult != null) return accessResult;
 
             var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
             if (clinic == null) return NotFound();
@@ -808,6 +809,43 @@ namespace Graduation_Project.Controllers
         public IActionResult DeleteConfirmed(int id)
         {
             throw new NotImplementedException();
+        }
+
+        private IActionResult? TryResolveAssistant(int id, out Assistant? assistant, bool returnJsonOnFailure = false)
+        {
+            assistant = null;
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                if (returnJsonOnFailure)
+                    return Unauthorized(new { success = false, message = "Unauthorized." });
+
+                return Unauthorized();
+            }
+
+            assistant = _assistantRepository.GetAll()
+                .Where(a => a.UserID == userId)
+                .Select(a => _assistantRepository.GetByIdWithDoctors(a.AssistantID))
+                .FirstOrDefault(a => a != null);
+
+            if (assistant == null)
+            {
+                if (returnJsonOnFailure)
+                    return NotFound(new { success = false, message = "Assistant not found." });
+
+                return NotFound();
+            }
+
+            if (id > 0 && assistant.AssistantID != id)
+            {
+                if (returnJsonOnFailure)
+                    return StatusCode(StatusCodes.Status403Forbidden, new { success = false, message = "Access denied." });
+
+                return Forbid();
+            }
+
+            return null;
         }
     }
 }

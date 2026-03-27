@@ -1,10 +1,13 @@
 using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
 using Graduation_Project.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Graduation_Project.Controllers
 {
+    [Authorize(Roles = "Patient")]
     public class PatientMedicalHistoryController : Controller
     {
         private readonly IPatient _patientRepository;
@@ -44,6 +47,13 @@ namespace Graduation_Project.Controllers
             var patient = _patientRepository.GetById(id);
             if (patient == null)
                 return NotFound();
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userId))
+                return Unauthorized();
+
+            if (!string.Equals(patient.UserID, userId, StringComparison.Ordinal))
+                return Forbid();
 
             var bpReadings = _patientBloodPressure.GetRecentByPatientId(id, 200).ToList();
             var bsReadings = _patientBloodSugar.GetRecentByPatientId(id, 200).ToList();

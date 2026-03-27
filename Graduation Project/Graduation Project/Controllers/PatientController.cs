@@ -4,6 +4,7 @@ using Graduation_Project.Services;
 using Graduation_Project.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Graduation_Project.Controllers
 {
@@ -41,9 +42,9 @@ namespace Graduation_Project.Controllers
 
         public IActionResult Index(int id)
         {
-            var patient = _patientRepository.GetById(id);
-            if (patient == null)
-                return NotFound();
+            var (patient, failure) = AuthorizePatientAccess(id);
+            if (failure != null)
+                return failure;
 
             // Calculate current pregnancy week
             int currentWeek = 0;
@@ -198,6 +199,10 @@ namespace Graduation_Project.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult SaveBloodPressure(int patientId, string systolic, string diastolic, string? pulse, string? measurementTime)
         {
+            var (patient, failure) = AuthorizePatientAccess(patientId, true);
+            if (failure != null)
+                return failure;
+
             if (string.IsNullOrWhiteSpace(systolic) || string.IsNullOrWhiteSpace(diastolic))
                 return BadRequest(new { success = false, message = "Systolic and diastolic values are required." });
 
@@ -213,7 +218,6 @@ namespace Graduation_Project.Controllers
             _patientBloodPressure.Save();
 
             // Evaluate and persist alerts for the new reading immediately
-            var patient = _patientRepository.GetById(patientId);
             if (patient != null)
             {
                 var lastBS = _patientBloodSugar.GetLastBloodSugarValue(patientId);
@@ -242,6 +246,10 @@ namespace Graduation_Project.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult SaveBloodSugar(int patientId, double bloodSugar, string? measurementTime)
         {
+            var (patient, failure) = AuthorizePatientAccess(patientId, true);
+            if (failure != null)
+                return failure;
+
             if (bloodSugar <= 0)
                 return BadRequest(new { success = false, message = "Blood sugar value is required." });
 
@@ -257,7 +265,6 @@ namespace Graduation_Project.Controllers
             _patientBloodSugar.Save();
 
             // Evaluate and persist alerts for the new reading immediately
-            var patient = _patientRepository.GetById(patientId);
             if (patient != null)
             {
                 var lastBP = _patientBloodPressure.GetLastBloodPressureValue(patientId);
@@ -277,6 +284,32 @@ namespace Graduation_Project.Controllers
                 time = reading.DateTime.ToString("h:mm tt"),
                 measurementTime = reading.MeasurementTime
             });
+        }
+
+        private (Patient? patient, IActionResult? failure) AuthorizePatientAccess(int patientId, bool returnJsonOnFailure = false)
+        {
+            var patient = _patientRepository.GetById(patientId);
+            if (patient == null)
+                return (null, NotFound());
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                if (returnJsonOnFailure)
+                    return (null, Unauthorized(new { success = false, message = "Unauthorized." }));
+
+                return (null, Unauthorized());
+            }
+
+            if (!string.Equals(patient.UserID, userId, StringComparison.Ordinal))
+            {
+                if (returnJsonOnFailure)
+                    return (null, StatusCode(StatusCodes.Status403Forbidden, new { success = false, message = "Access denied." }));
+
+                return (null, Forbid());
+            }
+
+            return (patient, null);
         }
     }
 }

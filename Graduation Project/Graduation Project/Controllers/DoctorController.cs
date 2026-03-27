@@ -28,9 +28,9 @@ namespace Graduation_Project.Controllers
 
         public IActionResult Index(int id = 0)
         {
-            var doctor = ResolveDoctor(id);
-            if (doctor == null)
-                return NotFound();
+            var accessResult = TryResolveDoctor(id, out var doctor);
+            if (accessResult != null)
+                return accessResult;
 
             var doctorName = BuildDoctorName(doctor);
             var today = DateTime.Today;
@@ -167,9 +167,9 @@ namespace Graduation_Project.Controllers
         [HttpGet]
         public IActionResult ConversationMessages(int id, int patientId)
         {
-            var doctor = ResolveDoctor(id);
-            if (doctor == null)
-                return NotFound();
+            var accessResult = TryResolveDoctor(id, out var doctor);
+            if (accessResult != null)
+                return accessResult;
 
             var patient = _context.Patients.FirstOrDefault(p => p.PatientID == patientId);
             if (patient == null || string.IsNullOrWhiteSpace(patient.UserID))
@@ -224,9 +224,9 @@ namespace Graduation_Project.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult UpdateAppointmentStatus(int id, int appointmentId, string status)
         {
-            var doctor = ResolveDoctor(id);
-            if (doctor == null)
-                return Json(new { success = false, message = "Doctor not found." });
+            var accessResult = TryResolveDoctor(id, out var doctor, true);
+            if (accessResult != null)
+                return accessResult;
 
             var appointment = _context.Appointments
                 .Include(a => a.Booking)
@@ -299,9 +299,9 @@ namespace Graduation_Project.Controllers
 
         public IActionResult Patients(int id = 0)
         {
-            var doctor = ResolveDoctor(id);
-            if (doctor == null)
-                return NotFound();
+            var accessResult = TryResolveDoctor(id, out var doctor);
+            if (accessResult != null)
+                return accessResult;
 
             var approvedPatients = _patientDoctorRepository
                 .GetApprovedByDoctor(doctor.DoctorID)
@@ -321,9 +321,9 @@ namespace Graduation_Project.Controllers
 
         public IActionResult Messages(int id = 0)
         {
-            var doctor = ResolveDoctor(id);
-            if (doctor == null)
-                return NotFound();
+            var accessResult = TryResolveDoctor(id, out var doctor);
+            if (accessResult != null)
+                return accessResult;
 
             var approvedPatients = _patientDoctorRepository
                 .GetApprovedByDoctor(doctor.DoctorID)
@@ -374,9 +374,9 @@ namespace Graduation_Project.Controllers
 
         public IActionResult Schedule(int id = 0)
         {
-            var doctor = ResolveDoctor(id);
-            if (doctor == null)
-                return NotFound();
+            var accessResult = TryResolveDoctor(id, out var doctor);
+            if (accessResult != null)
+                return accessResult;
 
             var now = DateTime.Now;
             var appointmentsToAutoMiss = _context.Appointments
@@ -440,9 +440,9 @@ namespace Graduation_Project.Controllers
 
         public IActionResult ClinicTeam(int id = 0)
         {
-            var doctor = ResolveDoctor(id);
-            if (doctor == null)
-                return NotFound();
+            var accessResult = TryResolveDoctor(id, out var doctor);
+            if (accessResult != null)
+                return accessResult;
 
             var assistantIds = _context.AssistantDoctors
                 .Where(ad => ad.DoctorID == doctor.DoctorID)
@@ -468,9 +468,9 @@ namespace Graduation_Project.Controllers
 
         public IActionResult Analytics(int id = 0)
         {
-            var doctor = ResolveDoctor(id);
-            if (doctor == null)
-                return NotFound();
+            var accessResult = TryResolveDoctor(id, out var doctor);
+            if (accessResult != null)
+                return accessResult;
 
             var approvedPatientLinks = _patientDoctorRepository
                 .GetApprovedByDoctor(doctor.DoctorID)
@@ -564,9 +564,9 @@ namespace Graduation_Project.Controllers
 
         public IActionResult Profile(int id = 0)
         {
-            var doctor = ResolveDoctor(id);
-            if (doctor == null)
-                return NotFound();
+            var accessResult = TryResolveDoctor(id, out var doctor);
+            if (accessResult != null)
+                return accessResult;
 
             var clinic = _context.ClinicDoctors
                 .Include(cd => cd.Clinic)
@@ -607,9 +607,9 @@ namespace Graduation_Project.Controllers
 
         public IActionResult PatientDetails(int id, int patientId)
         {
-            var doctor = ResolveDoctor(id);
-            if (doctor == null)
-                return NotFound();
+            var accessResult = TryResolveDoctor(id, out var doctor);
+            if (accessResult != null)
+                return accessResult;
 
             var isAssigned = _patientDoctorRepository
                 .GetApprovedByDoctor(doctor.DoctorID)
@@ -694,15 +694,25 @@ namespace Graduation_Project.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult AddNote(int doctorId, int patientId, string content)
         {
+            var accessResult = TryResolveDoctor(doctorId, out var doctor);
+            if (accessResult != null)
+                return accessResult;
+
+            var isAssigned = _patientDoctorRepository
+                .GetApprovedByDoctor(doctor!.DoctorID)
+                .Any(pd => pd.PatientID == patientId);
+            if (!isAssigned)
+                return Forbid();
+
             if (string.IsNullOrWhiteSpace(content))
             {
                 TempData["InviteError"] = "Note content is required.";
-                return RedirectToAction(nameof(PatientDetails), new { id = doctorId, patientId });
+                return RedirectToAction(nameof(PatientDetails), new { id = doctor!.DoctorID, patientId });
             }
 
             var note = new Note
             {
-                DoctorID = doctorId,
+                DoctorID = doctor!.DoctorID,
                 PatientID = patientId,
                 Content = content.Trim(),
                 CreatedDate = DateTime.Now
@@ -711,17 +721,21 @@ namespace Graduation_Project.Controllers
             _context.Notes.Add(note);
             _context.SaveChanges();
 
-            return RedirectToAction(nameof(PatientDetails), new { id = doctorId, patientId });
+            return RedirectToAction(nameof(PatientDetails), new { id = doctor.DoctorID, patientId });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult InviteAssistant(int doctorId, string assistantEmail)
         {
+            var accessResult = TryResolveDoctor(doctorId, out var doctor);
+            if (accessResult != null)
+                return accessResult;
+
             if (string.IsNullOrWhiteSpace(assistantEmail))
             {
                 TempData["InviteError"] = "Assistant email is required.";
-                return RedirectToAction(nameof(ClinicTeam), new { id = doctorId });
+                return RedirectToAction(nameof(ClinicTeam), new { id = doctor!.DoctorID });
             }
 
             var assistant = _context.Assistants
@@ -731,34 +745,38 @@ namespace Graduation_Project.Controllers
             if (assistant == null)
             {
                 TempData["InviteError"] = "No assistant account found with this email.";
-                return RedirectToAction(nameof(ClinicTeam), new { id = doctorId });
+                return RedirectToAction(nameof(ClinicTeam), new { id = doctor!.DoctorID });
             }
 
             var exists = _context.AssistantDoctors.Any(ad =>
-                ad.DoctorID == doctorId && ad.AssistantID == assistant.AssistantID);
+                ad.DoctorID == doctor!.DoctorID && ad.AssistantID == assistant.AssistantID);
             if (exists)
             {
                 TempData["InviteError"] = "Assistant is already linked to your clinic team.";
-                return RedirectToAction(nameof(ClinicTeam), new { id = doctorId });
+                return RedirectToAction(nameof(ClinicTeam), new { id = doctor.DoctorID });
             }
 
             _context.AssistantDoctors.Add(new AssistantDoctor
             {
-                DoctorID = doctorId,
+                DoctorID = doctor.DoctorID,
                 AssistantID = assistant.AssistantID
             });
             _context.SaveChanges();
 
             TempData["InviteSuccess"] = "Assistant added to clinic team successfully.";
-            return RedirectToAction(nameof(ClinicTeam), new { id = doctorId });
+            return RedirectToAction(nameof(ClinicTeam), new { id = doctor.DoctorID });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult RemoveAssistant(int doctorId, int assistantId)
         {
+            var accessResult = TryResolveDoctor(doctorId, out var doctor);
+            if (accessResult != null)
+                return accessResult;
+
             var link = _context.AssistantDoctors
-                .FirstOrDefault(ad => ad.DoctorID == doctorId && ad.AssistantID == assistantId);
+                .FirstOrDefault(ad => ad.DoctorID == doctor!.DoctorID && ad.AssistantID == assistantId);
 
             if (link != null)
             {
@@ -767,7 +785,7 @@ namespace Graduation_Project.Controllers
                 TempData["InviteSuccess"] = "Assistant removed from your clinic team.";
             }
 
-            return RedirectToAction(nameof(ClinicTeam), new { id = doctorId });
+            return RedirectToAction(nameof(ClinicTeam), new { id = doctor!.DoctorID });
         }
 
         [HttpPost]
@@ -783,22 +801,43 @@ namespace Graduation_Project.Controllers
             return RedirectToAction(nameof(Profile), new { id });
         }
 
-        private Doctor? ResolveDoctor(int id)
+        private IActionResult? TryResolveDoctor(int id, out Doctor? doctor, bool returnJsonOnFailure = false)
         {
-            if (id > 0)
-            {
-                return _context.Doctors
-                    .Include(d => d.User)
-                    .FirstOrDefault(d => d.DoctorID == id);
-            }
+            doctor = null;
 
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrWhiteSpace(userId))
-                return null;
+            {
+                if (returnJsonOnFailure)
+                    return Unauthorized(new { success = false, message = "Unauthorized." });
 
-            return _context.Doctors
+                return Unauthorized();
+            }
+
+            doctor = _context.Doctors
                 .Include(d => d.User)
                 .FirstOrDefault(d => d.UserID == userId);
+
+            if (doctor == null)
+            {
+                if (returnJsonOnFailure)
+                    return Json(new { success = false, message = "Doctor not found." });
+
+                return NotFound();
+            }
+
+            if (id > 0)
+            {
+                if (doctor.DoctorID != id)
+                {
+                    if (returnJsonOnFailure)
+                        return StatusCode(StatusCodes.Status403Forbidden, new { success = false, message = "Access denied." });
+
+                    return Forbid();
+                }
+            }
+
+            return null;
         }
 
         private static string BuildDoctorName(Doctor doctor)
