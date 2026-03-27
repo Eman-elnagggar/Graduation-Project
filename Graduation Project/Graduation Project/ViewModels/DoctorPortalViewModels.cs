@@ -127,6 +127,8 @@ namespace Graduation_Project.ViewModels
     {
         public Doctor Doctor { get; set; } = null!;
         public string DoctorName { get; set; } = "Doctor";
+        public string ActiveSection { get; set; } = "personal";
+        public int ClinicsConnectedCount { get; set; }
         public string? ClinicName { get; set; }
         public string? ClinicAddress { get; set; }
         public decimal ConsultationFee { get; set; }

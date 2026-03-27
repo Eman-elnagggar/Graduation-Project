@@ -562,17 +562,27 @@ namespace Graduation_Project.Controllers
             return View(vm);
         }
 
-        public IActionResult Profile(int id = 0)
+        public IActionResult Profile(int id = 0, string section = "personal")
         {
             var accessResult = TryResolveDoctor(id, out var doctor);
             if (accessResult != null)
                 return accessResult;
 
-            var clinic = _context.ClinicDoctors
+            var allowedSections = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "personal", "professional", "clinics", "security"
+            };
+            var normalizedSection = allowedSections.Contains(section ?? string.Empty)
+                ? section!.ToLowerInvariant()
+                : "personal";
+
+            var clinicsQuery = _context.ClinicDoctors
                 .Include(cd => cd.Clinic)
                 .Where(cd => cd.DoctorID == doctor.DoctorID)
-                .Select(cd => cd.Clinic)
-                .FirstOrDefault();
+                .Select(cd => cd.Clinic);
+
+            var clinic = clinicsQuery.FirstOrDefault();
+            var clinicsConnectedCount = clinicsQuery.Count();
 
             var appointmentsCount = _context.Appointments.Count(a => a.DoctorID == doctor.DoctorID && a.isBooked);
             var patientCount = _patientDoctorRepository.GetApprovedByDoctor(doctor.DoctorID).Count();
@@ -581,6 +591,8 @@ namespace Graduation_Project.Controllers
             {
                 Doctor = doctor,
                 DoctorName = BuildDoctorName(doctor),
+                ActiveSection = normalizedSection,
+                ClinicsConnectedCount = clinicsConnectedCount,
                 ClinicName = clinic?.Name,
                 ClinicAddress = clinic?.Location,
                 WorkingHours = "By appointment",
@@ -799,6 +811,78 @@ namespace Graduation_Project.Controllers
         public IActionResult EditProfile(int id)
         {
             return RedirectToAction(nameof(Profile), new { id });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult SaveProfilePersonal(int doctorId, string? firstName, string? lastName, string? phone, string? dateOfBirth)
+        {
+            var accessResult = TryResolveDoctor(doctorId, out var doctor, true);
+            if (accessResult != null)
+                return accessResult;
+
+            if (doctor?.User == null)
+                return Json(new { success = false, message = "Doctor user not found." });
+
+            if (!string.IsNullOrWhiteSpace(dateOfBirth))
+            {
+                if (!DateTime.TryParse(dateOfBirth, out var parsedDob))
+                    return Json(new { success = false, message = "Invalid date of birth." });
+
+                doctor.User.DateOfBirth = parsedDob.Date;
+            }
+
+            doctor.User.FirstName = (firstName ?? string.Empty).Trim();
+            doctor.User.LastName = (lastName ?? string.Empty).Trim();
+            doctor.User.PhoneNumber = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim();
+
+            _context.SaveChanges();
+
+            return Json(new { success = true, message = "Personal information updated successfully." });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult SaveProfileProfessional(int doctorId, string? specialization, string? address)
+        {
+            var accessResult = TryResolveDoctor(doctorId, out var doctor, true);
+            if (accessResult != null)
+                return accessResult;
+
+            if (doctor == null)
+                return Json(new { success = false, message = "Doctor not found." });
+
+            doctor.Specialization = string.IsNullOrWhiteSpace(specialization) ? string.Empty : specialization.Trim();
+            doctor.Address = string.IsNullOrWhiteSpace(address) ? string.Empty : address.Trim();
+
+            _context.SaveChanges();
+
+            return Json(new { success = true, message = "Professional information updated successfully." });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult SaveProfileClinic(int doctorId, string? clinicName, string? clinicAddress)
+        {
+            var accessResult = TryResolveDoctor(doctorId, out var doctor, true);
+            if (accessResult != null)
+                return accessResult;
+
+            var clinic = _context.ClinicDoctors
+                .Include(cd => cd.Clinic)
+                .Where(cd => cd.DoctorID == doctor!.DoctorID)
+                .Select(cd => cd.Clinic)
+                .FirstOrDefault();
+
+            if (clinic == null)
+                return Json(new { success = false, message = "No clinic is connected to this doctor." });
+
+            clinic.Name = string.IsNullOrWhiteSpace(clinicName) ? clinic.Name : clinicName.Trim();
+            clinic.Location = string.IsNullOrWhiteSpace(clinicAddress) ? clinic.Location : clinicAddress.Trim();
+
+            _context.SaveChanges();
+
+            return Json(new { success = true, message = "Clinic information updated successfully." });
         }
 
         private IActionResult? TryResolveDoctor(int id, out Doctor? doctor, bool returnJsonOnFailure = false)
