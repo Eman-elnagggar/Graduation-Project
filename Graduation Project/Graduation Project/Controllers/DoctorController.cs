@@ -466,6 +466,92 @@ namespace Graduation_Project.Controllers
             return View(vm);
         }
 
+        [HttpGet]
+        public IActionResult Clinics(int id = 0)
+        {
+            var accessResult = TryResolveDoctor(id, out var doctor);
+            if (accessResult != null)
+                return accessResult;
+
+            var clinics = _context.Clinics
+                .Include(c => c.ClinicDoctors)
+                    .ThenInclude(cd => cd.Doctor)
+                        .ThenInclude(d => d.User)
+                .Include(c => c.Assistants)
+                .OrderBy(c => c.Name)
+                .ToList();
+
+            var linkedClinicIds = clinics
+                .Where(c => c.ClinicDoctors.Any(cd => cd.DoctorID == doctor!.DoctorID))
+                .Select(c => c.ClinicID)
+                .ToHashSet();
+
+            var vm = new DoctorClinicsViewModel
+            {
+                Doctor = doctor!,
+                DoctorName = BuildDoctorName(doctor!),
+                Clinics = clinics,
+                LinkedClinicIds = linkedClinicIds
+            };
+
+            return View(vm);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult CreateClinic(int doctorId, string clinicName, string clinicLocation)
+        {
+            var accessResult = TryResolveDoctor(doctorId, out var doctor);
+            if (accessResult != null)
+                return accessResult;
+
+            var normalizedName = (clinicName ?? string.Empty).Trim();
+            var normalizedLocation = (clinicLocation ?? string.Empty).Trim();
+
+            if (string.IsNullOrWhiteSpace(normalizedName) || string.IsNullOrWhiteSpace(normalizedLocation))
+            {
+                TempData["ClinicError"] = "Clinic name and location are required.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor!.DoctorID });
+            }
+
+            var existingClinic = _context.Clinics.FirstOrDefault(c =>
+                c.Name.ToLower() == normalizedName.ToLower() &&
+                c.Location.ToLower() == normalizedLocation.ToLower());
+
+            if (existingClinic == null)
+            {
+                existingClinic = new Clinic
+                {
+                    Name = normalizedName,
+                    Location = normalizedLocation
+                };
+
+                _context.Clinics.Add(existingClinic);
+                _context.SaveChanges();
+            }
+
+            var alreadyLinked = _context.ClinicDoctors.Any(cd =>
+                cd.ClinicID == existingClinic.ClinicID && cd.DoctorID == doctor!.DoctorID);
+
+            if (!alreadyLinked)
+            {
+                _context.ClinicDoctors.Add(new ClinicDoctor
+                {
+                    ClinicID = existingClinic.ClinicID,
+                    DoctorID = doctor!.DoctorID
+                });
+
+                _context.SaveChanges();
+                TempData["ClinicSuccess"] = "Clinic saved and linked to your account successfully.";
+            }
+            else
+            {
+                TempData["ClinicSuccess"] = "Clinic already exists and is already linked to your account.";
+            }
+
+            return RedirectToAction(nameof(Clinics), new { id = doctor!.DoctorID });
+        }
+
         public IActionResult Analytics(int id = 0)
         {
             var accessResult = TryResolveDoctor(id, out var doctor);

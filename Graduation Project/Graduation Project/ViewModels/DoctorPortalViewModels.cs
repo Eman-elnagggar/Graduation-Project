@@ -90,6 +90,14 @@ namespace Graduation_Project.ViewModels
         public List<PendingInvitationViewModel> PendingInvitations { get; set; } = new();
     }
 
+    public class DoctorClinicsViewModel
+    {
+        public Doctor Doctor { get; set; } = null!;
+        public string DoctorName { get; set; } = "Doctor";
+        public List<Clinic> Clinics { get; set; } = new();
+        public HashSet<int> LinkedClinicIds { get; set; } = new();
+    }
+
     public class PendingInvitationViewModel
     {
         public int InvitationID { get; set; }

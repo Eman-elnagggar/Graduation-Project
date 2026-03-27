@@ -68,6 +68,13 @@
     <div class="nav-section">
       <span class="nav-section-label">Clinic</span>
 
+      <a href="/Doctor/Clinics/@doctorId"
+         class="nav-item @(activePage == "Clinics" ? "active" : "")"
+         data-tooltip="Clinics">
+        <div class="nav-icon"><i class="fas fa-clinic-medical"></i></div>
+        <span>Create Clinic</span>
+      </a>
+
       <a href="/Doctor/ClinicTeam/@doctorId"
          class="nav-item @(activePage == "ClinicTeam" ? "active" : "")"
          data-tooltip="Clinic Team">
