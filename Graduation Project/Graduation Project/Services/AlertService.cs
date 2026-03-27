@@ -215,17 +215,16 @@ namespace Graduation_Project.Services
                 {
                     foreach (var alert in newAlerts)
                     {
-                        _ = _notificationService.SendAlertAsync(
-                            patient.UserID,
-                            new
-                            {
-                                alertId = alert.AlertID,
-                                title = alert.Title,
-                                message = alert.Message,
-                                alertType = alert.AlertType,
-                                dateCreated = alert.DateCreated,
-                                isRead = alert.IsRead
-                            });
+                        var payload = new
+                        {
+                            alertId = alert.AlertID,
+                            title = alert.Title,
+                            message = alert.Message,
+                            alertType = alert.AlertType,
+                            dateCreated = alert.DateCreated,
+                            isRead = alert.IsRead
+                        };
+                        _notificationService.SendAlertAsync(patient.UserID, payload).GetAwaiter().GetResult();
                     }
                 }
             }

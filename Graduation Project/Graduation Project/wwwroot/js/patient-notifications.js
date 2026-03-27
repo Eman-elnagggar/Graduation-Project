@@ -107,6 +107,59 @@ document.addEventListener("DOMContentLoaded", () => {
     badge.textContent = unreadCount > 99 ? "99+" : String(unreadCount);
   };
 
+  let notificationConnection = null;
+  const seenAlertIds = new Set();
+  let hasLoadedOnce = false;
+  let isConnecting = false;
+  let reconnectTimer = null;
+  let pollTimer = null;
+
+  const showFallbackToast = (text, kind = "info") => {
+    const old = document.getElementById("ppRealtimeToast");
+    if (old) old.remove();
+
+    const toast = document.createElement("div");
+    toast.id = "ppRealtimeToast";
+    toast.textContent = text;
+    toast.style.position = "fixed";
+    toast.style.right = "20px";
+    toast.style.bottom = "20px";
+    toast.style.zIndex = "99999";
+    toast.style.padding = "12px 16px";
+    toast.style.borderRadius = "10px";
+    toast.style.color = "#fff";
+    toast.style.maxWidth = "360px";
+    toast.style.boxShadow = "0 8px 24px rgba(0,0,0,.2)";
+    toast.style.background = kind === "error" ? "#dc2626" : kind === "warning" ? "#d97706" : "#2563eb";
+
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 10000);
+  };
+
+  const showRealtimePopup = (alert) => {
+    if (!alert) return;
+
+    const risk = getRiskType(alert.alertType);
+    const title = alert.title || "New alert";
+    const message = alert.message || "";
+    const popupText = `${title}: ${message}`;
+
+    if (typeof showToast === "function") {
+      const toastType = risk === "critical" ? "error" : risk === "warning" ? "warning" : "info";
+      showToast(popupText, toastType, 10000);
+    } else {
+      const fallbackType = risk === "critical" ? "error" : risk === "warning" ? "warning" : "info";
+      showFallbackToast(popupText, fallbackType);
+    }
+  };
+
+  const rememberAlertIds = (alerts) => {
+    (alerts || []).forEach((a) => {
+      const id = Number(a?.alertId || 0);
+      if (id > 0) seenAlertIds.add(id);
+    });
+  };
+
   const loadAlerts = async () => {
     try {
       const response = await fetch(`/PatientAlerts/GetNotifications?patientId=${patientId}`);
@@ -115,9 +168,27 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await response.json();
       if (!data.success) throw new Error(data.message || "Failed to load notifications.");
 
-      renderAlerts(data.alerts || []);
+      const alerts = data.alerts || [];
+
+      // show popup for new alerts even if SignalR missed
+      const newAlerts = hasLoadedOnce
+        ? alerts.filter((a) => {
+            const id = Number(a?.alertId || 0);
+            return id > 0 && !seenAlertIds.has(id);
+          })
+        : [];
+
+      renderAlerts(alerts);
+      rememberAlertIds(alerts);
+
+      if (hasLoadedOnce && newAlerts.length > 0) {
+        newAlerts.slice().reverse().forEach(showRealtimePopup);
+      }
+
+      hasLoadedOnce = true;
       currentUnreadCount = data.unreadCount || 0;
       updateBadge(currentUnreadCount);
+
       if (topbarUserName && data.userName) {
         topbarUserName.textContent = data.userName;
       }
@@ -126,64 +197,28 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  const updateTopbarDate = () => {
-    if (!topbarDate) return;
-    const now = new Date();
-    const formatted = now.toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    });
-    topbarDate.textContent = formatted;
+  const startPollingFallback = () => {
+    if (pollTimer) return;
+    pollTimer = setInterval(async () => {
+      await loadAlerts();
+    }, 15000);
   };
-
-  const markAlertRead = async (card, button) => {
-    const alertId = Number(card?.dataset?.alertId || 0);
-    if (!alertId || !antiForgery) return;
-
-    button.disabled = true;
-    button.textContent = "Marking...";
-
-    try {
-      const body = new URLSearchParams({
-        alertId: String(alertId),
-        patientId: String(patientId),
-        __RequestVerificationToken: antiForgery,
-      });
-
-      const response = await fetch("/PatientAlerts/MarkAlertRead", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: body.toString(),
-      });
-
-      if (!response.ok) throw new Error("Request failed");
-      const data = await response.json();
-      if (!data.success) throw new Error("Request failed");
-
-      card.classList.remove("unread");
-      button.outerHTML = '<span class="pp-read-pill"><i class="fas fa-check-circle"></i> Read</span>';
-      currentUnreadCount = Math.max(0, currentUnreadCount - 1);
-      updateBadge(currentUnreadCount);
-    } catch {
-      button.disabled = false;
-      button.textContent = "Mark as read";
-    }
-  };
-
-  let notificationConnection = null;
 
   const startRealtimeNotifications = async () => {
     if (!window.signalR || !patientId) return;
+    if (notificationConnection) return;
 
     notificationConnection = new signalR.HubConnectionBuilder()
       .withUrl("/hubs/notifications")
-      .withAutomaticReconnect()
+      .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
       .build();
 
     notificationConnection.on("AlertCreated", async (alert) => {
-      // safest: reload canonical data from DB
+      const id = Number(alert?.alertId || 0);
+      if (id > 0 && seenAlertIds.has(id)) return;
+      if (id > 0) seenAlertIds.add(id);
+
+      showRealtimePopup(alert);
       await loadAlerts();
     });
 
@@ -191,11 +226,29 @@ document.addEventListener("DOMContentLoaded", () => {
       await loadAlerts();
     });
 
-    try {
-      await notificationConnection.start();
-    } catch {
-      // optional: silent fail; polling/open-panel load still works
-    }
+    notificationConnection.onclose(() => {
+      if (reconnectTimer) return;
+      reconnectTimer = setTimeout(async () => {
+        reconnectTimer = null;
+        await connectWithRetry();
+      }, 5000);
+    });
+
+    const connectWithRetry = async () => {
+      if (isConnecting) return;
+      isConnecting = true;
+      try {
+        await notificationConnection.start();
+        console.log("[Notifications] SignalR connected");
+      } catch (err) {
+        console.error("[Notifications] SignalR start failed, retry in 5s", err);
+        setTimeout(connectWithRetry, 5000);
+      } finally {
+        isConnecting = false;
+      }
+    };
+
+    await connectWithRetry();
   };
 
   list.addEventListener("click", async (e) => {
@@ -206,6 +259,10 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   toggleBtn.addEventListener("click", async () => {
+    if ("Notification" in window && Notification.permission === "default") {
+      try { await Notification.requestPermission(); } catch { /* ignore */ }
+    }
+
     await loadAlerts();
     openPanel();
   });
@@ -222,4 +279,5 @@ document.addEventListener("DOMContentLoaded", () => {
   updateTopbarDate();
   loadAlerts();
   startRealtimeNotifications();
+  startPollingFallback();
 });
