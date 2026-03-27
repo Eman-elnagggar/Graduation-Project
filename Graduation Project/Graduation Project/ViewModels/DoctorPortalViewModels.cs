@@ -107,10 +107,18 @@ namespace Graduation_Project.ViewModels
         public int CompletedAppointmentsCount { get; set; }
         public int AppointmentsTrend { get; set; }
         public int CompletionRate { get; set; }
+        public int ConfirmedAppointmentsCount { get; set; }
+        public int ModifiedAppointmentsCount { get; set; }
+        public int CancelledAppointmentsCount { get; set; }
+        public int MissedAppointmentsCount { get; set; }
         public int HighRiskPatientsCount { get; set; }
         public int LowRiskCount { get; set; }
         public int MediumRiskCount { get; set; }
         public List<int> WeeklyAppointmentCounts { get; set; } = new();
+        public List<string> MonthlyTrendLabels { get; set; } = new();
+        public List<int> MonthlyAppointmentCounts { get; set; } = new();
+        public List<int> MonthlyScheduledCounts { get; set; } = new();
+        public List<int> MonthlyPatientCounts { get; set; } = new();
         public int[] TrimesterCounts { get; set; } = new[] { 0, 0, 0 };
         public List<DoctorRecentLabTestSummary> RecentLabTests { get; set; } = new();
     }

@@ -496,6 +496,13 @@ namespace Graduation_Project.Controllers
                 .Where(a => a.DoctorID == doctor.DoctorID)
                 .ToList();
 
+            var bookingStatusCounts = appointments
+                .Where(a => a.Booking != null)
+                .Select(a => NormalizeDoctorBookingStatus(a.Booking!.Status))
+                .Where(s => s != null)
+                .GroupBy(s => s!)
+                .ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+
             var totalAppointments = appointments.Count(a => a.isBooked);
             var completedAppointments = appointments.Count(a =>
                 a.isBooked
@@ -512,6 +519,46 @@ namespace Graduation_Project.Controllers
                     return appointments.Count(a => a.isBooked && a.Date.Date == targetDay);
                 })
                 .ToList();
+
+            var monthlyStart = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(-5);
+            var monthlyTrendBuckets = Enumerable.Range(0, 6)
+                .Select(i => monthlyStart.AddMonths(i))
+                .Select(monthStart =>
+                {
+                    var monthEnd = monthStart.AddMonths(1);
+                    var monthAppointments = appointments
+                        .Where(a => a.Date >= monthStart && a.Date < monthEnd && a.isBooked)
+                        .ToList();
+
+                    var completedCount = monthAppointments.Count(a =>
+                        a.Booking != null
+                        && string.Equals(a.Booking.Status, "Completed", StringComparison.OrdinalIgnoreCase));
+
+                    var scheduledCount = monthAppointments.Count(a =>
+                        a.Booking != null
+                        && (string.Equals(a.Booking.Status, "Confirmed", StringComparison.OrdinalIgnoreCase)
+                            || string.Equals(a.Booking.Status, "Modified", StringComparison.OrdinalIgnoreCase)));
+
+                    var patientCount = monthAppointments
+                        .Where(a => a.PatientID.HasValue)
+                        .Select(a => a.PatientID!.Value)
+                        .Distinct()
+                        .Count();
+
+                    return new
+                    {
+                        Label = monthStart.ToString("MMM"),
+                        CompletedAppointments = completedCount,
+                        ScheduledAppointments = scheduledCount,
+                        Patients = patientCount
+                    };
+                })
+                .ToList();
+
+            var monthlyLabels = monthlyTrendBuckets.Select(x => x.Label).ToList();
+            var monthlyAppointmentCounts = monthlyTrendBuckets.Select(x => x.CompletedAppointments).ToList();
+            var monthlyScheduledCounts = monthlyTrendBuckets.Select(x => x.ScheduledAppointments).ToList();
+            var monthlyPatientCounts = monthlyTrendBuckets.Select(x => x.Patients).ToList();
 
             var lowRisk = approvedPatients.Count(p => ComputeRiskLevel(p, latestBloodPressureByPatient.GetValueOrDefault(p.PatientID)) == "low");
             var mediumRisk = approvedPatients.Count(p => ComputeRiskLevel(p, latestBloodPressureByPatient.GetValueOrDefault(p.PatientID)) == "medium");
@@ -551,10 +598,18 @@ namespace Graduation_Project.Controllers
                 CompletedAppointmentsCount = completedAppointments,
                 AppointmentsTrend = 0,
                 CompletionRate = completionRate,
+                ConfirmedAppointmentsCount = bookingStatusCounts.GetValueOrDefault("Confirmed"),
+                ModifiedAppointmentsCount = bookingStatusCounts.GetValueOrDefault("Modified"),
+                CancelledAppointmentsCount = bookingStatusCounts.GetValueOrDefault("Cancelled"),
+                MissedAppointmentsCount = bookingStatusCounts.GetValueOrDefault("Missed"),
                 HighRiskPatientsCount = highRisk,
                 LowRiskCount = lowRisk,
                 MediumRiskCount = mediumRisk,
                 WeeklyAppointmentCounts = weeklyCounts,
+                MonthlyTrendLabels = monthlyLabels,
+                MonthlyAppointmentCounts = monthlyAppointmentCounts,
+                MonthlyScheduledCounts = monthlyScheduledCounts,
+                MonthlyPatientCounts = monthlyPatientCounts,
                 TrimesterCounts = trimesterCounts,
                 RecentLabTests = recentTests
             };

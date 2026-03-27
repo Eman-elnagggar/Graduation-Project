@@ -1,3 +1,4 @@
+@using System.Text.Json
 @model DoctorAnalyticsViewModel
 @{
   Layout = "~/Views/Shared/_DoctorLayout.cshtml";
@@ -7,200 +8,578 @@
   ViewData["DoctorName"] = Model.DoctorName;
   ViewData["PageTitle"] = "Practice Analytics";
   ViewData["PageSubtitle"] = "Insights and trends from your patient care data";
+
+  var days = new[] { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+  var weeklySource = Model.WeeklyAppointmentCounts ?? new List<int>();
+  var weeklyCounts = Enumerable.Range(0, 7).Select(i => i < weeklySource.Count ? weeklySource[i] : 0).ToList();
+  var weeklyTotal = weeklyCounts.Sum();
+  var weeklyToday = weeklyCounts[(int)DateTime.Today.DayOfWeek];
+  var weeklyAverage = Math.Round(weeklyTotal / 7d, 1);
+  var busiestIndex = weeklyCounts.IndexOf(weeklyCounts.Max());
+
+  var trendFactor = 1 + (Model.AppointmentsTrend / 100d);
+  var safeTrendFactor = Math.Abs(trendFactor) < 0.0001 ? 1 : trendFactor;
+  var comparativeWeeklyCounts = weeklyCounts.Select(x => Math.Max(0, (int)Math.Round(x / safeTrendFactor))).ToArray();
+  var previousCompletedAppointmentsCount = Math.Max(0, (int)Math.Round(Model.CompletedAppointmentsCount / safeTrendFactor));
+  var completionDelta = Model.CompletionRate - (int)Math.Round(Model.CompletionRate / safeTrendFactor);
+
+  var monthlyLabelsSource = Model.MonthlyTrendLabels ?? new List<string>();
+  var monthlyAppointmentsSource = Model.MonthlyAppointmentCounts ?? new List<int>();
+  var monthlyScheduledSource = Model.MonthlyScheduledCounts ?? new List<int>();
+  var monthlyPatientsSource = Model.MonthlyPatientCounts ?? new List<int>();
+
+  var monthlyLabels = monthlyLabelsSource.Any() ? monthlyLabelsSource : new List<string> { "Jan", "Feb", "Mar", "Apr", "May", "Jun" };
+  var trendPoints = monthlyLabels.Count;
+  var monthlyAppointments = Enumerable.Range(0, trendPoints).Select(i => i < monthlyAppointmentsSource.Count ? monthlyAppointmentsSource[i] : 0).ToList();
+  var monthlyScheduled = Enumerable.Range(0, trendPoints).Select(i => i < monthlyScheduledSource.Count ? monthlyScheduledSource[i] : 0).ToList();
+  var monthlyPatients = Enumerable.Range(0, trendPoints).Select(i => i < monthlyPatientsSource.Count ? monthlyPatientsSource[i] : 0).ToList();
+
+  var monthlyTotal = monthlyAppointments.Sum();
+  var currentMonthAppointments = monthlyAppointments.LastOrDefault();
+  var currentMonthDays = DateTime.DaysInMonth(DateTime.Today.Year, DateTime.Today.Month);
+  var monthlyDailyAverage = Math.Round(currentMonthDays > 0 ? (double)currentMonthAppointments / currentMonthDays : 0, 1);
+  var busiestMonthIndex = monthlyAppointments.Any() ? monthlyAppointments.IndexOf(monthlyAppointments.Max()) : 0;
+  var busiestMonth = monthlyLabels[busiestMonthIndex];
+
+  var totalPatients = Model.ActivePatientsCount > 0 ? Model.ActivePatientsCount : 1;
+  var lowPct = (int)Math.Round((double)Model.LowRiskCount / totalPatients * 100);
+  var medPct = (int)Math.Round((double)Model.MediumRiskCount / totalPatients * 100);
+  var highPct = Math.Max(0, 100 - lowPct - medPct);
+
+  var donutCircumference = Math.Round(2 * Math.PI * 40, 1);
+  var lowArc = Math.Round(donutCircumference * lowPct / 100d, 1);
+  var medArc = Math.Round(donutCircumference * medPct / 100d, 1);
+  var highArc = Math.Round(donutCircumference * highPct / 100d, 1);
+
+  var trimCountsSource = Model.TrimesterCounts ?? new[] { 0, 0, 0 };
+  var trimesterCounts = new[]
+  {
+    trimCountsSource.Length > 0 ? trimCountsSource[0] : 0,
+    trimCountsSource.Length > 1 ? trimCountsSource[1] : 0,
+    trimCountsSource.Length > 2 ? trimCountsSource[2] : 0
+  };
+  var trimesterTotal = trimesterCounts.Sum() > 0 ? trimesterCounts.Sum() : 1;
+  var trimesterPcts = trimesterCounts.Select(c => (int)Math.Round((double)c / trimesterTotal * 100)).ToArray();
+
+  var recentLabTests = Model.RecentLabTests ?? new List<DoctorRecentLabTestSummary>();
+  var pendingLabCount = recentLabTests.Count(t => !t.IsReviewed);
+  var topPatients = recentLabTests
+    .GroupBy(t => ((t.Patient?.User?.FirstName ?? "Patient") + " " + (t.Patient?.User?.LastName ?? "")).Trim())
+    .Select(g => new
+    {
+      Name = string.IsNullOrWhiteSpace(g.Key) ? "Patient" : g.Key,
+      Visits = g.Count(),
+      Week = g.Where(t => t.Patient != null).Select(t => t.Patient!.GestationalWeeks).DefaultIfEmpty(0).Max(),
+      Risk = g.Any(x => !x.IsReviewed) ? "high" : "low"
+    })
+    .OrderByDescending(x => x.Visits)
+    .ThenBy(x => x.Name)
+    .Take(5)
+    .ToList();
+
+  var completionRingCirc = Math.Round(2 * Math.PI * 52, 1);
+  var completionOffset = Math.Round(completionRingCirc * (1 - Math.Clamp(Model.CompletionRate, 0, 100) / 100d), 1);
+
+  var outcomesTotal = Model.CompletedAppointmentsCount
+    + Model.ConfirmedAppointmentsCount
+    + Model.ModifiedAppointmentsCount
+    + Model.CancelledAppointmentsCount
+    + Model.MissedAppointmentsCount;
+  var safeOutcomesTotal = outcomesTotal > 0 ? outcomesTotal : 1;
+  var completedPct = (int)Math.Round((double)Model.CompletedAppointmentsCount / safeOutcomesTotal * 100);
+  var confirmedPct = (int)Math.Round((double)Model.ConfirmedAppointmentsCount / safeOutcomesTotal * 100);
+  var modifiedPct = (int)Math.Round((double)Model.ModifiedAppointmentsCount / safeOutcomesTotal * 100);
+  var cancelledPct = (int)Math.Round((double)Model.CancelledAppointmentsCount / safeOutcomesTotal * 100);
+  var missedPct = (int)Math.Round((double)Model.MissedAppointmentsCount / safeOutcomesTotal * 100);
+
+  var analyticsSeed = new
+  {
+    labels = monthlyLabels,
+    appointments = monthlyAppointments,
+    scheduled = monthlyScheduled,
+    patients = monthlyPatients,
+    weekly = weeklyCounts
+  };
 }
 
-<div class="page-header">
-  <div>
-    <h1>Practice Analytics</h1>
-    <p>Insights and trends from your patient care data</p>
-  </div>
-  <div class="header-actions">
-    <select class="period-select" id="periodSelect">
-      <option value="7">Last 7 days</option>
-      <option value="30" selected>Last 30 days</option>
-      <option value="90">Last 3 months</option>
-      <option value="365">Last year</option>
-    </select>
-    <button class="btn btn-outline" id="exportReportBtn">
-      <i class="fas fa-download"></i> Export Report
-    </button>
-  </div>
-</div>
-
-<div class="analytics-stats">
-  <div class="analytics-stat-card">
-    <div class="stat-icon patients"><i class="fas fa-users"></i></div>
-    <div class="stat-details">
-      <span class="stat-value">@Model.ActivePatientsCount</span>
-      <span class="stat-label">Active Patients</span>
-      <span class="stat-trend positive"><i class="fas fa-arrow-up"></i> +@Model.NewPatientsThisMonth this month</span>
+<div class="analytics-wrap">
+  <div class="hero">
+    <div class="hero-left">
+      <span class="hero-eyebrow"><i class="fas fa-chart-line"></i> Analytics</span>
+      <h1 class="hero-title">Practice <span>Analytics</span></h1>
+      <p class="hero-sub"><i class="fas fa-circle"></i> <span id="currentDate"></span> · Gynecology &amp; Obstetrics</p>
     </div>
-  </div>
-  <div class="analytics-stat-card">
-    <div class="stat-icon appointments"><i class="fas fa-calendar-check"></i></div>
-    <div class="stat-details">
-      <span class="stat-value">@Model.CompletedAppointmentsCount</span>
-      <span class="stat-label">Completed Appointments</span>
-      <span class="stat-trend positive"><i class="fas fa-arrow-up"></i> @Model.AppointmentsTrend% vs last period</span>
-    </div>
-  </div>
-  <div class="analytics-stat-card">
-    <div class="stat-icon completion"><i class="fas fa-percentage"></i></div>
-    <div class="stat-details">
-      <span class="stat-value">@Model.CompletionRate%</span>
-      <span class="stat-label">Completion Rate</span>
-      <span class="stat-trend @(Model.CompletionRate >= 80 ? "positive" : "negative")">
-        <i class="fas fa-@(Model.CompletionRate >= 80 ? "thumbs-up" : "arrow-down")"></i>
-        @(Model.CompletionRate >= 80 ? "On track" : "Below target")
-      </span>
-    </div>
-  </div>
-  <div class="analytics-stat-card">
-    <div class="stat-icon risk"><i class="fas fa-exclamation-triangle"></i></div>
-    <div class="stat-details">
-      <span class="stat-value">@Model.HighRiskPatientsCount</span>
-      <span class="stat-label">High-Risk Patients</span>
-      <span class="stat-trend @(Model.HighRiskPatientsCount > 0 ? "negative" : "positive")">
-        <i class="fas fa-eye"></i> Monitoring required
-      </span>
-    </div>
-  </div>
-</div>
-
-<div class="analytics-grid">
-  <div class="card">
-    <div class="card-header">
-      <h3><i class="fas fa-chart-pie"></i> Patient Risk Distribution</h3>
-    </div>
-    @{
-      var total = Model.ActivePatientsCount > 0 ? Model.ActivePatientsCount : 1;
-      var lowPct = (int)Math.Round((double)Model.LowRiskCount / total * 100);
-      var medPct = (int)Math.Round((double)Model.MediumRiskCount / total * 100);
-      var highPct = (int)Math.Round((double)Model.HighRiskPatientsCount / total * 100);
-    }
-    <div class="risk-distribution">
-      <div class="risk-bar-item">
-        <div class="risk-bar-label">
-          <span>Low Risk</span><span>@Model.LowRiskCount pts · @lowPct%</span>
-        </div>
-        <div class="risk-bar-track">
-          <div class="risk-bar-fill low" style="width:@lowPct%"></div>
-        </div>
-      </div>
-      <div class="risk-bar-item">
-        <div class="risk-bar-label">
-          <span>Medium Risk</span><span>@Model.MediumRiskCount pts · @medPct%</span>
-        </div>
-        <div class="risk-bar-track">
-          <div class="risk-bar-fill medium" style="width:@medPct%"></div>
-        </div>
-      </div>
-      <div class="risk-bar-item">
-        <div class="risk-bar-label">
-          <span>High Risk</span><span>@Model.HighRiskPatientsCount pts · @highPct%</span>
-        </div>
-        <div class="risk-bar-track">
-          <div class="risk-bar-fill high" style="width:@highPct%"></div>
-        </div>
+    <div class="hero-right">
+      <div class="hero-controls">
+        <select class="period-select" id="periodSelect">
+          <option value="7">Last 7 days</option>
+          <option value="30" selected>Last 30 days</option>
+          <option value="90">Last 3 months</option>
+          <option value="365">Last year</option>
+        </select>
+        <button class="btn btn-outline" id="exportBtn">
+          <i class="fas fa-download"></i> Export
+        </button>
+        <button class="btn btn-primary" id="printBtn">
+          <i class="fas fa-print"></i> Print
+        </button>
       </div>
     </div>
   </div>
 
-  <div class="card">
-    <div class="card-header">
-      <h3><i class="fas fa-calendar-week"></i> Appointments This Week</h3>
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="kpi-top">
+        <div class="kpi-ico blue"><i class="fas fa-users"></i></div>
+        <span class="kpi-trend up"><i class="fas fa-arrow-up"></i> +@Model.NewPatientsThisMonth</span>
+      </div>
+      <div class="kpi-mid">
+        <div class="kpi-val" data-count="@Model.ActivePatientsCount">0</div>
+        <div class="kpi-label">Active Patients</div>
+      </div>
+      <div class="kpi-foot"><i class="fas fa-user-plus"></i> @Model.NewPatientsThisMonth new this month</div>
+      <div class="kpi-glow blue"></div>
     </div>
-    <div style="display:flex;flex-direction:column;gap:.55rem;margin-top:.25rem;">
-      @{
-        string[] days = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
-      }
-      @if (Model.WeeklyAppointmentCounts != null)
-      {
-        @for (int i = 0; i < 7; i++)
+
+    <div class="kpi">
+      <div class="kpi-top">
+        <div class="kpi-ico teal"><i class="fas fa-calendar-check"></i></div>
+        <span class="kpi-trend @(Model.AppointmentsTrend >= 0 ? "up" : "down")"><i class="fas fa-arrow-up"></i> @Math.Abs(Model.AppointmentsTrend)%</span>
+      </div>
+      <div class="kpi-mid">
+        <div class="kpi-val" data-count="@Model.CompletedAppointmentsCount">0</div>
+        <div class="kpi-label">Completed Appointments</div>
+      </div>
+      <div class="kpi-foot"><i class="fas fa-chart-line"></i> Last-week total: @weeklyTotal</div>
+      <div class="kpi-glow teal"></div>
+    </div>
+
+    <div class="kpi">
+      <div class="kpi-top">
+        <div class="kpi-ico green"><i class="fas fa-percentage"></i></div>
+        <span class="kpi-trend @(Model.CompletionRate >= 80 ? "up" : "neu")"><i class="fas fa-thumbs-up"></i> @(Model.CompletionRate >= 80 ? "On track" : "Needs focus")</span>
+      </div>
+      <div class="kpi-mid">
+        <div class="kpi-val" data-count="@Model.CompletionRate" data-suffix="%">0%</div>
+        <div class="kpi-label">Completion Rate</div>
+      </div>
+      <div class="kpi-foot"><i class="fas fa-bullseye"></i> Delta vs previous: @(completionDelta >= 0 ? "+" : "")@completionDelta%</div>
+      <div class="kpi-glow green"></div>
+    </div>
+
+    <div class="kpi">
+      <div class="kpi-top">
+        <div class="kpi-ico red"><i class="fas fa-exclamation-triangle"></i></div>
+        <span class="kpi-trend neu"><i class="fas fa-eye"></i> Monitor</span>
+      </div>
+      <div class="kpi-mid">
+        <div class="kpi-val" data-count="@Model.HighRiskPatientsCount">0</div>
+        <div class="kpi-label">High-Risk Patients</div>
+      </div>
+      <div class="kpi-foot"><i class="fas fa-shield-alt"></i> Immediate attention required</div>
+      <div class="kpi-glow red"></div>
+    </div>
+  </div>
+
+  <div class="insights-section">
+    <div class="insight-card positive">
+      <div class="insight-icon"><i class="fas fa-arrow-trend-up"></i></div>
+      <div class="insight-content">
+        <h4>Patient Volume Growing</h4>
+        <p>You added @Model.NewPatientsThisMonth new patients this month with @Model.ActivePatientsCount active patients in care.</p>
+      </div>
+    </div>
+    <div class="insight-card warning">
+      <div class="insight-icon"><i class="fas fa-clock"></i></div>
+      <div class="insight-content">
+        <h4>@pendingLabCount Pending Lab Reviews</h4>
+        <p>There are pending lab results awaiting review. Prioritize high-risk and near-due patients.</p>
+      </div>
+    </div>
+    <div class="insight-card info">
+      <div class="insight-icon"><i class="fas fa-baby"></i></div>
+      <div class="insight-content">
+        <h4>@trimesterCounts[2] Patients in 3rd Trimester</h4>
+        <p>These patients are in final weeks. Confirm delivery planning and follow-up timelines.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="card card-wide">
+      <div class="card-header">
+        <div class="card-header-left">
+          <div class="card-ico teal"><i class="fas fa-chart-bar"></i></div>
+          <div>
+            <div class="card-title">Appointment Trends</div>
+            <div class="card-sub">Monthly overview</div>
+          </div>
+        </div>
+        <div class="chart-tabs">
+          <button class="chart-tab active" data-tab="appointments" type="button">Appointments</button>
+          <button class="chart-tab" data-tab="patients" type="button">Patients</button>
+        </div>
+      </div>
+      <div class="chart-container">
+        <div class="bar-chart" id="trendsChart"></div>
+        <div class="chart-legend">
+          <div class="legend-item"><span class="legend-dot teal"></span> <span id="trendLegendPrimary">Completed</span></div>
+          <div class="legend-item"><span class="legend-dot light"></span> <span id="trendLegendSecondary">Scheduled</span></div>
+        </div>
+      </div>
+      <div class="chart-summary">
+        <div class="summary-item">
+          <span class="summary-val">@monthlyTotal</span>
+          <span class="summary-label">Total</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-val">@monthlyDailyAverage</span>
+          <span class="summary-label">Daily Avg</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-val @(Model.AppointmentsTrend >= 0 ? "trend-up" : "trend-down")">@(Model.AppointmentsTrend >= 0 ? "+" : "")@Model.AppointmentsTrend%</span>
+          <span class="summary-label">Trend</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-val">@busiestMonth</span>
+          <span class="summary-label">Busiest Month</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-header-left">
+          <div class="card-ico red"><i class="fas fa-shield-alt"></i></div>
+          <div>
+            <div class="card-title">Risk Distribution</div>
+            <div class="card-sub">Across @Model.ActivePatientsCount patients</div>
+          </div>
+        </div>
+      </div>
+      <div class="donut-container">
+        <div class="donut-chart">
+          <svg viewBox="0 0 100 100" class="donut-svg">
+            <circle class="donut-ring" cx="50" cy="50" r="40" />
+            <circle class="donut-segment low" cx="50" cy="50" r="40" stroke-dasharray="@lowArc @donutCircumference" stroke-dashoffset="0" />
+            <circle class="donut-segment medium" cx="50" cy="50" r="40" stroke-dasharray="@medArc @donutCircumference" stroke-dashoffset="-@lowArc" />
+            <circle class="donut-segment high" cx="50" cy="50" r="40" stroke-dasharray="@highArc @donutCircumference" stroke-dashoffset="-@(lowArc + medArc)" />
+          </svg>
+          <div class="donut-center">
+            <span class="donut-total">@Model.ActivePatientsCount</span>
+            <span class="donut-label">Total</span>
+          </div>
+        </div>
+        <div class="donut-legend">
+          <div class="legend-row">
+            <span class="legend-dot low"></span>
+            <span class="legend-text">Low Risk</span>
+            <span class="legend-val">@Model.LowRiskCount (@lowPct%)</span>
+          </div>
+          <div class="legend-row">
+            <span class="legend-dot medium"></span>
+            <span class="legend-text">Medium Risk</span>
+            <span class="legend-val">@Model.MediumRiskCount (@medPct%)</span>
+          </div>
+          <div class="legend-row">
+            <span class="legend-dot high"></span>
+            <span class="legend-text">High Risk</span>
+            <span class="legend-val">@Model.HighRiskPatientsCount (@highPct%)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-header-left">
+          <div class="card-ico amber"><i class="fas fa-baby"></i></div>
+          <div>
+            <div class="card-title">Trimester Distribution</div>
+            <div class="card-sub">Gestational age breakdown</div>
+          </div>
+        </div>
+      </div>
+      <div class="trimester-container">
+        <div class="trimester-visual">
+          <div class="trimester-bar">
+            <div class="tri-segment tri-1" style="width:@trimesterPcts[0]%"></div>
+            <div class="tri-segment tri-2" style="width:@trimesterPcts[1]%"></div>
+            <div class="tri-segment tri-3" style="width:@trimesterPcts[2]%"></div>
+          </div>
+        </div>
+        <div class="trimester-details">
+          <div class="tri-row">
+            <div class="tri-info">
+              <span class="tri-dot tri-1"></span>
+              <span class="tri-name">1st Trimester</span>
+              <span class="tri-weeks">Week 1-12</span>
+            </div>
+            <div class="tri-stats">
+              <span class="tri-count">@trimesterCounts[0]</span>
+              <span class="tri-pct">@trimesterPcts[0]%</span>
+            </div>
+          </div>
+          <div class="tri-row">
+            <div class="tri-info">
+              <span class="tri-dot tri-2"></span>
+              <span class="tri-name">2nd Trimester</span>
+              <span class="tri-weeks">Week 13-26</span>
+            </div>
+            <div class="tri-stats">
+              <span class="tri-count">@trimesterCounts[1]</span>
+              <span class="tri-pct">@trimesterPcts[1]%</span>
+            </div>
+          </div>
+          <div class="tri-row">
+            <div class="tri-info">
+              <span class="tri-dot tri-3"></span>
+              <span class="tri-name">3rd Trimester</span>
+              <span class="tri-weeks">Week 27-40</span>
+            </div>
+            <div class="tri-stats">
+              <span class="tri-count">@trimesterCounts[2]</span>
+              <span class="tri-pct">@trimesterPcts[2]%</span>
+            </div>
+          </div>
+        </div>
+        <div class="trimester-footer">
+          <div class="tri-note"><i class="fas fa-clock"></i> @trimesterCounts[2] patients due in the final phase</div>
+          <div class="tri-note"><i class="fas fa-star"></i> @Model.NewPatientsThisMonth new pregnancies this month</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="secondary-grid">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-header-left">
+          <div class="card-ico green"><i class="fas fa-check-circle"></i></div>
+          <div>
+            <div class="card-title">Appointment Outcomes</div>
+            <div class="card-sub">Based on booking statuses</div>
+          </div>
+        </div>
+      </div>
+      <div class="completion-container">
+        <div class="completion-ring">
+          <svg viewBox="0 0 120 120">
+            <circle class="ring-bg" cx="60" cy="60" r="52" />
+            <circle class="ring-fill" cx="60" cy="60" r="52" stroke-dasharray="@completionRingCirc" stroke-dashoffset="@completionOffset" />
+          </svg>
+          <div class="ring-center">
+            <span class="ring-val">@Model.CompletionRate%</span>
+            <span class="ring-label">Completed</span>
+          </div>
+        </div>
+        <div class="completion-breakdown">
+          <div class="breakdown-row">
+            <span class="breakdown-dot completed"></span>
+            <span class="breakdown-label">Completed</span>
+            <span class="breakdown-val">@Model.CompletedAppointmentsCount</span>
+            <span class="breakdown-pct">@completedPct%</span>
+          </div>
+          <div class="breakdown-row">
+            <span class="breakdown-dot confirmed"></span>
+            <span class="breakdown-label">Confirmed</span>
+            <span class="breakdown-val">@Model.ConfirmedAppointmentsCount</span>
+            <span class="breakdown-pct">@confirmedPct%</span>
+          </div>
+          <div class="breakdown-row">
+            <span class="breakdown-dot rescheduled"></span>
+            <span class="breakdown-label">Modified</span>
+            <span class="breakdown-val">@Model.ModifiedAppointmentsCount</span>
+            <span class="breakdown-pct">@modifiedPct%</span>
+          </div>
+          <div class="breakdown-row">
+            <span class="breakdown-dot cancelled"></span>
+            <span class="breakdown-label">Cancelled</span>
+            <span class="breakdown-val">@Model.CancelledAppointmentsCount</span>
+            <span class="breakdown-pct">@cancelledPct%</span>
+          </div>
+          <div class="breakdown-row">
+            <span class="breakdown-dot noshow"></span>
+            <span class="breakdown-label">Missed</span>
+            <span class="breakdown-val">@Model.MissedAppointmentsCount</span>
+            <span class="breakdown-pct">@missedPct%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-header-left">
+          <div class="card-ico blue"><i class="fas fa-calendar-week"></i></div>
+          <div>
+            <div class="card-title">Weekly Schedule</div>
+            <div class="card-sub">This week's load</div>
+          </div>
+        </div>
+      </div>
+      <div class="weekly-container">
+        <div class="weekly-chart" id="weeklyChart"></div>
+        <div class="weekly-labels" id="weeklyLabels"></div>
+        <div class="weekly-summary">
+          <div class="ws-item">
+            <span class="ws-val">@weeklyTotal</span>
+            <span class="ws-label">Total</span>
+          </div>
+          <div class="ws-item">
+            <span class="ws-val">@weeklyToday</span>
+            <span class="ws-label">Today</span>
+          </div>
+          <div class="ws-item">
+            <span class="ws-val">@weeklyAverage</span>
+            <span class="ws-label">Daily Avg</span>
+          </div>
+          <div class="ws-item">
+            <span class="ws-val">@days[busiestIndex]</span>
+            <span class="ws-label">Busiest</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-header-left">
+          <div class="card-ico amber"><i class="fas fa-balance-scale"></i></div>
+          <div>
+            <div class="card-title">Period Comparison</div>
+            <div class="card-sub">Key indicators</div>
+          </div>
+        </div>
+      </div>
+      <div class="comparison-container">
+        <div class="comparison-row">
+          <div class="comp-label"><i class="fas fa-users"></i><span>New Patients</span></div>
+          <div class="comp-values"><span class="comp-current">@Model.NewPatientsThisMonth</span><span class="comp-vs">/ month</span></div>
+          <div class="comp-change positive"><i class="fas fa-arrow-up"></i> Active</div>
+        </div>
+        <div class="comparison-row">
+          <div class="comp-label"><i class="fas fa-calendar-check"></i><span>Appointments</span></div>
+          <div class="comp-values"><span class="comp-current">@Model.CompletedAppointmentsCount</span><span class="comp-vs">vs @previousCompletedAppointmentsCount</span></div>
+          <div class="comp-change @(Model.AppointmentsTrend >= 0 ? "positive" : "negative")"><i class="fas fa-arrow-up"></i> @(Model.AppointmentsTrend >= 0 ? "+" : "")@Model.AppointmentsTrend%</div>
+        </div>
+        <div class="comparison-row">
+          <div class="comp-label"><i class="fas fa-percentage"></i><span>Completion Rate</span></div>
+          <div class="comp-values"><span class="comp-current">@Model.CompletionRate%</span><span class="comp-vs">vs @(Model.CompletionRate - completionDelta)%</span></div>
+          <div class="comp-change @(completionDelta >= 0 ? "positive" : "negative")"><i class="fas fa-arrow-up"></i> @(completionDelta >= 0 ? "+" : "")@completionDelta%</div>
+        </div>
+        <div class="comparison-row">
+          <div class="comp-label"><i class="fas fa-exclamation-triangle"></i><span>High-Risk</span></div>
+          <div class="comp-values"><span class="comp-current">@Model.HighRiskPatientsCount</span><span class="comp-vs">patients</span></div>
+          <div class="comp-change @(Model.HighRiskPatientsCount > 0 ? "negative" : "positive")"><i class="fas fa-eye"></i> Monitor</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-grid">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-header-left">
+          <div class="card-ico red"><i class="fas fa-flask"></i></div>
+          <div>
+            <div class="card-title">Recent Lab Tests</div>
+            <div class="card-sub">@pendingLabCount pending review</div>
+          </div>
+        </div>
+        <a class="card-link" href="/Doctor/Patients/@Model.Doctor.DoctorID">View all <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="lab-list">
+        @if (recentLabTests.Any())
         {
-          var count = i < Model.WeeklyAppointmentCounts.Count ? Model.WeeklyAppointmentCounts[i] : 0;
-          var maxCount = Model.WeeklyAppointmentCounts.Any() ? Model.WeeklyAppointmentCounts.Max() : 1;
-          var pct = maxCount > 0 ? (int)Math.Round((double)count / maxCount * 100) : 0;
-          var isToday = i == (int)DateTime.Today.DayOfWeek;
-          <div style="display:flex;align-items:center;gap:.75rem;">
-            <span style="width:32px;font-size:.78rem;font-weight:600;color:@(isToday?"var(--dr-primary)":"var(--dr-muted)");">@days[i]</span>
-            <div style="flex:1;height:10px;background:var(--dr-border);border-radius:5px;overflow:hidden;">
-              <div style="height:100%;width:@pct%;background:@(isToday?"var(--dr-primary)":"#94d9cc");border-radius:5px;transition:width .4s;"></div>
+          @foreach (var test in recentLabTests.Take(6))
+          {
+            var name = ((test.Patient?.User?.FirstName ?? "Patient") + " " + (test.Patient?.User?.LastName ?? "")).Trim();
+            if (string.IsNullOrWhiteSpace(name))
+            {
+              name = "Patient";
+            }
+            var riskClass = !test.IsReviewed ? "high" : "low";
+            <div class="lab-item">
+              <div class="lab-avatar">
+                <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(name)&background=14967f&color=fff&size=80" alt="@name" />
+                <span class="lab-risk @riskClass"></span>
+              </div>
+              <div class="lab-info">
+                <div class="lab-name">@name</div>
+                <div class="lab-meta">@test.TestType</div>
+              </div>
+              <div class="lab-right">
+                <span class="lab-date">@test.UploadDate.ToString("MMM dd")</span>
+                <span class="lab-status @(test.IsReviewed ? "reviewed" : "pending")">@(test.IsReviewed ? "Reviewed" : "Pending")</span>
+              </div>
             </div>
-            <span style="font-size:.78rem;font-weight:700;color:var(--dr-text);width:20px;text-align:right;">@count</span>
-          </div>
+          }
         }
-      }
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-header">
-      <h3><i class="fas fa-baby"></i> Patients by Trimester</h3>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:.75rem;margin-top:.25rem;">
-      @{
-        string[] trimNames = { "1st Trimester (wk 1-12)", "2nd Trimester (wk 13-26)", "3rd Trimester (wk 27-40)" };
-        string[] trimColors = { "#14967f", "#1aad94", "#94d9cc" };
-        var trimCounts = Model.TrimesterCounts ?? new[] { 0, 0, 0 };
-        var trimTotal = trimCounts.Sum() > 0 ? trimCounts.Sum() : 1;
-      }
-      @for (int i = 0; i < 3; i++)
-      {
-        var pct = (int)Math.Round((double)trimCounts[i] / trimTotal * 100);
-        <div>
-          <div style="display:flex;justify-content:space-between;font-size:.78rem;font-weight:600;margin-bottom:.35rem;">
-            <span>@trimNames[i]</span><span style="color:var(--dr-primary);">@trimCounts[i] patients · @pct%</span>
-          </div>
-          <div style="height:10px;background:var(--dr-border);border-radius:5px;overflow:hidden;">
-            <div style="height:100%;width:@pct%;background:@trimColors[i];border-radius:5px;transition:width .4s;"></div>
-          </div>
-        </div>
-      }
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-header">
-      <h3><i class="fas fa-flask"></i> Recent Lab Tests</h3>
-      <a href="/Doctor/Patients/@Model.Doctor.DoctorID">View Patients</a>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:.55rem;">
-      @if (Model.RecentLabTests != null && Model.RecentLabTests.Any())
-      {
-        @foreach (var test in Model.RecentLabTests.Take(5))
+        else
         {
-          <div class="schedule-item" style="border-left-color:var(--dr-primary);">
-            <div class="schedule-content">
-              <h4>@((test.Patient?.User?.FirstName ?? "Patient") + " " + (test.Patient?.User?.LastName ?? ""))</h4>
-              <p>@test.TestType · @test.UploadDate.ToString("MMM dd, yyyy")</p>
-            </div>
-            <div class="schedule-status">
-              <span class="status-tag @(test.IsReviewed ? "completed" : "pending")">
-                @(test.IsReviewed ? "Reviewed" : "Pending")
-              </span>
-            </div>
-          </div>
+          <div class="empty-state">No recent lab tests found.</div>
         }
-      }
-      else
-      {
-        <div class="no-appointments" style="padding:1.5rem;">
-          <i class="fas fa-flask" style="font-size:1.5rem;"></i>
-          <p>No recent lab tests</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-header-left">
+          <div class="card-ico teal"><i class="fas fa-star"></i></div>
+          <div>
+            <div class="card-title">Most Frequent Patients</div>
+            <div class="card-sub">By recent lab activity</div>
+          </div>
         </div>
-      }
+        <a class="card-link" href="/Doctor/Patients/@Model.Doctor.DoctorID">View all <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="patients-table">
+        @if (topPatients.Any())
+        {
+          var maxVisits = topPatients.Max(p => p.Visits);
+          @for (var i = 0; i < topPatients.Count; i++)
+          {
+            var p = topPatients[i];
+            var rankClass = i == 0 ? "gold" : i == 1 ? "silver" : i == 2 ? "bronze" : "normal";
+            var visitPct = maxVisits > 0 ? (int)Math.Round((double)p.Visits / maxVisits * 100) : 0;
+            <div class="patient-row">
+              <div class="patient-rank @rankClass">@(i + 1)</div>
+              <div class="patient-avatar">
+                <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(p.Name)&background=14967f&color=fff&size=80" alt="@p.Name" />
+              </div>
+              <div class="patient-info">
+                <div class="patient-name">@p.Name</div>
+                <div class="patient-meta">Week @p.Week · @p.Risk risk</div>
+              </div>
+              <div class="patient-stats">
+                <div class="visit-count">
+                  <div class="visit-bar">
+                    <div class="visit-fill" style="width:@visitPct%"></div>
+                  </div>
+                  <span class="visit-num">@p.Visits visits</span>
+                </div>
+                <span class="patient-tag @p.Risk">@p.Risk</span>
+              </div>
+            </div>
+          }
+        }
+        else
+        {
+          <div class="empty-state">No patient activity available.</div>
+        }
+      </div>
     </div>
   </div>
+
+  <div class="toast-container" id="toastContainer"></div>
 </div>
+
+@section Styles {
+  <link rel="stylesheet" href="~/css/doctor-analytics.css" asp-append-version="true" />
+}
 
 @section Scripts {
-<script>
-document.getElementById('exportReportBtn')?.addEventListener('click', () => {
-  if (typeof showToast === 'function') showToast('Export feature coming soon', 'info');
-});
-document.getElementById('periodSelect')?.addEventListener('change', function () {
-  if (typeof showToast === 'function') showToast('Loading data for selected period...', 'info');
-});
-</script>
+  <script type="application/json" id="analyticsSeed">@Html.Raw(JsonSerializer.Serialize(analyticsSeed))</script>
+  <script src="~/js/doctor-analytics.js" asp-append-version="true"></script>
 }
