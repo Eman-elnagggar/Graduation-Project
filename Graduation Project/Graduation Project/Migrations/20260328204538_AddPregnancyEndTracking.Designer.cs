@@ -4,6 +4,7 @@ using Graduation_Project.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Graduation_Project.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260328204538_AddPregnancyEndTracking")]
+    partial class AddPregnancyEndTracking
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -698,12 +701,6 @@ namespace Graduation_Project.Migrations
                     b.Property<bool>("IsFirstPregnancy")
                         .HasColumnType("bit");
 
-                    b.Property<DateTime?>("LastPregnancyStartedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("PregnancyCount")
-                        .HasColumnType("int");
-
                     b.Property<DateTime?>("PregnancyEndedAt")
                         .HasColumnType("datetime2");
 
@@ -881,33 +878,6 @@ namespace Graduation_Project.Migrations
                     b.HasIndex("PatientID");
 
                     b.ToTable("Places");
-                });
-
-            modelBuilder.Entity("Graduation_Project.Models.PregnancyRecord", b =>
-                {
-                    b.Property<int>("PregnancyRecordID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PregnancyRecordID"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("EndDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("PatientID")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("PregnancyRecordID");
-
-                    b.HasIndex("PatientID", "StartDate");
-
-                    b.ToTable("PregnancyRecords");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.Prescription", b =>
@@ -1675,17 +1645,6 @@ namespace Graduation_Project.Migrations
                     b.Navigation("Patient");
                 });
 
-            modelBuilder.Entity("Graduation_Project.Models.PregnancyRecord", b =>
-                {
-                    b.HasOne("Graduation_Project.Models.Patient", "Patient")
-                        .WithMany("PregnancyRecords")
-                        .HasForeignKey("PatientID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Patient");
-                });
-
             modelBuilder.Entity("Graduation_Project.Models.Prescription", b =>
                 {
                     b.HasOne("Graduation_Project.Models.Doctor", "Doctor")
@@ -1874,8 +1833,6 @@ namespace Graduation_Project.Migrations
             modelBuilder.Entity("Graduation_Project.Models.Patient", b =>
                 {
                     b.Navigation("PatientDrugs");
-
-                    b.Navigation("PregnancyRecords");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.Prescription", b =>

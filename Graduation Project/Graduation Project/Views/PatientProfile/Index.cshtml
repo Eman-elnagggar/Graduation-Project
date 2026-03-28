@@ -32,6 +32,13 @@
     </div>
 </header>
 
+@if (TempData["PregnancyStatusMessage"] is string pregnancyStatusMessage && !string.IsNullOrWhiteSpace(pregnancyStatusMessage))
+{
+    <div class="alert alert-info" style="margin-bottom:1rem; border-radius:10px;">
+        @pregnancyStatusMessage
+    </div>
+}
+
 <!-- ══════════════════ STATS BAR ══════════════════ -->
 <div class="pf-stats-bar">
     <div class="pf-stat">
@@ -219,14 +226,43 @@
     <p>Gestational age and estimated due date</p>
      </div>
             </div>
-            <button class="pf-edit-btn" id="editPregnancyBtn"><i class="fas fa-pen"></i> Edit</button>
+            <div style="display:flex; gap:.5rem; align-items:center;">
+                @if (Model.HasActivePregnancy)
+                {
+                    <form asp-action="EndCurrentPregnancy" asp-controller="Patient" method="post" onsubmit="return confirm('Are you sure you want to end the current pregnancy? This will reset active pregnancy progress.');">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Patient.PatientID" />
+                        <input type="hidden" name="returnUrl" value="@($"/PatientProfile/Index/{Model.Patient.PatientID}")" />
+                        <button type="submit" class="pf-btn-danger-outline" style="padding:.55rem .9rem;">
+                            <i class="fas fa-stop-circle"></i> End Pregnancy
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <button type="button" class="pf-btn-primary" id="startPregnancyBtn" style="padding:.55rem .9rem;">
+                        <i class="fas fa-play-circle"></i> Start New Pregnancy
+                    </button>
+                }
+                <button class="pf-edit-btn" id="editPregnancyBtn"><i class="fas fa-pen"></i> Edit</button>
+            </div>
         </div>
+        @if (!Model.HasActivePregnancy)
+        {
+            <div class="pf-tip pf-tip-info" style="margin-bottom:1rem;">
+                <div class="pf-tip-icon"><i class="fas fa-info-circle"></i></div>
+                <div>
+                    <h4>No active pregnancy</h4>
+                    <p>Set a pregnancy date and save to start tracking a new pregnancy journey.</p>
+                </div>
+            </div>
+        }
         <form class="pf-form" id="pregnancyForm">
             <div class="pf-form-row">
                 <div class="pf-form-group">
    <label>Date of Last Menstrual Period</label>
         <input type="date" id="pregnancyDate" class="pf-input"
-       value="@(Model.Patient.DateOfPregnancy?.ToString("yyyy-MM-dd"))" disabled />
+       value="@(Model.ActivePregnancyStartDate?.ToString("yyyy-MM-dd"))" disabled />
         <span class="pf-hint"><i class="fas fa-info-circle"></i> Used to calculate gestational age</span>
     </div>
               <div class="pf-form-group">
@@ -757,6 +793,20 @@
     setupEdit('editBPBtn',           'bpForm',           'bpActions',           'cancelBP');
     setupEdit('editMedsBtn',         null,         null,    null);
     setupEdit('editLifestyleBtn',    'lifestyleForm',    'lifestyleActions',    'cancelLifestyle');
+
+    document.getElementById('startPregnancyBtn')?.addEventListener('click', function () {
+        const editBtn = document.getElementById('editPregnancyBtn');
+        if (!editBtn) return;
+
+        const pregnancyDateInput = document.getElementById('pregnancyDate');
+        if (pregnancyDateInput?.disabled) {
+            editBtn.click();
+        }
+
+        setTimeout(() => {
+            pregnancyDateInput?.focus();
+        }, 0);
+    });
 
     // ── Save Personal ─────────────────────────────────────────────────
     document.getElementById('personalForm')?.addEventListener('submit', async function (e) {

@@ -160,6 +160,21 @@ namespace Graduation_Project.Controllers
             await _userManager.AddToRoleAsync(user, "Patient");
 
             var dateOfPregnancy = DateTime.TryParse(form["LastMenstrualPeriod"], out var lmp) ? lmp : (DateTime?)null;
+            var isFirstPregnancy = bool.TryParse(form["IsFirstPregnancy"], out var firstPreg) && firstPreg;
+            var previousPregnancies = int.TryParse(form["PreviousPregnancies"], out var previousCount) ? Math.Max(0, previousCount) : 0;
+
+            if (!isFirstPregnancy && previousPregnancies <= 0)
+            {
+                TempData["AuthError"] = "Please enter the number of previous pregnancies.";
+                return View();
+            }
+
+            if (isFirstPregnancy)
+            {
+                previousPregnancies = 0;
+            }
+
+            var baselinePregnancyCount = previousPregnancies + (dateOfPregnancy.HasValue ? 1 : 0);
 
             var patient = new Patient
             {
@@ -169,8 +184,10 @@ namespace Graduation_Project.Controllers
                 GestationalWeeks = dateOfPregnancy.HasValue
                     ? Math.Max(0, (int)((DateTime.Today - dateOfPregnancy.Value.Date).TotalDays / 7))
                     : 0,
-                IsFirstPregnancy = bool.TryParse(form["IsFirstPregnancy"], out var firstPreg) && firstPreg,
-                PreviousPregnancies = 0,
+                IsFirstPregnancy = isFirstPregnancy,
+                PreviousPregnancies = previousPregnancies,
+                PregnancyCount = baselinePregnancyCount,
+                LastPregnancyStartedAt = dateOfPregnancy,
                 Abortions = 0,
                 Births = 0,
                 WeightKg = double.TryParse(form["Weight"], out var w) ? w : 0,
@@ -182,6 +199,16 @@ namespace Graduation_Project.Controllers
 
             _context.Patients.Add(patient);
             await _context.SaveChangesAsync();
+
+            if (dateOfPregnancy.HasValue)
+            {
+                _context.PregnancyRecords.Add(new PregnancyRecord
+                {
+                    PatientID = patient.PatientID,
+                    StartDate = dateOfPregnancy.Value,
+                    CreatedAt = DateTime.Now
+                });
+            }
 
             var medicationNameKeys = form.Keys
                 .Where(k => k.StartsWith("Medications[") && k.EndsWith("].Name"))

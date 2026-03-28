@@ -258,6 +258,15 @@
                 </div>
               </div>
 
+              <div class="mc-form-group" id="previousPregnanciesGroup" style="display:none;">
+                <label class="mc-label" for="PreviousPregnancies">
+                  <i class="fas fa-list-ol"></i> Number of previous pregnancies <span class="req">*</span>
+                </label>
+                <input type="number" id="PreviousPregnancies" name="PreviousPregnancies" class="mc-input"
+                       placeholder="e.g. 2" min="1" step="1" />
+                <div class="mc-feedback hint"><i class="fas fa-info-circle"></i> This will be used as your initial pregnancy count baseline.</div>
+              </div>
+
               <div class="mc-section-header med" style="margin-top:.5rem;">
                 <i class="fas fa-heartbeat"></i>
                 <div>
@@ -419,6 +428,38 @@
       document.getElementById('bpWarning').style.display = this.value === 'true' ? 'flex' : 'none';
     });
   });
+
+  const firstPregnancyRadios = document.querySelectorAll('input[name="IsFirstPregnancy"]');
+  const previousPregnanciesGroup = document.getElementById('previousPregnanciesGroup');
+  const previousPregnanciesInput = document.getElementById('PreviousPregnancies');
+
+  function syncPreviousPregnanciesVisibility() {
+    const selected = document.querySelector('input[name="IsFirstPregnancy"]:checked')?.value;
+    const isFirst = selected === 'true';
+
+    if (!selected || isFirst) {
+      previousPregnanciesGroup.style.display = 'none';
+      previousPregnanciesInput.required = false;
+      previousPregnanciesInput.value = '';
+      return;
+    }
+
+    previousPregnanciesGroup.style.display = '';
+    previousPregnanciesInput.required = true;
+  }
+
+  firstPregnancyRadios.forEach(radio => {
+    radio.addEventListener('change', syncPreviousPregnanciesVisibility);
+  });
+
+  document.querySelectorAll('.mc-radio-btn input[name="IsFirstPregnancy"]').forEach(radio => {
+    const btn = radio.closest('.mc-radio-btn');
+    btn?.addEventListener('click', function () {
+      setTimeout(syncPreviousPregnanciesVisibility, 0);
+    });
+  });
+
+  syncPreviousPregnanciesVisibility();
 
   let medCount = 0;
   document.getElementById('addMedBtn').addEventListener('click', function () {

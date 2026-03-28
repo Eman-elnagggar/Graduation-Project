@@ -10,6 +10,7 @@ namespace Graduation_Project.ViewModels
         public string UserName { get; set; }
 
         // Pregnancy progress
+        public bool HasActivePregnancy { get; set; }
         public int PregnancyWeek { get; set; }
         public int PregnancyProgressPercent { get; set; }
         public string Trimester { get; set; }

@@ -41,6 +41,7 @@ namespace Graduation_Project.Data
         public DbSet<PatientBloodSugar> PatientBloodSugar { get; set; }
         public DbSet<PatientDoctor> PatientDoctors { get; set; }
         public DbSet<PatientDrug> PatientDrugs { get; set; }
+        public DbSet<PregnancyRecord> PregnancyRecords { get; set; }
         public DbSet<Place> Places { get; set; }
         public DbSet<Prescription> Prescriptions { get; set; }
         public DbSet<PrescriptionItem> PrescriptionItems { get; set; }
@@ -167,6 +168,21 @@ namespace Graduation_Project.Data
                     .WithMany()
                     .HasForeignKey(d => d.PatientID)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ============================================================
+            // PATIENT -> PREGNANCYRECORDS (One Patient has Many PregnancyRecords)
+            // ============================================================
+            modelBuilder.Entity<PregnancyRecord>(entity =>
+            {
+                entity.HasKey(e => e.PregnancyRecordID);
+
+                entity.HasOne(d => d.Patient)
+                    .WithMany(p => p.PregnancyRecords)
+                    .HasForeignKey(d => d.PatientID)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => new { e.PatientID, e.StartDate });
             });
 
             // ============================================================

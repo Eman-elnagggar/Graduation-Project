@@ -57,11 +57,19 @@ namespace Graduation_Project.Controllers
             if (failure != null)
                 return failure;
 
+            var pregnancyRecords = _context.PregnancyRecords
+                .Where(r => r.PatientID == id)
+                .OrderByDescending(r => r.StartDate)
+                .ToList();
+
+            var activePregnancy = pregnancyRecords.FirstOrDefault(r => !r.EndDate.HasValue);
+            var hasActivePregnancy = activePregnancy != null;
+
             // Calculate current pregnancy week
             int currentWeek = 0;
-            if (patient.DateOfPregnancy.HasValue)
+            if (hasActivePregnancy)
             {
-                int daysSinceStart = (int)(DateTime.Today - patient.DateOfPregnancy.Value.Date).TotalDays;
+                int daysSinceStart = (int)(DateTime.Today - activePregnancy!.StartDate.Date).TotalDays;
                 currentWeek = Math.Clamp(daysSinceStart / 7, 0, 40);
             }
             else if (patient.GestationalWeeks > 0)
@@ -70,8 +78,8 @@ namespace Graduation_Project.Controllers
             }
 
             // Calculate due date (280 days = 40 weeks from start)
-            string dueDate = patient.DateOfPregnancy.HasValue
-                ? patient.DateOfPregnancy.Value.AddDays(280).ToString("MMM dd, yyyy")
+            string dueDate = hasActivePregnancy
+                ? activePregnancy!.StartDate.AddDays(280).ToString("MMM dd, yyyy")
                 : "N/A";
 
             // Fetch latest health readings
@@ -172,6 +180,24 @@ namespace Graduation_Project.Controllers
                 });
             }
 
+            var latestEndedPregnancy = pregnancyRecords
+                .Where(r => r.EndDate.HasValue)
+                .OrderByDescending(r => r.EndDate)
+                .FirstOrDefault();
+
+            if (latestEndedPregnancy?.EndDate.HasValue == true)
+            {
+                activities.Add(new RecentActivityItem
+                {
+                    Title = "Pregnancy Ended",
+                    Description = $"Recorded on {latestEndedPregnancy.EndDate.Value:MMM dd, yyyy}",
+                    DateTime = latestEndedPregnancy.EndDate.Value,
+                    IconClass = "fas fa-flag-checkered",
+                    IconBgColor = "#fff8e1",
+                    IconColor = "#ffb300"
+                });
+            }
+
             // Sort by most recent first, keep top 5
             activities = activities
                 .OrderByDescending(a => a.DateTime)
@@ -182,9 +208,11 @@ namespace Graduation_Project.Controllers
             {
                 Patient = patient,
                 UserName = patient.User?.FirstName ?? "Patient",
+                HasActivePregnancy = hasActivePregnancy,
                 PregnancyWeek = currentWeek,
                 PregnancyProgressPercent = (int)Math.Round(currentWeek / 40.0 * 100),
-                Trimester = currentWeek <= 13 ? "1st Trimester"
+                Trimester = !hasActivePregnancy ? "Not Active"
+                          : currentWeek <= 13 ? "1st Trimester"
                           : currentWeek <= 26 ? "2nd Trimester"
                           : "3rd Trimester",
                 DueDate = dueDate,
@@ -201,6 +229,44 @@ namespace Graduation_Project.Controllers
             };
 
             return View(viewModel);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult EndCurrentPregnancy(int id, string? returnUrl = null)
+        {
+            var (patient, failure) = AuthorizePatientAccess(id);
+            if (failure != null)
+                return failure;
+
+            var activePregnancy = _context.PregnancyRecords
+                .Where(r => r.PatientID == id && !r.EndDate.HasValue)
+                .OrderByDescending(r => r.StartDate)
+                .FirstOrDefault();
+
+            if (activePregnancy == null)
+            {
+                TempData["PregnancyStatusMessage"] = "No active pregnancy found to end.";
+                return RedirectToLocalOrDashboard(id, returnUrl);
+            }
+
+            activePregnancy.EndDate = DateTime.Now;
+
+            // Keep legacy fields in sync until all old columns are removed.
+            patient.LastPregnancyStartedAt = activePregnancy.StartDate;
+            patient.PregnancyEndedAt = activePregnancy.EndDate;
+            patient.DateOfPregnancy = null;
+            patient.GestationalWeeks = 0;
+            patient.PreviousPregnancies += 1;
+            patient.IsFirstPregnancy = false;
+            var pregnancyRecordsCount = _context.PregnancyRecords.Count(r => r.PatientID == id);
+            patient.PregnancyCount = Math.Max(0, patient.PreviousPregnancies) + pregnancyRecordsCount;
+
+            _patientRepository.Update(patient);
+            _patientRepository.Save();
+
+            TempData["PregnancyStatusMessage"] = "Current pregnancy was ended and saved to your history.";
+            return RedirectToLocalOrDashboard(id, returnUrl);
         }
 
         public IActionResult Messages(int id)
@@ -445,6 +511,14 @@ namespace Graduation_Project.Controllers
             }
 
             return (patient, null);
+        }
+
+        private IActionResult RedirectToLocalOrDashboard(int patientId, string? returnUrl)
+        {
+            if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+
+            return RedirectToAction(nameof(Index), new { id = patientId });
         }
     }
 }
