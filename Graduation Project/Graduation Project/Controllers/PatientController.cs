@@ -1,9 +1,11 @@
 using Graduation_Project.Interfaces;
+using Graduation_Project.Data;
 using Graduation_Project.Models;
 using Graduation_Project.Services;
 using Graduation_Project.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace Graduation_Project.Controllers
@@ -17,8 +19,11 @@ namespace Graduation_Project.Controllers
         private readonly ILabTest _labTest;
         private readonly IAppointment _appointment;
         private readonly IUltrasoundImage _ultrasoundImage;
+        private readonly IPatientDoctor _patientDoctorRepository;
         private readonly IAlert _alertRepository;
         private readonly AlertService _alertService;
+        private readonly AppDbContext _context;
+        private readonly IChatMessageCrypto _chatMessageCrypto;
 
         public PatientController(
             IPatient patientRepository,
@@ -27,8 +32,11 @@ namespace Graduation_Project.Controllers
             ILabTest labTest,
             IAppointment appointment,
             IUltrasoundImage ultrasoundImage,
+            IPatientDoctor patientDoctorRepository,
             IAlert alertRepository,
-            AlertService alertService)
+            AlertService alertService,
+            AppDbContext context,
+            IChatMessageCrypto chatMessageCrypto)
         {
             _patientRepository = patientRepository;
             _patientBloodPressure = patientBloodPressure;
@@ -36,8 +44,11 @@ namespace Graduation_Project.Controllers
             _labTest = labTest;
             _appointment = appointment;
             _ultrasoundImage = ultrasoundImage;
+            _patientDoctorRepository = patientDoctorRepository;
             _alertRepository = alertRepository;
             _alertService = alertService;
+            _context = context;
+            _chatMessageCrypto = chatMessageCrypto;
         }
 
         public IActionResult Index(int id)
@@ -190,6 +201,130 @@ namespace Graduation_Project.Controllers
             };
 
             return View(viewModel);
+        }
+
+        public IActionResult Messages(int id)
+        {
+            var (patient, failure) = AuthorizePatientAccess(id);
+            if (failure != null)
+                return failure;
+
+            var approvedLinks = _patientDoctorRepository
+                .GetByPatientId(id)
+                .Where(pd => string.Equals(pd.Status, "Approved", StringComparison.OrdinalIgnoreCase)
+                          && pd.Doctor != null
+                          && !string.IsNullOrWhiteSpace(pd.Doctor.UserID))
+                .GroupBy(pd => pd.DoctorID)
+                .Select(g => g.First())
+                .ToList();
+
+            if (string.IsNullOrWhiteSpace(patient.UserID))
+                return NotFound();
+
+            var patientUserId = patient.UserID;
+            var doctorUserIds = approvedLinks
+                .Select(pd => pd.Doctor!.UserID)
+                .Where(userId => !string.IsNullOrWhiteSpace(userId))
+                .Distinct()
+                .ToList();
+
+            var chatMessages = _context.ChatMessages
+                .Where(m => (m.SenderUserId == patientUserId && doctorUserIds.Contains(m.ReceiverUserId))
+                         || (m.ReceiverUserId == patientUserId && doctorUserIds.Contains(m.SenderUserId)))
+                .OrderByDescending(m => m.SentAtUtc)
+                .ToList();
+
+            var conversations = approvedLinks
+                .Select(pd => new PatientConversationSummary
+                {
+                    DoctorId = pd.DoctorID,
+                    ReceiverUserId = pd.Doctor?.UserID ?? string.Empty,
+                    DoctorName = pd.Doctor?.User != null
+                        ? $"Dr. {pd.Doctor.User.FirstName} {pd.Doctor.User.LastName}".Trim()
+                        : "Doctor",
+                    UnreadCount = chatMessages.Count(m => m.SenderUserId == (pd.Doctor?.UserID ?? string.Empty) && m.ReceiverUserId == patientUserId && !m.IsRead),
+                    LastMessageTime = chatMessages
+                        .Where(m => m.SenderUserId == (pd.Doctor?.UserID ?? string.Empty) || m.ReceiverUserId == (pd.Doctor?.UserID ?? string.Empty))
+                        .Select(m => (DateTime?)m.SentAtUtc)
+                        .FirstOrDefault(),
+                    LastMessagePreview = chatMessages
+                        .Where(m => m.SenderUserId == (pd.Doctor?.UserID ?? string.Empty) || m.ReceiverUserId == (pd.Doctor?.UserID ?? string.Empty))
+                        .Select(m => _chatMessageCrypto.Decrypt(m.Message))
+                        .FirstOrDefault() ?? "Start a conversation"
+                })
+                .OrderBy(c => c.DoctorName)
+                .ToList();
+
+            var vm = new PatientMessagesViewModel
+            {
+                Patient = patient,
+                UserName = patient.User?.FirstName ?? "Patient",
+                Conversations = conversations
+            };
+
+            return View(vm);
+        }
+
+        [HttpGet]
+        public IActionResult ConversationMessages(int id, int doctorId)
+        {
+            var (patient, failure) = AuthorizePatientAccess(id);
+            if (failure != null)
+                return failure;
+
+            var approvedLink = _patientDoctorRepository
+                .GetByPatientId(id)
+                .FirstOrDefault(pd => pd.DoctorID == doctorId
+                                   && string.Equals(pd.Status, "Approved", StringComparison.OrdinalIgnoreCase));
+
+            if (approvedLink == null)
+                return Forbid();
+
+            var doctorUserId = approvedLink.Doctor?.UserID ?? _context.Doctors
+                .AsNoTracking()
+                .Where(d => d.DoctorID == doctorId)
+                .Select(d => d.UserID)
+                .FirstOrDefault();
+
+            if (string.IsNullOrWhiteSpace(patient.UserID) || string.IsNullOrWhiteSpace(doctorUserId))
+                return NotFound();
+
+            var patientUserId = patient.UserID;
+
+            var messages = _context.ChatMessages
+                .Where(m => (m.SenderUserId == patientUserId && m.ReceiverUserId == doctorUserId)
+                         || (m.SenderUserId == doctorUserId && m.ReceiverUserId == patientUserId))
+                .OrderBy(m => m.SentAtUtc)
+                .ToList()
+                .Select(m => new
+                {
+                    id = m.ChatMessageId,
+                    senderId = m.SenderUserId,
+                    receiverId = m.ReceiverUserId,
+                    content = _chatMessageCrypto.Decrypt(m.Message),
+                    timestamp = m.SentAtUtc
+                })
+                .ToList();
+
+            var unreadIncoming = _context.ChatMessages
+                .Where(m => m.SenderUserId == doctorUserId
+                         && m.ReceiverUserId == patientUserId
+                         && !m.IsRead)
+                .ToList();
+
+            if (unreadIncoming.Count > 0)
+            {
+                var now = DateTime.Now;
+                foreach (var msg in unreadIncoming)
+                {
+                    msg.IsRead = true;
+                    msg.ReadAtUtc = now;
+                }
+
+                _context.SaveChanges();
+            }
+
+            return Json(messages);
         }
 
         // ---------------------------------------------------------------

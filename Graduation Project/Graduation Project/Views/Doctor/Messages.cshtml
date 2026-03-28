@@ -8,17 +8,18 @@
   ViewData["DoctorId"] = Model.Doctor.DoctorID;
   ViewData["DoctorName"] = Model.DoctorName;
   ViewData["PageTitle"] = "Messages";
-  ViewData["PageSubtitle"] = "Communicate securely with your patients";
+  ViewData["PageSubtitle"] = "Communicate securely with your patients and assistants";
 
   var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
   var doctorId = Model.Doctor.DoctorID.ToString();
   var conversations = Model.Conversations.Select(c => new
   {
-    id = c.PatientId,
-    patientId = c.PatientId.ToString(),
-    receiverUserId = string.IsNullOrWhiteSpace(c.ReceiverUserId) ? c.PatientId.ToString() : c.ReceiverUserId,
-    name = string.IsNullOrWhiteSpace(c.PatientName) ? "Patient" : c.PatientName,
-    avatar = $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(string.IsNullOrWhiteSpace(c.PatientName) ? "P" : c.PatientName)}&background=14967f&color=fff&size=80",
+    id = $"{c.ParticipantType}-{c.ParticipantId}",
+    participantId = c.ParticipantId.ToString(),
+    participantType = c.ParticipantType,
+    receiverUserId = c.ReceiverUserId,
+    name = string.IsNullOrWhiteSpace(c.ParticipantName) ? "User" : c.ParticipantName,
+    avatar = $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(string.IsNullOrWhiteSpace(c.ParticipantName) ? "U" : c.ParticipantName)}&background=14967f&color=fff&size=80",
     status = "online",
     lastMessage = string.IsNullOrWhiteSpace(c.LastMessagePreview) ? "Start a conversation" : c.LastMessagePreview,
     unreadCount = c.UnreadCount,
@@ -27,7 +28,7 @@
   }).ToList();
 }
 
-<div class="doctor-messages-page">
+<div class="doctor-messages-page theme-doctor">
   <div class="chat-app">
     <aside class="chat-sidebar" id="chatSidebar">
     <div class="sidebar-header">
@@ -65,13 +66,12 @@
       <div class="empty-content">
         <div class="empty-icon"><i class="fas fa-comments"></i></div>
         <h3>Select a conversation</h3>
-        <p>Choose a patient from the list to start messaging</p>
+        <p>Choose a patient or assistant from the list to start messaging</p>
       </div>
     </div>
 
     <div class="dm-chat-container" id="chatContainer" style="display:none;">
       <header class="dm-chat-header">
-        <button class="mobile-menu-btn" id="mobileMenuBtn"><i class="fas fa-arrow-left"></i></button>
         <div class="chat-user" id="chatUserInfo">
           <div class="user-avatar">
             <img src="" alt="" id="chatUserAvatar" />
@@ -79,6 +79,7 @@
           </div>
           <div class="user-details">
             <h3 id="chatUserName">Patient Name</h3>
+            <p class="chat-user-role" id="chatUserRole">Patient</p>
           </div>
         </div>
         <div class="chat-header-actions">
@@ -110,7 +111,7 @@
     window.__doctorMessagesConfig = {
       doctorId: @Html.Raw(JsonSerializer.Serialize(doctorId)),
       currentUserId: @Html.Raw(JsonSerializer.Serialize(currentUserId)),
-      conversationMessagesEndpointTemplate: @Html.Raw(JsonSerializer.Serialize(Url.Action("ConversationMessages", "Doctor", new { id = "__DOCTOR_ID__", patientId = "__PATIENT_ID__" }))),
+      conversationMessagesEndpointTemplate: @Html.Raw(JsonSerializer.Serialize(Url.Action("ConversationMessages", "Doctor", new { id = "__DOCTOR_ID__", userId = "__USER_ID__" }))),
       conversations: @Html.Raw(JsonSerializer.Serialize(conversations))
     };
   </script>

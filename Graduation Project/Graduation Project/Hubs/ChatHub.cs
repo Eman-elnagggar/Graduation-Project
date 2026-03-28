@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Graduation_Project.Data;
 using Graduation_Project.Models;
+using Graduation_Project.Services;
 
 namespace Graduation_Project.Hubs
 {
@@ -9,10 +10,12 @@ namespace Graduation_Project.Hubs
     public class ChatHub : Hub
     {
         private readonly AppDbContext _db;
+        private readonly IChatMessageCrypto _chatMessageCrypto;
 
-        public ChatHub(AppDbContext db)
+        public ChatHub(AppDbContext db, IChatMessageCrypto chatMessageCrypto)
         {
             _db = db;
+            _chatMessageCrypto = chatMessageCrypto;
         }
 
         public async Task SendMessage(string receiverId, string message)
@@ -32,7 +35,7 @@ namespace Graduation_Project.Hubs
             {
                 SenderUserId = senderId,
                 ReceiverUserId = receiverId,
-                Message = text,
+                Message = _chatMessageCrypto.Encrypt(text),
                 SentAtUtc = DateTime.Now,
                 IsRead = false
             };

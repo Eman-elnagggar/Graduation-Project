@@ -1,11 +1,6 @@
-/**
- * Doctor Messages page
- * SignalR integration over existing UI rendering/layout.
- */
-
-const config = window.__doctorMessagesConfig || {};
+const config = window.__patientMessagesConfig || {};
 const CURRENT_USER_ID = String(config.currentUserId || "");
-const DOCTOR_ID = String(config.doctorId || "");
+const PATIENT_ID = String(config.patientId || "");
 const CONVERSATION_ENDPOINT_TEMPLATE = String(config.conversationMessagesEndpointTemplate || "");
 
 const state = {
@@ -32,17 +27,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   await ensureSignalRLoaded();
   await setupSignalRConnection();
 
-  const urlPatient = new URLSearchParams(location.search).get("patient");
-  if (urlPatient) {
-    const target = state.conversations.find(c => String(c.participantType) === "Patient" && String(c.participantId) === String(urlPatient));
-    if (target) {
-      selectConversation(target.id);
-    }
-  }
-
-  const urlAssistant = new URLSearchParams(location.search).get("assistant");
-  if (urlAssistant) {
-    const target = state.conversations.find(c => String(c.participantType) === "Assistant" && String(c.participantId) === String(urlAssistant));
+  const urlDoctor = new URLSearchParams(location.search).get("doctor");
+  if (urlDoctor) {
+    const target = state.conversations.find(c => String(c.doctorId) === String(urlDoctor));
     if (target) {
       selectConversation(target.id);
     }
@@ -52,12 +39,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 function initializeState() {
   const initial = Array.isArray(config.conversations) ? config.conversations : [];
   state.conversations = initial.map((c, idx) => ({
-    id: String(c.id ?? idx + 1),
-    participantId: String(c.participantId ?? c.id ?? ""),
-    participantType: String(c.participantType ?? "Patient"),
-    receiverUserId: String(c.receiverUserId ?? ""),
-    name: c.name || "User",
-    avatar: c.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name || "U")}&background=14967f&color=fff&size=80`,
+    id: c.id ?? idx + 1,
+    doctorId: String(c.doctorId ?? c.id ?? ""),
+    receiverUserId: String(c.receiverUserId ?? c.doctorId ?? c.id ?? ""),
+    name: c.name || "Doctor",
+    avatar: c.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name || "D")}&background=1baebe&color=fff&size=80`,
     status: c.status || "online",
     lastMessage: c.lastMessage || "Start a conversation",
     lastMessageTime: c.lastMessageTime ? new Date(c.lastMessageTime) : null,
@@ -72,7 +58,6 @@ async function ensureSignalRLoaded() {
   for (const url of SIGNALR_CDNS) {
     const loaded = await loadScript(url);
     if (loaded && window.signalR) {
-      console.info("SignalR client loaded.", url);
       return true;
     }
   }
@@ -94,44 +79,31 @@ function loadScript(src) {
 
 async function setupSignalRConnection() {
   if (!window.signalR) {
-    console.error("SignalR client script is missing.");
     showToast("error", "Connection", "SignalR library failed to load.");
     return;
   }
 
-  // Integration point: create hub connection to backend ChatHub endpoint.
   connection = new signalR.HubConnectionBuilder()
     .withUrl("/chatHub")
     .withAutomaticReconnect()
     .configureLogging(signalR.LogLevel.Information)
     .build();
 
-  // Integration point: receive message event from ChatHub.
   connection.on("ReceiveMessage", (senderId, message, sentAtUtc) => {
     handleIncomingMessage(String(senderId ?? ""), String(message ?? ""), sentAtUtc);
   });
 
-  connection.onreconnecting((error) => {
-    console.warn("Chat reconnecting...", error);
-  });
-
-  connection.onreconnected((id) => {
-    console.info("Chat reconnected.", id);
+  connection.onreconnected(() => {
     showToast("success", "Connection", "Chat connection restored.");
   });
 
-  connection.onclose((error) => {
-    console.error("Chat disconnected.", error);
+  connection.onclose(() => {
     showToast("error", "Connection", "Chat disconnected. Retrying when possible.");
   });
 
   try {
     await connection.start();
-    console.info("Connected to /chatHub successfully.");
-    showToast("success", "Connection", "Connected to chat server.");
-  } catch (error) {
-    // Integration point: explicit start error handling.
-    console.error("Failed to connect to /chatHub.", error);
+  } catch {
     showToast("error", "Connection", "Unable to connect to chat server.");
   }
 }
@@ -178,12 +150,6 @@ function setupEventListeners() {
 
   sendBtn?.addEventListener("click", sendMessage);
 
-  document.getElementById("viewProfileBtn")?.addEventListener("click", () => {
-    if (!state.currentConversation) return;
-    if (state.currentConversation.participantType !== "Patient") return;
-    window.location.href = `/Doctor/PatientDetails/${DOCTOR_ID}/${state.currentConversation.participantId}`;
-  });
-
   document.getElementById("mobileMenuBtn")?.addEventListener("click", () => toggleSidebar(true));
   document.getElementById("sidebarClose")?.addEventListener("click", () => toggleSidebar(false));
   document.getElementById("sidebarOverlay")?.addEventListener("click", () => toggleSidebar(false));
@@ -216,16 +182,13 @@ function renderConversations() {
   }
 
   container.innerHTML = filtered.map(conv => `
-    <div class="conversation-item conversation-${getParticipantTypeClass(conv.participantType)} ${conv.unreadCount > 0 ? "unread" : ""} ${state.currentConversation?.id === conv.id ? "active" : ""}" data-id="${conv.id}">
+    <div class="conversation-item ${conv.unreadCount > 0 ? "unread" : ""} ${state.currentConversation?.id === conv.id ? "active" : ""}" data-id="${conv.id}">
       <div class="conversation-avatar">
         <img src="${conv.avatar}" alt="${escapeHtml(conv.name)}" />
       </div>
       <div class="conversation-content">
         <div class="conversation-header">
-          <div class="conversation-name-wrap">
-            <span class="conversation-name">${escapeHtml(conv.name)}</span>
-            <span class="conversation-role-badge ${getParticipantTypeClass(conv.participantType)}">${escapeHtml(getParticipantTypeLabel(conv.participantType))}</span>
-          </div>
+          <span class="conversation-name">${escapeHtml(conv.name)}</span>
           <span class="conversation-time">${formatTime(conv.lastMessageTime)}</span>
         </div>
         <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
@@ -238,7 +201,7 @@ function renderConversations() {
 
   container.querySelectorAll(".conversation-item").forEach(item => {
     item.addEventListener("click", () => {
-      selectConversation(String(item.dataset.id));
+      selectConversation(Number(item.dataset.id));
     });
   });
 }
@@ -250,18 +213,9 @@ function selectConversation(id) {
   state.currentConversation = conversation;
   conversation.unreadCount = 0;
 
-  const viewProfileBtn = document.getElementById("viewProfileBtn");
-  if (viewProfileBtn) {
-    viewProfileBtn.style.display = conversation.participantType === "Patient" ? "inline-flex" : "none";
-  }
-
   document.getElementById("chatUserAvatar").src = conversation.avatar;
   document.getElementById("chatUserAvatar").alt = conversation.name;
   document.getElementById("chatUserName").textContent = conversation.name;
-  const chatUserRole = document.getElementById("chatUserRole");
-  if (chatUserRole) {
-    chatUserRole.textContent = getParticipantTypeLabel(conversation.participantType);
-  }
 
   document.getElementById("chatEmpty").style.display = "none";
   document.getElementById("chatContainer").style.display = "flex";
@@ -281,13 +235,12 @@ async function loadConversationMessages(conversation) {
   }
 
   const endpoint = CONVERSATION_ENDPOINT_TEMPLATE
-    .replace("__DOCTOR_ID__", encodeURIComponent(DOCTOR_ID))
-    .replace("__USER_ID__", encodeURIComponent(conversation.receiverUserId));
+    .replace("__PATIENT_ID__", encodeURIComponent(PATIENT_ID))
+    .replace("__DOCTOR_ID__", encodeURIComponent(conversation.doctorId));
 
   try {
     const response = await fetch(endpoint, { credentials: "same-origin" });
     if (!response.ok) {
-      console.error("Failed to load conversation messages.", response.status);
       renderMessages();
       return;
     }
@@ -305,8 +258,7 @@ async function loadConversationMessages(conversation) {
     renderMessages();
     renderConversations();
     updateFilterCounts();
-  } catch (error) {
-    console.error("Error loading conversation messages.", error);
+  } catch {
     renderMessages();
   }
 }
@@ -349,19 +301,16 @@ async function sendMessage() {
   if (!text || !state.currentConversation) return;
 
   if (!connection || connection.state !== signalR.HubConnectionState.Connected) {
-    console.warn("Send blocked because connection state is not connected.", connection?.state);
     showToast("error", "Connection", "Chat is not connected.");
     return;
   }
 
   try {
-    // Integration point: send through hub method SendMessage(receiverId, message).
     await connection.invoke("SendMessage", state.currentConversation.receiverUserId, text);
     input.value = "";
     input.style.height = "auto";
     document.getElementById("sendBtn").disabled = true;
-  } catch (error) {
-    console.error("Failed to send message.", error);
+  } catch {
     showToast("error", "Send failed", "Message could not be sent.");
   }
 }
@@ -373,11 +322,10 @@ function handleIncomingMessage(senderId, message, sentAtUtc) {
   if (isSentByCurrentUser) {
     conversation = state.currentConversation;
   } else {
-    conversation = state.conversations.find(c => String(c.receiverUserId) === senderId);
+    conversation = state.conversations.find(c => String(c.receiverUserId) === senderId || String(c.doctorId) === senderId || String(c.id) === senderId);
   }
 
   if (!conversation) {
-    console.warn("Incoming message ignored because conversation was not found.", { senderId });
     return;
   }
 
@@ -494,12 +442,4 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/\"/g, "&quot;")
     .replace(/'/g, "&#39;");
-}
-
-function getParticipantTypeLabel(type) {
-  return String(type || "Patient").toLowerCase() === "assistant" ? "Assistant" : "Patient";
-}
-
-function getParticipantTypeClass(type) {
-  return String(type || "Patient").toLowerCase() === "assistant" ? "assistant" : "patient";
 }

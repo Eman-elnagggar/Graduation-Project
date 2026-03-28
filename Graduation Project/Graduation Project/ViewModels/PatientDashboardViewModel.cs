@@ -33,4 +33,21 @@ namespace Graduation_Project.ViewModels
         // Health alerts (critical / dangerous conditions needing attention)
         public List<Alert> HealthAlerts { get; set; } = new();
     }
+
+    public class PatientMessagesViewModel
+    {
+        public Patient Patient { get; set; } = null!;
+        public string UserName { get; set; } = "Patient";
+        public List<PatientConversationSummary> Conversations { get; set; } = new();
+    }
+
+    public class PatientConversationSummary
+    {
+        public int DoctorId { get; set; }
+        public string ReceiverUserId { get; set; } = string.Empty;
+        public string DoctorName { get; set; } = "Doctor";
+        public int UnreadCount { get; set; }
+        public DateTime? LastMessageTime { get; set; }
+        public string? LastMessagePreview { get; set; }
+    }
 }

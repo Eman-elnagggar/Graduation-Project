@@ -1,6 +1,7 @@
 using Graduation_Project.Data;
 using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
+using Graduation_Project.Services;
 using Graduation_Project.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,15 +16,18 @@ namespace Graduation_Project.Controllers
         private readonly IAppointment _appointmentRepository;
         private readonly IPatientDoctor _patientDoctorRepository;
         private readonly AppDbContext _context;
+        private readonly IChatMessageCrypto _chatMessageCrypto;
 
         public DoctorController(
             IAppointment appointmentRepository,
             IPatientDoctor patientDoctorRepository,
-            AppDbContext context)
+            AppDbContext context,
+            IChatMessageCrypto chatMessageCrypto)
         {
             _appointmentRepository = appointmentRepository;
             _patientDoctorRepository = patientDoctorRepository;
             _context = context;
+            _chatMessageCrypto = chatMessageCrypto;
         }
 
         public IActionResult Index(int id = 0)
@@ -121,7 +125,7 @@ namespace Graduation_Project.Controllers
                     {
                         PatientId = patient.PatientID,
                         PatientName = BuildPatientName(patient),
-                        LastMessagePreview = latest?.Message ?? "Start a conversation",
+                        LastMessagePreview = latest != null ? _chatMessageCrypto.Decrypt(latest.Message) : "Start a conversation",
                         LastMessageTime = latest?.SentAtUtc,
                         UnreadCount = conversationMessages.Count(m => m.SenderUserId == patientUserId && m.ReceiverUserId == doctorUserId && !m.IsRead)
                     };
@@ -165,42 +169,56 @@ namespace Graduation_Project.Controllers
         }
 
         [HttpGet]
-        public IActionResult ConversationMessages(int id, int patientId)
+        public IActionResult ConversationMessages(int id, string userId)
         {
             var accessResult = TryResolveDoctor(id, out var doctor);
             if (accessResult != null)
                 return accessResult;
 
-            var patient = _context.Patients.FirstOrDefault(p => p.PatientID == patientId);
-            if (patient == null || string.IsNullOrWhiteSpace(patient.UserID))
-                return NotFound();
-
-            var isLinked = _patientDoctorRepository
+            var approvedPatientUserIds = _patientDoctorRepository
                 .GetApprovedByDoctor(doctor.DoctorID)
-                .Any(pd => pd.PatientID == patientId);
+                .Select(pd => pd.Patient)
+                .Where(p => p != null && !string.IsNullOrWhiteSpace(p.UserID))
+                .Select(p => p!.UserID!)
+                .Distinct()
+                .ToList();
 
-            if (!isLinked)
+            var linkedAssistantUserIds = _context.AssistantDoctors
+                .Where(ad => ad.DoctorID == doctor.DoctorID)
+                .Include(ad => ad.Assistant)
+                .Where(ad => ad.Assistant != null && !string.IsNullOrWhiteSpace(ad.Assistant!.UserID))
+                .Select(ad => ad.Assistant!.UserID!)
+                .Distinct()
+                .ToList();
+
+            var linkedUserIds = approvedPatientUserIds
+                .Concat(linkedAssistantUserIds)
+                .Distinct()
+                .ToList();
+
+            if (string.IsNullOrWhiteSpace(userId) || !linkedUserIds.Contains(userId))
                 return Forbid();
 
             var doctorUserId = doctor.UserID;
-            var patientUserId = patient.UserID;
+            var receiverUserId = userId;
 
             var messages = _context.ChatMessages
-                .Where(m => (m.SenderUserId == doctorUserId && m.ReceiverUserId == patientUserId)
-                         || (m.SenderUserId == patientUserId && m.ReceiverUserId == doctorUserId))
+                .Where(m => (m.SenderUserId == doctorUserId && m.ReceiverUserId == receiverUserId)
+                         || (m.SenderUserId == receiverUserId && m.ReceiverUserId == doctorUserId))
                 .OrderBy(m => m.SentAtUtc)
+                .ToList()
                 .Select(m => new
                 {
                     id = m.ChatMessageId,
                     senderId = m.SenderUserId,
                     receiverId = m.ReceiverUserId,
-                    content = m.Message,
+                    content = _chatMessageCrypto.Decrypt(m.Message),
                     timestamp = m.SentAtUtc
                 })
                 .ToList();
 
             var unreadIncoming = _context.ChatMessages
-                .Where(m => m.SenderUserId == patientUserId
+                .Where(m => m.SenderUserId == receiverUserId
                          && m.ReceiverUserId == doctorUserId
                          && !m.IsRead)
                 .ToList();
@@ -337,29 +355,75 @@ namespace Graduation_Project.Controllers
                 .Where(u => !string.IsNullOrWhiteSpace(u))
                 .ToList();
 
+            var linkedAssistants = _context.AssistantDoctors
+                .Where(ad => ad.DoctorID == doctor.DoctorID)
+                .Include(ad => ad.Assistant)
+                    .ThenInclude(a => a.User)
+                .Where(ad => ad.Assistant != null && !string.IsNullOrWhiteSpace(ad.Assistant!.UserID))
+                .Select(ad => ad.Assistant!)
+                .GroupBy(a => a.AssistantID)
+                .Select(g => g.First())
+                .ToList();
+
+            var assistantUserIds = linkedAssistants
+                .Select(a => a.UserID)
+                .Where(u => !string.IsNullOrWhiteSpace(u))
+                .ToList();
+
+            var receiverUserIds = patientUserIds
+                .Concat(assistantUserIds)
+                .Distinct()
+                .ToList();
+
             var chatMessages = _context.ChatMessages
-                .Where(m => (m.SenderUserId == doctorUserId && patientUserIds.Contains(m.ReceiverUserId))
-                         || (m.ReceiverUserId == doctorUserId && patientUserIds.Contains(m.SenderUserId)))
+                .Where(m => (m.SenderUserId == doctorUserId && receiverUserIds.Contains(m.ReceiverUserId))
+                         || (m.ReceiverUserId == doctorUserId && receiverUserIds.Contains(m.SenderUserId)))
                 .OrderByDescending(m => m.SentAtUtc)
                 .ToList();
 
-            var conversations = approvedPatients
-                .Select(p => new DoctorConversationSummary
+            var patientConversations = approvedPatients
+                .Select(p => new
                 {
-                    PatientId = p.PatientID,
+                    participantId = p.PatientID,
+                    participantType = "Patient",
                     ReceiverUserId = p.UserID ?? string.Empty,
-                    PatientName = BuildPatientName(p),
-                    UnreadCount = chatMessages.Count(m => m.SenderUserId == (p.UserID ?? string.Empty) && m.ReceiverUserId == doctorUserId && !m.IsRead),
+                    participantName = BuildPatientName(p)
+                });
+
+            var assistantConversations = linkedAssistants
+                .Select(a => new
+                {
+                    participantId = a.AssistantID,
+                    participantType = "Assistant",
+                    ReceiverUserId = a.UserID ?? string.Empty,
+                    participantName = a.User != null
+                        ? $"{a.User.FirstName} {a.User.LastName}".Trim()
+                        : "Assistant"
+                });
+
+            var conversations = patientConversations
+                .Concat(assistantConversations)
+                .Where(c => !string.IsNullOrWhiteSpace(c.ReceiverUserId))
+                .GroupBy(c => c.ReceiverUserId)
+                .Select(g => g.First())
+                .Select(c => new DoctorConversationSummary
+                {
+                    ParticipantId = c.participantId,
+                    ParticipantType = c.participantType,
+                    ReceiverUserId = c.ReceiverUserId,
+                    ParticipantName = c.participantName,
+                    UnreadCount = chatMessages.Count(m => m.SenderUserId == c.ReceiverUserId && m.ReceiverUserId == doctorUserId && !m.IsRead),
                     LastMessageTime = chatMessages
-                        .Where(m => m.SenderUserId == (p.UserID ?? string.Empty) || m.ReceiverUserId == (p.UserID ?? string.Empty))
+                        .Where(m => m.SenderUserId == c.ReceiverUserId || m.ReceiverUserId == c.ReceiverUserId)
                         .Select(m => (DateTime?)m.SentAtUtc)
                         .FirstOrDefault(),
                     LastMessagePreview = chatMessages
-                        .Where(m => m.SenderUserId == (p.UserID ?? string.Empty) || m.ReceiverUserId == (p.UserID ?? string.Empty))
-                        .Select(m => m.Message)
+                        .Where(m => m.SenderUserId == c.ReceiverUserId || m.ReceiverUserId == c.ReceiverUserId)
+                        .Select(m => _chatMessageCrypto.Decrypt(m.Message))
                         .FirstOrDefault() ?? "Start a conversation"
                 })
-                .OrderBy(c => c.PatientName)
+                .OrderBy(c => c.ParticipantType)
+                .ThenBy(c => c.ParticipantName)
                 .ToList();
 
             var vm = new DoctorMessagesViewModel
