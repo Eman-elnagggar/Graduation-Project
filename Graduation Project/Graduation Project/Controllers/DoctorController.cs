@@ -788,9 +788,186 @@ namespace Graduation_Project.Controllers
                 .ToList();
 
             var prescriptions = _context.Prescriptions
+                .Include(p => p.Items)
                 .Where(p => p.PatientID == patientId && p.DoctorID == doctor.DoctorID)
                 .OrderByDescending(p => p.PrescriptionDate)
                 .Take(20)
+                .ToList();
+
+            var alerts = _context.Alerts
+                .Where(a => a.PatientID == patientId)
+                .OrderByDescending(a => a.DateCreated)
+                .Take(50)
+                .ToList();
+
+            var ultrasounds = _context.UltrasoundImages
+                .Where(u => u.PatientID == patientId)
+                .OrderByDescending(u => u.UploadDate)
+                .Take(20)
+                .ToList();
+
+            var pregnancyRecords = _context.PregnancyRecords
+                .Where(r => r.PatientID == patientId)
+                .ToList();
+
+            var timelineEntries = new List<MedicalHistoryEntry>();
+
+            foreach (var bp in bpHistory)
+            {
+                var parts = bp.BloodPressure?.Split('/');
+                var status = "normal";
+                if (parts?.Length == 2 &&
+                    int.TryParse(parts[0], out var sys) &&
+                    int.TryParse(parts[1], out var dia))
+                {
+                    if (sys >= 160 || dia >= 110) status = "critical";
+                    else if (sys >= 140 || dia >= 90) status = "attention";
+                }
+
+                timelineEntries.Add(new MedicalHistoryEntry
+                {
+                    DateTime = bp.DateTime,
+                    EventType = "bp-reading",
+                    Status = status,
+                    Title = "Blood Pressure Reading",
+                    SubTitle = $"{bp.BloodPressure} mmHg",
+                    BloodPressure = bp
+                });
+            }
+
+            foreach (var bs in bsHistory)
+            {
+                var status = bs.BloodSugar >= 200 ? "critical"
+                    : bs.BloodSugar >= 140 ? "attention"
+                    : "normal";
+
+                timelineEntries.Add(new MedicalHistoryEntry
+                {
+                    DateTime = bs.DateTime,
+                    EventType = "blood-sugar",
+                    Status = status,
+                    Title = "Blood Sugar Reading",
+                    SubTitle = $"{bs.BloodSugar} mg/dL",
+                    BloodSugar = bs
+                });
+            }
+
+            foreach (var lab in labTests)
+            {
+                timelineEntries.Add(new MedicalHistoryEntry
+                {
+                    DateTime = lab.UploadDate,
+                    EventType = "lab-test",
+                    Status = "normal",
+                    Title = $"{lab.TestType} Test",
+                    SubTitle = "Lab result uploaded",
+                    LabTest = lab
+                });
+            }
+
+            foreach (var us in ultrasounds)
+            {
+                var hasAnomaly = !string.IsNullOrWhiteSpace(us.DetectedAnomaly);
+                timelineEntries.Add(new MedicalHistoryEntry
+                {
+                    DateTime = us.UploadDate,
+                    EventType = "ultrasound",
+                    Status = hasAnomaly ? "attention" : "normal",
+                    Title = "Ultrasound Scan",
+                    SubTitle = hasAnomaly ? us.DetectedAnomaly : "No anomalies detected",
+                    Ultrasound = us
+                });
+            }
+
+            foreach (var appt in appointmentHistory)
+            {
+                timelineEntries.Add(new MedicalHistoryEntry
+                {
+                    DateTime = appt.Date.Date.Add(appt.Time),
+                    EventType = "appointment",
+                    Status = "normal",
+                    Title = string.IsNullOrWhiteSpace(appt.Booking?.Reason) ? "Consultation" : appt.Booking.Reason,
+                    SubTitle = $"Appointment {((appt.Date.Date.Add(appt.Time) < DateTime.Now) ? "completed" : "upcoming")}",
+                    Appointment = appt
+                });
+            }
+
+            foreach (var alert in alerts)
+            {
+                var status = (alert.AlertType ?? "").ToLowerInvariant() switch
+                {
+                    "danger" => "critical",
+                    "critical" => "critical",
+                    "warning" => "attention",
+                    _ => "normal"
+                };
+
+                timelineEntries.Add(new MedicalHistoryEntry
+                {
+                    DateTime = alert.DateCreated,
+                    EventType = "alert",
+                    Status = status,
+                    Title = alert.Title,
+                    SubTitle = alert.Message,
+                    Alert = alert
+                });
+            }
+
+            foreach (var note in notes)
+            {
+                timelineEntries.Add(new MedicalHistoryEntry
+                {
+                    DateTime = note.CreatedDate,
+                    EventType = "doctor-note",
+                    Status = "normal",
+                    Title = "Doctor Note",
+                    SubTitle = note.Content,
+                    DoctorNote = note
+                });
+            }
+
+            foreach (var rx in prescriptions)
+            {
+                var itemCount = rx.Items?.Count ?? 0;
+                timelineEntries.Add(new MedicalHistoryEntry
+                {
+                    DateTime = rx.PrescriptionDate,
+                    EventType = "medication",
+                    Status = "normal",
+                    Title = "Prescription Issued",
+                    SubTitle = itemCount > 0
+                        ? $"{itemCount} medication{(itemCount != 1 ? "s" : string.Empty)} prescribed"
+                        : (string.IsNullOrWhiteSpace(rx.Notes) ? "Prescription record" : rx.Notes),
+                    Prescription = rx
+                });
+            }
+
+            foreach (var record in pregnancyRecords)
+            {
+                timelineEntries.Add(new MedicalHistoryEntry
+                {
+                    DateTime = record.StartDate,
+                    EventType = "pregnancy-started",
+                    Status = "normal",
+                    Title = "Pregnancy Started",
+                    SubTitle = "Pregnancy tracking started"
+                });
+
+                if (record.EndDate.HasValue)
+                {
+                    timelineEntries.Add(new MedicalHistoryEntry
+                    {
+                        DateTime = record.EndDate.Value,
+                        EventType = "pregnancy-ended",
+                        Status = "normal",
+                        Title = "Pregnancy Ended",
+                        SubTitle = "Pregnancy was marked as ended"
+                    });
+                }
+            }
+
+            timelineEntries = timelineEntries
+                .OrderByDescending(e => e.DateTime)
                 .ToList();
 
             var nextAppointment = appointmentHistory
@@ -812,13 +989,150 @@ namespace Graduation_Project.Controllers
                 LastBSDate = bsHistory.FirstOrDefault()?.DateTime,
                 NextAppointment = nextAppointment,
                 BloodPressureHistory = bpHistory,
+                BloodSugarHistory = bsHistory,
                 LabTests = labTests,
                 AppointmentHistory = appointmentHistory,
                 ClinicalNotes = notes,
-                Prescriptions = prescriptions
+                Prescriptions = prescriptions,
+                AlertRecords = alerts,
+                TimelineEntries = timelineEntries
             };
 
             return View(vm);
+        }
+
+        [HttpGet]
+        public IActionResult PrintPrescription(int id, int prescriptionId)
+        {
+            var accessResult = TryResolveDoctor(id, out var doctor);
+            if (accessResult != null)
+                return accessResult;
+
+            var prescription = _context.Prescriptions
+                .Include(p => p.Items)
+                .Include(p => p.Patient)
+                    .ThenInclude(pt => pt.User)
+                .FirstOrDefault(p => p.PrescriptionID == prescriptionId && p.DoctorID == doctor!.DoctorID);
+
+            if (prescription == null)
+                return NotFound();
+
+            var isAssigned = _patientDoctorRepository
+                .GetApprovedByDoctor(doctor!.DoctorID)
+                .Any(pd => pd.PatientID == prescription.PatientID);
+
+            if (!isAssigned)
+                return Forbid();
+
+            var clinic = _context.ClinicDoctors
+                .Include(cd => cd.Clinic)
+                .Where(cd => cd.DoctorID == doctor.DoctorID)
+                .Select(cd => cd.Clinic)
+                .FirstOrDefault();
+
+            var followUp = _context.Appointments
+                .Where(a => a.DoctorID == doctor.DoctorID
+                         && a.PatientID == prescription.PatientID
+                         && a.Date.Date >= prescription.PrescriptionDate.Date
+                         && a.isBooked)
+                .OrderBy(a => a.Date)
+                .ThenBy(a => a.Time)
+                .Select(a => (DateTime?)a.Date.Date.Add(a.Time))
+                .FirstOrDefault();
+
+            var vm = new DoctorPrescriptionPrintViewModel
+            {
+                Doctor = doctor,
+                DoctorName = BuildDoctorName(doctor),
+                Patient = prescription.Patient,
+                Prescription = prescription,
+                ClinicName = clinic?.Name,
+                ClinicAddress = clinic?.Location,
+                ClinicPhone = doctor.User?.PhoneNumber,
+                FollowUpDate = followUp
+            };
+
+            return View("~/Views/Doctor/PrintPrescription.cshtml", vm);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult CreatePrescription(
+            int id,
+            int patientId,
+            List<string>? medicineNames,
+            List<string>? dosages,
+            List<string>? frequencies,
+            List<int>? durationDays,
+            List<string>? instructions,
+            string? notes)
+        {
+            var accessResult = TryResolveDoctor(id, out var doctor, true);
+            if (accessResult != null)
+                return accessResult;
+
+            var isAssigned = _patientDoctorRepository
+                .GetApprovedByDoctor(doctor!.DoctorID)
+                .Any(pd => pd.PatientID == patientId);
+            if (!isAssigned)
+                return Json(new { success = false, message = "Patient is not assigned to this doctor." });
+
+            var validMedicineNames = (medicineNames ?? new List<string>())
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Select(name => name.Trim())
+                .ToList();
+
+            if (!validMedicineNames.Any())
+                return Json(new { success = false, message = "At least one medicine name is required." });
+
+            var prescription = new Prescription
+            {
+                DoctorID = doctor.DoctorID,
+                PatientID = patientId,
+                PrescriptionDate = DateTime.Now,
+                Notes = (notes ?? string.Empty).Trim(),
+                Items = new List<PrescriptionItem>()
+            };
+
+            for (var i = 0; i < (medicineNames?.Count ?? 0); i++)
+            {
+                var currentName = medicineNames![i]?.Trim();
+                if (string.IsNullOrWhiteSpace(currentName))
+                    continue;
+
+                var currentDosage = dosages != null && i < dosages.Count
+                    ? (dosages[i] ?? string.Empty).Trim()
+                    : string.Empty;
+
+                var currentFrequency = frequencies != null && i < frequencies.Count
+                    ? (frequencies[i] ?? string.Empty).Trim()
+                    : string.Empty;
+
+                var currentDuration = durationDays != null && i < durationDays.Count
+                    ? Math.Max(0, durationDays[i])
+                    : 0;
+
+                var currentInstructions = instructions != null && i < instructions.Count
+                    ? (instructions[i] ?? string.Empty).Trim()
+                    : string.Empty;
+
+                prescription.Items.Add(new PrescriptionItem
+                {
+                    MedicineName = currentName,
+                    Dosage = currentDosage,
+                    Frequency = currentFrequency,
+                    DurationDays = currentDuration,
+                    Instructions = currentInstructions
+                });
+            }
+
+            if (!prescription.Items.Any())
+                return Json(new { success = false, message = "Please provide at least one valid medicine." });
+
+            _context.Prescriptions.Add(prescription);
+            _context.SaveChanges();
+
+            return Json(new { success = true, message = "Prescription saved successfully.", prescriptionId = prescription.PrescriptionID });
         }
 
         [HttpPost]
@@ -850,6 +1164,28 @@ namespace Graduation_Project.Controllers
             };
 
             _context.Notes.Add(note);
+
+            var patientUserId = _context.Patients
+                .Where(p => p.PatientID == patientId)
+                .Select(p => p.UserID)
+                .FirstOrDefault();
+
+            if (!string.IsNullOrWhiteSpace(patientUserId) && !string.IsNullOrWhiteSpace(doctor.UserID))
+            {
+                var notePreview = note.Content.Length > 1850
+                    ? note.Content[..1850] + "..."
+                    : note.Content;
+
+                _context.ChatMessages.Add(new ChatMessage
+                {
+                    SenderUserId = doctor.UserID,
+                    ReceiverUserId = patientUserId,
+                    Message = _chatMessageCrypto.Encrypt($"Doctor note: {notePreview}"),
+                    SentAtUtc = DateTime.Now,
+                    IsRead = false
+                });
+            }
+
             _context.SaveChanges();
 
             return RedirectToAction(nameof(PatientDetails), new { id = doctor.DoctorID, patientId });
