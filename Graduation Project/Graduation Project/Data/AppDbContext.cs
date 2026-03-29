@@ -1,9 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Graduation_Project.Models;
 
 namespace Graduation_Project.Data
 {
-    public class AppDbContext : DbContext
+    public class AppDbContext : IdentityDbContext<ApplicationUser>
     {
         public AppDbContext()
         {
@@ -40,31 +41,18 @@ namespace Graduation_Project.Data
         public DbSet<PatientBloodSugar> PatientBloodSugar { get; set; }
         public DbSet<PatientDoctor> PatientDoctors { get; set; }
         public DbSet<PatientDrug> PatientDrugs { get; set; }
+        public DbSet<PregnancyRecord> PregnancyRecords { get; set; }
         public DbSet<Place> Places { get; set; }
         public DbSet<Prescription> Prescriptions { get; set; }
         public DbSet<PrescriptionItem> PrescriptionItems { get; set; }
-        public DbSet<Role> Roles { get; set; }
         public DbSet<TestReport> TestReports { get; set; }
         public DbSet<UltrasoundImage> UltrasoundImages { get; set; }
-        public DbSet<User> Users { get; set; }
         public DbSet<WeightTracking> WeightTrackings { get; set; }
+        public DbSet<ChatMessage> ChatMessages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-
-            // ============================================================
-            // 1. USER -> ROLE (One User has One Role)
-            // ============================================================
-            modelBuilder.Entity<User>(entity =>
-            {
-                entity.HasKey(e => e.UserID);
-
-                entity.HasOne(d => d.Role)
-                    .WithMany(p => p.Users)
-                    .HasForeignKey(d => d.RoleID)
-                    .OnDelete(DeleteBehavior.Restrict);
-            });
 
             // ============================================================
             // APPOINTMENT -> PATIENT (optional — availability slots have no patient)
@@ -180,6 +168,21 @@ namespace Graduation_Project.Data
                     .WithMany()
                     .HasForeignKey(d => d.PatientID)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ============================================================
+            // PATIENT -> PREGNANCYRECORDS (One Patient has Many PregnancyRecords)
+            // ============================================================
+            modelBuilder.Entity<PregnancyRecord>(entity =>
+            {
+                entity.HasKey(e => e.PregnancyRecordID);
+
+                entity.HasOne(d => d.Patient)
+                    .WithMany(p => p.PregnancyRecords)
+                    .HasForeignKey(d => d.PatientID)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => new { e.PatientID, e.StartDate });
             });
 
             // ============================================================
@@ -319,6 +322,39 @@ namespace Graduation_Project.Data
                     .WithOne()
                     .HasForeignKey<Ferritin_Test>(d => d.LabTestID)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ============================================================
+            // CHATMESSAGES
+            // ============================================================
+            modelBuilder.Entity<ChatMessage>(entity =>
+            {
+                entity.HasKey(e => e.ChatMessageId);
+
+                entity.Property(e => e.SenderUserId)
+                    .HasMaxLength(450)
+                    .IsRequired();
+
+                entity.Property(e => e.ReceiverUserId)
+                    .HasMaxLength(450)
+                    .IsRequired();
+
+                entity.Property(e => e.Message)
+                    .HasMaxLength(2000)
+                    .IsRequired();
+
+                entity.HasOne(e => e.SenderUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.SenderUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.ReceiverUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.ReceiverUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => new { e.SenderUserId, e.ReceiverUserId, e.SentAtUtc });
+                entity.HasIndex(e => new { e.ReceiverUserId, e.IsRead });
             });
 
             // ============================================================

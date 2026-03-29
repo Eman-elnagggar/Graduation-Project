@@ -1,9 +1,19 @@
-﻿@model PatientDashboardViewModel
+﻿@using System.Globalization
+@using System.Linq
+@model PatientDashboardViewModel
 @{
     Layout = "~/Views/Shared/_PatientLayout.cshtml";
     ViewData["Title"] = "Dashboard";
     ViewData["PatientId"]  = Model.Patient.PatientID;
     ViewData["ActivePage"] = "Dashboard";
+    ViewData["UserName"] = Model.UserName;
+
+    var now = DateTime.Now;
+    var greeting = now.Hour < 12 ? "Good morning" : now.Hour < 17 ? "Good afternoon" : "Good evening";
+    var patientFirstName = (Model.UserName ?? "Patient").Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Patient";
+    ViewData["PageTitle"] = $"{greeting}, {patientFirstName} 👋";
+    ViewData["PageTitleHtml"] = $"{greeting}, <span class='topbar-accent'>{patientFirstName}</span> 👋";
+    ViewData["PageSubtitle"] = now.ToString("dddd, MMMM dd, yyyy", CultureInfo.InvariantCulture);
 }
 
 @section Head {
@@ -371,35 +381,87 @@
                         <span><span class="db-legend-dot diastolic"></span> Diastolic</span>
                     </div>
                 </div>
-                <div class="db-bar-chart">
-                    @{
-                        var bpDays = new[] { "Mon","Tue","Wed","Thu","Fri","Sat","Today" };
-                        var bpSys  = new[] { 60, 62, 65, 70, 61, 63, 60 };
-                        var bpDia  = new[] { 40, 42, 44, 48, 41, 43, 40 };
-                    }
-                    @for (int i = 0; i < 7; i++)
-                    {
-                        bool isToday = i == 6;
-                        bool elevated = bpSys[i] >= 68;
-                        <div class="db-bar-group @(isToday ? "db-bar-today" : "")">
-                            <div class="db-bar db-bar-sys @(elevated ? "db-bar-elevated" : "")" style="height:@(bpSys[i])%"></div>
-                            <div class="db-bar db-bar-dia @(elevated ? "db-bar-elevated" : "")" style="height:@(bpDia[i])%"></div>
-                            <span class="db-bar-lbl">@bpDays[i]</span>
-                        </div>
-                    }
+                @{
+                    var bpWeeklyPoints = (Model.WeeklyBloodPressureReadings ?? new List<PatientBloodPressure>())
+                        .OrderByDescending(r => r.DateTime)
+                        .Take(7)
+                        .Select(r =>
+                        {
+                            var parts = (r.BloodPressure ?? string.Empty).Split('/');
+                            int systolic = 0, diastolic = 0;
+                            if (parts.Length == 2)
+                            {
+                                int.TryParse(parts[0], out systolic);
+                                int.TryParse(parts[1], out diastolic);
+                            }
+
+                            return new
+                            {
+                                Date = r.DateTime,
+                                Systolic = systolic,
+                                Diastolic = diastolic
+                            };
+                        })
+                        .Where(x => x.Systolic > 0 && x.Diastolic > 0)
+                        .OrderBy(x => x.Date)
+                        .ToList();
+
+                    var bpAverageSys = bpWeeklyPoints.Any() ? (int)Math.Round(bpWeeklyPoints.Average(x => x.Systolic)) : 0;
+                    var bpAverageDia = bpWeeklyPoints.Any() ? (int)Math.Round(bpWeeklyPoints.Average(x => x.Diastolic)) : 0;
+                    var bpHighest = bpWeeklyPoints.OrderByDescending(x => x.Systolic).FirstOrDefault();
+                    var bpLowest = bpWeeklyPoints.OrderBy(x => x.Systolic).FirstOrDefault();
+                }
+                <div class="db-chart-with-axis">
+                    <div class="db-y-axis" aria-hidden="true">
+                        <span>200</span>
+                        <span>180</span>
+                        <span>160</span>
+                        <span>140</span>
+                        <span>120</span>
+                        <span>100</span>
+                        <span>80</span>
+                        <span>60</span>
+                    </div>
+                    <div class="db-bar-chart" id="bpChart">
+                        @if (bpWeeklyPoints.Any())
+                        {
+                            @foreach (var point in bpWeeklyPoints)
+                            {
+                                var sysHeight = Math.Clamp((int)Math.Round((point.Systolic / 200.0) * 100), 8, 100);
+                                var diaHeight = Math.Clamp((int)Math.Round((point.Diastolic / 130.0) * 100), 8, 100);
+                                string bpRiskClass;
+                                if (point.Systolic < 90 || point.Diastolic < 60) bpRiskClass = "db-bar-risk-low";
+                                else if (point.Systolic <= 120 && point.Diastolic <= 80) bpRiskClass = "db-bar-risk-normal";
+                                else if (point.Systolic <= 139 || point.Diastolic <= 89) bpRiskClass = "db-bar-risk-elevated";
+                                else bpRiskClass = "db-bar-risk-high";
+                                bool isToday = point.Date == DateTime.Today;
+                                <div class="db-bar-group @(isToday ? "db-bar-today" : "")" data-systolic="@point.Systolic" data-diastolic="@point.Diastolic" data-date="@point.Date.ToString("MM/dd")">
+                                    <div class="db-bar-pair" title="@($"{point.Systolic}/{point.Diastolic} mmHg")">
+                                        <div class="db-bar db-bar-sys @bpRiskClass" style="height:@(sysHeight)%"></div>
+                                        <div class="db-bar db-bar-dia @bpRiskClass" style="height:@(diaHeight)%"></div>
+                                    </div>
+                                    <span class="db-bar-lbl">@point.Date.ToString("MM/dd")</span>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <p class="db-no-data" style="margin:auto;">No blood pressure readings found.</p>
+                        }
+                    </div>
                 </div>
                 <div class="db-summary-row">
                     <div class="db-summary-item">
                         <span class="db-summary-lbl">Average</span>
-                        <span class="db-summary-val">122/80 mmHg</span>
+                        <span class="db-summary-val" id="bpSummaryAverage">@(bpWeeklyPoints.Any() ? $"{bpAverageSys}/{bpAverageDia} mmHg" : "—")</span>
                     </div>
                     <div class="db-summary-item">
                         <span class="db-summary-lbl">Highest</span>
-                        <span class="db-summary-val db-val-warn">135/88 mmHg</span>
+                        <span class="db-summary-val db-val-warn" id="bpSummaryHighest">@(bpHighest != null ? $"{bpHighest.Systolic}/{bpHighest.Diastolic} mmHg" : "—")</span>
                     </div>
                     <div class="db-summary-item">
                         <span class="db-summary-lbl">Lowest</span>
-                        <span class="db-summary-val">115/75 mmHg</span>
+                        <span class="db-summary-val" id="bpSummaryLowest">@(bpLowest != null ? $"{bpLowest.Systolic}/{bpLowest.Diastolic} mmHg" : "—")</span>
                     </div>
                 </div>
             </div>
@@ -513,33 +575,71 @@
                 <div class="db-chart-header">
                     <h3><i class="fas fa-chart-line"></i> Weekly Trend</h3>
                 </div>
-                <div class="db-bar-chart">
-                    @{
-                        var bsDays = new[] { "Mon","Tue","Wed","Thu","Fri","Sat","Today" };
-                        var bsVals = new[] { 45, 50, 48, 40, 52, 46, 48 };
-                    }
-                    @for (int i = 0; i < 7; i++)
-                    {
-                        bool isToday2  = i == 6;
-                        bool elevated2 = bsVals[i] >= 50;
-                        <div class="db-bar-group @(isToday2 ? "db-bar-today" : "")">
-                            <div class="db-bar db-bar-bs @(elevated2 ? "db-bar-elevated" : "")" style="height:@(bsVals[i])%"></div>
-                            <span class="db-bar-lbl">@bsDays[i]</span>
-                        </div>
-                    }
+                @{
+                    var bsWeeklyPoints = (Model.WeeklyBloodSugarReadings ?? new List<PatientBloodSugar>())
+                        .OrderByDescending(r => r.DateTime)
+                        .Take(7)
+                        .Select(g => new
+                        {
+                            Date = g.DateTime,
+                            Value = g.BloodSugar
+                        })
+                        .Where(x => x.Value > 0)
+                        .OrderBy(x => x.Date)
+                        .ToList();
+
+                    var bsAverage = bsWeeklyPoints.Any() ? Math.Round(bsWeeklyPoints.Average(x => x.Value), 1) : 0;
+                    var bsHighest = bsWeeklyPoints.OrderByDescending(x => x.Value).FirstOrDefault();
+                    var bsLowest = bsWeeklyPoints.OrderBy(x => x.Value).FirstOrDefault();
+                }
+                <div class="db-chart-with-axis">
+                    <div class="db-y-axis" aria-hidden="true">
+                        <span>220</span>
+                        <span>190</span>
+                        <span>160</span>
+                        <span>130</span>
+                        <span>100</span>
+                        <span>70</span>
+                        <span>40</span>
+                    </div>
+                    <div class="db-bar-chart" id="bsChart">
+                        @if (bsWeeklyPoints.Any())
+                        {
+                            @foreach (var point in bsWeeklyPoints)
+                            {
+                                var bsHeight = Math.Clamp((int)Math.Round((point.Value / 220.0) * 100), 8, 100);
+                                string bsRiskClass;
+                                if (point.Value < 70) bsRiskClass = "db-bar-risk-low";
+                                else if (point.Value <= 140) bsRiskClass = "db-bar-risk-normal";
+                                else if (point.Value <= 180) bsRiskClass = "db-bar-risk-elevated";
+                                else bsRiskClass = "db-bar-risk-high";
+                                bool isToday = point.Date == DateTime.Today;
+                                <div class="db-bar-group @(isToday ? "db-bar-today" : "")" data-value="@point.Value" data-date="@point.Date.ToString("MM/dd")">
+                                    <div class="db-bar-pair" title="@($"{point.Value} mg/dL")">
+                                        <div class="db-bar db-bar-bs @bsRiskClass" style="height:@(bsHeight)%"></div>
+                                    </div>
+                                    <span class="db-bar-lbl">@point.Date.ToString("MM/dd")</span>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <p class="db-no-data" style="margin:auto;">No blood sugar readings found.</p>
+                        }
+                    </div>
                 </div>
                 <div class="db-summary-row">
                     <div class="db-summary-item">
                         <span class="db-summary-lbl">Average</span>
-                        <span class="db-summary-val">92 mg/dL</span>
+                        <span class="db-summary-val" id="bsSummaryAverage">@(bsWeeklyPoints.Any() ? $"{bsAverage} mg/dL" : "—")</span>
                     </div>
                     <div class="db-summary-item">
                         <span class="db-summary-lbl">Highest</span>
-                        <span class="db-summary-val">98 mg/dL</span>
+                        <span class="db-summary-val" id="bsSummaryHighest">@(bsHighest != null ? $"{bsHighest.Value} mg/dL" : "—")</span>
                     </div>
                     <div class="db-summary-item">
                         <span class="db-summary-lbl">Lowest</span>
-                        <span class="db-summary-val">88 mg/dL</span>
+                        <span class="db-summary-val" id="bsSummaryLowest">@(bsLowest != null ? $"{bsLowest.Value} mg/dL" : "—")</span>
                     </div>
                 </div>
             </div>
@@ -581,6 +681,9 @@ window.showNotification = function (message, type = "info") {
 };
 
 document.addEventListener('DOMContentLoaded', function () {
+    normalizeBPChartScale();
+    normalizeBSChartScale();
+
     // ── Tab switching ──────────────────────────────────────
     document.querySelectorAll('.db-tab').forEach(btn => {
         btn.addEventListener('click', function () {
@@ -644,7 +747,11 @@ document.addEventListener('DOMContentLoaded', function () {
             const r = await fetch('/Patient/SaveBloodPressure', { method:'POST', body:fd });
             if (!r.ok) throw new Error();
             const d = await r.json();
-            if (d.success) { addBPRow(sys, dia, d.day, d.month, d.time, meas, a); window.showNotification('Blood pressure saved!', 'success'); }
+            if (d.success) {
+                addBPRow(sys, dia, d.day, d.month, d.time, meas, a);
+                addBPChartPoint(sys, dia, new Date());
+                window.showNotification('Blood pressure saved!', 'success');
+            }
         } catch { window.showNotification('Could not save. Please try again.', 'error'); }
 
         bpRes.scrollIntoView({ behavior:'smooth', block:'center' });
@@ -671,6 +778,149 @@ document.addEventListener('DOMContentLoaded', function () {
         list.insertBefore(row, list.firstChild);
         const items = list.querySelectorAll('.db-history-item');
         if (items.length > 10) items[items.length-1].remove();
+    }
+
+    function formatChartDate(date) {
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        return `${mm}/${dd}`;
+    }
+
+    function addBPChartPoint(sys, dia, date) {
+        const chart = document.getElementById('bpChart');
+        if (!chart) return;
+
+        chart.querySelector('p.db-no-data')?.remove();
+
+        const sysHeight = Math.max(8, Math.min(100, Math.round((sys / 200) * 100)));
+        const diaHeight = Math.max(8, Math.min(100, Math.round((dia / 130) * 100)));
+        let bpRiskClass = 'db-bar-risk-high';
+        if (sys < 90 || dia < 60) bpRiskClass = 'db-bar-risk-low';
+        else if (sys <= 120 && dia <= 80) bpRiskClass = 'db-bar-risk-normal';
+        else if (sys <= 139 || dia <= 89) bpRiskClass = 'db-bar-risk-elevated';
+        const label = formatChartDate(date);
+
+        const group = document.createElement('div');
+        group.className = 'db-bar-group';
+        group.dataset.systolic = String(sys);
+        group.dataset.diastolic = String(dia);
+        group.dataset.date = label;
+        group.innerHTML = `
+            <div class="db-bar-pair" title="${sys}/${dia} mmHg">
+                <div class="db-bar db-bar-sys ${bpRiskClass}" style="height:${sysHeight}%"></div>
+                <div class="db-bar db-bar-dia ${bpRiskClass}" style="height:${diaHeight}%"></div>
+            </div>
+            <span class="db-bar-lbl">${label}</span>`;
+
+        chart.appendChild(group);
+
+        const groups = Array.from(chart.querySelectorAll('.db-bar-group'));
+        while (groups.length > 7) {
+            groups.shift()?.remove();
+        }
+
+        const todayLabel = formatChartDate(new Date());
+        chart.querySelectorAll('.db-bar-group').forEach(g => {
+            g.classList.toggle('db-bar-today', g.dataset.date === todayLabel);
+        });
+
+        normalizeBPChartScale();
+        refreshBPSummary();
+    }
+
+    function buildAxisTicks(minValue, maxValue, targetTicks = 8) {
+        const safeRange = Math.max(1, maxValue - minValue);
+        const rawStep = safeRange / Math.max(1, targetTicks - 1);
+        const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+        const normalized = rawStep / magnitude;
+
+        let stepFactor = 10;
+        if (normalized <= 1) stepFactor = 1;
+        else if (normalized <= 2) stepFactor = 2;
+        else if (normalized <= 2.5) stepFactor = 2.5;
+        else if (normalized <= 5) stepFactor = 5;
+
+        const step = stepFactor * magnitude;
+        const axisMin = Math.floor(minValue / step) * step;
+        const axisMax = Math.ceil(maxValue / step) * step;
+
+        const ticks = [];
+        for (let value = axisMax; value >= axisMin; value -= step) {
+            ticks.push(Math.round(value));
+        }
+
+        return { ticks, axisMin, axisMax };
+    }
+
+    function normalizeBPChartScale() {
+        const chart = document.getElementById('bpChart');
+        if (!chart) return;
+        const axis = chart.closest('.db-chart-with-axis')?.querySelector('.db-y-axis');
+
+        const groups = Array.from(chart.querySelectorAll('.db-bar-group'));
+        const points = groups
+            .map(g => ({
+                systolic: parseInt(g.dataset.systolic || '0', 10),
+                diastolic: parseInt(g.dataset.diastolic || '0', 10)
+            }))
+            .filter(p => p.systolic > 0 && p.diastolic > 0);
+
+        if (!points.length) return;
+
+        const values = points.flatMap(p => [p.systolic, p.diastolic]);
+        const paddedMin = Math.max(40, Math.min(...values) - 10);
+        const paddedMax = Math.max(...values) + 10;
+        const axisData = buildAxisTicks(paddedMin, paddedMax, 8);
+        const range = Math.max(1, axisData.axisMax - axisData.axisMin);
+
+        if (axis) {
+            axis.innerHTML = axisData.ticks.map(t => `<span>${t}</span>`).join('');
+        }
+
+        groups.forEach((g, idx) => {
+            const p = points[idx];
+            if (!p) return;
+            const sysEl = g.querySelector('.db-bar-sys');
+            const diaEl = g.querySelector('.db-bar-dia');
+            if (sysEl) {
+                const h = Math.max(6, Math.min(100, Math.round(((p.systolic - axisData.axisMin) / range) * 100)));
+                sysEl.style.height = `${h}%`;
+            }
+            if (diaEl) {
+                const h = Math.max(6, Math.min(100, Math.round(((p.diastolic - axisData.axisMin) / range) * 100)));
+                diaEl.style.height = `${h}%`;
+            }
+        });
+    }
+
+    function refreshBPSummary() {
+        const groups = Array.from(document.querySelectorAll('#bpChart .db-bar-group'));
+        const avgEl = document.getElementById('bpSummaryAverage');
+        const highEl = document.getElementById('bpSummaryHighest');
+        const lowEl = document.getElementById('bpSummaryLowest');
+
+        const points = groups
+            .map(g => ({
+                systolic: parseInt(g.dataset.systolic || '0', 10),
+                diastolic: parseInt(g.dataset.diastolic || '0', 10)
+            }))
+            .filter(p => p.systolic > 0 && p.diastolic > 0);
+
+        if (!points.length) {
+            if (avgEl) avgEl.textContent = '—';
+            if (highEl) highEl.textContent = '—';
+            if (lowEl) lowEl.textContent = '—';
+            return;
+        }
+
+        const avgSys = Math.round(points.reduce((sum, p) => sum + p.systolic, 0) / points.length);
+        const avgDia = Math.round(points.reduce((sum, p) => sum + p.diastolic, 0) / points.length);
+        const highest = points.reduce((max, p) => p.systolic > max.systolic ? p : max, points[0]);
+        const lowest = points.reduce((min, p) => p.systolic < min.systolic ? p : min, points[0]);
+
+        if (avgEl) avgEl.textContent = `${avgSys}/${avgDia} mmHg`;
+        if (highEl) highEl.textContent = `${highest.systolic}/${highest.diastolic} mmHg`;
+        if (lowEl) lowEl.textContent = `${lowest.systolic}/${lowest.diastolic} mmHg`;
     }
 
     // ── Blood Sugar ─────────────────────────────────────────
@@ -711,7 +961,11 @@ document.addEventListener('DOMContentLoaded', function () {
             const r = await fetch('/Patient/SaveBloodSugar', { method:'POST', body:fd });
             if (!r.ok) throw new Error();
             const d = await r.json();
-            if (d.success) { addBSRow(val, meal, d.day, d.month, d.time, a); window.showNotification('Blood sugar saved!', 'success'); }
+            if (d.success) {
+                addBSRow(val, meal, d.day, d.month, d.time, a);
+                addBSChartPoint(val, new Date());
+                window.showNotification('Blood sugar saved!', 'success');
+            }
         } catch { window.showNotification('Could not save. Please try again.', 'error'); }
 
         bsRes.scrollIntoView({ behavior:'smooth', block:'center' });
@@ -743,6 +997,101 @@ document.addEventListener('DOMContentLoaded', function () {
         list.insertBefore(row, list.firstChild);
         const items = list.querySelectorAll('.db-history-item');
         if (items.length > 10) items[items.length-1].remove();
+    }
+
+    function addBSChartPoint(value, date) {
+        const chart = document.getElementById('bsChart');
+        if (!chart) return;
+
+        chart.querySelector('p.db-no-data')?.remove();
+
+        const height = Math.max(8, Math.min(100, Math.round((value / 220) * 100)));
+        let bsRiskClass = 'db-bar-risk-high';
+        if (value < 70) bsRiskClass = 'db-bar-risk-low';
+        else if (value <= 140) bsRiskClass = 'db-bar-risk-normal';
+        else if (value <= 180) bsRiskClass = 'db-bar-risk-elevated';
+        const label = formatChartDate(date);
+
+        const group = document.createElement('div');
+        group.className = 'db-bar-group';
+        group.dataset.value = String(value);
+        group.dataset.date = label;
+        group.innerHTML = `
+            <div class="db-bar-pair" title="${value} mg/dL">
+                <div class="db-bar db-bar-bs ${bsRiskClass}" style="height:${height}%"></div>
+            </div>
+            <span class="db-bar-lbl">${label}</span>`;
+
+        chart.appendChild(group);
+
+        const groups = Array.from(chart.querySelectorAll('.db-bar-group'));
+        while (groups.length > 7) {
+            groups.shift()?.remove();
+        }
+
+        const todayLabel = formatChartDate(new Date());
+        chart.querySelectorAll('.db-bar-group').forEach(g => {
+            g.classList.toggle('db-bar-today', g.dataset.date === todayLabel);
+        });
+
+        normalizeBSChartScale();
+        refreshBSSummary();
+    }
+
+    function normalizeBSChartScale() {
+        const chart = document.getElementById('bsChart');
+        if (!chart) return;
+        const axis = chart.closest('.db-chart-with-axis')?.querySelector('.db-y-axis');
+
+        const groups = Array.from(chart.querySelectorAll('.db-bar-group'));
+        const values = groups
+            .map(g => parseFloat(g.dataset.value || '0'))
+            .filter(v => v > 0);
+
+        if (!values.length) return;
+
+        const paddedMin = Math.max(40, Math.min(...values) - 10);
+        const paddedMax = Math.max(...values) + 15;
+        const axisData = buildAxisTicks(paddedMin, paddedMax, 8);
+        const range = Math.max(1, axisData.axisMax - axisData.axisMin);
+
+        if (axis) {
+            axis.innerHTML = axisData.ticks.map(t => `<span>${t}</span>`).join('');
+        }
+
+        groups.forEach((g, idx) => {
+            const valueEl = g.querySelector('.db-bar-bs');
+            const value = values[idx];
+            if (!valueEl || value === undefined) return;
+            const h = Math.max(6, Math.min(100, Math.round(((value - axisData.axisMin) / range) * 100)));
+            valueEl.style.height = `${h}%`;
+        });
+    }
+
+    function refreshBSSummary() {
+        const groups = Array.from(document.querySelectorAll('#bsChart .db-bar-group'));
+        const avgEl = document.getElementById('bsSummaryAverage');
+        const highEl = document.getElementById('bsSummaryHighest');
+        const lowEl = document.getElementById('bsSummaryLowest');
+
+        const values = groups
+            .map(g => parseFloat(g.dataset.value || '0'))
+            .filter(v => v > 0);
+
+        if (!values.length) {
+            if (avgEl) avgEl.textContent = '—';
+            if (highEl) highEl.textContent = '—';
+            if (lowEl) lowEl.textContent = '—';
+            return;
+        }
+
+        const avg = Math.round((values.reduce((sum, v) => sum + v, 0) / values.length) * 10) / 10;
+        const highest = Math.max(...values);
+        const lowest = Math.min(...values);
+
+        if (avgEl) avgEl.textContent = `${avg} mg/dL`;
+        if (highEl) highEl.textContent = `${highest} mg/dL`;
+        if (lowEl) lowEl.textContent = `${lowest} mg/dL`;
     }
 });
 </script>
@@ -1215,17 +1564,44 @@ document.addEventListener('DOMContentLoaded', function () {
 .db-legend-dot.systolic  { background:#2196f3; }
 .db-legend-dot.diastolic { background:#90caf9; }
 
+.db-chart-with-axis {
+    display:flex;
+    align-items:stretch;
+    gap:.45rem;
+    flex:1;
+    min-height:300px;
+    margin-bottom:1rem;
+}
+
+.db-y-axis {
+    width:30px;
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    align-items:flex-end;
+    padding:.4rem 0 .25rem;
+    font-size:.65rem;
+    color:#94a3b8;
+    user-select:none;
+}
+
 .db-bar-chart {
     display:flex; align-items:flex-end; gap:.5rem;
-    height:160px; padding:.5rem 0;
+    height:100%; padding:.5rem 0;
     border-bottom:1.5px solid var(--db-border);
-    margin-bottom:1rem; flex:1;
+    margin-bottom:0; flex:1;
 }
-.db-bar-group  { display:flex; flex-direction:column; align-items:center; gap:2px; flex:1; height:100%; justify-content:flex-end; }
-.db-bar        { width:100%; max-width:20px; border-radius:4px 4px 0 0; transition:height .4s ease; min-height:4px; }
+.db-bar-group  { display:flex; flex-direction:column; align-items:center; gap:.35rem; flex:1; height:100%; justify-content:flex-end; }
+.db-bar-pair   { display:flex; align-items:flex-end; justify-content:center; gap:4px; height:100%; width:100%; }
+.db-bar        { width:12px; border-radius:4px 4px 0 0; transition:height .4s ease; min-height:4px; }
 .db-bar-sys    { background:#2196f3; }
 .db-bar-dia    { background:#90caf9; }
 .db-bar-bs     { background:#e91e63; }
+.db-bar-risk-low { background:#3b82f6 !important; }
+.db-bar-risk-normal { background:#22c55e !important; }
+.db-bar-risk-elevated { background:#f59e0b !important; }
+.db-bar-risk-high { background:#ef4444 !important; }
 .db-bar-elevated{ opacity:1 !important; }
 .db-bar-elevated.db-bar-sys,
 .db-bar-elevated.db-bar-bs { background:#ef4444; }
@@ -1237,6 +1613,10 @@ document.addEventListener('DOMContentLoaded', function () {
 .db-summary-lbl  { display:block; font-size:.7rem; color:#94a3b8; margin-bottom:.2rem; }
 .db-summary-val  { display:block; font-size:.85rem; font-weight:700; color:var(--db-text); }
 .db-val-warn     { color:#e65100; }
+
+@@media(max-width:900px){
+    .db-chart-with-axis { min-height:220px; }
+}
 
 /* ─────────────────────────────────────────
    TOAST

@@ -6,7 +6,7 @@ namespace Graduation_Project.ViewModels
     {
         // Core patient/user objects
     public Patient Patient { get; set; }
-   public User User { get; set; }
+   public ApplicationUser User { get; set; }
 
         // Convenience display fields
         public string UserName { get; set; }
@@ -16,6 +16,8 @@ namespace Graduation_Project.ViewModels
         public string Phone { get; set; }
 
   // Pregnancy
+        public bool HasActivePregnancy { get; set; }
+        public DateTime? ActivePregnancyStartDate { get; set; }
      public int PregnancyWeek { get; set; }
         public int PregnancyDays { get; set; }
         public int PregnancyProgressPercent { get; set; }

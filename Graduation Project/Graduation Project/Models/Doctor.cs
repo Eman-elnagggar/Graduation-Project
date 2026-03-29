@@ -9,7 +9,7 @@ namespace Graduation_Project.Models
         public int DoctorID { get; set; }
 
         [ForeignKey("User")]
-        public int UserID { get; set; }
+        public string UserID { get; set; }
 
         public string Specialization { get; set; }
         public string LicenseNumber { get; set; }
@@ -19,7 +19,7 @@ namespace Graduation_Project.Models
         public string Address { get; set; }
 
         // Navigation
-        public virtual User User { get; set; }
+        public virtual ApplicationUser User { get; set; }
         public virtual ICollection<ClinicDoctor> ClinicDoctors { get; set; }
         public virtual ICollection<AssistantDoctor> AssistantDoctors { get; set; }
         public virtual ICollection<Appointment> Appointments { get; set; }

@@ -1,0 +1,747 @@
+@model DoctorPatientsViewModel
+@{
+  Layout = "~/Views/Shared/_DoctorLayout.cshtml";
+  ViewData["Title"] = "My Patients";
+  ViewData["ActivePage"] = "Patients";
+  ViewData["DoctorId"] = Model.Doctor.DoctorID;
+  ViewData["DoctorName"] = Model.DoctorName;
+  ViewData["PageTitle"] = "My Patients";
+  ViewData["PageSubtitle"] = "Manage and monitor your assigned patients";
+
+  var patientPayload = (Model.Patients ?? new List<DoctorPatientSummary>())
+    .Select(p => new
+    {
+      id = p.PatientID,
+      firstName = p.User?.FirstName ?? "Patient",
+      lastName = p.User?.LastName ?? string.Empty,
+      phone = p.User?.PhoneNumber ?? "No phone",
+      email = p.User?.Email ?? string.Empty,
+      age = (int?)null,
+      bloodType = string.IsNullOrWhiteSpace(p.BloodType) ? "-" : p.BloodType,
+      gestationalWeeks = p.GestationalAge,
+      riskLevel = (p.RiskLevel ?? "low").ToLower(),
+      needsAttention = p.NeedsAttention,
+      nextAppointment = p.NextAppointmentDate?.ToString("yyyy-MM-dd"),
+      lastVisit = p.LastVisitDate?.ToString("yyyy-MM-dd"),
+      vitals = new
+      {
+        bp = string.IsNullOrWhiteSpace(p.LastBloodPressure) ? "--" : p.LastBloodPressure,
+        sugar = p.LastBloodSugar.HasValue ? $"{p.LastBloodSugar.Value:0.#} mg/dL" : "--",
+        weight = p.LastWeightKg.HasValue ? $"{p.LastWeightKg.Value:0.#} kg" : "--",
+        heartRate = "--"
+      },
+      conditions = Array.Empty<string>(),
+      notes = string.Empty
+    })
+    .ToList();
+
+  var patientJson = System.Text.Json.JsonSerializer.Serialize(patientPayload);
+}
+
+<div class="patients-page">
+  <div class="hero">
+    <div class="hero-content">
+      <div class="hero-left">
+        <span class="hero-badge"><i class="fas fa-users"></i> Patient Management</span>
+        <h1 class="hero-title">My Patients</h1>
+        <p class="hero-subtitle">Manage and monitor your assigned patients</p>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-icon"><i class="fas fa-users"></i></div>
+          <div class="hero-stat-content"><span class="hero-stat-value" id="statTotalPatients">0</span><span class="hero-stat-label">Total Patients</span></div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-icon warning"><i class="fas fa-exclamation-triangle"></i></div>
+          <div class="hero-stat-content"><span class="hero-stat-value" id="statHighRisk">0</span><span class="hero-stat-label">High Risk</span></div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-icon danger"><i class="fas fa-bell"></i></div>
+          <div class="hero-stat-content"><span class="hero-stat-value" id="statNeedsAttention">0</span><span class="hero-stat-label">Need Attention</span></div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-icon success"><i class="fas fa-calendar-check"></i></div>
+          <div class="hero-stat-content"><span class="hero-stat-value" id="statUpcoming">0</span><span class="hero-stat-label">Upcoming Visits</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="patients-main-content">
+    <div class="controls-bar">
+      <div class="controls-left">
+        <div class="filter-tabs">
+          <button class="filter-tab active" data-filter="all"><i class="fas fa-users"></i><span>All Patients</span><span class="tab-count" id="countAll">0</span></button>
+          <button class="filter-tab" data-filter="high-risk"><i class="fas fa-exclamation-triangle"></i><span>High Risk</span><span class="tab-count danger" id="countHighRisk">0</span></button>
+          <button class="filter-tab" data-filter="medium-risk"><i class="fas fa-exclamation-circle"></i><span>Medium Risk</span><span class="tab-count warning" id="countMediumRisk">0</span></button>
+          <button class="filter-tab" data-filter="needs-attention"><i class="fas fa-bell"></i><span>Needs Attention</span><span class="tab-count danger" id="countAttention">0</span></button>
+        </div>
+      </div>
+      <div class="controls-right">
+        <div class="quick-actions">
+          <button class="btn btn-outline" id="exportBtn"><i class="fas fa-download"></i><span>Export</span></button>
+          <button class="btn btn-outline" id="printBtn"><i class="fas fa-print"></i><span>Print</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="search-filters-row">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" id="searchInput" placeholder="Search by name, phone, or condition..." />
+        <button class="search-clear" id="searchClear" style="display: none;"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="filter-dropdowns">
+        <div class="filter-dropdown">
+          <label>Trimester</label>
+          <select id="trimesterFilter">
+            <option value="">All Trimesters</option>
+            <option value="1">1st Trimester (1-12 weeks)</option>
+            <option value="2">2nd Trimester (13-26 weeks)</option>
+            <option value="3">3rd Trimester (27-40 weeks)</option>
+          </select>
+        </div>
+        <div class="filter-dropdown">
+          <label>Risk Level</label>
+          <select id="riskFilter">
+            <option value="">All Risk Levels</option>
+            <option value="high">High Risk</option>
+            <option value="medium">Medium Risk</option>
+            <option value="low">Low Risk</option>
+          </select>
+        </div>
+        <div class="filter-dropdown">
+          <label>Blood Type</label>
+          <select id="bloodTypeFilter">
+            <option value="">All Blood Types</option>
+            <option value="A+">A+</option>
+            <option value="A-">A-</option>
+            <option value="B+">B+</option>
+            <option value="B-">B-</option>
+            <option value="AB+">AB+</option>
+            <option value="AB-">AB-</option>
+            <option value="O+">O+</option>
+            <option value="O-">O-</option>
+          </select>
+        </div>
+        <div class="filter-dropdown">
+          <label>Sort By</label>
+          <select id="sortFilter">
+            <option value="name-asc">Name (A-Z)</option>
+            <option value="name-desc">Name (Z-A)</option>
+            <option value="weeks-asc">Gestational Age (Low-High)</option>
+            <option value="weeks-desc">Gestational Age (High-Low)</option>
+            <option value="risk-desc">Risk Level (High-Low)</option>
+            <option value="next-visit">Next Visit Date</option>
+          </select>
+        </div>
+      </div>
+      <div class="view-toggle">
+        <button class="view-btn active" data-view="grid" title="Grid View"><i class="fas fa-th-large"></i></button>
+        <button class="view-btn" data-view="list" title="List View"><i class="fas fa-list"></i></button>
+        <button class="view-btn" data-view="compact" title="Compact View"><i class="fas fa-bars"></i></button>
+      </div>
+    </div>
+
+    <div class="active-filters" id="activeFilters" style="display: none;">
+      <span class="active-filters-label">Active filters:</span>
+      <div class="filter-tags" id="filterTags"></div>
+      <button class="clear-filters" id="clearFilters"><i class="fas fa-times"></i> Clear all</button>
+    </div>
+
+    <div class="results-info">
+      <span id="resultsCount">Showing 0 patients</span>
+      <div class="bulk-actions" id="bulkActions" style="display: none;">
+        <span class="selected-count"><span id="selectedCount">0</span> selected</span>
+        <button class="btn btn-sm btn-outline" id="bulkMessage"><i class="fas fa-envelope"></i> Message</button>
+        <button class="btn btn-sm btn-outline" id="bulkExport"><i class="fas fa-download"></i> Export</button>
+      </div>
+    </div>
+
+    <div class="patients-grid" id="patientsGrid"></div>
+
+    <div class="patients-list" id="patientsList" style="display: none;">
+      <div class="list-header">
+        <div class="list-col col-checkbox"><input type="checkbox" id="selectAll" /></div>
+        <div class="list-col col-patient">Patient</div>
+        <div class="list-col col-pregnancy">Pregnancy</div>
+        <div class="list-col col-risk">Risk Level</div>
+        <div class="list-col col-vitals">Latest Vitals</div>
+        <div class="list-col col-next">Next Visit</div>
+        <div class="list-col col-actions">Actions</div>
+      </div>
+      <div class="list-body" id="listBody"></div>
+    </div>
+
+    <div class="patients-compact" id="patientsCompact" style="display: none;"></div>
+
+    <div class="empty-state" id="emptyState" style="display: none;">
+      <div class="empty-icon"><i class="fas fa-users-slash"></i></div>
+      <h3>No patients found</h3>
+      <p>Try adjusting your filters or search criteria</p>
+      <button class="btn btn-primary" id="resetFiltersBtn"><i class="fas fa-redo"></i> Reset Filters</button>
+    </div>
+
+    <div class="pagination" id="pagination">
+      <button class="pagination-btn" id="prevPage" disabled><i class="fas fa-chevron-left"></i></button>
+      <div class="pagination-pages" id="paginationPages"></div>
+      <button class="pagination-btn" id="nextPage"><i class="fas fa-chevron-right"></i></button>
+      <div class="pagination-info">
+        <select id="pageSize">
+          <option value="12">12 per page</option>
+          <option value="24">24 per page</option>
+          <option value="48">48 per page</option>
+          <option value="all">Show all</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="patientModal">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <h3 id="modalPatientName">Patient Name</h3>
+          <span class="modal-subtitle" id="modalPatientId">Patient ID</span>
+        </div>
+        <button class="modal-close" id="closePatientModal"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="modalMessage"><i class="fas fa-comment-medical"></i> Send Message</button>
+        <button class="btn btn-outline" id="modalSchedule"><i class="fas fa-calendar-plus"></i> Schedule Appointment</button>
+        <button class="btn btn-primary" id="modalViewFull"><i class="fas fa-external-link-alt"></i> View Full Profile</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+</div>
+
+@section Styles {
+<style>
+.patients-page {
+  --primary: #14967f; --primary-dark: #0e7a68; --primary-mid: #1aad94; --primary-light: #e6f5f2; --primary-xlight: #f0faf8;
+  --navy: #0b1f35; --navy-mid: #152d47; --navy-light: #1a3d5c;
+  --text: #0f1c2e; --text-secondary: #4a5568; --text-muted: #8896ab; --text-light: #94a3b8;
+  --border: #e4eaf2; --border-dark: #cdd6e3;
+  --bg: #f3f6fb; --bg-white: #ffffff;
+  --danger: #e53e3e; --danger-light: #fef2f2; --danger-dark: #b91c1c;
+  --warning: #d97706; --warning-light: #fffbeb; --warning-dark: #b45309;
+  --success: #16a34a; --success-light: #f0fdf4; --success-dark: #15803d;
+  --info: #2563eb; --info-light: #eff6ff;
+  --shadow-sm: 0 1px 4px rgba(15, 28, 46, 0.06); --shadow: 0 4px 16px rgba(15, 28, 46, 0.08); --shadow-md: 0 8px 28px rgba(15, 28, 46, 0.11); --shadow-lg: 0 12px 40px rgba(15, 28, 46, 0.15);
+  --radius-sm: 6px; --radius: 10px; --radius-lg: 16px; --radius-xl: 22px;
+  --transition: 0.2s ease; --transition-slow: 0.3s ease;
+  display: flex; flex-direction: column; min-height: 100%; color: var(--text);
+}
+.patients-page *, .patients-page *::before, .patients-page *::after { box-sizing: border-box; }
+.patients-page .hero { background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 50%, var(--navy-light) 100%); padding: 24px; border-radius: var(--radius-lg); margin-bottom: 18px; }
+.patients-page .hero-content { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.patients-page .hero-title { font-size: 1.6rem; font-weight: 700; color: #f1f5f9; margin: 0; }
+.patients-page .hero-subtitle { font-size: 0.9rem; color: var(--text-light); margin: 4px 0 0; }
+.patients-page .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(20,150,127,.2); border: 1px solid rgba(20,150,127,.3); color: var(--primary-mid); font-size: .7rem; font-weight: 700; text-transform: uppercase; padding: 6px 12px; border-radius: 20px; }
+.patients-page .hero-stats { display: flex; gap: 10px; flex-wrap: wrap; }
+.patients-page .hero-stat { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); border-radius: var(--radius-lg); padding: 12px 14px; min-width: 145px; }
+.patients-page .hero-stat-icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(20,150,127,.25); display: flex; align-items: center; justify-content: center; color: var(--primary-mid); }
+.patients-page .hero-stat-icon.warning { background: rgba(217,119,6,.25); color: #fbbf24; }
+.patients-page .hero-stat-icon.danger { background: rgba(229,62,62,.25); color: #f87171; }
+.patients-page .hero-stat-icon.success { background: rgba(22,163,74,.25); color: #4ade80; }
+.patients-page .hero-stat-value { font-size: 1.4rem; font-weight: 800; color: #fff; line-height: 1; }
+.patients-page .hero-stat-label { font-size: .72rem; color: var(--text-light); }
+.patients-page .patients-main-content { flex: 1; }
+.patients-page .controls-bar, .patients-page .results-info { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.patients-page .filter-tabs { display: flex; gap: 6px; background: var(--bg-white); padding: 6px; border-radius: var(--radius-lg); border: 1px solid var(--border); box-shadow: var(--shadow-sm); flex-wrap: wrap; }
+.patients-page .filter-tab { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border: none; border-radius: var(--radius); background: transparent; cursor: pointer; color: var(--text-secondary); font-weight: 600; }
+.patients-page .filter-tab.active { background: var(--primary); color: #fff; }
+.patients-page .tab-count { display: inline-flex; min-width: 22px; height: 22px; align-items: center; justify-content: center; padding: 0 6px; border-radius: 12px; font-size: .7rem; font-weight: 700; background: var(--bg); }
+.patients-page .tab-count.danger { background: var(--danger-light); color: var(--danger); }
+.patients-page .tab-count.warning { background: var(--warning-light); color: var(--warning); }
+.patients-page .quick-actions, .patients-page .card-actions, .patients-page .list-actions, .patients-page .compact-actions { display: flex; gap: 6px; }
+.patients-page .btn { display: inline-flex; align-items: center; gap: 7px; padding: 10px 14px; border-radius: var(--radius); border: none; cursor: pointer; font-size: .82rem; font-weight: 600; }
+.patients-page .btn-sm { padding: 6px 10px; font-size: .75rem; }
+.patients-page .btn-primary { background: var(--primary); color: #fff; }
+.patients-page .btn-outline { background: var(--bg-white); color: var(--text-secondary); border: 1px solid var(--border); }
+.patients-page .search-filters-row { display: flex; align-items: flex-end; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.patients-page .search-box { position: relative; flex: 1; min-width: 250px; max-width: 400px; }
+.patients-page .search-box input { width: 100%; padding: 11px 38px 11px 38px; border: 1px solid var(--border); border-radius: var(--radius); }
+.patients-page .search-box i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+.patients-page .search-clear { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: none; background: none; cursor: pointer; color: var(--text-muted); }
+.patients-page .filter-dropdowns { display: flex; gap: 10px; flex-wrap: wrap; }
+.patients-page .filter-dropdown { display: flex; flex-direction: column; gap: 4px; }
+.patients-page .filter-dropdown label { font-size: .68rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
+.patients-page .filter-dropdown select, .patients-page .pagination-info select { padding: 9px 30px 9px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: .82rem; }
+.patients-page .view-toggle { display: flex; gap: 2px; border: 1px solid var(--border); border-radius: var(--radius); padding: 4px; background: var(--bg-white); }
+.patients-page .view-btn, .patients-page .action-btn, .patients-page .pagination-btn, .patients-page .page-btn { display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-white); cursor: pointer; }
+.patients-page .view-btn { width: 34px; height: 34px; border: none; color: var(--text-muted); }
+.patients-page .view-btn.active { background: var(--primary); color: #fff; }
+.patients-page .active-filters { display: flex; align-items: center; gap: 10px; padding: 10px 14px; margin-bottom: 12px; background: var(--primary-xlight); border: 1px solid var(--primary-light); border-radius: var(--radius); }
+.patients-page .filter-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+.patients-page .filter-tag { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; background: #fff; border-radius: 15px; border: 1px solid var(--border); font-size: .75rem; }
+.patients-page .filter-tag button, .patients-page .clear-filters, .patients-page .modal-close, .patients-page .toast-close { border: none; background: none; cursor: pointer; }
+.patients-page .clear-filters { margin-left: auto; color: var(--danger); font-weight: 700; }
+.patients-page .bulk-actions { display: flex; align-items: center; gap: 10px; }
+.patients-page .selected-count { background: var(--primary-light); color: var(--primary); border-radius: 20px; padding: 4px 10px; font-size: .78rem; font-weight: 700; }
+.patients-page .patients-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 14px; }
+.patients-page .patient-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; cursor: pointer; position: relative; }
+.patients-page .patient-card.selected { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(20, 150, 127, .15); }
+.patients-page .patient-card.high-risk::before { content: 'HIGH RISK'; position: absolute; top: 10px; right: -32px; transform: rotate(45deg); background: var(--danger); color: #fff; font-size: .58rem; font-weight: 700; padding: 4px 34px; }
+.patients-page .card-header { display: flex; gap: 12px; padding: 16px; border-bottom: 1px solid var(--border); position: relative; }
+.patients-page .card-checkbox { position: absolute; left: 10px; top: 10px; opacity: 0; }
+.patients-page .patient-card:hover .card-checkbox, .patients-page .patient-card.selected .card-checkbox { opacity: 1; }
+.patients-page .patient-avatar img, .patients-page .list-avatar, .patients-page .compact-avatar, .patients-page .modal-patient-avatar { border-radius: 50%; object-fit: cover; }
+.patients-page .patient-avatar img { width: 56px; height: 56px; border: 2px solid var(--bg); }
+.patients-page .risk-indicator { position: absolute; width: 14px; height: 14px; right: 0; bottom: 0; border-radius: 50%; border: 2px solid #fff; }
+.patients-page .risk-indicator.high { background: var(--danger); } .patients-page .risk-indicator.medium { background: var(--warning); } .patients-page .risk-indicator.low { background: var(--success); }
+.patients-page .patient-name { font-size: .96rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.patients-page .patient-id, .patients-page .patient-contact { color: var(--text-muted); font-size: .74rem; }
+.patients-page .attention-badge { width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--danger); color: #fff; font-size: .58rem; }
+.patients-page .card-body { padding: 14px 16px; }
+.patients-page .patient-details { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.patients-page .detail-label { font-size: .65rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
+.patients-page .detail-value { font-size: .84rem; font-weight: 600; }
+.patients-page .risk-tag, .patients-page .trimester-badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 14px; font-size: .72rem; font-weight: 700; }
+.patients-page .risk-tag.high { background: var(--danger-light); color: var(--danger-dark); }
+.patients-page .risk-tag.medium { background: var(--warning-light); color: var(--warning-dark); }
+.patients-page .risk-tag.low { background: var(--success-light); color: var(--success-dark); }
+.patients-page .trimester-badge { background: var(--primary-light); color: var(--primary-dark); }
+.patients-page .pregnancy-progress { border-top: 1px solid var(--border); margin-top: 10px; padding-top: 10px; }
+.patients-page .progress-header { display: flex; justify-content: space-between; font-size: .72rem; color: var(--text-muted); margin-bottom: 6px; }
+.patients-page .progress-value { color: var(--primary); font-weight: 700; }
+.patients-page .progress-bar { height: 6px; border-radius: 4px; background: var(--bg); overflow: hidden; }
+.patients-page .progress-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--primary-light), var(--primary)); transition: width var(--transition-slow); }
+.patients-page .card-footer { display: flex; justify-content: space-between; align-items: center; background: var(--bg); padding: 12px 16px; border-top: 1px solid var(--border); }
+.patients-page .next-visit { font-size: .78rem; color: var(--text-secondary); }
+.patients-page .next-visit.overdue { color: var(--danger); }
+.patients-page .action-btn { width: 32px; height: 32px; color: var(--text-secondary); }
+.patients-page .patients-list { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+.patients-page .list-header, .patients-page .list-row { display: flex; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.patients-page .list-header { background: var(--bg); font-size: .7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
+.patients-page .list-col { padding: 0 8px; }
+.patients-page .col-checkbox { width: 40px; } .patients-page .col-patient { flex: 2; } .patients-page .col-pregnancy { flex: 1.4; } .patients-page .col-risk { flex: 1; } .patients-page .col-vitals { flex: 1.4; } .patients-page .col-next { flex: 1; } .patients-page .col-actions { width: 120px; }
+.patients-page .list-row { cursor: pointer; }
+.patients-page .list-row.selected { background: var(--primary-light); }
+.patients-page .list-patient-info { display: flex; align-items: center; gap: 10px; }
+.patients-page .list-avatar { width: 40px; height: 40px; }
+.patients-page .list-patient-details h4 { margin: 0; font-size: .88rem; display: flex; gap: 8px; align-items: center; }
+.patients-page .list-patient-details p { margin: 2px 0 0; font-size: .74rem; color: var(--text-muted); }
+.patients-page .list-vitals, .patients-page .list-pregnancy-info { display: flex; flex-direction: column; gap: 3px; }
+.patients-page .vital-item { font-size: .76rem; color: var(--text-secondary); }
+.patients-page .vital-item.danger { color: var(--danger); }
+.patients-page .patients-compact { display: flex; flex-direction: column; gap: 8px; }
+.patients-page .compact-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: #fff; cursor: pointer; }
+.patients-page .compact-avatar { width: 34px; height: 34px; }
+.patients-page .compact-info { display: flex; align-items: center; gap: 20px; flex: 1; min-width: 0; }
+.patients-page .compact-name { font-weight: 600; min-width: 180px; display: flex; align-items: center; gap: 6px; }
+.patients-page .compact-pregnancy { font-size: .8rem; color: var(--text-secondary); }
+.patients-page .empty-state { text-align: center; padding: 52px 12px; }
+.patients-page .empty-icon { width: 72px; height: 72px; border-radius: 50%; background: var(--bg); margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; }
+.patients-page .empty-icon i { font-size: 1.8rem; color: var(--text-muted); }
+.patients-page .pagination { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+.patients-page .pagination-btn, .patients-page .page-btn { width: 34px; height: 34px; }
+.patients-page .page-btn.active, .patients-page .pagination-btn:hover:not(:disabled) { background: var(--primary); border-color: var(--primary); color: #fff; }
+.patients-page .pagination-pages { display: flex; gap: 4px; }
+.patients-page .page-ellipsis { width: 34px; display: inline-flex; justify-content: center; color: var(--text-muted); }
+.patients-page .modal-overlay { position: fixed; inset: 0; background: rgba(11,31,53,.6); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
+.patients-page .modal-overlay.active { display: flex; }
+.patients-page .modal { width: 100%; max-width: 700px; max-height: 90vh; background: #fff; border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); display: flex; flex-direction: column; overflow: hidden; }
+.patients-page .modal-header, .patients-page .modal-footer { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.patients-page .modal-footer { border-bottom: none; border-top: 1px solid var(--border); background: var(--bg); justify-content: flex-end; gap: 8px; }
+.patients-page .modal-body { padding: 18px 20px; overflow: auto; }
+.patients-page .modal-patient-header { display: flex; gap: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
+.patients-page .modal-patient-avatar { width: 68px; height: 68px; border: 2px solid var(--primary-light); }
+.patients-page .modal-section { margin-bottom: 14px; }
+.patients-page .modal-section-title { font-size: .74rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); font-weight: 700; margin-bottom: 10px; }
+.patients-page .modal-details-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.patients-page .modal-detail-label { font-size: .7rem; color: var(--text-muted); }
+.patients-page .modal-detail-value { font-size: .85rem; font-weight: 600; }
+.patients-page .modal-detail-value.high-value,
+.patients-page .vital-item.high-value { color: var(--danger); font-weight: 700; }
+.patients-page .toast-container { position: fixed; right: 20px; bottom: 20px; z-index: 1100; display: flex; flex-direction: column; gap: 8px; }
+.patients-page .toast { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: #fff; border-radius: var(--radius); box-shadow: var(--shadow-md); border-left: 4px solid var(--primary); max-width: 350px; }
+.patients-page .toast.success { border-left-color: var(--success); } .patients-page .toast.error { border-left-color: var(--danger); } .patients-page .toast.warning { border-left-color: var(--warning); }
+.patients-page .toast-icon { width: 30px; height: 30px; border-radius: var(--radius); display: inline-flex; align-items: center; justify-content: center; }
+.patients-page .toast.success .toast-icon { background: var(--success-light); color: var(--success); }
+.patients-page .toast.error .toast-icon { background: var(--danger-light); color: var(--danger); }
+.patients-page .toast.warning .toast-icon { background: var(--warning-light); color: var(--warning); }
+.patients-page .toast.info .toast-icon { background: var(--info-light); color: var(--info); }
+.patients-page .toast-title { font-size: .84rem; font-weight: 700; }
+.patients-page .toast-message { font-size: .76rem; color: var(--text-secondary); }
+@@media (max-width: 992px) {
+  .patients-page .hero-content { flex-direction: column; align-items: flex-start; }
+  .patients-page .search-filters-row { align-items: stretch; }
+  .patients-page .filter-dropdown { min-width: 130px; }
+}
+@@media (max-width: 768px) {
+  .patients-page .hero-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+  .patients-page .filter-tab span { display: none; }
+  .patients-page .patients-grid { grid-template-columns: 1fr; }
+  .patients-page .col-vitals, .patients-page .view-btn[data-view="list"] { display: none; }
+}
+</style>
+}
+
+@section Scripts {
+<script>
+const DOCTOR_ID = @Model.Doctor.DoctorID;
+const initialPatients = @Html.Raw(patientJson);
+
+const state = {
+  patients: initialPatients,
+  filteredPatients: [],
+  currentView: 'grid',
+  currentFilter: 'all',
+  searchQuery: '',
+  filters: { trimester: '', risk: '', bloodType: '', sort: 'name-asc' },
+  pagination: { currentPage: 1, pageSize: 12, totalPages: 1 },
+  selectedPatients: new Set()
+};
+
+function getTrimester(weeks) {
+  if (weeks <= 12) return { num: 1, label: '1st Trimester' };
+  if (weeks <= 26) return { num: 2, label: '2nd Trimester' };
+  return { num: 3, label: '3rd Trimester' };
+}
+function getPregnancyProgress(weeks) { return Math.min(100, Math.round((weeks / 40) * 100)); }
+function formatDate(dateStr) {
+  if (!dateStr) return 'Not scheduled';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return 'Not scheduled';
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function isOverdue(dateStr) {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  const t = new Date();
+  t.setHours(0, 0, 0, 0);
+  return d < t;
+}
+function getAvatarUrl(firstName, lastName) {
+  const name = encodeURIComponent(`${firstName} ${lastName}`.trim());
+  return `https://ui-avatars.com/api/?name=${name}&background=14967f&color=fff&size=120`;
+}
+function capitalize(str) { return str ? str.charAt(0).toUpperCase() + str.slice(1) : ''; }
+
+function isHighBloodPressureValue(bpValue) {
+  if (!bpValue || typeof bpValue !== 'string' || !bpValue.includes('/')) return false;
+  const [sysRaw, diaRaw] = bpValue.split('/');
+  const systolic = parseInt((sysRaw || '').trim(), 10);
+  const diastolic = parseInt((diaRaw || '').trim(), 10);
+  if (Number.isNaN(systolic) || Number.isNaN(diastolic)) return false;
+  return systolic >= 140 || diastolic >= 90;
+}
+
+function isHighBloodSugarValue(sugarValue) {
+  if (!sugarValue || typeof sugarValue !== 'string') return false;
+  const numeric = parseFloat(sugarValue);
+  if (Number.isNaN(numeric)) return false;
+  return numeric >= 140;
+}
+
+function showToast(title, message, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  const icons = { success: 'fa-check-circle', error: 'fa-times-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
+  toast.innerHTML = `<div class="toast-icon"><i class="fas ${icons[type]}"></i></div><div class="toast-content"><div class="toast-title">${title}</div>${message ? `<div class="toast-message">${message}</div>` : ''}</div><button class="toast-close"><i class="fas fa-times"></i></button>`;
+  container.appendChild(toast);
+  toast.querySelector('.toast-close').addEventListener('click', () => toast.remove());
+  setTimeout(() => toast.remove(), 4000);
+}
+
+function updateStatistics() {
+  const total = state.patients.length;
+  const highRisk = state.patients.filter(p => p.riskLevel === 'high').length;
+  const mediumRisk = state.patients.filter(p => p.riskLevel === 'medium').length;
+  const needsAttention = state.patients.filter(p => p.needsAttention).length;
+  const upcoming = state.patients.filter(p => p.nextAppointment && !isOverdue(p.nextAppointment)).length;
+  document.getElementById('statTotalPatients').textContent = total;
+  document.getElementById('statHighRisk').textContent = highRisk;
+  document.getElementById('statNeedsAttention').textContent = needsAttention;
+  document.getElementById('statUpcoming').textContent = upcoming;
+  document.getElementById('countAll').textContent = total;
+  document.getElementById('countHighRisk').textContent = highRisk;
+  document.getElementById('countMediumRisk').textContent = mediumRisk;
+  document.getElementById('countAttention').textContent = needsAttention;
+}
+
+function applyFilters() {
+  let filtered = [...state.patients];
+  if (state.currentFilter === 'high-risk') filtered = filtered.filter(p => p.riskLevel === 'high');
+  else if (state.currentFilter === 'medium-risk') filtered = filtered.filter(p => p.riskLevel === 'medium');
+  else if (state.currentFilter === 'needs-attention') filtered = filtered.filter(p => p.needsAttention);
+  if (state.searchQuery) {
+    const q = state.searchQuery.toLowerCase();
+    filtered = filtered.filter(p => (`${p.firstName} ${p.lastName}`).toLowerCase().includes(q) || (p.phone || '').toLowerCase().includes(q) || (p.email || '').toLowerCase().includes(q) || (p.conditions || []).some(c => c.toLowerCase().includes(q)));
+  }
+  if (state.filters.trimester) filtered = filtered.filter(p => getTrimester(p.gestationalWeeks).num === parseInt(state.filters.trimester));
+  if (state.filters.risk) filtered = filtered.filter(p => p.riskLevel === state.filters.risk);
+  if (state.filters.bloodType) filtered = filtered.filter(p => p.bloodType === state.filters.bloodType);
+  filtered.sort((a, b) => {
+    switch (state.filters.sort) {
+      case 'name-asc': return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
+      case 'name-desc': return `${b.firstName} ${b.lastName}`.localeCompare(`${a.firstName} ${a.lastName}`);
+      case 'weeks-asc': return a.gestationalWeeks - b.gestationalWeeks;
+      case 'weeks-desc': return b.gestationalWeeks - a.gestationalWeeks;
+      case 'risk-desc': return ({ high: 0, medium: 1, low: 2 }[a.riskLevel] ?? 3) - ({ high: 0, medium: 1, low: 2 }[b.riskLevel] ?? 3);
+      case 'next-visit':
+        if (!a.nextAppointment) return 1;
+        if (!b.nextAppointment) return -1;
+        return new Date(a.nextAppointment) - new Date(b.nextAppointment);
+      default: return 0;
+    }
+  });
+  state.filteredPatients = filtered;
+  state.pagination.totalPages = state.pagination.pageSize === 'all' ? 1 : Math.ceil(filtered.length / state.pagination.pageSize);
+  state.pagination.currentPage = Math.min(state.pagination.currentPage, state.pagination.totalPages || 1);
+  updateActiveFilters();
+  renderPatients();
+  updateResultsInfo();
+  renderPagination();
+}
+
+function updateActiveFilters() {
+  const container = document.getElementById('activeFilters');
+  const tags = [];
+  if (state.searchQuery) tags.push({ type: 'search', label: `Search: "${state.searchQuery}"` });
+  if (state.filters.trimester) tags.push({ type: 'trimester', label: `${state.filters.trimester}${state.filters.trimester === '1' ? 'st' : state.filters.trimester === '2' ? 'nd' : 'rd'} Trimester` });
+  if (state.filters.risk) tags.push({ type: 'risk', label: `${capitalize(state.filters.risk)} Risk` });
+  if (state.filters.bloodType) tags.push({ type: 'bloodType', label: `Blood Type: ${state.filters.bloodType}` });
+  if (!tags.length) { container.style.display = 'none'; return; }
+  container.style.display = 'flex';
+  const tagsContainer = document.getElementById('filterTags');
+  tagsContainer.innerHTML = tags.map(t => `<span class="filter-tag">${t.label}<button data-filter-type="${t.type}"><i class="fas fa-times"></i></button></span>`).join('');
+  tagsContainer.querySelectorAll('button').forEach(btn => btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const type = btn.dataset.filterType;
+    if (type === 'search') { state.searchQuery = ''; document.getElementById('searchInput').value = ''; document.getElementById('searchClear').style.display = 'none'; }
+    if (type === 'trimester') { state.filters.trimester = ''; document.getElementById('trimesterFilter').value = ''; }
+    if (type === 'risk') { state.filters.risk = ''; document.getElementById('riskFilter').value = ''; }
+    if (type === 'bloodType') { state.filters.bloodType = ''; document.getElementById('bloodTypeFilter').value = ''; }
+    state.pagination.currentPage = 1;
+    applyFilters();
+  }));
+}
+
+function updateResultsInfo() {
+  const total = state.filteredPatients.length;
+  if (total === 0) { document.getElementById('resultsCount').textContent = 'No patients found'; return; }
+  if (state.pagination.pageSize === 'all') { document.getElementById('resultsCount').textContent = `Showing all ${total} patients`; return; }
+  const start = (state.pagination.currentPage - 1) * state.pagination.pageSize + 1;
+  const end = Math.min(state.pagination.currentPage * state.pagination.pageSize, total);
+  document.getElementById('resultsCount').textContent = `Showing ${start}-${end} of ${total} patients`;
+}
+
+function getCurrentPagePatients() {
+  if (state.pagination.pageSize === 'all') return state.filteredPatients;
+  const start = (state.pagination.currentPage - 1) * state.pagination.pageSize;
+  return state.filteredPatients.slice(start, start + state.pagination.pageSize);
+}
+
+function renderPatients() {
+  const empty = state.filteredPatients.length === 0;
+  document.getElementById('patientsGrid').style.display = state.currentView === 'grid' && !empty ? 'grid' : 'none';
+  document.getElementById('patientsList').style.display = state.currentView === 'list' && !empty ? 'block' : 'none';
+  document.getElementById('patientsCompact').style.display = state.currentView === 'compact' && !empty ? 'flex' : 'none';
+  document.getElementById('emptyState').style.display = empty ? 'block' : 'none';
+  document.getElementById('pagination').style.display = empty ? 'none' : 'flex';
+  if (empty) return;
+  const pagePatients = getCurrentPagePatients();
+  if (state.currentView === 'grid') renderGridView(pagePatients);
+  if (state.currentView === 'list') renderListView(pagePatients);
+  if (state.currentView === 'compact') renderCompactView(pagePatients);
+}
+
+function renderGridView(patients) {
+  const container = document.getElementById('patientsGrid');
+  container.innerHTML = patients.map(p => {
+    const trimester = getTrimester(p.gestationalWeeks);
+    const progress = getPregnancyProgress(p.gestationalWeeks);
+    const overdue = isOverdue(p.nextAppointment);
+    return `<div class="patient-card ${p.riskLevel === 'high' ? 'high-risk' : ''} ${state.selectedPatients.has(p.id) ? 'selected' : ''}" data-patient-id="${p.id}"><div class="card-header"><input type="checkbox" class="card-checkbox" ${state.selectedPatients.has(p.id) ? 'checked' : ''} onclick="event.stopPropagation(); togglePatientSelection(${p.id})"><div class="patient-avatar"><img src="${getAvatarUrl(p.firstName, p.lastName)}" alt="${p.firstName}"><span class="risk-indicator ${p.riskLevel}"></span></div><div class="patient-info"><div class="patient-name">${p.firstName} ${p.lastName}${p.needsAttention ? '<span class="attention-badge"><i class="fas fa-exclamation"></i></span>' : ''}</div><div class="patient-id">ID: PAT-${String(p.id).padStart(5, '0')}</div><div class="patient-contact"><i class="fas fa-phone"></i> ${p.phone}</div></div></div><div class="card-body"><div class="patient-details"><div><div class="detail-label">Gestational Age</div><div class="detail-value">${p.gestationalWeeks} weeks</div></div><div><div class="detail-label">Trimester</div><div class="detail-value"><span class="trimester-badge">${trimester.num}${trimester.num === 1 ? 'st' : trimester.num === 2 ? 'nd' : 'rd'}</span></div></div><div><div class="detail-label">Risk Level</div><div class="detail-value"><span class="risk-tag ${p.riskLevel}">${capitalize(p.riskLevel)}</span></div></div><div><div class="detail-label">Blood Type</div><div class="detail-value">${p.bloodType || '-'}</div></div></div><div class="pregnancy-progress"><div class="progress-header"><span>Pregnancy Progress</span><span class="progress-value">${progress}%</span></div><div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div></div></div><div class="card-footer"><div class="next-visit ${overdue ? 'overdue' : ''}"><i class="fas fa-calendar-alt"></i> ${overdue ? 'Overdue:' : 'Next:'} ${formatDate(p.nextAppointment)}</div><div class="card-actions"><button class="action-btn" onclick="event.stopPropagation(); openMessages(${p.id})" title="Message"><i class="fas fa-comment-medical"></i></button><button class="action-btn" onclick="event.stopPropagation(); openQuickView(${p.id})" title="Quick View"><i class="fas fa-eye"></i></button><button class="action-btn" onclick="event.stopPropagation(); viewPatientDetails(${p.id})" title="Profile"><i class="fas fa-external-link-alt"></i></button></div></div></div>`;
+  }).join('');
+  container.querySelectorAll('.patient-card').forEach(c => c.addEventListener('click', (e) => {
+    if (!e.target.closest('.action-btn') && !e.target.closest('.card-checkbox')) openQuickView(parseInt(c.dataset.patientId));
+  }));
+}
+
+function renderListView(patients) {
+  const container = document.getElementById('listBody');
+  container.innerHTML = patients.map(p => {
+    const trimester = getTrimester(p.gestationalWeeks);
+    const bpWarning = isHighBloodPressureValue(p.vitals?.bp || '');
+    const sugarWarning = isHighBloodSugarValue(p.vitals?.sugar || '');
+    return `<div class="list-row ${state.selectedPatients.has(p.id) ? 'selected' : ''}" data-patient-id="${p.id}"><div class="list-col col-checkbox"><input type="checkbox" ${state.selectedPatients.has(p.id) ? 'checked' : ''} onclick="event.stopPropagation(); togglePatientSelection(${p.id})"></div><div class="list-col col-patient"><div class="list-patient-info"><img class="list-avatar" src="${getAvatarUrl(p.firstName, p.lastName)}" alt="${p.firstName}"><div class="list-patient-details"><h4>${p.firstName} ${p.lastName}${p.needsAttention ? '<span class="attention-badge"><i class="fas fa-exclamation"></i></span>' : ''}</h4><p>${p.phone || 'No phone'}</p></div></div></div><div class="list-col col-pregnancy"><div class="list-pregnancy-info"><span>${p.gestationalWeeks} weeks</span><span>${trimester.label}</span></div></div><div class="list-col col-risk"><span class="risk-tag ${p.riskLevel}">${capitalize(p.riskLevel)}</span></div><div class="list-col col-vitals"><div class="list-vitals"><div class="vital-item ${bpWarning ? 'danger high-value' : ''}"><i class="fas fa-heartbeat"></i> BP: ${p.vitals?.bp || '--'}</div><div class="vital-item ${sugarWarning ? 'danger high-value' : ''}"><i class="fas fa-tint"></i> Sugar: ${p.vitals?.sugar || '--'}</div><div class="vital-item"><i class="fas fa-weight"></i> ${p.vitals?.weight || '--'}</div></div></div><div class="list-col col-next"><span>${formatDate(p.nextAppointment)}</span></div><div class="list-col col-actions"><div class="list-actions"><button class="action-btn" onclick="event.stopPropagation(); openMessages(${p.id})"><i class="fas fa-comment-medical"></i></button><button class="action-btn" onclick="event.stopPropagation(); viewPatientDetails(${p.id})"><i class="fas fa-eye"></i></button></div></div></div>`;
+  }).join('');
+  container.querySelectorAll('.list-row').forEach(r => r.addEventListener('click', (e) => {
+    if (!e.target.closest('input') && !e.target.closest('.action-btn')) openQuickView(parseInt(r.dataset.patientId));
+  }));
+}
+
+function renderCompactView(patients) {
+  const container = document.getElementById('patientsCompact');
+  container.innerHTML = patients.map(p => {
+    const trimester = getTrimester(p.gestationalWeeks);
+    return `<div class="compact-row" data-patient-id="${p.id}"><img class="compact-avatar" src="${getAvatarUrl(p.firstName, p.lastName)}" alt="${p.firstName}"><div class="compact-info"><span class="compact-name">${p.firstName} ${p.lastName}${p.needsAttention ? '<span class="attention-badge"><i class="fas fa-exclamation"></i></span>' : ''}</span><span class="compact-pregnancy">${p.gestationalWeeks} wks · ${trimester.num}${trimester.num === 1 ? 'st' : trimester.num === 2 ? 'nd' : 'rd'} Tri</span><span class="risk-tag ${p.riskLevel}">${capitalize(p.riskLevel)}</span></div><div class="compact-actions"><button class="action-btn" onclick="event.stopPropagation(); openMessages(${p.id})"><i class="fas fa-comment-medical"></i></button><button class="action-btn" onclick="event.stopPropagation(); viewPatientDetails(${p.id})"><i class="fas fa-eye"></i></button></div></div>`;
+  }).join('');
+  container.querySelectorAll('.compact-row').forEach(r => r.addEventListener('click', (e) => {
+    if (!e.target.closest('.action-btn')) openQuickView(parseInt(r.dataset.patientId));
+  }));
+}
+
+function renderPagination() {
+  const { currentPage, totalPages, pageSize } = state.pagination;
+  document.getElementById('prevPage').disabled = currentPage <= 1;
+  document.getElementById('nextPage').disabled = currentPage >= totalPages;
+  const c = document.getElementById('paginationPages');
+  if (pageSize === 'all' || totalPages <= 1) { c.innerHTML = ''; return; }
+  let pages = [];
+  if (totalPages <= 7) pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+  else if (currentPage <= 3) pages = [1, 2, 3, 4, '...', totalPages];
+  else if (currentPage >= totalPages - 2) pages = [1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+  else pages = [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+  c.innerHTML = pages.map(p => p === '...' ? '<span class="page-ellipsis">...</span>' : `<button class="page-btn ${p === currentPage ? 'active' : ''}" data-page="${p}">${p}</button>`).join('');
+  c.querySelectorAll('.page-btn').forEach(btn => btn.addEventListener('click', () => {
+    state.pagination.currentPage = parseInt(btn.dataset.page);
+    renderPatients();
+    updateResultsInfo();
+    renderPagination();
+  }));
+}
+
+function togglePatientSelection(patientId) {
+  if (state.selectedPatients.has(patientId)) state.selectedPatients.delete(patientId);
+  else state.selectedPatients.add(patientId);
+  updateBulkActions();
+  renderPatients();
+}
+function toggleSelectAll() {
+  const checked = document.getElementById('selectAll').checked;
+  getCurrentPagePatients().forEach(p => checked ? state.selectedPatients.add(p.id) : state.selectedPatients.delete(p.id));
+  updateBulkActions();
+  renderPatients();
+}
+function updateBulkActions() {
+  const bulk = document.getElementById('bulkActions');
+  if (state.selectedPatients.size > 0) {
+    bulk.style.display = 'flex';
+    document.getElementById('selectedCount').textContent = state.selectedPatients.size;
+  } else {
+    bulk.style.display = 'none';
+  }
+}
+
+function viewPatientDetails(patientId) { window.location.href = `/Doctor/PatientDetails/${DOCTOR_ID}/${patientId}`; }
+function openMessages(patientId) { window.location.href = `/Doctor/Messages/${DOCTOR_ID}?patient=${patientId}`; }
+function calculateEDD(currentWeeks) {
+  const d = new Date();
+  d.setDate(d.getDate() + Math.max(0, 40 - currentWeeks) * 7);
+  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
+
+function openQuickView(patientId) {
+  const p = state.patients.find(x => x.id === patientId);
+  if (!p) return;
+  const trimester = getTrimester(p.gestationalWeeks);
+  const progress = getPregnancyProgress(p.gestationalWeeks);
+  const bpWarning = isHighBloodPressureValue(p.vitals?.bp || '');
+  const sugarWarning = isHighBloodSugarValue(p.vitals?.sugar || '');
+  document.getElementById('modalPatientName').textContent = `${p.firstName} ${p.lastName}`;
+  document.getElementById('modalPatientId').textContent = `Patient ID: PAT-${String(p.id).padStart(5, '0')}`;
+  const conditions = (p.conditions && p.conditions.length) ? p.conditions : ['No documented conditions'];
+  document.getElementById('modalBody').innerHTML = `<div class="modal-patient-header"><img class="modal-patient-avatar" src="${getAvatarUrl(p.firstName, p.lastName)}" alt="${p.firstName}"><div class="modal-patient-info"><h4>${p.firstName} ${p.lastName}</h4><p>${p.age ?? '--'} years old · ${p.bloodType || '-'}</p><div class="modal-patient-badges"><span class="risk-tag ${p.riskLevel}">${capitalize(p.riskLevel)} Risk</span><span class="trimester-badge">${trimester.label}</span>${p.needsAttention ? '<span class="risk-tag high">Needs Attention</span>' : ''}</div></div></div><div class="modal-section"><div class="modal-section-title">Pregnancy Information</div><div class="modal-details-grid"><div><span class="modal-detail-label">Gestational Age</span><div class="modal-detail-value">${p.gestationalWeeks} weeks</div></div><div><span class="modal-detail-label">Expected Due Date</span><div class="modal-detail-value">${calculateEDD(p.gestationalWeeks)}</div></div><div><span class="modal-detail-label">Pregnancy Progress</span><div class="modal-detail-value">${progress}%</div></div><div><span class="modal-detail-label">Next Appointment</span><div class="modal-detail-value">${formatDate(p.nextAppointment)}</div></div></div></div><div class="modal-section"><div class="modal-section-title">Latest Vitals</div><div class="modal-details-grid"><div><span class="modal-detail-label">Blood Pressure</span><div class="modal-detail-value ${bpWarning ? 'high-value' : ''}">${p.vitals?.bp || '--'}</div></div><div><span class="modal-detail-label">Blood Sugar</span><div class="modal-detail-value ${sugarWarning ? 'high-value' : ''}">${p.vitals?.sugar || '--'}</div></div><div><span class="modal-detail-label">Weight</span><div class="modal-detail-value">${p.vitals?.weight || '--'}</div></div><div><span class="modal-detail-label">Last Visit</span><div class="modal-detail-value">${formatDate(p.lastVisit)}</div></div></div></div><div class="modal-section"><div class="modal-section-title">Conditions & Notes</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">${conditions.map(c => `<span class="trimester-badge">${c}</span>`).join('')}</div><p style="font-size:.85rem;color:#4a5568;">${p.notes || 'No additional notes available.'}</p></div><div class="modal-section"><div class="modal-section-title">Contact Information</div><div class="modal-details-grid"><div><span class="modal-detail-label">Phone</span><div class="modal-detail-value">${p.phone || 'No phone'}</div></div><div><span class="modal-detail-label">Email</span><div class="modal-detail-value">${p.email || '--'}</div></div></div></div>`;
+  document.getElementById('modalMessage').onclick = () => { closeModal(); openMessages(patientId); };
+  document.getElementById('modalSchedule').onclick = () => showToast('Schedule Appointment', 'Scheduler integration is not connected yet.', 'info');
+  document.getElementById('modalViewFull').onclick = () => { closeModal(); viewPatientDetails(patientId); };
+  document.getElementById('patientModal').classList.add('active');
+}
+
+function closeModal() { document.getElementById('patientModal').classList.remove('active'); }
+
+function initEventListeners() {
+  const searchInput = document.getElementById('searchInput');
+  const searchClear = document.getElementById('searchClear');
+  searchInput.addEventListener('input', (e) => {
+    state.searchQuery = e.target.value;
+    searchClear.style.display = e.target.value ? 'block' : 'none';
+    state.pagination.currentPage = 1;
+    applyFilters();
+  });
+  searchClear.addEventListener('click', () => {
+    searchInput.value = '';
+    state.searchQuery = '';
+    searchClear.style.display = 'none';
+    state.pagination.currentPage = 1;
+    applyFilters();
+  });
+  document.querySelectorAll('.filter-tab').forEach(tab => tab.addEventListener('click', () => {
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    state.currentFilter = tab.dataset.filter;
+    state.pagination.currentPage = 1;
+    applyFilters();
+  }));
+  document.getElementById('trimesterFilter').addEventListener('change', (e) => { state.filters.trimester = e.target.value; state.pagination.currentPage = 1; applyFilters(); });
+  document.getElementById('riskFilter').addEventListener('change', (e) => { state.filters.risk = e.target.value; state.pagination.currentPage = 1; applyFilters(); });
+  document.getElementById('bloodTypeFilter').addEventListener('change', (e) => { state.filters.bloodType = e.target.value; state.pagination.currentPage = 1; applyFilters(); });
+  document.getElementById('sortFilter').addEventListener('change', (e) => { state.filters.sort = e.target.value; applyFilters(); });
+  document.getElementById('clearFilters').addEventListener('click', () => {
+    state.searchQuery = '';
+    state.filters = { trimester: '', risk: '', bloodType: '', sort: 'name-asc' };
+    searchInput.value = '';
+    searchClear.style.display = 'none';
+    document.getElementById('trimesterFilter').value = '';
+    document.getElementById('riskFilter').value = '';
+    document.getElementById('bloodTypeFilter').value = '';
+    document.getElementById('sortFilter').value = 'name-asc';
+    state.pagination.currentPage = 1;
+    applyFilters();
+  });
+  document.getElementById('resetFiltersBtn').addEventListener('click', () => document.getElementById('clearFilters').click());
+  document.querySelectorAll('.view-btn').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.currentView = btn.dataset.view;
+    renderPatients();
+  }));
+  document.getElementById('prevPage').addEventListener('click', () => {
+    if (state.pagination.currentPage > 1) {
+      state.pagination.currentPage--;
+      renderPatients();
+      updateResultsInfo();
+      renderPagination();
+    }
+  });
+  document.getElementById('nextPage').addEventListener('click', () => {
+    if (state.pagination.currentPage < state.pagination.totalPages) {
+      state.pagination.currentPage++;
+      renderPatients();
+      updateResultsInfo();
+      renderPagination();
+    }
+  });
+  document.getElementById('pageSize').addEventListener('change', (e) => {
+    state.pagination.pageSize = e.target.value === 'all' ? 'all' : parseInt(e.target.value);
+    state.pagination.currentPage = 1;
+    applyFilters();
+  });
+  document.getElementById('selectAll').addEventListener('change', toggleSelectAll);
+  document.getElementById('bulkMessage').addEventListener('click', () => showToast('Bulk Message', `Opening message screen for ${state.selectedPatients.size} patients.`, 'info'));
+  document.getElementById('bulkExport').addEventListener('click', () => showToast('Export', `${state.selectedPatients.size} selected records exported.`, 'success'));
+  document.getElementById('exportBtn').addEventListener('click', () => showToast('Export', 'Patient list export generated.', 'success'));
+  document.getElementById('printBtn').addEventListener('click', () => window.print());
+  document.getElementById('closePatientModal').addEventListener('click', closeModal);
+  document.getElementById('patientModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+}
+
+function init() {
+  state.filteredPatients = [...state.patients];
+  updateStatistics();
+  initEventListeners();
+  applyFilters();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+}

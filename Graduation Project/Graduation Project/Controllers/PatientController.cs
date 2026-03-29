@@ -1,11 +1,16 @@
 using Graduation_Project.Interfaces;
+using Graduation_Project.Data;
 using Graduation_Project.Models;
 using Graduation_Project.Services;
 using Graduation_Project.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace Graduation_Project.Controllers
 {
+    [Authorize(Roles = "Patient")]
     public class PatientController : Controller
     {
         private readonly IPatient _patientRepository;
@@ -14,8 +19,11 @@ namespace Graduation_Project.Controllers
         private readonly ILabTest _labTest;
         private readonly IAppointment _appointment;
         private readonly IUltrasoundImage _ultrasoundImage;
+        private readonly IPatientDoctor _patientDoctorRepository;
         private readonly IAlert _alertRepository;
         private readonly AlertService _alertService;
+        private readonly AppDbContext _context;
+        private readonly IChatMessageCrypto _chatMessageCrypto;
 
         public PatientController(
             IPatient patientRepository,
@@ -24,8 +32,11 @@ namespace Graduation_Project.Controllers
             ILabTest labTest,
             IAppointment appointment,
             IUltrasoundImage ultrasoundImage,
+            IPatientDoctor patientDoctorRepository,
             IAlert alertRepository,
-            AlertService alertService)
+            AlertService alertService,
+            AppDbContext context,
+            IChatMessageCrypto chatMessageCrypto)
         {
             _patientRepository = patientRepository;
             _patientBloodPressure = patientBloodPressure;
@@ -33,21 +44,32 @@ namespace Graduation_Project.Controllers
             _labTest = labTest;
             _appointment = appointment;
             _ultrasoundImage = ultrasoundImage;
+            _patientDoctorRepository = patientDoctorRepository;
             _alertRepository = alertRepository;
             _alertService = alertService;
+            _context = context;
+            _chatMessageCrypto = chatMessageCrypto;
         }
 
         public IActionResult Index(int id)
         {
-            var patient = _patientRepository.GetById(id);
-            if (patient == null)
-                return NotFound();
+            var (patient, failure) = AuthorizePatientAccess(id);
+            if (failure != null)
+                return failure;
+
+            var pregnancyRecords = _context.PregnancyRecords
+                .Where(r => r.PatientID == id)
+                .OrderByDescending(r => r.StartDate)
+                .ToList();
+
+            var activePregnancy = pregnancyRecords.FirstOrDefault(r => !r.EndDate.HasValue);
+            var hasActivePregnancy = activePregnancy != null;
 
             // Calculate current pregnancy week
             int currentWeek = 0;
-            if (patient.DateOfPregnancy.HasValue)
+            if (hasActivePregnancy)
             {
-                int daysSinceStart = (int)(DateTime.Today - patient.DateOfPregnancy.Value.Date).TotalDays;
+                int daysSinceStart = (int)(DateTime.Today - activePregnancy!.StartDate.Date).TotalDays;
                 currentWeek = Math.Clamp(daysSinceStart / 7, 0, 40);
             }
             else if (patient.GestationalWeeks > 0)
@@ -56,8 +78,8 @@ namespace Graduation_Project.Controllers
             }
 
             // Calculate due date (280 days = 40 weeks from start)
-            string dueDate = patient.DateOfPregnancy.HasValue
-                ? patient.DateOfPregnancy.Value.AddDays(280).ToString("MMM dd, yyyy")
+            string dueDate = hasActivePregnancy
+                ? activePregnancy!.StartDate.AddDays(280).ToString("MMM dd, yyyy")
                 : "N/A";
 
             // Fetch latest health readings
@@ -69,6 +91,10 @@ namespace Graduation_Project.Controllers
             // Fetch recent readings for the tracker panels
             var recentBPReadings = _patientBloodPressure.GetRecentByPatientId(id, 10).ToList();
             var recentBSReadings = _patientBloodSugar.GetRecentByPatientId(id, 10).ToList();
+
+            // Fetch a larger window for weekly chart aggregation
+            var weeklyBPReadings = _patientBloodPressure.GetRecentByPatientId(id, 40).ToList();
+            var weeklyBSReadings = _patientBloodSugar.GetRecentByPatientId(id, 40).ToList();
 
             // Evaluate patient data and persist any new critical alerts.
             // Pass ALL recent readings so every abnormal value generates an alert,
@@ -154,6 +180,24 @@ namespace Graduation_Project.Controllers
                 });
             }
 
+            var latestEndedPregnancy = pregnancyRecords
+                .Where(r => r.EndDate.HasValue)
+                .OrderByDescending(r => r.EndDate)
+                .FirstOrDefault();
+
+            if (latestEndedPregnancy?.EndDate.HasValue == true)
+            {
+                activities.Add(new RecentActivityItem
+                {
+                    Title = "Pregnancy Ended",
+                    Description = $"Recorded on {latestEndedPregnancy.EndDate.Value:MMM dd, yyyy}",
+                    DateTime = latestEndedPregnancy.EndDate.Value,
+                    IconClass = "fas fa-flag-checkered",
+                    IconBgColor = "#fff8e1",
+                    IconColor = "#ffb300"
+                });
+            }
+
             // Sort by most recent first, keep top 5
             activities = activities
                 .OrderByDescending(a => a.DateTime)
@@ -164,9 +208,11 @@ namespace Graduation_Project.Controllers
             {
                 Patient = patient,
                 UserName = patient.User?.FirstName ?? "Patient",
+                HasActivePregnancy = hasActivePregnancy,
                 PregnancyWeek = currentWeek,
                 PregnancyProgressPercent = (int)Math.Round(currentWeek / 40.0 * 100),
-                Trimester = currentWeek <= 13 ? "1st Trimester"
+                Trimester = !hasActivePregnancy ? "Not Active"
+                          : currentWeek <= 13 ? "1st Trimester"
                           : currentWeek <= 26 ? "2nd Trimester"
                           : "3rd Trimester",
                 DueDate = dueDate,
@@ -176,11 +222,175 @@ namespace Graduation_Project.Controllers
                 NextAppointment = nextAppt,
                 RecentBloodPressureReadings = recentBPReadings,
                 RecentBloodSugarReadings = recentBSReadings,
+                WeeklyBloodPressureReadings = weeklyBPReadings,
+                WeeklyBloodSugarReadings = weeklyBSReadings,
                 RecentActivities = activities,
                 HealthAlerts = healthAlerts
             };
 
             return View(viewModel);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult EndCurrentPregnancy(int id, string? returnUrl = null)
+        {
+            var (patient, failure) = AuthorizePatientAccess(id);
+            if (failure != null)
+                return failure;
+
+            var activePregnancy = _context.PregnancyRecords
+                .Where(r => r.PatientID == id && !r.EndDate.HasValue)
+                .OrderByDescending(r => r.StartDate)
+                .FirstOrDefault();
+
+            if (activePregnancy == null)
+            {
+                TempData["PregnancyStatusMessage"] = "No active pregnancy found to end.";
+                return RedirectToLocalOrDashboard(id, returnUrl);
+            }
+
+            activePregnancy.EndDate = DateTime.Now;
+
+            // Keep legacy fields in sync until all old columns are removed.
+            patient.LastPregnancyStartedAt = activePregnancy.StartDate;
+            patient.PregnancyEndedAt = activePregnancy.EndDate;
+            patient.DateOfPregnancy = null;
+            patient.GestationalWeeks = 0;
+            patient.PreviousPregnancies += 1;
+            patient.IsFirstPregnancy = false;
+            var pregnancyRecordsCount = _context.PregnancyRecords.Count(r => r.PatientID == id);
+            patient.PregnancyCount = Math.Max(0, patient.PreviousPregnancies) + pregnancyRecordsCount;
+
+            _patientRepository.Update(patient);
+            _patientRepository.Save();
+
+            TempData["PregnancyStatusMessage"] = "Current pregnancy was ended and saved to your history.";
+            return RedirectToLocalOrDashboard(id, returnUrl);
+        }
+
+        public IActionResult Messages(int id)
+        {
+            var (patient, failure) = AuthorizePatientAccess(id);
+            if (failure != null)
+                return failure;
+
+            var approvedLinks = _patientDoctorRepository
+                .GetByPatientId(id)
+                .Where(pd => string.Equals(pd.Status, "Approved", StringComparison.OrdinalIgnoreCase)
+                          && pd.Doctor != null
+                          && !string.IsNullOrWhiteSpace(pd.Doctor.UserID))
+                .GroupBy(pd => pd.DoctorID)
+                .Select(g => g.First())
+                .ToList();
+
+            if (string.IsNullOrWhiteSpace(patient.UserID))
+                return NotFound();
+
+            var patientUserId = patient.UserID;
+            var doctorUserIds = approvedLinks
+                .Select(pd => pd.Doctor!.UserID)
+                .Where(userId => !string.IsNullOrWhiteSpace(userId))
+                .Distinct()
+                .ToList();
+
+            var chatMessages = _context.ChatMessages
+                .Where(m => (m.SenderUserId == patientUserId && doctorUserIds.Contains(m.ReceiverUserId))
+                         || (m.ReceiverUserId == patientUserId && doctorUserIds.Contains(m.SenderUserId)))
+                .OrderByDescending(m => m.SentAtUtc)
+                .ToList();
+
+            var conversations = approvedLinks
+                .Select(pd => new PatientConversationSummary
+                {
+                    DoctorId = pd.DoctorID,
+                    ReceiverUserId = pd.Doctor?.UserID ?? string.Empty,
+                    DoctorName = pd.Doctor?.User != null
+                        ? $"Dr. {pd.Doctor.User.FirstName} {pd.Doctor.User.LastName}".Trim()
+                        : "Doctor",
+                    UnreadCount = chatMessages.Count(m => m.SenderUserId == (pd.Doctor?.UserID ?? string.Empty) && m.ReceiverUserId == patientUserId && !m.IsRead),
+                    LastMessageTime = chatMessages
+                        .Where(m => m.SenderUserId == (pd.Doctor?.UserID ?? string.Empty) || m.ReceiverUserId == (pd.Doctor?.UserID ?? string.Empty))
+                        .Select(m => (DateTime?)m.SentAtUtc)
+                        .FirstOrDefault(),
+                    LastMessagePreview = chatMessages
+                        .Where(m => m.SenderUserId == (pd.Doctor?.UserID ?? string.Empty) || m.ReceiverUserId == (pd.Doctor?.UserID ?? string.Empty))
+                        .Select(m => _chatMessageCrypto.Decrypt(m.Message))
+                        .FirstOrDefault() ?? "Start a conversation"
+                })
+                .OrderBy(c => c.DoctorName)
+                .ToList();
+
+            var vm = new PatientMessagesViewModel
+            {
+                Patient = patient,
+                UserName = patient.User?.FirstName ?? "Patient",
+                Conversations = conversations
+            };
+
+            return View(vm);
+        }
+
+        [HttpGet]
+        public IActionResult ConversationMessages(int id, int doctorId)
+        {
+            var (patient, failure) = AuthorizePatientAccess(id);
+            if (failure != null)
+                return failure;
+
+            var approvedLink = _patientDoctorRepository
+                .GetByPatientId(id)
+                .FirstOrDefault(pd => pd.DoctorID == doctorId
+                                   && string.Equals(pd.Status, "Approved", StringComparison.OrdinalIgnoreCase));
+
+            if (approvedLink == null)
+                return Forbid();
+
+            var doctorUserId = approvedLink.Doctor?.UserID ?? _context.Doctors
+                .AsNoTracking()
+                .Where(d => d.DoctorID == doctorId)
+                .Select(d => d.UserID)
+                .FirstOrDefault();
+
+            if (string.IsNullOrWhiteSpace(patient.UserID) || string.IsNullOrWhiteSpace(doctorUserId))
+                return NotFound();
+
+            var patientUserId = patient.UserID;
+
+            var messages = _context.ChatMessages
+                .Where(m => (m.SenderUserId == patientUserId && m.ReceiverUserId == doctorUserId)
+                         || (m.SenderUserId == doctorUserId && m.ReceiverUserId == patientUserId))
+                .OrderBy(m => m.SentAtUtc)
+                .ToList()
+                .Select(m => new
+                {
+                    id = m.ChatMessageId,
+                    senderId = m.SenderUserId,
+                    receiverId = m.ReceiverUserId,
+                    content = _chatMessageCrypto.Decrypt(m.Message),
+                    timestamp = m.SentAtUtc
+                })
+                .ToList();
+
+            var unreadIncoming = _context.ChatMessages
+                .Where(m => m.SenderUserId == doctorUserId
+                         && m.ReceiverUserId == patientUserId
+                         && !m.IsRead)
+                .ToList();
+
+            if (unreadIncoming.Count > 0)
+            {
+                var now = DateTime.Now;
+                foreach (var msg in unreadIncoming)
+                {
+                    msg.IsRead = true;
+                    msg.ReadAtUtc = now;
+                }
+
+                _context.SaveChanges();
+            }
+
+            return Json(messages);
         }
 
         // ---------------------------------------------------------------
@@ -190,6 +400,10 @@ namespace Graduation_Project.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult SaveBloodPressure(int patientId, string systolic, string diastolic, string? pulse, string? measurementTime)
         {
+            var (patient, failure) = AuthorizePatientAccess(patientId, true);
+            if (failure != null)
+                return failure;
+
             if (string.IsNullOrWhiteSpace(systolic) || string.IsNullOrWhiteSpace(diastolic))
                 return BadRequest(new { success = false, message = "Systolic and diastolic values are required." });
 
@@ -205,7 +419,6 @@ namespace Graduation_Project.Controllers
             _patientBloodPressure.Save();
 
             // Evaluate and persist alerts for the new reading immediately
-            var patient = _patientRepository.GetById(patientId);
             if (patient != null)
             {
                 var lastBS = _patientBloodSugar.GetLastBloodSugarValue(patientId);
@@ -234,6 +447,10 @@ namespace Graduation_Project.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult SaveBloodSugar(int patientId, double bloodSugar, string? measurementTime)
         {
+            var (patient, failure) = AuthorizePatientAccess(patientId, true);
+            if (failure != null)
+                return failure;
+
             if (bloodSugar <= 0)
                 return BadRequest(new { success = false, message = "Blood sugar value is required." });
 
@@ -249,7 +466,6 @@ namespace Graduation_Project.Controllers
             _patientBloodSugar.Save();
 
             // Evaluate and persist alerts for the new reading immediately
-            var patient = _patientRepository.GetById(patientId);
             if (patient != null)
             {
                 var lastBP = _patientBloodPressure.GetLastBloodPressureValue(patientId);
@@ -269,6 +485,40 @@ namespace Graduation_Project.Controllers
                 time = reading.DateTime.ToString("h:mm tt"),
                 measurementTime = reading.MeasurementTime
             });
+        }
+
+        private (Patient? patient, IActionResult? failure) AuthorizePatientAccess(int patientId, bool returnJsonOnFailure = false)
+        {
+            var patient = _patientRepository.GetById(patientId);
+            if (patient == null)
+                return (null, NotFound());
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                if (returnJsonOnFailure)
+                    return (null, Unauthorized(new { success = false, message = "Unauthorized." }));
+
+                return (null, Unauthorized());
+            }
+
+            if (!string.Equals(patient.UserID, userId, StringComparison.Ordinal))
+            {
+                if (returnJsonOnFailure)
+                    return (null, StatusCode(StatusCodes.Status403Forbidden, new { success = false, message = "Access denied." }));
+
+                return (null, Forbid());
+            }
+
+            return (patient, null);
+        }
+
+        private IActionResult RedirectToLocalOrDashboard(int patientId, string? returnUrl)
+        {
+            if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+
+            return RedirectToAction(nameof(Index), new { id = patientId });
         }
     }
 }

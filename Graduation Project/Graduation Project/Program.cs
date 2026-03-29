@@ -1,8 +1,12 @@
 using Graduation_Project.Data;
+using Graduation_Project.Hubs;
 using Graduation_Project.Interfaces;
+using Graduation_Project.Models;
 using Graduation_Project.Repository;
 using Graduation_Project.Services;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System;
 
 namespace Graduation_Project
 {
@@ -14,10 +18,30 @@ namespace Graduation_Project
 
             // Add services to the container.
             builder.Services.AddControllersWithViews();
+            builder.Services.AddSignalR();
 
             // Database Connection (single registration)
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+            builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+            {
+                options.Password.RequireDigit = true;
+                options.Password.RequireLowercase = true;
+                options.Password.RequireUppercase = true;
+                options.Password.RequireNonAlphanumeric = false;
+                options.Password.RequiredLength = 6;
+            })
+            .AddEntityFrameworkStores<AppDbContext>()
+            .AddDefaultTokenProviders();
+
+            builder.Services.ConfigureApplicationCookie(options =>
+            {
+                options.LoginPath = "/Account/Login";
+                options.AccessDeniedPath = "/Account/AccessDenied";
+                options.ExpireTimeSpan = TimeSpan.FromDays(30);
+                options.SlidingExpiration = true;
+            });
 
             // Register Repositories
             builder.Services.AddScoped<IAIModel, AIModelRepository>();
@@ -44,17 +68,16 @@ namespace Graduation_Project
             builder.Services.AddScoped<IPlace, PlaceRepository>();
             builder.Services.AddScoped<IPrescription, PrescriptionRepository>();
             builder.Services.AddScoped<IPrescriptionItem, PrescriptionItemRepository>();
-            builder.Services.AddScoped<IRole, RoleRepository>();
             builder.Services.AddScoped<ITestReport, TestReportRepository>();
             builder.Services.AddScoped<ITSH_Test, TSH_TestRepository>();
             builder.Services.AddScoped<IUltrasoundImage, UltrasoundImageRepository>();
             builder.Services.AddScoped<IUrinalysis_Test, Urinalysis_TestRepository>();
-            builder.Services.AddScoped<IUser, UserRepository>();
             builder.Services.AddScoped<IWeightTracking, WeightTrackingRepository>();
 
             // Register Services
             builder.Services.AddScoped<AlertService>();
             builder.Services.AddScoped<AssistantScheduleService>();
+            builder.Services.AddSingleton<IChatMessageCrypto, ChatMessageCrypto>();
 
             // ?? Product OCR ????????????????????????????????????????????????
             builder.Services.AddHttpClient("ProductOcr", client =>
@@ -71,6 +94,32 @@ namespace Graduation_Project
             using (var scope = app.Services.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+                // Ensure chat persistence table exists for real-time messaging.
+                await db.Database.ExecuteSqlRawAsync(@"
+IF OBJECT_ID(N'dbo.ChatMessages', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[ChatMessages](
+        [ChatMessageId] BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        [SenderUserId] NVARCHAR(450) NOT NULL,
+        [ReceiverUserId] NVARCHAR(450) NOT NULL,
+        [Message] NVARCHAR(2000) NOT NULL,
+        [SentAtUtc] DATETIME2 NOT NULL,
+        [IsRead] BIT NOT NULL,
+        [ReadAtUtc] DATETIME2 NULL,
+        CONSTRAINT [FK_ChatMessages_AspNetUsers_SenderUserId]
+            FOREIGN KEY ([SenderUserId]) REFERENCES [dbo].[AspNetUsers]([Id]),
+        CONSTRAINT [FK_ChatMessages_AspNetUsers_ReceiverUserId]
+            FOREIGN KEY ([ReceiverUserId]) REFERENCES [dbo].[AspNetUsers]([Id])
+    );
+
+    CREATE INDEX [IX_ChatMessages_SenderUserId_ReceiverUserId_SentAtUtc]
+        ON [dbo].[ChatMessages]([SenderUserId], [ReceiverUserId], [SentAtUtc]);
+
+    CREATE INDEX [IX_ChatMessages_ReceiverUserId_IsRead]
+        ON [dbo].[ChatMessages]([ReceiverUserId], [IsRead]);
+END");
+
                 await DataSeeder.SeedAsync(db);
             }
             // ????????????????????????????????????????????????????????????
@@ -87,11 +136,14 @@ namespace Graduation_Project
 
             app.UseRouting();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
+
+            app.MapHub<ChatHub>("/chatHub");
 
             app.Run();
         }

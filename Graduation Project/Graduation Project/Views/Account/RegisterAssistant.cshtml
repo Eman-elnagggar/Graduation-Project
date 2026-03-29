@@ -66,6 +66,14 @@
         </div>
 
         <div class="auth-card-body">
+          @if (TempData["AuthError"] is string authError)
+          {
+            <div class="mc-warning-box" style="display:flex; margin-bottom:.9rem;">
+              <i class="fas fa-exclamation-circle"></i>
+              <p>@authError</p>
+            </div>
+          }
+
           @using (Html.BeginForm("RegisterAssistant", "Account", FormMethod.Post,
                   new { id = "assistantForm", novalidate = "novalidate" }))
           {

@@ -1,10 +1,13 @@
 using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
 using Graduation_Project.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Graduation_Project.Controllers
 {
+    [Authorize(Roles = "Patient")]
     public class PatientPlacesController : Controller
     {
         private readonly IPatient _patientRepository;
@@ -19,9 +22,9 @@ namespace Graduation_Project.Controllers
         [HttpGet]
         public IActionResult Places(int id)
         {
-            var patient = _patientRepository.GetById(id);
-            if (patient == null)
-                return NotFound();
+            var (patient, failure) = AuthorizePatientAccess(id);
+            if (failure != null)
+                return failure;
 
             var places = _placeRepository.GetByPatientId(id).ToList();
 
@@ -46,6 +49,10 @@ namespace Graduation_Project.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult SavePlace(int patientId, string name, string type, string? address, string? phone)
         {
+            var (_, failure) = AuthorizePatientAccess(patientId, true);
+            if (failure != null)
+                return failure;
+
             if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(type))
                 return BadRequest(new { success = false, message = "Name and type are required." });
 
@@ -78,6 +85,10 @@ namespace Graduation_Project.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult UpdatePlace(int placeId, int patientId, string name, string type, string? address, string? phone)
         {
+            var (_, failure) = AuthorizePatientAccess(patientId, true);
+            if (failure != null)
+                return failure;
+
             var place = _placeRepository.GetById(placeId);
             if (place == null || place.PatientID != patientId)
                 return Json(new { success = false });
@@ -97,6 +108,10 @@ namespace Graduation_Project.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult DeletePlace(int placeId, int patientId)
         {
+            var (_, failure) = AuthorizePatientAccess(patientId, true);
+            if (failure != null)
+                return failure;
+
             var place = _placeRepository.GetById(placeId);
             if (place == null || place.PatientID != patientId)
                 return Json(new { success = false });
@@ -105,6 +120,32 @@ namespace Graduation_Project.Controllers
             _placeRepository.Save();
 
             return Json(new { success = true });
+        }
+
+        private (Patient? patient, IActionResult? failure) AuthorizePatientAccess(int patientId, bool returnJsonOnFailure = false)
+        {
+            var patient = _patientRepository.GetById(patientId);
+            if (patient == null)
+                return (null, NotFound());
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                if (returnJsonOnFailure)
+                    return (null, Unauthorized(new { success = false, message = "Unauthorized." }));
+
+                return (null, Unauthorized());
+            }
+
+            if (!string.Equals(patient.UserID, userId, StringComparison.Ordinal))
+            {
+                if (returnJsonOnFailure)
+                    return (null, StatusCode(StatusCodes.Status403Forbidden, new { success = false, message = "Access denied." }));
+
+                return (null, Forbid());
+            }
+
+            return (patient, null);
         }
     }
 }

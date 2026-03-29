@@ -10,6 +10,7 @@ namespace Graduation_Project.ViewModels
         public string UserName { get; set; }
 
         // Pregnancy progress
+        public bool HasActivePregnancy { get; set; }
         public int PregnancyWeek { get; set; }
         public int PregnancyProgressPercent { get; set; }
         public string Trimester { get; set; }
@@ -24,11 +25,30 @@ namespace Graduation_Project.ViewModels
         // Recent readings for the trackers
         public List<PatientBloodPressure> RecentBloodPressureReadings { get; set; } = new();
         public List<PatientBloodSugar> RecentBloodSugarReadings { get; set; } = new();
+        public List<PatientBloodPressure> WeeklyBloodPressureReadings { get; set; } = new();
+        public List<PatientBloodSugar> WeeklyBloodSugarReadings { get; set; } = new();
 
         // Recent activity feed
         public List<RecentActivityItem> RecentActivities { get; set; } = new();
 
         // Health alerts (critical / dangerous conditions needing attention)
         public List<Alert> HealthAlerts { get; set; } = new();
+    }
+
+    public class PatientMessagesViewModel
+    {
+        public Patient Patient { get; set; } = null!;
+        public string UserName { get; set; } = "Patient";
+        public List<PatientConversationSummary> Conversations { get; set; } = new();
+    }
+
+    public class PatientConversationSummary
+    {
+        public int DoctorId { get; set; }
+        public string ReceiverUserId { get; set; } = string.Empty;
+        public string DoctorName { get; set; } = "Doctor";
+        public int UnreadCount { get; set; }
+        public DateTime? LastMessageTime { get; set; }
+        public string? LastMessagePreview { get; set; }
     }
 }

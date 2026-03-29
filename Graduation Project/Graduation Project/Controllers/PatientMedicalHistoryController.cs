@@ -1,10 +1,14 @@
 using Graduation_Project.Interfaces;
+using Graduation_Project.Data;
 using Graduation_Project.Models;
 using Graduation_Project.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Graduation_Project.Controllers
 {
+    [Authorize(Roles = "Patient")]
     public class PatientMedicalHistoryController : Controller
     {
         private readonly IPatient _patientRepository;
@@ -16,6 +20,7 @@ namespace Graduation_Project.Controllers
         private readonly IAlert _alertRepository;
         private readonly INote _noteRepository;
         private readonly IPrescription _prescriptionRepository;
+        private readonly AppDbContext _context;
 
         public PatientMedicalHistoryController(
             IPatient patientRepository,
@@ -26,7 +31,8 @@ namespace Graduation_Project.Controllers
             IAppointment appointment,
             IAlert alertRepository,
             INote noteRepository,
-            IPrescription prescriptionRepository)
+            IPrescription prescriptionRepository,
+            AppDbContext context)
         {
             _patientRepository = patientRepository;
             _patientBloodPressure = patientBloodPressure;
@@ -37,6 +43,7 @@ namespace Graduation_Project.Controllers
             _alertRepository = alertRepository;
             _noteRepository = noteRepository;
             _prescriptionRepository = prescriptionRepository;
+            _context = context;
         }
 
         public IActionResult MedicalHistory(int id)
@@ -44,6 +51,13 @@ namespace Graduation_Project.Controllers
             var patient = _patientRepository.GetById(id);
             if (patient == null)
                 return NotFound();
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userId))
+                return Unauthorized();
+
+            if (!string.Equals(patient.UserID, userId, StringComparison.Ordinal))
+                return Forbid();
 
             var bpReadings = _patientBloodPressure.GetRecentByPatientId(id, 200).ToList();
             var bsReadings = _patientBloodSugar.GetRecentByPatientId(id, 200).ToList();
@@ -53,6 +67,9 @@ namespace Graduation_Project.Controllers
             var alerts = _alertRepository.GetByPatientId(id).ToList();
             var notes = _noteRepository.GetByPatientId(id).ToList();
             var prescriptions = _prescriptionRepository.GetByPatientId(id).ToList();
+            var pregnancyRecords = _context.PregnancyRecords
+                .Where(r => r.PatientID == id)
+                .ToList();
 
             var entries = new List<MedicalHistoryEntry>();
 
@@ -195,6 +212,30 @@ namespace Graduation_Project.Controllers
                         : null,
                     Prescription = rx
                 });
+            }
+
+            foreach (var pregnancy in pregnancyRecords)
+            {
+                entries.Add(new MedicalHistoryEntry
+                {
+                    DateTime = pregnancy.StartDate,
+                    EventType = "pregnancy-started",
+                    Status = "normal",
+                    Title = "Pregnancy Started",
+                    SubTitle = "Pregnancy tracking was started by the patient."
+                });
+
+                if (pregnancy.EndDate.HasValue)
+                {
+                    entries.Add(new MedicalHistoryEntry
+                    {
+                        DateTime = pregnancy.EndDate.Value,
+                        EventType = "pregnancy-ended",
+                        Status = "normal",
+                        Title = "Pregnancy Ended",
+                        SubTitle = "This pregnancy was marked as ended by the patient."
+                    });
+                }
             }
 
             entries = entries.OrderByDescending(e => e.DateTime).ToList();

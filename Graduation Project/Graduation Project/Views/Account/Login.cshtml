@@ -58,6 +58,21 @@
         </div>
 
         <div class="auth-card-body">
+          @if (TempData["AuthError"] is string authError)
+          {
+            <div class="mc-warning-box" style="display:flex; margin-bottom:.9rem;">
+              <i class="fas fa-exclamation-circle"></i>
+              <p>@authError</p>
+            </div>
+          }
+          @if (TempData["AuthSuccess"] is string authSuccess)
+          {
+            <div class="mc-warning-box" style="display:flex; margin-bottom:.9rem; background:#ecfdf5; border-color:#86efac; color:#166534;">
+              <i class="fas fa-check-circle"></i>
+              <p>@authSuccess</p>
+            </div>
+          }
+
           @using (Html.BeginForm("Login", "Account", FormMethod.Post, new { id = "loginForm", novalidate = "novalidate" }))
           {
             @Html.AntiForgeryToken()
@@ -68,7 +83,7 @@
               </label>
               <div class="mc-input-wrap">
                 <input type="email" id="Email" name="Email" class="mc-input has-icon"
-                       placeholder="you@example.com" required autocomplete="email" />
+                       placeholder="you@example.com" required autocomplete="email" value="@(ViewBag.Email ?? string.Empty)" />
                 <i class="mc-input-icon fas fa-envelope"></i>
               </div>
             </div>
@@ -94,7 +109,7 @@
 
             <div class="mc-form-group">
               <label class="mc-check-group">
-                <input type="checkbox" id="RememberMe" name="RememberMe" class="mc-check" value="true" />
+                <input type="checkbox" id="RememberMe" name="RememberMe" class="mc-check" value="true" @(ViewBag.RememberMe == true ? "checked" : "") />
                 <span class="mc-check-label">Remember me for 30 days</span>
               </label>
             </div>
@@ -137,7 +152,11 @@
   document.getElementById('loginForm').addEventListener('submit', function (e) {
     if (!validateForm('loginForm')) {
       e.preventDefault();
-      showToast('Please fix the errors before continuing.', 'error');
+      const firstError = this.querySelector('.mc-feedback.invalid');
+      const errorText = firstError
+        ? firstError.textContent.replace(/\s+/g, ' ').trim()
+        : 'Please check the highlighted fields and try again.';
+      showToast(errorText, 'error');
     }
   });
 }());

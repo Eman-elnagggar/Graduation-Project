@@ -1,11 +1,14 @@
 using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
 using Graduation_Project.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace Graduation_Project.Controllers
 {
+    [Authorize(Roles = "Patient")]
     public class PatientAppointmentsController : Controller
     {
         private readonly IPatient _patientRepository;
@@ -33,8 +36,8 @@ namespace Graduation_Project.Controllers
 
         public IActionResult Appointments(int id)
         {
-            var patient = _patientRepository.GetById(id);
-            if (patient == null) return NotFound();
+            var (patient, failure) = AuthorizePatientAccess(id);
+            if (failure != null) return failure;
 
             var allAppointments = _appointment.GetByPatientId(id).ToList();
             var upcoming = allAppointments
@@ -66,8 +69,8 @@ namespace Graduation_Project.Controllers
 
         public IActionResult BookAppointment(int id, int? doctorId = null)
         {
-            var patient = _patientRepository.GetById(id);
-            if (patient == null) return NotFound();
+            var (patient, failure) = AuthorizePatientAccess(id);
+            if (failure != null) return failure;
 
             var allDoctors = _doctorRepository.GetAllWithDetails().ToList();
             var availableDoctors = allDoctors
@@ -111,6 +114,10 @@ namespace Graduation_Project.Controllers
         [HttpGet]
         public IActionResult GetDoctorSlots(int patientId, int doctorId, string date, int? clinicId = null)
         {
+            var (_, failure) = AuthorizePatientAccess(patientId, true);
+            if (failure != null)
+                return failure;
+
             if (!DateTime.TryParse(date, out var parsedDate))
                 return BadRequest();
 
@@ -131,6 +138,10 @@ namespace Graduation_Project.Controllers
         [HttpGet]
         public IActionResult GetAvailableDates(int patientId, int doctorId, int year, int month, int? clinicId = null)
         {
+            var (_, failure) = AuthorizePatientAccess(patientId, true);
+            if (failure != null)
+                return failure;
+
             var dates = clinicId.HasValue
                 ? _appointment.GetAvailableDatesByDoctorAndClinic(doctorId, clinicId.Value, year, month)
                 : _appointment.GetAvailableDatesByDoctor(doctorId, year, month);
@@ -142,9 +153,9 @@ namespace Graduation_Project.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult ConfirmBooking(int patientId, int appointmentId, string reason, string? notes)
         {
-            var patient = _patientRepository.GetById(patientId);
-            if (patient == null)
-                return Json(new { success = false, message = "Patient not found." });
+            var (patient, failure) = AuthorizePatientAccess(patientId, true);
+            if (failure != null)
+                return failure;
 
             var appointment = _appointment.GetByIdWithBooking(appointmentId);
             if (appointment == null || appointment.isBooked)
@@ -217,6 +228,10 @@ namespace Graduation_Project.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult CancelAppointment(int patientId, int appointmentId)
         {
+            var (_, failure) = AuthorizePatientAccess(patientId, true);
+            if (failure != null)
+                return failure;
+
             var appointment = _appointment.GetByIdWithBooking(appointmentId);
             if (appointment == null || appointment.PatientID != patientId)
                 return Json(new { success = false, message = "Appointment not found." });
@@ -244,6 +259,32 @@ namespace Graduation_Project.Controllers
                 time = appointment.Time.ToString(@"hh\:mm"),
                 status = appointment.Booking?.Status ?? "Cancelled"
             });
+        }
+
+        private (Patient? patient, IActionResult? failure) AuthorizePatientAccess(int patientId, bool returnJsonOnFailure = false)
+        {
+            var patient = _patientRepository.GetById(patientId);
+            if (patient == null)
+                return (null, NotFound());
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                if (returnJsonOnFailure)
+                    return (null, Unauthorized(new { success = false, message = "Unauthorized." }));
+
+                return (null, Unauthorized());
+            }
+
+            if (!string.Equals(patient.UserID, userId, StringComparison.Ordinal))
+            {
+                if (returnJsonOnFailure)
+                    return (null, StatusCode(StatusCodes.Status403Forbidden, new { success = false, message = "Access denied." }));
+
+                return (null, Forbid());
+            }
+
+            return (patient, null);
         }
     }
 }

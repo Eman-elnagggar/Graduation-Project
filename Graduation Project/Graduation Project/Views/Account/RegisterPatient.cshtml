@@ -72,6 +72,14 @@
           </div>
 
           <div class="auth-card-body">
+            @if (TempData["AuthError"] is string authError)
+            {
+              <div class="mc-warning-box" style="display:flex; margin-bottom:.9rem;">
+                <i class="fas fa-exclamation-circle"></i>
+                <p>@authError</p>
+              </div>
+            }
+
             <form id="step1Form" novalidate>
               @Html.AntiForgeryToken()
 
@@ -192,7 +200,7 @@
           </div>
 
           <div class="auth-card-body">
-            <form id="step2Form" novalidate>
+            <form id="step2Form" method="post" action="@Url.Action("RegisterPatient", "Account")" novalidate>
               @Html.AntiForgeryToken()
 
               <div class="mc-row">
@@ -248,6 +256,15 @@
                     </label>
                   </div>
                 </div>
+              </div>
+
+              <div class="mc-form-group" id="previousPregnanciesGroup" style="display:none;">
+                <label class="mc-label" for="PreviousPregnancies">
+                  <i class="fas fa-list-ol"></i> Number of previous pregnancies <span class="req">*</span>
+                </label>
+                <input type="number" id="PreviousPregnancies" name="PreviousPregnancies" class="mc-input"
+                       placeholder="e.g. 2" min="1" step="1" />
+                <div class="mc-feedback hint"><i class="fas fa-info-circle"></i> This will be used as your initial pregnancy count baseline.</div>
               </div>
 
               <div class="mc-section-header med" style="margin-top:.5rem;">
@@ -368,18 +385,42 @@
       showToast('Please fix the errors before continuing.', 'error');
       return;
     }
+
+    const step2Form = document.getElementById('step2Form');
+    const step1Data = new FormData(this);
+    for (const [key, value] of step1Data.entries()) {
+      if (key === '__RequestVerificationToken') continue;
+      let existing = step2Form.querySelector(`input[type="hidden"][name="${key}"]`);
+      if (!existing) {
+        existing = document.createElement('input');
+        existing.type = 'hidden';
+        existing.name = key;
+        step2Form.appendChild(existing);
+      }
+      existing.value = value;
+    }
+
     goStep2();
   });
 
   document.getElementById('skipProfileBtn').addEventListener('click', function () {
-    showToast('Account created! Redirecting…', 'success');
-    setTimeout(() => { window.location.href = '@Url.Action("Index", "Patient")'; }, 1500);
+    const step2Form = document.getElementById('step2Form');
+    let skipInput = step2Form.querySelector('input[type="hidden"][name="SkipProfile"]');
+    if (!skipInput) {
+      skipInput = document.createElement('input');
+      skipInput.type = 'hidden';
+      skipInput.name = 'SkipProfile';
+      step2Form.appendChild(skipInput);
+    }
+    skipInput.value = 'true';
+    step2Form.submit();
   });
 
   document.getElementById('step2Form').addEventListener('submit', function (e) {
-    e.preventDefault();
-    showToast('Registration complete! Redirecting…', 'success');
-    setTimeout(() => { window.location.href = '@Url.Action("Index", "Patient")'; }, 1500);
+    if (!validateForm('step2Form')) {
+      e.preventDefault();
+      showToast('Please fix the errors before submitting.', 'error');
+    }
   });
 
   document.querySelectorAll('input[name="HasBloodPressureIssues"]').forEach(radio => {
@@ -387,6 +428,38 @@
       document.getElementById('bpWarning').style.display = this.value === 'true' ? 'flex' : 'none';
     });
   });
+
+  const firstPregnancyRadios = document.querySelectorAll('input[name="IsFirstPregnancy"]');
+  const previousPregnanciesGroup = document.getElementById('previousPregnanciesGroup');
+  const previousPregnanciesInput = document.getElementById('PreviousPregnancies');
+
+  function syncPreviousPregnanciesVisibility() {
+    const selected = document.querySelector('input[name="IsFirstPregnancy"]:checked')?.value;
+    const isFirst = selected === 'true';
+
+    if (!selected || isFirst) {
+      previousPregnanciesGroup.style.display = 'none';
+      previousPregnanciesInput.required = false;
+      previousPregnanciesInput.value = '';
+      return;
+    }
+
+    previousPregnanciesGroup.style.display = '';
+    previousPregnanciesInput.required = true;
+  }
+
+  firstPregnancyRadios.forEach(radio => {
+    radio.addEventListener('change', syncPreviousPregnanciesVisibility);
+  });
+
+  document.querySelectorAll('.mc-radio-btn input[name="IsFirstPregnancy"]').forEach(radio => {
+    const btn = radio.closest('.mc-radio-btn');
+    btn?.addEventListener('click', function () {
+      setTimeout(syncPreviousPregnanciesVisibility, 0);
+    });
+  });
+
+  syncPreviousPregnanciesVisibility();
 
   let medCount = 0;
   document.getElementById('addMedBtn').addEventListener('click', function () {

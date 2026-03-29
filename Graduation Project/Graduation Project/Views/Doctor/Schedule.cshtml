@@ -1,0 +1,364 @@
+@using System.Text.Json
+@model DoctorScheduleViewModel
+@{
+    Layout = "~/Views/Shared/_DoctorLayout.cshtml";
+    ViewData["Title"] = "My Schedule";
+    ViewData["ActivePage"] = "Schedule";
+    ViewData["DoctorId"] = Model.Doctor.DoctorID;
+    ViewData["DoctorName"] = Model.DoctorName;
+    ViewData["PageTitle"] = "My Schedule";
+    ViewData["PageSubtitle"] = "Manage your appointments efficiently";
+
+    var appointmentsPayload = (Model.Appointments ?? new List<Appointment>())
+        .Where(appt => appt.isBooked && appt.PatientID.HasValue)
+        .Select(appt =>
+        {
+            var patientName = string.Join(" ", new[] { appt.Patient?.User?.FirstName, appt.Patient?.User?.LastName }
+                .Where(x => !string.IsNullOrWhiteSpace(x))).Trim();
+            if (string.IsNullOrWhiteSpace(patientName))
+            {
+                patientName = "Patient";
+            }
+
+            var gestationalWeeks = Math.Max(appt.Patient?.GestationalWeeks ?? 0, 0);
+            var trimester = gestationalWeeks <= 12 ? 1 : (gestationalWeeks <= 26 ? 2 : 3);
+
+            var normalizedStatus = (appt.Booking?.Status ?? string.Empty).Trim().ToLowerInvariant() switch
+            {
+                "completed" => "completed",
+                "modified" => "modified",
+                "urgent" => "urgent",
+                "pending" => "pending",
+                "missed" => "missed",
+                "cancelled" => "cancelled",
+                "canceled" => "cancelled",
+                "booked" => "confirmed",
+                "confirmed" => "confirmed",
+                _ => appt.isBooked ? "confirmed" : "pending"
+            };
+
+            var riskLevel = appt.Patient == null
+                ? "low"
+                : appt.Patient.BloodPressureIssue
+                    ? "high"
+                    : appt.Patient.GestationalWeeks >= 30
+                        ? "medium"
+                        : "low";
+
+            return new
+            {
+                id = appt.AppointmentID,
+                date = appt.Date.ToString("yyyy-MM-dd"),
+                time = appt.Time.ToString(@"hh\:mm"),
+                duration = 30,
+                patient = new
+                {
+                    id = appt.PatientID ?? 0,
+                    name = patientName,
+                    week = gestationalWeeks,
+                    trimester,
+                    risk = riskLevel
+                },
+                type = string.IsNullOrWhiteSpace(appt.Booking?.Reason) ? "Consultation" : appt.Booking!.Reason,
+                status = normalizedStatus,
+                notes = appt.Booking?.Notes ?? string.Empty
+            };
+        })
+        .ToList();
+}
+
+<div class="sch-wrap" data-doctor-schedule>
+    <div class="sch-hero">
+        <div class="sch-hero-left">
+            <span class="sch-hero-eyebrow"><i class="fas fa-calendar-alt"></i> Schedule Management</span>
+            <h1 class="sch-hero-title">My <span>Schedule</span></h1>
+            <p class="sch-hero-sub">
+                <i class="fas fa-circle"></i>
+                <span id="heroDate">Loading...</span> · Manage your appointments efficiently
+            </p>
+        </div>
+        <div class="sch-hero-right">
+            <div class="sch-hero-stat">
+                <div class="sch-hero-stat-ico"><i class="fas fa-calendar-check"></i></div>
+                <div class="sch-hero-stat-body">
+                    <span class="sch-hero-stat-val" id="heroTodayCount">0</span>
+                    <span class="sch-hero-stat-lbl">Today</span>
+                </div>
+            </div>
+            <div class="sch-hero-stat">
+                <div class="sch-hero-stat-ico"><i class="fas fa-calendar-week"></i></div>
+                <div class="sch-hero-stat-body">
+                    <span class="sch-hero-stat-val" id="heroWeekCount">0</span>
+                    <span class="sch-hero-stat-lbl">This Week</span>
+                </div>
+            </div>
+            <div class="sch-hero-stat">
+                <div class="sch-hero-stat-ico"><i class="fas fa-user-clock"></i></div>
+                <div class="sch-hero-stat-body">
+                    <span class="sch-hero-stat-val" id="heroNextTime">—</span>
+                    <span class="sch-hero-stat-lbl">Next Patient</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="sch-controls">
+        <div class="sch-controls-left">
+            <div class="sch-view-toggle">
+                <button class="sch-view-btn active" data-view="day">
+                    <i class="fas fa-calendar-day"></i> Day
+                </button>
+                <button class="sch-view-btn" data-view="week">
+                    <i class="fas fa-calendar-week"></i> Week
+                </button>
+                <button class="sch-view-btn" data-view="month">
+                    <i class="fas fa-calendar-alt"></i> Month
+                </button>
+            </div>
+            <button class="sch-today-btn" id="todayBtn">
+                <i class="fas fa-crosshairs"></i> Today
+            </button>
+        </div>
+        <div class="sch-controls-right">
+            <div class="sch-search">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Search patients..." />
+            </div>
+            <div class="sch-filter-dropdown">
+                <button class="sch-filter-btn" id="filterBtn">
+                    <i class="fas fa-filter"></i>
+                    <span>All Status</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="sch-filter-menu" id="filterMenu">
+                    <button class="sch-filter-option active" data-filter="all">All Appointments</button>
+                    <button class="sch-filter-option" data-filter="confirmed">Confirmed</button>
+                    <button class="sch-filter-option" data-filter="modified">Modified</button>
+                    <button class="sch-filter-option" data-filter="pending">Pending</button>
+                    <button class="sch-filter-option" data-filter="urgent">Urgent</button>
+                    <button class="sch-filter-option" data-filter="completed">Completed</button>
+                    <button class="sch-filter-option" data-filter="missed">Missed</button>
+                    <button class="sch-filter-option" data-filter="cancelled">Cancelled</button>
+                </div>
+            </div>
+            <button class="sch-action-btn" id="syncBtn" title="Sync Calendar">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+            <button class="sch-action-btn" id="exportBtn" title="Export Schedule">
+                <i class="fas fa-download"></i>
+            </button>
+            <button class="sch-action-btn primary" id="newApptBtn" title="New Appointment">
+                <i class="fas fa-plus"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="sch-kpi-grid">
+        <div class="sch-kpi">
+            <div class="sch-kpi-ico blue"><i class="fas fa-calendar-day"></i></div>
+            <div class="sch-kpi-body">
+                <span class="sch-kpi-val" id="kpiToday">0</span>
+                <span class="sch-kpi-lbl">Today's Appointments</span>
+            </div>
+            <div class="sch-kpi-trend up" id="kpiTodayTrend">
+                <i class="fas fa-arrow-up"></i> <span>0</span>
+            </div>
+        </div>
+        <div class="sch-kpi">
+            <div class="sch-kpi-ico teal"><i class="fas fa-calendar-week"></i></div>
+            <div class="sch-kpi-body">
+                <span class="sch-kpi-val" id="kpiWeek">0</span>
+                <span class="sch-kpi-lbl">This Week</span>
+            </div>
+            <div class="sch-kpi-trend neu">
+                <i class="fas fa-minus"></i> <span>Avg</span>
+            </div>
+        </div>
+        <div class="sch-kpi">
+            <div class="sch-kpi-ico amber"><i class="fas fa-clock"></i></div>
+            <div class="sch-kpi-body">
+                <span class="sch-kpi-val" id="kpiPending">0</span>
+                <span class="sch-kpi-lbl">Pending Confirmation</span>
+            </div>
+            <div class="sch-kpi-trend down">
+                <i class="fas fa-exclamation"></i> <span>Action</span>
+            </div>
+        </div>
+        <div class="sch-kpi">
+            <div class="sch-kpi-ico green"><i class="fas fa-check-circle"></i></div>
+            <div class="sch-kpi-body">
+                <span class="sch-kpi-val" id="kpiCompleted">0</span>
+                <span class="sch-kpi-lbl">Completed Today</span>
+            </div>
+            <div class="sch-kpi-trend up">
+                <i class="fas fa-chart-line"></i> <span>Good</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="sch-main-grid">
+        <div class="sch-sidebar">
+            <div class="sch-card">
+                <div class="sch-card-header">
+                    <div class="sch-card-header-left">
+                        <div class="sch-card-ico teal"><i class="fas fa-calendar"></i></div>
+                        <div>
+                            <div class="sch-card-title">Calendar</div>
+                            <div class="sch-card-sub" id="calendarMonthLabel">Loading...</div>
+                        </div>
+                    </div>
+                    <div class="sch-calendar-nav">
+                        <button class="sch-nav-btn" id="prevMonth"><i class="fas fa-chevron-left"></i></button>
+                        <button class="sch-nav-btn" id="nextMonth"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                </div>
+                <div class="sch-calendar">
+                    <div class="sch-calendar-weekdays">
+                        <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+                    </div>
+                    <div class="sch-calendar-days" id="calendarDays"></div>
+                </div>
+                <div class="sch-calendar-legend">
+                    <span class="sch-legend-item"><span class="sch-legend-dot today"></span> Today</span>
+                    <span class="sch-legend-item"><span class="sch-legend-dot has-appt"></span> Has Appointments</span>
+                    <span class="sch-legend-item"><span class="sch-legend-dot selected"></span> Selected</span>
+                </div>
+            </div>
+
+            <div class="sch-card">
+                <div class="sch-card-header">
+                    <div class="sch-card-header-left">
+                        <div class="sch-card-ico amber"><i class="fas fa-clock"></i></div>
+                        <div>
+                            <div class="sch-card-title">Upcoming</div>
+                            <div class="sch-card-sub">Next appointments</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="sch-upcoming-list" id="upcomingList"></div>
+            </div>
+
+            <div class="sch-card">
+                <div class="sch-card-header">
+                    <div class="sch-card-header-left">
+                        <div class="sch-card-ico blue"><i class="fas fa-bolt"></i></div>
+                        <div>
+                            <div class="sch-card-title">Quick Actions</div>
+                            <div class="sch-card-sub">Common tasks</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="sch-quick-actions">
+                    <button class="sch-quick-btn" data-action="new">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>New Appointment</span>
+                    </button>
+                    <button class="sch-quick-btn" data-action="block">
+                        <i class="fas fa-ban"></i>
+                        <span>Block Time Slot</span>
+                    </button>
+                    <button class="sch-quick-btn" data-action="availability">
+                        <i class="fas fa-clock"></i>
+                        <span>Set Availability</span>
+                    </button>
+                    <button class="sch-quick-btn" data-action="recurring">
+                        <i class="fas fa-redo"></i>
+                        <span>Recurring Schedule</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="sch-content">
+            <div class="sch-view-panel active" id="dayView">
+                <div class="sch-card">
+                    <div class="sch-card-header">
+                        <div class="sch-card-header-left">
+                            <div class="sch-card-ico teal"><i class="fas fa-list-ul"></i></div>
+                            <div>
+                                <div class="sch-card-title" id="dayViewTitle">Today's Schedule</div>
+                                <div class="sch-card-sub" id="dayViewSub">0 appointments</div>
+                            </div>
+                        </div>
+                        <div class="sch-day-nav">
+                            <button class="sch-nav-btn" id="prevDay"><i class="fas fa-chevron-left"></i></button>
+                            <span class="sch-day-label" id="dayLabel">Today</span>
+                            <button class="sch-nav-btn" id="nextDay"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                    <div class="sch-day-content" id="dayContent"></div>
+                </div>
+            </div>
+
+            <div class="sch-view-panel" id="weekView">
+                <div class="sch-card">
+                    <div class="sch-card-header">
+                        <div class="sch-card-header-left">
+                            <div class="sch-card-ico blue"><i class="fas fa-calendar-week"></i></div>
+                            <div>
+                                <div class="sch-card-title" id="weekViewTitle">This Week</div>
+                                <div class="sch-card-sub" id="weekViewSub">Week overview</div>
+                            </div>
+                        </div>
+                        <div class="sch-week-nav">
+                            <button class="sch-nav-btn" id="prevWeek"><i class="fas fa-chevron-left"></i></button>
+                            <span class="sch-week-label" id="weekLabel">This Week</span>
+                            <button class="sch-nav-btn" id="nextWeek"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                    <div class="sch-week-content" id="weekContent"></div>
+                </div>
+            </div>
+
+            <div class="sch-view-panel" id="monthView">
+                <div class="sch-card">
+                    <div class="sch-card-header">
+                        <div class="sch-card-header-left">
+                            <div class="sch-card-ico green"><i class="fas fa-calendar-alt"></i></div>
+                            <div>
+                                <div class="sch-card-title" id="monthViewTitle">This Month</div>
+                                <div class="sch-card-sub" id="monthViewSub">Monthly overview</div>
+                            </div>
+                        </div>
+                        <div class="sch-month-nav">
+                            <button class="sch-nav-btn" id="prevMonthView"><i class="fas fa-chevron-left"></i></button>
+                            <span class="sch-month-label" id="monthLabel">Month</span>
+                            <button class="sch-nav-btn" id="nextMonthView"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                    <div class="sch-month-content" id="monthContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="sch-toast-container" id="toastContainer"></div>
+
+<div class="sch-modal-overlay" id="modalOverlay">
+    <div class="sch-modal" id="appointmentModal">
+        <div class="sch-modal-header">
+            <h3><i class="fas fa-calendar-plus"></i> Appointment Details</h3>
+            <button class="sch-modal-close" id="closeModal"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="sch-modal-body" id="modalBody"></div>
+        <div class="sch-modal-footer">
+            <button class="sch-btn outline" id="modalCancel">Cancel</button>
+            <button class="sch-btn primary" id="modalConfirm">Confirm</button>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/doctor-schedule.css" asp-append-version="true" />
+}
+
+@section Scripts {
+    <script>
+        window.scheduleBootstrap = {
+            doctorId: @Model.Doctor.DoctorID,
+            appointments: @Html.Raw(JsonSerializer.Serialize(appointmentsPayload))
+        };
+    </script>
+    <script src="~/js/doctor-schedule.js" asp-append-version="true"></script>
+}

@@ -60,6 +60,11 @@
                 <div class="nav-icon"><i class="fas fa-calendar-check"></i></div>
                 <span>Appointments</span>
             </a>
+            <a href="/Patient/Messages/@patientId"
+               class="nav-item @(activePage == "Messages" ? "active" : "")" data-tooltip="Messages">
+                <div class="nav-icon"><i class="fas fa-comments"></i></div>
+                <span>Messages</span>
+            </a>
         </div>
 
         <!-- Health & Community Section -->
@@ -106,7 +111,7 @@
 
     <!-- Sidebar Footer -->
     <div class="sidebar-footer">
-        <a href="#" class="nav-item logout-item" data-tooltip="Logout">
+        <a asp-controller="Account" asp-action="LogoutGet" class="nav-item logout-item" data-tooltip="Logout">
             <div class="nav-icon"><i class="fas fa-sign-out-alt"></i></div>
             <span>Logout</span>
         </a>
