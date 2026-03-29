@@ -1,0 +1,121 @@
+@model Graduation_Project.ViewModels.AssistantClinicInvitationsPageViewModel
+@{
+    Layout = "~/Views/Shared/_AssistantLayout.cshtml";
+}
+
+<section class="card" style="margin-bottom:1rem;">
+    <div class="card-header">
+        <h3><i class="fas fa-envelope-open-text"></i> Pending Invitations</h3>
+        <span style="font-size:.85rem;color:#6b7280;">@Model.PendingInvitations.Count pending</span>
+    </div>
+
+    @if (TempData["InviteSuccess"] != null)
+    {
+        <div class="privacy-notice" style="margin-bottom:1rem;border-left-color:#16a34a;background:#f0fdf4;">
+            <i class="fas fa-check-circle" style="color:#16a34a;"></i>
+            <p style="color:#166534;">@TempData["InviteSuccess"]</p>
+        </div>
+    }
+
+    @if (TempData["InviteError"] != null)
+    {
+        <div class="privacy-notice" style="margin-bottom:1rem;border-left-color:#dc2626;background:#fef2f2;">
+            <i class="fas fa-exclamation-circle" style="color:#dc2626;"></i>
+            <p style="color:#991b1b;">@TempData["InviteError"]</p>
+        </div>
+    }
+
+    @if (Model.PendingInvitations.Any())
+    {
+        <div style="display:grid;gap:.8rem;">
+            @foreach (var inv in Model.PendingInvitations)
+            {
+                <div class="schedule-item" style="border-left-color:#f59e0b;">
+                    <div class="schedule-content">
+                        <h4>@inv.DoctorName</h4>
+                        <p>
+                            <strong>Specialization:</strong> @(string.IsNullOrWhiteSpace(inv.DoctorSpecialization) ? "General" : inv.DoctorSpecialization)<br />
+                            <strong>Clinic:</strong> @inv.ClinicName (@inv.ClinicLocation)<br />
+                            <strong>Received:</strong> @inv.SentAtUtc.ToLocalTime().ToString("MMM dd, yyyy hh:mm tt")
+                        </p>
+                    </div>
+                    <div class="schedule-status" style="display:flex;gap:.4rem;align-items:center;">
+                        @using (Html.BeginForm("AcceptClinicInvitation", "Assistant", FormMethod.Post))
+                        {
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Assistant.AssistantID" />
+                            <input type="hidden" name="invitationId" value="@inv.ClinicInvitationID" />
+                            <button type="submit" class="btn btn-sm btn-primary">
+                                <i class="fas fa-check"></i> Accept
+                            </button>
+                        }
+                        @using (Html.BeginForm("DeclineClinicInvitation", "Assistant", FormMethod.Post))
+                        {
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Assistant.AssistantID" />
+                            <input type="hidden" name="invitationId" value="@inv.ClinicInvitationID" />
+                            <button type="submit" class="btn btn-sm btn-outline" style="border-color:#dc2626;color:#dc2626;">
+                                <i class="fas fa-times"></i> Decline
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="privacy-notice">
+            <i class="fas fa-info-circle"></i>
+            <p>No pending invitations right now.</p>
+        </div>
+    }
+</section>
+
+<section class="card">
+    <div class="card-header">
+        <h3><i class="fas fa-history"></i> Recent Invitation History</h3>
+        <span style="font-size:.85rem;color:#6b7280;">Last @Model.RecentInvitations.Count records</span>
+    </div>
+
+    @if (Model.RecentInvitations.Any())
+    {
+        <div style="display:grid;gap:.6rem;">
+            @foreach (var inv in Model.RecentInvitations)
+            {
+                var doctorName = $"Dr. {inv.Doctor?.User?.FirstName} {inv.Doctor?.User?.LastName}".Trim();
+                var statusClass = inv.Status?.ToLowerInvariant() switch
+                {
+                    "accepted" => "completed",
+                    "declined" => "cancelled",
+                    "cancelled" => "cancelled",
+                    _ => "pending"
+                };
+
+                <div class="schedule-item">
+                    <div class="schedule-content">
+                        <h4>@doctorName</h4>
+                        <p>
+                            <strong>Clinic:</strong> @(inv.Clinic?.Name ?? "Clinic")<br />
+                            <strong>Sent:</strong> @inv.SentAtUtc.ToLocalTime().ToString("MMM dd, yyyy")
+                            @if (inv.RespondedAtUtc.HasValue)
+                            {
+                                <span>&nbsp;•&nbsp;<strong>Updated:</strong> @inv.RespondedAtUtc.Value.ToLocalTime().ToString("MMM dd, yyyy")</span>
+                            }
+                        </p>
+                    </div>
+                    <div class="schedule-status">
+                        <span class="status-tag @statusClass">@inv.Status</span>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="privacy-notice">
+            <i class="fas fa-info-circle"></i>
+            <p>No invitation history yet.</p>
+        </div>
+    }
+</section>

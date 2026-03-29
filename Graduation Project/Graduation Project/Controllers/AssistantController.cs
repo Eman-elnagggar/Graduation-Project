@@ -1,9 +1,11 @@
+using Graduation_Project.Data;
 using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
 using Graduation_Project.Services;
 using Graduation_Project.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System.Security.Claims;
 
@@ -20,6 +22,7 @@ namespace Graduation_Project.Controllers
         private readonly IAlert _alertRepository;
         private readonly ILabTest _labTestRepository;
         private readonly AssistantScheduleService _assistantScheduleService;
+        private readonly AppDbContext _context;
 
         public AssistantController(
             IAssistant assistantRepository,
@@ -29,7 +32,8 @@ namespace Graduation_Project.Controllers
             IPatientDoctor patientDoctorRepository,
             IAlert alertRepository,
             ILabTest labTestRepository,
-            AssistantScheduleService assistantScheduleService)
+            AssistantScheduleService assistantScheduleService,
+            AppDbContext context)
         {
             _assistantRepository = assistantRepository;
             _clinicRepository = clinicRepository;
@@ -39,6 +43,7 @@ namespace Graduation_Project.Controllers
             _alertRepository = alertRepository;
             _labTestRepository = labTestRepository;
             _assistantScheduleService = assistantScheduleService;
+            _context = context;
         }
 
         public IActionResult Index(int id, int? doctorId, DateTime? date, string? status)
@@ -48,7 +53,7 @@ namespace Graduation_Project.Controllers
             if (assistant == null)
                 return NotFound();
 
-            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID ?? 0);
             if (clinic == null)
                 return NotFound();
 
@@ -88,7 +93,7 @@ namespace Graduation_Project.Controllers
             var accessResult = TryResolveAssistant(id, out var assistant, true);
             if (accessResult != null) return accessResult;
 
-            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID ?? 0);
             if (clinic == null) return NotFound();
 
             var targetDate = ParseDashboardDate(date);
@@ -154,7 +159,7 @@ namespace Graduation_Project.Controllers
             var accessResult = TryResolveAssistant(id, out var assistant, true);
             if (accessResult != null) return accessResult;
 
-            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID ?? 0);
             if (clinic == null) return NotFound();
 
             var targetDate = ParseDashboardDate(date);
@@ -261,7 +266,7 @@ namespace Graduation_Project.Controllers
             var accessResult = TryResolveAssistant(id, out var assistant);
             if (accessResult != null) return accessResult;
 
-            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID ?? 0);
             if (clinic == null) return NotFound();
 
             var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
@@ -331,7 +336,7 @@ namespace Graduation_Project.Controllers
             var accessResult = TryResolveAssistant(id, out var assistant, true);
             if (accessResult != null) return accessResult;
 
-            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID ?? 0);
             if (clinic == null) return NotFound();
 
             var appointment = _appointmentRepository.GetByIdWithBooking(appointmentId);
@@ -367,7 +372,7 @@ namespace Graduation_Project.Controllers
             var accessResult = TryResolveAssistant(id, out var assistant, true);
             if (accessResult != null) return accessResult;
 
-            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID ?? 0);
             if (clinic == null) return NotFound();
 
             var appointment = _appointmentRepository.GetByIdWithBooking(appointmentId);
@@ -417,7 +422,7 @@ namespace Graduation_Project.Controllers
             var accessResult = TryResolveAssistant(id, out var assistant, true);
             if (accessResult != null) return accessResult;
 
-            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID ?? 0);
             if (clinic == null) return NotFound();
 
             var appointment = _appointmentRepository.GetByIdWithBooking(appointmentId);
@@ -452,7 +457,7 @@ namespace Graduation_Project.Controllers
             var accessResult = TryResolveAssistant(id, out var assistant);
             if (accessResult != null) return accessResult;
 
-            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID ?? 0);
             if (clinic == null) return NotFound();
 
             var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
@@ -480,7 +485,7 @@ namespace Graduation_Project.Controllers
             var accessResult = TryResolveAssistant(id, out var assistant, true);
             if (accessResult != null) return accessResult;
 
-            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID ?? 0);
             if (clinic == null) return NotFound();
 
             var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
@@ -523,7 +528,7 @@ namespace Graduation_Project.Controllers
             var accessResult = TryResolveAssistant(id, out var assistant, true);
             if (accessResult != null) return accessResult;
 
-            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID ?? 0);
             if (clinic == null) return NotFound();
 
             var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
@@ -571,7 +576,7 @@ namespace Graduation_Project.Controllers
             var accessResult = TryResolveAssistant(id, out var assistant, true);
             if (accessResult != null) return accessResult;
 
-            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID ?? 0);
             if (clinic == null) return NotFound();
 
             var appointment = _appointmentRepository.GetById(appointmentId);
@@ -599,7 +604,7 @@ namespace Graduation_Project.Controllers
             var accessResult = TryResolveAssistant(id, out var assistant, true);
             if (accessResult != null) return accessResult;
 
-            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID ?? 0);
             if (clinic == null) return NotFound();
 
             var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
@@ -669,7 +674,7 @@ namespace Graduation_Project.Controllers
             var accessResult = TryResolveAssistant(id, out var assistant, true);
             if (accessResult != null) return accessResult;
 
-            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID ?? 0);
             if (clinic == null) return NotFound();
 
             var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
@@ -698,7 +703,7 @@ namespace Graduation_Project.Controllers
             var accessResult = TryResolveAssistant(id, out var assistant, true);
             if (accessResult != null) return accessResult;
 
-            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID ?? 0);
             if (clinic == null) return NotFound();
 
             var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
@@ -846,6 +851,141 @@ namespace Graduation_Project.Controllers
             }
 
             return null;
+        }
+
+        public IActionResult ClinicInvitations(int id)
+        {
+            var accessResult = TryResolveAssistant(id, out var assistant);
+            if (accessResult != null) return accessResult;
+
+            var pending = _context.ClinicInvitations
+                .Include(ci => ci.Doctor).ThenInclude(d => d.User)
+                .Include(ci => ci.Clinic)
+                .Where(ci => ci.AssistantID == assistant!.AssistantID && ci.Status == "Pending")
+                .OrderByDescending(ci => ci.SentAtUtc)
+                .Select(ci => new AssistantClinicInvitationItemViewModel
+                {
+                    ClinicInvitationID = ci.ClinicInvitationID,
+                    DoctorID = ci.DoctorID,
+                    DoctorName = $"Dr. {(ci.Doctor.User.FirstName ?? string.Empty)} {(ci.Doctor.User.LastName ?? string.Empty)}".Trim(),
+                    DoctorSpecialization = ci.Doctor.Specialization,
+                    ClinicID = ci.ClinicID,
+                    ClinicName = ci.Clinic.Name,
+                    ClinicLocation = ci.Clinic.Location,
+                    SentAtUtc = ci.SentAtUtc
+                })
+                .ToList();
+
+            var recent = _context.ClinicInvitations
+                .Include(ci => ci.Doctor).ThenInclude(d => d.User)
+                .Include(ci => ci.Clinic)
+                .Where(ci => ci.AssistantID == assistant.AssistantID && ci.Status != "Pending")
+                .OrderByDescending(ci => ci.RespondedAtUtc ?? ci.SentAtUtc)
+                .Take(12)
+                .ToList();
+
+            var vm = new AssistantClinicInvitationsPageViewModel
+            {
+                Assistant = assistant,
+                AssistantName = assistant.User != null
+                    ? $"{assistant.User.FirstName} {assistant.User.LastName}".Trim()
+                    : "Assistant",
+                PendingInvitations = pending,
+                RecentInvitations = recent
+            };
+
+            ViewData["Title"] = "Clinic Invitations";
+            ViewData["AssistantId"] = assistant.AssistantID;
+            ViewData["AssistantName"] = vm.AssistantName;
+            ViewData["ActivePage"] = "ClinicInvitations";
+            ViewData["PageTitle"] = "Clinic Invitations";
+            ViewData["PageSubtitle"] = "Accept or decline doctor clinic-team requests";
+
+            return View(vm);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult AcceptClinicInvitation(int id, int invitationId)
+        {
+            var accessResult = TryResolveAssistant(id, out var assistant);
+            if (accessResult != null) return accessResult;
+
+            var invitation = _context.ClinicInvitations
+                .FirstOrDefault(ci => ci.ClinicInvitationID == invitationId && ci.AssistantID == assistant!.AssistantID);
+
+            if (invitation == null)
+            {
+                TempData["InviteError"] = "Invitation not found.";
+                return RedirectToAction(nameof(ClinicInvitations), new { id = assistant!.AssistantID });
+            }
+
+            if (!string.Equals(invitation.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+            {
+                TempData["InviteError"] = "Invitation already processed.";
+                return RedirectToAction(nameof(ClinicInvitations), new { id = assistant.AssistantID });
+            }
+
+            // Update tracked assistant entity to ensure clinic assignment is persisted.
+            var trackedAssistant = _context.Assistants.FirstOrDefault(a => a.AssistantID == assistant.AssistantID);
+            if (trackedAssistant == null)
+            {
+                TempData["InviteError"] = "Assistant account not found.";
+                return RedirectToAction(nameof(ClinicInvitations), new { id = assistant.AssistantID });
+            }
+
+            trackedAssistant.ClinicID = invitation.ClinicID;
+
+            var alreadyLinked = _context.AssistantDoctors.Any(ad =>
+                ad.DoctorID == invitation.DoctorID && ad.AssistantID == assistant.AssistantID);
+
+            if (!alreadyLinked)
+            {
+                _context.AssistantDoctors.Add(new AssistantDoctor
+                {
+                    DoctorID = invitation.DoctorID,
+                    AssistantID = assistant.AssistantID
+                });
+            }
+
+            invitation.Status = "Accepted";
+            invitation.RespondedAtUtc = DateTime.UtcNow;
+            invitation.ResponseMessage = "Accepted by assistant";
+            _context.SaveChanges();
+
+            TempData["InviteSuccess"] = "Invitation accepted. You are now part of the doctor’s clinic team.";
+            return RedirectToAction(nameof(ClinicInvitations), new { id = assistant.AssistantID });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult DeclineClinicInvitation(int id, int invitationId)
+        {
+            var accessResult = TryResolveAssistant(id, out var assistant);
+            if (accessResult != null) return accessResult;
+
+            var invitation = _context.ClinicInvitations
+                .FirstOrDefault(ci => ci.ClinicInvitationID == invitationId && ci.AssistantID == assistant!.AssistantID);
+
+            if (invitation == null)
+            {
+                TempData["InviteError"] = "Invitation not found.";
+                return RedirectToAction(nameof(ClinicInvitations), new { id = assistant!.AssistantID });
+            }
+
+            if (!string.Equals(invitation.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+            {
+                TempData["InviteError"] = "Invitation already processed.";
+                return RedirectToAction(nameof(ClinicInvitations), new { id = assistant.AssistantID });
+            }
+
+            invitation.Status = "Declined";
+            invitation.RespondedAtUtc = DateTime.UtcNow;
+            invitation.ResponseMessage = "Declined by assistant";
+            _context.SaveChanges();
+
+            TempData["InviteSuccess"] = "Invitation declined.";
+            return RedirectToAction(nameof(ClinicInvitations), new { id = assistant.AssistantID });
         }
     }
 }

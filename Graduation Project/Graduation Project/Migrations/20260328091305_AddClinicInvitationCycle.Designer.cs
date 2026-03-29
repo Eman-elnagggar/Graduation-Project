@@ -4,6 +4,7 @@ using Graduation_Project.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Graduation_Project.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260328091305_AddClinicInvitationCycle")]
+    partial class AddClinicInvitationCycle
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -229,7 +232,7 @@ namespace Graduation_Project.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AssistantID"));
 
-                    b.Property<int?>("ClinicID")
+                    b.Property<int>("ClinicID")
                         .HasColumnType("int");
 
                     b.Property<string>("UserID")
@@ -1355,7 +1358,8 @@ namespace Graduation_Project.Migrations
                     b.HasOne("Graduation_Project.Models.Clinic", "Clinic")
                         .WithMany("Assistants")
                         .HasForeignKey("ClinicID")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("Graduation_Project.Models.ApplicationUser", "User")
                         .WithOne()

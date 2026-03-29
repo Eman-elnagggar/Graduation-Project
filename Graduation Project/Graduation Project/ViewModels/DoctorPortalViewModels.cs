@@ -88,6 +88,7 @@ namespace Graduation_Project.ViewModels
         public string DoctorName { get; set; } = "Doctor";
         public List<Assistant> Assistants { get; set; } = new();
         public List<PendingInvitationViewModel> PendingInvitations { get; set; } = new();
+        public List<Clinic> LinkedClinics { get; set; } = new();
     }
 
     public class DoctorClinicsViewModel
@@ -103,6 +104,29 @@ namespace Graduation_Project.ViewModels
         public int InvitationID { get; set; }
         public string Email { get; set; } = string.Empty;
         public DateTime SentAt { get; set; }
+        public int ClinicID { get; set; }
+        public string ClinicName { get; set; } = string.Empty;
+        public string AssistantName { get; set; } = string.Empty;
+    }
+
+    public class AssistantClinicInvitationItemViewModel
+    {
+        public int ClinicInvitationID { get; set; }
+        public int DoctorID { get; set; }
+        public string DoctorName { get; set; } = string.Empty;
+        public string? DoctorSpecialization { get; set; }
+        public int ClinicID { get; set; }
+        public string ClinicName { get; set; } = string.Empty;
+        public string? ClinicLocation { get; set; }
+        public DateTime SentAtUtc { get; set; }
+    }
+
+    public class AssistantClinicInvitationsPageViewModel
+    {
+        public Assistant Assistant { get; set; } = null!;
+        public string AssistantName { get; set; } = "Assistant";
+        public List<AssistantClinicInvitationItemViewModel> PendingInvitations { get; set; } = new();
+        public List<ClinicInvitation> RecentInvitations { get; set; } = new();
     }
 
     public class DoctorAnalyticsViewModel
