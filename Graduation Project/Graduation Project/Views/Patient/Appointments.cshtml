@@ -203,6 +203,8 @@
                                     ? $"Dr. {appt.Doctor.User.FirstName} {appt.Doctor.User.LastName}".Trim()
                                     : "Doctor";
                                 var status = appt.Booking?.Status ?? "Confirmed";
+                                var canCancel = string.Equals(status, "Confirmed", StringComparison.OrdinalIgnoreCase)
+                                             || string.Equals(status, "Modified", StringComparison.OrdinalIgnoreCase);
                                 var timeDisplay = DateTime.Today.Add(appt.Time).ToString("h:mm tt");
                                 var reason = appt.Booking?.Reason;
                                 if (string.IsNullOrWhiteSpace(reason)) reason = "Appointment";
@@ -227,11 +229,14 @@
                                         <span class="status-badge @status.ToLower()">@status</span>
                                     </div>
                                     <div class="appointment-actions">
-                                        <button class="btn btn-sm btn-outline danger cancel-btn"
-                                                data-appointment-id="@appt.AppointmentID"
-                                                data-patient-id="@patientId">
-                                            <i class="fas fa-times"></i> Cancel
-                                        </button>
+                                        @if (canCancel)
+                                        {
+                                            <button class="btn btn-sm btn-outline danger cancel-btn"
+                                                    data-appointment-id="@appt.AppointmentID"
+                                                    data-patient-id="@patientId">
+                                                <i class="fas fa-times"></i> Cancel
+                                            </button>
+                                        }
                                     </div>
                                 </div>
                             }
@@ -247,64 +252,153 @@
                     <div class="card">
                         <div class="card-header">
                             <h3><i class="fas fa-history"></i> Past Appointments</h3>
-                            <button class="btn btn-sm btn-outline" id="togglePastBtn">
-                                <i class="fas fa-chevron-up"></i> Hide
+                            <button class="btn btn-sm btn-outline" id="openPastModalBtn" type="button">
+                                <i class="fas fa-eye"></i> View All
                             </button>
                         </div>
                         <div class="pa-table-wrap">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Doctor</th>
-                                    <th>Reason</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var appt in Model.PastAppointments)
-                                {
-                                    var docName = appt.Doctor?.User != null
-                                        ? $"Dr. {appt.Doctor.User.FirstName} {appt.Doctor.User.LastName}".Trim()
-                                        : "Doctor";
-                                    var status = appt.Booking?.Status ?? "Completed";
-                                    var badgeClass = status.ToLower() == "cancelled" ? "cancelled" : "completed";
-                                    var badgeLabel = status.ToLower() == "cancelled" ? "Cancelled" : "Completed";
-                                    var reason = appt.Booking?.Reason;
-                                    if (string.IsNullOrWhiteSpace(reason)) reason = "Visit";
+                            <table class="data-table">
+                                <thead>
                                     <tr>
-                                        <td>@appt.Date.ToString("MMM dd, yyyy")</td>
-                                        <td>@docName</td>
-                                        <td>@reason</td>
-                                        <td><span class="status-badge @badgeClass">@badgeLabel</span></td>
+                                        <th>Date</th>
+                                        <th>Doctor</th>
+                                        <th>Reason</th>
+                                        <th>Status</th>
                                     </tr>
-                                }
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    @foreach (var appt in Model.PastAppointments.Take(3))
+                                    {
+                                        var docName = appt.Doctor?.User != null
+                                            ? $"Dr. {appt.Doctor.User.FirstName} {appt.Doctor.User.LastName}".Trim()
+                                            : "Doctor";
+                                        var status = appt.Booking?.Status ?? "Completed";
+                                        var normalizedStatus = status.Trim().ToLowerInvariant();
+                                        var badgeClass = normalizedStatus switch
+                                        {
+                                            "cancelled" or "canceled" => "cancelled",
+                                            "missed" => "cancelled",
+                                            "modified" => "modified",
+                                            "confirmed" => "confirmed",
+                                            _ => "completed"
+                                        };
+                                        var badgeLabel = normalizedStatus switch
+                                        {
+                                            "cancelled" or "canceled" => "Cancelled",
+                                            "missed" => "Missed",
+                                            "modified" => "Modified",
+                                            "confirmed" => "Confirmed",
+                                            _ => "Completed"
+                                        };
+                                        var reason = appt.Booking?.Reason;
+                                        if (string.IsNullOrWhiteSpace(reason)) reason = "Visit";
+                                        <tr>
+                                            <td>@appt.Date.ToString("MMM dd, yyyy")</td>
+                                            <td>@docName</td>
+                                            <td>@reason</td>
+                                            <td><span class="status-badge @badgeClass">@badgeLabel</span></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="past-summary">
+                            <i class="fas fa-calendar-check"></i>
+                            <span>Showing last @(Math.Min(3, Model.PastAppointments.Count)) of @Model.PastAppointments.Count appointments.</span>
                         </div>
                     </div>
                 </section>
+
+                <div class="pa-modal-overlay" id="pastAppointmentsModal" aria-hidden="true">
+                    <div class="pa-modal" role="dialog" aria-modal="true" aria-labelledby="pastAppointmentsModalTitle">
+                        <div class="pa-modal-header">
+                            <h3 id="pastAppointmentsModalTitle"><i class="fas fa-history"></i> All Past Appointments</h3>
+                            <button class="pa-modal-close" id="closePastModalBtn" type="button" aria-label="Close">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="pa-modal-body pa-table-wrap">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Doctor</th>
+                                        <th>Reason</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var appt in Model.PastAppointments)
+                                    {
+                                        var docName = appt.Doctor?.User != null
+                                            ? $"Dr. {appt.Doctor.User.FirstName} {appt.Doctor.User.LastName}".Trim()
+                                            : "Doctor";
+                                        var status = appt.Booking?.Status ?? "Completed";
+                                        var normalizedStatus = status.Trim().ToLowerInvariant();
+                                        var badgeClass = normalizedStatus switch
+                                        {
+                                            "cancelled" or "canceled" => "cancelled",
+                                            "missed" => "cancelled",
+                                            "modified" => "modified",
+                                            "confirmed" => "confirmed",
+                                            _ => "completed"
+                                        };
+                                        var badgeLabel = normalizedStatus switch
+                                        {
+                                            "cancelled" or "canceled" => "Cancelled",
+                                            "missed" => "Missed",
+                                            "modified" => "Modified",
+                                            "confirmed" => "Confirmed",
+                                            _ => "Completed"
+                                        };
+                                        var reason = appt.Booking?.Reason;
+                                        if (string.IsNullOrWhiteSpace(reason)) reason = "Visit";
+                                        <tr>
+                                            <td>@appt.Date.ToString("MMM dd, yyyy")</td>
+                                            <td>@docName</td>
+                                            <td>@reason</td>
+                                            <td><span class="status-badge @badgeClass">@badgeLabel</span></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             }
 </div>
 @section Scripts {
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-          // ================================
-          // Show / Hide Past Appointments
-          // ================================
-          const togglePastBtn = document.getElementById("togglePastBtn");
-          const pastTable = document.querySelector("#pastAppointmentsSection table");
+          const pastModal = document.getElementById("pastAppointmentsModal");
+          const openPastModalBtn = document.getElementById("openPastModalBtn");
+          const closePastModalBtn = document.getElementById("closePastModalBtn");
 
-          if (togglePastBtn && pastTable) {
-            let collapsed = false;
-            togglePastBtn.addEventListener("click", function () {
-              collapsed = !collapsed;
-              pastTable.style.display = collapsed ? "none" : "";
-              this.innerHTML = collapsed
-                ? '<i class="fas fa-chevron-down"></i> Show'
-                : '<i class="fas fa-chevron-up"></i> Hide';
-            });
+          function openPastModal() {
+            if (!pastModal) return;
+            pastModal.classList.add("open");
+            pastModal.setAttribute("aria-hidden", "false");
+            document.body.style.overflow = "hidden";
           }
+
+          function closePastModal() {
+            if (!pastModal) return;
+            pastModal.classList.remove("open");
+            pastModal.setAttribute("aria-hidden", "true");
+            document.body.style.overflow = "";
+          }
+
+          openPastModalBtn?.addEventListener("click", openPastModal);
+          closePastModalBtn?.addEventListener("click", closePastModal);
+          pastModal?.addEventListener("click", function (e) {
+            if (e.target === pastModal) closePastModal();
+          });
+
+          document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape" && pastModal?.classList.contains("open")) {
+              closePastModal();
+            }
+          });
 
           // ================================
           // Cancel Appointment

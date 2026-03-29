@@ -40,12 +40,34 @@ namespace Graduation_Project.Controllers
             if (failure != null) return failure;
 
             var allAppointments = _appointment.GetByPatientId(id).ToList();
+            var today = DateTime.Today;
+
+            var completedAppointments = allAppointments
+                .Where(a => a.isBooked
+                         && string.Equals(a.Booking?.Status, "Completed", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
             var upcoming = allAppointments
-                .Where(a => a.Date.Date >= DateTime.Today && a.isBooked)
+                .Where(a => a.Date.Date >= today
+                         && a.isBooked
+                         && !string.Equals(a.Booking?.Status, "Completed", StringComparison.OrdinalIgnoreCase))
                 .OrderBy(a => a.Date)
                 .ThenBy(a => a.Time)
                 .ToList();
+
             var past = _appointment.GetPastByPatientId(id).ToList();
+
+            var pastIds = past.Select(a => a.AppointmentID).ToHashSet();
+            foreach (var completed in completedAppointments)
+            {
+                if (!pastIds.Contains(completed.AppointmentID))
+                    past.Add(completed);
+            }
+
+            past = past
+                .OrderByDescending(a => a.Date)
+                .ThenByDescending(a => a.Time)
+                .ToList();
 
             var myDoctors = _patientDoctorRepository.GetByPatientId(id)
                 .Where(pd => pd.Status == "Approved")
@@ -262,6 +284,13 @@ namespace Graduation_Project.Controllers
             var appointment = _appointment.GetByIdWithBooking(appointmentId);
             if (appointment == null || appointment.PatientID != patientId)
                 return Json(new { success = false, message = "Appointment not found." });
+
+            var bookingStatus = appointment.Booking?.Status ?? "Confirmed";
+            var isCancellableStatus = string.Equals(bookingStatus, "Confirmed", StringComparison.OrdinalIgnoreCase)
+                                   || string.Equals(bookingStatus, "Modified", StringComparison.OrdinalIgnoreCase);
+
+            if (!isCancellableStatus)
+                return Json(new { success = false, message = "Only confirmed or modified appointments can be cancelled." });
 
             appointment.isBooked = false;
             appointment.PatientID = null;
