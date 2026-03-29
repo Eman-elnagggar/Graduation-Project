@@ -1,5 +1,6 @@
 @using System.Globalization
 @using System.Linq
+@using System.Security.Claims
 <!doctype html>
 <html lang="en">
 <head>
@@ -9,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/design-system.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/assistant-style.css" asp-append-version="true" />
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -17,15 +19,43 @@
 </head>
 @{
     var layoutAssistantId = ViewData["AssistantId"] as int? ?? 0;
-    var layoutAssistantName = ViewData["AssistantName"] as string
+    var assistantNameFromViewData = ViewData["AssistantName"] as string;
+    var claimFirstName = User?.FindFirstValue(ClaimTypes.GivenName)
+        ?? User?.FindFirst("given_name")?.Value
+        ?? User?.FindFirst("FirstName")?.Value;
+    var claimLastName = User?.FindFirstValue(ClaimTypes.Surname)
+        ?? User?.FindFirst("family_name")?.Value
+        ?? User?.FindFirst("LastName")?.Value;
+    var claimFullName = string.Join(" ", new[] { claimFirstName, claimLastName }.Where(s => !string.IsNullOrWhiteSpace(s))).Trim();
+
+    var layoutAssistantName = assistantNameFromViewData
+        ?? (!string.IsNullOrWhiteSpace(claimFullName) ? claimFullName : null)
         ?? User?.Identity?.Name
         ?? "Assistant";
+
+    if (!string.IsNullOrWhiteSpace(layoutAssistantName) && layoutAssistantName.Contains("@"))
+    {
+        var localPart = layoutAssistantName.Split('@', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Assistant";
+        var normalized = localPart.Replace('.', ' ').Replace('_', ' ').Replace('-', ' ').Trim();
+        layoutAssistantName = string.IsNullOrWhiteSpace(normalized)
+            ? "Assistant"
+            : CultureInfo.InvariantCulture.TextInfo.ToTitleCase(normalized);
+    }
+
+    if (string.IsNullOrWhiteSpace(layoutAssistantName))
+    {
+        layoutAssistantName = "Assistant";
+    }
+
     var shortAssistantName = layoutAssistantName.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? layoutAssistantName;
     var now = DateTime.Now;
     var greeting = now.Hour < 12 ? "Good morning" : now.Hour < 17 ? "Good afternoon" : "Good evening";
     var headerDateChip = now.ToString("ddd, MMM d", new CultureInfo("en-US"));
     var pageTitleHtml = ViewData["PageTitleHtml"] as string;
     var fallbackPageTitleHtml = $"{greeting}, <span class='topbar-accent'>{shortAssistantName}</span> 👋";
+    var effectivePageTitleHtml = !string.IsNullOrWhiteSpace(pageTitleHtml) && !pageTitleHtml.Contains("@")
+        ? pageTitleHtml
+        : fallbackPageTitleHtml;
     var pageSubtitle = ViewData["PageSubtitle"] as string ?? now.ToString("dddd, MMMM dd, yyyy", CultureInfo.InvariantCulture);
 }
 <body data-assistant-id="@layoutAssistantId">
@@ -56,7 +86,7 @@
         <header class="top-bar">
             <div class="topbar-left">
                 <div class="topbar-greeting">
-                    <h1 class="page-title">@Html.Raw(!string.IsNullOrWhiteSpace(pageTitleHtml) ? pageTitleHtml : fallbackPageTitleHtml)</h1>
+                    <h1 class="page-title">@Html.Raw(effectivePageTitleHtml)</h1>
                     <p class="page-subtitle">@pageSubtitle</p>
                 </div>
             </div>
@@ -67,7 +97,7 @@
                 </div>
                 <button class="icon-btn" id="notificationBtn" title="Notifications" type="button">
                     <i class="fas fa-bell"></i>
-                    <span class="dot" id="notificationBadge" style="display:none">0</span>
+                    <span class="dot" id="notificationBadge" hidden>0</span>
                 </button>
                 <button class="icon-btn" title="Search" type="button">
                     <i class="fas fa-search"></i>

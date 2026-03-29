@@ -8,6 +8,9 @@
    Doctor Portal Variables
 ================================ */
 :root {
+  --role-primary: #14967f;
+  --role-primary-dark: #0f7a67;
+  --role-accent: #1fb89d;
   --doctor-primary: #14967f;
   --doctor-primary-dark: #0f7a67;
   --doctor-accent: #1fb89d;
@@ -287,29 +290,7 @@ body {
 /* ================================
    Top Bar
 ================================ */
-.top-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  height: 64px;
-  padding: 0 24px;
-  background: var(--bg-card);
-  border-bottom: 1px solid var(--border-color);
-  margin-bottom: 0;
-  box-shadow: 0 1px 0 rgba(15, 28, 46, 0.04);
-  gap: 16px;
-}
-
-.topbar-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-
-.topbar-greeting {
-  min-width: 0;
-}
+/* topbar structural primitives are provided by design-system.css */
 
 .menu-toggle {
   display: none;
@@ -320,66 +301,14 @@ body {
   cursor: pointer;
 }
 
-.page-title {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .topbar-accent {
   color: #14967f;
 }
 
-.page-subtitle {
-  color: #8896ab;
-  font-size: 0.75rem;
-  margin: 0.15rem 0 0;
-}
-
-.topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
 .date-chip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  border-radius: 20px;
   background: #f0faf8;
   border: 1px solid rgba(20, 150, 127, 0.15);
   color: #0e7a68;
-  font-size: 0.74rem;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.date-chip i {
-  font-size: 0.7rem;
-}
-
-.icon-btn {
-  position: relative;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  border: 1px solid var(--border-color);
-  background: #f3f6fb;
-  color: #4a5568;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.88rem;
-  cursor: pointer;
-  transition: all 0.18s;
-  flex-shrink: 0;
 }
 
 .icon-btn:hover {
@@ -400,24 +329,7 @@ body {
   font-size: 0;
 }
 
-.topbar-avatar,
-.user-menu {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 10px 4px 4px;
-  border-radius: 20px;
-  border: 1px solid var(--border-color);
-  background: var(--bg-card);
-}
-
-.topbar-avatar img,
-.user-menu img {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  object-fit: cover;
-}
+/* topbar avatar primitive is provided by design-system.css */
 
 .topbar-avatar span,
 .user-menu span {
@@ -545,11 +457,8 @@ body {
   }
 }
 
-.card {
-  background: var(--bg-card);
-  border: 1px solid #e5edf0;
-  border-radius: var(--radius-lg);
-  padding: 24px;
+.main-content .card {
+  border-color: #e5edf0;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
 }
 
@@ -649,21 +558,7 @@ body {
   line-height: 1.5;
 }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  border-radius: 8px;
-  border: 1px solid transparent;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.btn-sm {
-  padding: 6px 12px;
-  font-size: 0.85rem;
-}
+/* shared btn + btn-sm primitives come from design-system.css */
 
 .btn-outline {
   color: var(--doctor-primary);

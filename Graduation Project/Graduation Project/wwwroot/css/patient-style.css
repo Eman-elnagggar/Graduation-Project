@@ -9,6 +9,13 @@
    (These override the shared CSS variables for patient-specific theming)
 ================================ */
 :root {
+  --role-primary: #1baebe;
+  --role-primary-dark: #158a97;
+  --role-accent: #00b4d8;
+  --primary: var(--role-primary);
+  --primary-dark: var(--role-primary-dark);
+  --accent: var(--role-accent);
+
   --patient-primary: #1baebe;
   --patient-primary-dark: #158a97;
   --patient-accent: #00b4d8;
@@ -23,19 +30,7 @@
 /* ================================
    Page Header
 ================================ */
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 16px;
-  background: var(--bg-white);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 18px 24px;
-  box-shadow: var(--shadow-sm);
-}
+/* header primitive is provided by design-system.css */
 
 .header-left h1 {
   font-size: 1.45rem;
@@ -50,23 +45,7 @@
   margin: 0;
 }
 
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-@media (max-width: 768px) {
-  .header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .header-right {
-    width: 100%;
-    justify-content: flex-end;
-  }
-}
+/* header-right + mobile header behavior come from design-system.css */
 
 /* Notification bell */
 .notification {
@@ -148,72 +127,7 @@
   color: var(--text-primary);
 }
 
-/* ================================
-   Card
-================================ */
-.card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 24px;
-  box-shadow: var(--shadow-sm);
-  margin-bottom: 24px;
-}
-
-/* ================================
-   Buttons
-================================ */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  border-radius: var(--radius-md);
-  font-size: 0.9rem;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-family: inherit;
-  line-height: 1.4;
-  white-space: nowrap;
-}
-
-.btn:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-}
-
-.btn:active {
-  transform: translateY(0);
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, var(--primary), var(--accent));
-  color: white;
-}
-
-.btn-primary:hover {
-  background: linear-gradient(135deg, var(--primary-dark), var(--primary));
-  box-shadow: 0 4px 16px rgba(27, 174, 190, 0.4);
-}
-
-.btn-outline {
-  background: transparent;
-  color: var(--primary);
-  border: 1.5px solid var(--primary);
-}
-
-.btn-outline:hover {
-  background: rgba(27, 174, 190, 0.06);
-  border-color: var(--primary-dark);
-}
-
-.btn-sm {
-  padding: 7px 14px;
-  font-size: 0.82rem;
-  border-radius: var(--radius-sm);
-}
+/* Card + button + form primitives are provided by `design-system.css` */
 
 /* ================================
    Past Appointments Table
@@ -250,45 +164,7 @@
   border-bottom: none;
 }
 
-/* ================================
-   Booking Form Fields
-================================ */
-.form-group {
-  margin-bottom: 18px;
-}
-
-.form-group label {
-  display: block;
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 7px;
-}
-
-.form-select,
-.form-textarea {
-  width: 100%;
-  padding: 11px 14px;
-  border: 1.5px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  font-size: 0.92rem;
-  font-family: inherit;
-  color: var(--text-primary);
-  background: var(--bg-white);
-  transition: all 0.2s ease;
-  outline: none;
-}
-
-.form-select:focus,
-.form-textarea:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(27, 174, 190, 0.12);
-}
-
-.form-textarea {
-  min-height: 90px;
-  resize: vertical;
-}
+/* booking forms now inherit shared form primitives from `design-system.css` */
 
 /* ================================
    Global Toast Notification
@@ -321,90 +197,16 @@
 /* ================================
    Top Bar
 ================================ */
-.top-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  height: 64px;
-  padding: 0 24px;
-  background: var(--bg-card);
-  border-bottom: 1px solid var(--border-color);
-  margin-bottom: 0;
-  box-shadow: 0 1px 0 rgba(15, 28, 46, 0.04);
-  gap: 16px;
-}
-
-.topbar-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-
-.topbar-greeting {
-  min-width: 0;
-}
-
-.page-title {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+/* topbar structural primitives are provided by design-system.css */
 
 .topbar-accent {
   color: var(--patient-primary);
 }
 
-.page-subtitle {
-  color: #8896ab;
-  font-size: 0.75rem;
-  margin: 0.15rem 0 0;
-}
-
-.topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
 .date-chip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  border-radius: 20px;
   background: #f0faf8;
   border: 1px solid rgba(27, 174, 190, 0.15);
   color: #158a97;
-  font-size: 0.74rem;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.date-chip i {
-  font-size: 0.7rem;
-}
-
-.icon-btn {
-  position: relative;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  border: 1px solid var(--border-color);
-  background: #f3f6fb;
-  color: #4a5568;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.88rem;
-  cursor: pointer;
-  transition: all 0.18s;
-  flex-shrink: 0;
 }
 
 .icon-btn:hover {
@@ -412,70 +214,7 @@
   color: var(--patient-primary);
   background: #f0faf8;
 }
-
-.icon-btn .dot {
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  min-width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--danger);
-  border: 2px solid #fff;
-  color: #fff;
-  font-size: 0.62rem;
-  font-weight: 700;
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.topbar-avatar,
-.user-menu {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 10px 4px 4px;
-  border-radius: 20px;
-  border: 1px solid var(--border-color);
-  background: var(--bg-card);
-}
-
-.topbar-avatar img,
-.user-menu img {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.topbar-avatar span,
-.user-menu span {
-  font-weight: 600;
-  color: var(--text-primary);
-  font-size: 0.78rem;
-  white-space: nowrap;
-}
-
-@media (max-width: 768px) {
-  .page-title {
-    font-size: 1rem;
-  }
-
-  .page-subtitle {
-    font-size: 0.72rem;
-  }
-
-  .date-chip {
-    display: none;
-  }
-
-  .topbar-avatar span,
-  .user-menu span {
-    display: none;
-  }
-}
+/* topbar mobile behavior and avatar/dot primitives are provided by design-system.css */
 
 /* ================================
    Global Patient Notifications Panel
