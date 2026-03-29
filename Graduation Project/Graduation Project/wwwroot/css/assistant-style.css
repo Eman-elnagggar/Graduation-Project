@@ -509,23 +509,7 @@
 
 /* card primitive is provided by design-system.css */
 
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 2px solid #f1f5f9;
-}
-
-.card-header h3 {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
+/* card-header structural primitive is provided by design-system.css */
 
 .card-header h3 i {
   color: var(--assistant-primary);
@@ -1159,15 +1143,9 @@
 /* ================================
    Status Badges
 ================================ */
+
 .status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 12px;
-  border-radius: 20px;
   font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
 }
 
 .status-badge.confirmed {
@@ -2264,4 +2242,106 @@
     font-size: 0.82rem;
     padding: 6px 14px;
   }
+}
+
+/* ================================
+   Assistant Sidebar + Surface Refresh
+   (aligned with Doctor portal structure)
+================================ */
+.sidebar {
+  background: linear-gradient(180deg, #0f172a 0%, #1b2240 52%, #0f172a 100%);
+}
+
+.sidebar .sidebar-brand {
+  border-bottom: 1px solid rgba(167, 139, 250, 0.14);
+}
+
+.sidebar .brand-icon {
+  background: linear-gradient(135deg, var(--assistant-primary), var(--assistant-accent-dark));
+  box-shadow: 0 6px 18px rgba(124, 58, 237, 0.35);
+}
+
+.sidebar .brand-badge {
+  color: var(--assistant-accent);
+}
+
+.sidebar .sidebar-profile {
+  background: rgba(124, 58, 237, 0.1);
+  border: 1px solid rgba(167, 139, 250, 0.22);
+}
+
+.sidebar .sidebar-profile:hover {
+  background: rgba(124, 58, 237, 0.16);
+}
+
+.sidebar .profile-avatar img {
+  border-color: rgba(167, 139, 250, 0.5);
+}
+
+.sidebar .nav-section-label {
+  color: #7f8ca8;
+}
+
+.sidebar .nav-item:hover,
+.sidebar .nav-link:hover {
+  color: #f8fafc;
+  background: rgba(124, 58, 237, 0.12);
+}
+
+.sidebar .nav-item:hover .nav-icon,
+.sidebar .nav-link:hover .nav-icon {
+  background: rgba(167, 139, 250, 0.18);
+  color: var(--assistant-accent);
+}
+
+.sidebar .nav-item.active,
+.sidebar .nav-link.active {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.3), rgba(139, 92, 246, 0.2));
+}
+
+.sidebar .nav-item.active::before,
+.sidebar .nav-link.active::before {
+  background: linear-gradient(180deg, var(--assistant-primary), var(--assistant-accent-dark));
+}
+
+.sidebar .nav-item.active .nav-icon,
+.sidebar .nav-link.active .nav-icon {
+  background: linear-gradient(135deg, var(--assistant-primary), var(--assistant-accent-dark));
+  box-shadow: 0 6px 14px rgba(124, 58, 237, 0.35);
+}
+
+.sidebar .sidebar-footer {
+  border-top: 1px solid rgba(167, 139, 250, 0.14);
+}
+
+.top-bar {
+  background: linear-gradient(180deg, #ffffff 0%, #faf9ff 100%);
+  border-bottom: 1px solid #e8e9f6;
+}
+
+.main-content .card,
+.main-content .quick-stat-card,
+.main-content .request-card,
+.main-content .request-item {
+  border-color: #e6eaf3;
+  box-shadow: 0 2px 10px rgba(15, 28, 46, 0.06);
+}
+
+.main-content .card:hover,
+.main-content .quick-stat-card:hover,
+.main-content .request-item:hover {
+  box-shadow: 0 12px 26px rgba(15, 28, 46, 0.1);
+}
+
+.main-content .btn {
+  border-radius: 10px;
+}
+
+.main-content .btn-primary {
+  background: linear-gradient(135deg, var(--assistant-primary), var(--assistant-primary-mid));
+  border-color: transparent;
+}
+
+.main-content .btn-primary:hover {
+  box-shadow: 0 8px 20px rgba(124, 58, 237, 0.35);
 }

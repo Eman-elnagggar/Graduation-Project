@@ -516,6 +516,11 @@
   appearance: auto;
 }
 
+.qs-select:hover {
+  border-color: rgba(124, 58, 237, 0.45);
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.08);
+}
+
 .qs-select:focus {
   border-color: var(--assistant-primary);
   box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
@@ -532,6 +537,12 @@
   border-radius: 10px;
   font-size: 0.85rem;
   color: #3b82f6;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.qs-estimate:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.14);
 }
 
 .qs-estimate strong {
@@ -552,6 +563,12 @@
   padding: 10px 28px;
   font-size: 0.92rem;
   font-weight: 600;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.qs-apply-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(124, 58, 237, 0.28);
 }
 
 .qs-footer-note {

@@ -4,25 +4,63 @@
     ViewData["Title"] = "My Appointments";
     ViewData["PatientId"] = Model.Patient.PatientID;
     ViewData["ActivePage"] = "Appointments";
+    ViewData["UserName"] = Model.UserName;
+
+    var nameParts = (Model.UserName ?? "Patient").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+    var firstName = nameParts.Length > 0 ? nameParts[0] : "Patient";
+    ViewData["PageTitle"] = "Appointments";
+    ViewData["PageTitleHtml"] = $"Appointments for <span class='topbar-accent'>{firstName}</span>";
+    ViewData["PageSubtitle"] = "Manage upcoming and past visits";
+
     var patientId = Model.Patient.PatientID;
-    var fullName = $"{Model.Patient.User?.FirstName} {Model.Patient.User?.LastName}".Trim();
 }
 @section Head {
     @Html.AntiForgeryToken()
 }
 
-<header class="header">
-                <div class="header-left">
-                    <h1>My Appointments 📅</h1>
-                    <p>View and manage your medical appointments</p>
+<header class="header pa-header pa-hero">
+    <div class="header-left pa-hero-left">
+        <div class="pa-hero-icon">
+            <i class="fas fa-calendar-check"></i>
+        </div>
+        <div>
+            <h1>My Appointments</h1>
+            <p>View and manage your medical appointments</p>
+        </div>
+    </div>
+    <div class="header-right pa-hero-right">
+        <button class="btn btn-primary"
+                onclick="window.location.href='@Url.Action("BookAppointment", "PatientAppointments", new { id = patientId })'">
+            <i class="fas fa-plus-circle"></i> Book New Appointment
+        </button>
+    </div>
+</header>
+
+<div class="patient-appointments-page">
+
+            <section class="pa-overview-grid">
+                <div class="pa-overview-card">
+                    <div class="pa-overview-icon"><i class="fas fa-clock"></i></div>
+                    <div class="pa-overview-content">
+                        <span class="pa-overview-label">Upcoming</span>
+                        <strong>@Model.UpcomingAppointments.Count</strong>
+                    </div>
                 </div>
-                <div class="header-right">
-                    <button class="btn btn-primary"
-                            onclick="window.location.href='@Url.Action("BookAppointment", "PatientAppointments", new { id = patientId })'">
-                        <i class="fas fa-plus-circle"></i> Book New Appointment
-                    </button>
+                <div class="pa-overview-card">
+                    <div class="pa-overview-icon"><i class="fas fa-history"></i></div>
+                    <div class="pa-overview-content">
+                        <span class="pa-overview-label">Past Visits</span>
+                        <strong>@Model.PastAppointments.Count</strong>
+                    </div>
                 </div>
-            </header>
+                <div class="pa-overview-card">
+                    <div class="pa-overview-icon"><i class="fas fa-user-md"></i></div>
+                    <div class="pa-overview-content">
+                        <span class="pa-overview-label">My Doctors</span>
+                        <strong>@Model.MyDoctors.Count</strong>
+                    </div>
+                </div>
+            </section>
 
             <!-- Primary Doctor Section -->
             <section class="primary-doctor-section">
@@ -50,7 +88,7 @@
                                         <h4>@docName</h4>
                                         <p class="specialty"><i class="fas fa-stethoscope"></i> @doc.Specialization</p>
                                         <p class="location"><i class="fas fa-map-marker-alt"></i> @(clinicDoc?.Clinic?.Name ?? "Clinic")</p>
-                                        <div class="quick-stats">
+                                        <div class="quick-stats pa-quick-stats">
                                             <span>
                                                 <i class="fas fa-calendar-check"></i>
                                                 @docApptCount appointment@(docApptCount != 1 ? "s" : "")
@@ -106,7 +144,7 @@
                                 if (doc == null) { continue; }
                                 var docName = doc.User != null ? $"Dr. {doc.User.FirstName} {doc.User.LastName}".Trim() : "Doctor";
                                 var clinicDoc = doc.ClinicDoctors?.FirstOrDefault();
-                                <div class="doctor-mini-card">
+                                <div class="doctor-mini-card" data-doctor-id="@doc.DoctorID">
                                     <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(docName)&background=1BAEBE&color=fff&size=60"
                                          alt="@docName" />
                                     <div class="doctor-mini-info">
@@ -117,10 +155,20 @@
                                         <p>@doc.Specialization</p>
                                         <p>@(clinicDoc?.Clinic?.Name ?? "")</p>
                                     </div>
-                                    <button class="btn btn-sm btn-outline"
-                                            onclick="window.location.href='@Url.Action("BookAppointment", "PatientAppointments", new { id = patientId, doctorId = doc.DoctorID })'">
-                                        Book
-                                    </button>
+                                    <div class="doctor-mini-actions">
+                                        <button class="btn btn-sm btn-outline"
+                                                onclick="window.location.href='@Url.Action("BookAppointment", "PatientAppointments", new { id = patientId, doctorId = doc.DoctorID })'">
+                                            Book
+                                        </button>
+                                        @if (!pd.IsPrimary)
+                                        {
+                                            <button class="btn btn-sm btn-outline set-primary-btn"
+                                                    data-doctor-id="@doc.DoctorID"
+                                                    data-patient-id="@patientId">
+                                                Set Primary
+                                            </button>
+                                        }
+                                    </div>
                                 </div>
                             }
                         </div>
@@ -140,8 +188,8 @@
                     <div class="appointments-list">
                         @if (!Model.UpcomingAppointments.Any())
                         {
-                            <div style="text-align:center; padding: 32px; color: #94a3b8;">
-                                <i class="fas fa-calendar-times" style="font-size:2rem; margin-bottom:12px; display:block;"></i>
+                            <div class="appointment-empty-state">
+                                <i class="fas fa-calendar-times"></i>
                                 <p>No upcoming appointments.
                                     <a href="@Url.Action("BookAppointment", "PatientAppointments", new { id = patientId })">Book one now</a>
                                 </p>
@@ -203,6 +251,7 @@
                                 <i class="fas fa-chevron-up"></i> Hide
                             </button>
                         </div>
+                        <div class="pa-table-wrap">
                         <table class="data-table">
                             <thead>
                                 <tr>
@@ -232,9 +281,11 @@
                                 }
                             </tbody>
                         </table>
+                        </div>
                     </div>
                 </section>
             }
+</div>
 @section Scripts {
     <script>
         document.addEventListener("DOMContentLoaded", function () {
@@ -306,6 +357,59 @@
                   "Error cancelling appointment.",
                   "error"
                 );
+              }
+            });
+          });
+
+          // ================================
+          // Set Primary Doctor
+          // ================================
+          document.querySelectorAll(".set-primary-btn").forEach(function (btn) {
+            btn.addEventListener("click", async function () {
+              const doctorId = parseInt(this.dataset.doctorId);
+              const patientId = parseInt(this.dataset.patientId);
+
+              try {
+                const response = await fetch("/PatientAppointments/SetPrimaryDoctor", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                  },
+                  body: new URLSearchParams({
+                    __RequestVerificationToken: antiForgeryToken,
+                    patientId: patientId,
+                    doctorId: doctorId,
+                  }),
+                });
+
+                const result = await response.json();
+                if (!result.success) {
+                  window.showNotification?.(result.message || "Failed to set primary doctor.", "error");
+                  return;
+                }
+
+                document.querySelectorAll(".doctor-mini-card").forEach((card) => {
+                  card.querySelector(".primary-tag")?.remove();
+                });
+
+                document.querySelectorAll(".set-primary-btn").forEach((b) => {
+                  b.style.display = "inline-flex";
+                });
+
+                const selectedCard = document.querySelector(`.doctor-mini-card[data-doctor-id='${doctorId}']`);
+                if (selectedCard) {
+                  const nameEl = selectedCard.querySelector(".doctor-mini-info h5");
+                  if (nameEl && !nameEl.querySelector(".primary-tag")) {
+                    nameEl.insertAdjacentHTML("beforeend", ' <span class="primary-tag">Primary</span>');
+                  }
+
+                  const selectedBtn = selectedCard.querySelector(".set-primary-btn");
+                  if (selectedBtn) selectedBtn.style.display = "none";
+                }
+
+                window.showNotification?.("Primary doctor updated.", "success");
+              } catch {
+                window.showNotification?.("Error updating primary doctor.", "error");
               }
             });
           });

@@ -182,13 +182,15 @@
             </div>
             <div class="slot-ctrl">
                 <label><i class="fas fa-stopwatch"></i> Slot Duration</label>
-                <select id="slotDurationPicker" class="qs-select"
-                        onchange="SLOT_DURATION = parseInt(this.value); if (currentDoctorId) loadSlots();">
-                    <option value="15">15 min</option>
-                    <option value="30" selected>30 min</option>
-                    <option value="45">45 min</option>
-                    <option value="60">1 hour</option>
-                </select>
+                <input type="number"
+                       id="slotDurationPicker"
+                       class="qs-select"
+                       min="5"
+                       step="5"
+                       value="30"
+                       placeholder="Minutes"
+                       oninput="onSlotDurationPickerChange(this.value)"
+                       onchange="onSlotDurationPickerChange(this.value)" />
             </div>
         </div>
 
@@ -285,14 +287,13 @@
             <div class="qs-control-icon green"><i class="fas fa-hourglass-start"></i></div>
             <div class="qs-control-body">
                 <label class="qs-control-label" for="startTime">Start Time</label>
-                <select class="qs-select" id="startTime" onchange="updateQsSummary()">
-                    <option value="06:00">6:00 AM</option>
-                    <option value="07:00">7:00 AM</option>
-                    <option value="08:00">8:00 AM</option>
-                    <option value="09:00" selected>9:00 AM</option>
-                    <option value="10:00">10:00 AM</option>
-                    <option value="11:00">11:00 AM</option>
-                </select>
+                <input type="time"
+                       class="qs-select"
+                       id="startTime"
+                       value="09:00"
+                       step="900"
+                       oninput="updateQsSummary()"
+                       onchange="updateQsSummary()" />
             </div>
         </div>
         <!-- End Time -->
@@ -300,17 +301,13 @@
             <div class="qs-control-icon red"><i class="fas fa-hourglass-end"></i></div>
             <div class="qs-control-body">
                 <label class="qs-control-label" for="endTime">End Time</label>
-                <select class="qs-select" id="endTime" onchange="updateQsSummary()">
-                    <option value="12:00">12:00 PM</option>
-                    <option value="13:00">1:00 PM</option>
-                    <option value="14:00">2:00 PM</option>
-                    <option value="15:00">3:00 PM</option>
-                    <option value="16:00">4:00 PM</option>
-                    <option value="17:00" selected>5:00 PM</option>
-                    <option value="18:00">6:00 PM</option>
-                    <option value="19:00">7:00 PM</option>
-                    <option value="20:00">8:00 PM</option>
-                </select>
+                <input type="time"
+                       class="qs-select"
+                       id="endTime"
+                       value="17:00"
+                       step="900"
+                       oninput="updateQsSummary()"
+                       onchange="updateQsSummary()" />
             </div>
         </div>
         <!-- Slot Duration -->
@@ -318,12 +315,15 @@
             <div class="qs-control-icon purple"><i class="fas fa-stopwatch"></i></div>
             <div class="qs-control-body">
                 <label class="qs-control-label" for="slotDuration">Slot Duration</label>
-                <select class="qs-select" id="slotDuration" onchange="updateQsSummary()">
-                    <option value="15">15 minutes</option>
-                    <option value="30" selected>30 minutes</option>
-                    <option value="45">45 minutes</option>
-                    <option value="60">1 hour</option>
-                </select>
+                <input type="number"
+                       class="qs-select"
+                       id="slotDuration"
+                       min="5"
+                       step="5"
+                       value="30"
+                       placeholder="Minutes"
+                       oninput="updateQsSummary()"
+                       onchange="updateQsSummary()" />
             </div>
         </div>
         <!-- Weeks Ahead -->

@@ -980,7 +980,8 @@ namespace Graduation_Project.Controllers
             var newSlots = new List<Appointment>();
             for (var d = today; d <= endDate; d = d.AddDays(1))
             {
-                if (!request.WorkingDays.Contains((int)d.DayOfWeek)) continue;
+                var isTodayDate = d.Date == today;
+                if (!isTodayDate && !request.WorkingDays.Contains((int)d.DayOfWeek)) continue;
 
                 var current = start;
                 while (current < end)

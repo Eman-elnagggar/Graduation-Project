@@ -4,8 +4,8 @@
     ViewData["Title"] = "Book Appointment";
     ViewData["PatientId"] = Model.Patient.PatientID;
     ViewData["ActivePage"] = "Appointments";
+    ViewData["UserName"] = Model.Patient.User?.FirstName ?? "Patient";
     var patientId = Model.Patient.PatientID;
-    var fullName = $"{Model.Patient.User?.FirstName} {Model.Patient.User?.LastName}".Trim();
     var distinctSpecialties = Model.AvailableDoctors
         .Select(d => d.Specialization).Where(s => !string.IsNullOrEmpty(s))
         .Distinct().OrderBy(s => s).ToList();
@@ -17,18 +17,21 @@
     @Html.AntiForgeryToken()
 }
 
-<header class="header">
-                <div class="header-left" style="display:flex; align-items:center; gap:16px;">
-                    <button class="btn btn-outline"
-                            onclick="window.location.href='@Url.Action("Appointments", "PatientAppointments", new { id = patientId })'">
-                        <i class="fas fa-arrow-left"></i> Back to Appointments
-                    </button>
-                    <div>
-                        <h1>Book New Appointment 📅</h1>
-                        <p>Find and schedule an appointment with your doctor</p>
-                    </div>
-                </div>
-            </header>
+<header class="header pa-header pa-hero pa-book-hero">
+    <div class="header-left pa-hero-left">
+        <button class="btn btn-outline pa-back-btn"
+                onclick="window.location.href='@Url.Action("Appointments", "PatientAppointments", new { id = patientId })'">
+            <i class="fas fa-arrow-left"></i> Back
+        </button>
+        <div class="pa-hero-icon">
+            <i class="fas fa-calendar-plus"></i>
+        </div>
+        <div>
+            <h1>Book New Appointment</h1>
+            <p>Find and schedule an appointment with your doctor</p>
+        </div>
+    </div>
+</header>
 
             <!-- Booking Progress -->
             <div class="booking-progress">
@@ -114,8 +117,8 @@
                         <div class="doctors-selection" id="doctorsSelection">
                             @if (!Model.AvailableDoctors.Any())
                             {
-                                <div style="text-align:center; padding:32px; color:#94a3b8;">
-                                    <i class="fas fa-user-md" style="font-size:2rem; margin-bottom:12px; display:block;"></i>
+                                <div class="appointment-empty-state">
+                                    <i class="fas fa-user-md"></i>
                                     <p>No doctors are currently available for booking.</p>
                                 </div>
                             }
@@ -165,13 +168,13 @@
                                         </p>
                                         @if (d.Clinics.Count > 1)
                                         {
-                                            <p class="location" style="font-size:0.8rem; color:#94a3b8;">
+                                            <p class="location location-muted">
                                                 <i class="fas fa-map-pin"></i> @allLocationNames
                                             </p>
                                         }
                                         else if (!string.IsNullOrEmpty(d.ClinicLocation))
                                         {
-                                            <p class="location" style="font-size:0.8rem; color:#94a3b8;">
+                                            <p class="location location-muted">
                                                 <i class="fas fa-map-pin"></i> @d.ClinicLocation
                                             </p>
                                         }
@@ -189,7 +192,7 @@
                     </div>
 
                     <!-- Step 2: Select Date -->
-                    <div class="booking-step" id="step2" style="display: none">
+                    <div class="booking-step" id="step2" style="display:none">
                         <h4 class="step-title">
                             <span class="step-number">2</span>
                             Select Location & Date
@@ -202,12 +205,12 @@
                         </div>
 
                         <!-- Clinic / Location Picker -->
-                        <div class="form-group" id="clinicPickerGroup" style="margin-bottom:20px;">
+                        <div class="form-group" id="clinicPickerGroup">
                             <label for="clinicPicker"><i class="fas fa-map-marker-alt"></i> Select Location</label>
                             <select id="clinicPicker" class="form-select">
                                 <option value="">— Choose a clinic —</option>
                             </select>
-                            <p id="clinicAddress" style="font-size:0.85rem; color:#94a3b8; margin-top:4px;"></p>
+                            <p id="clinicAddress" class="clinic-address-hint"></p>
                         </div>
 
                         <div class="calendar-container">

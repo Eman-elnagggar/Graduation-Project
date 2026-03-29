@@ -190,6 +190,14 @@ function onSlotDateChange(dateStr) {
     selectCalendarDate(dateStr);
 }
 
+function onSlotDurationPickerChange(value) {
+    const parsed = parseInt(value, 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) return;
+
+    SLOT_DURATION = parsed;
+    if (currentDoctorId !== null) loadSlots();
+}
+
 function syncAvailabilityUrl() {
     const url = new URL(window.location.href);
     url.searchParams.set("id", assistantId);
@@ -456,12 +464,18 @@ async function applyQuickSetup() {
         return;
     }
 
+    const slotDurationRaw = parseInt(document.getElementById("slotDuration").value, 10);
+    if (!Number.isFinite(slotDurationRaw) || slotDurationRaw <= 0) {
+        showToast("Please enter a valid slot duration in minutes.", "error");
+        return;
+    }
+
     const request = {
         doctorId: currentDoctorId,
         workingDays,
         startTime: document.getElementById("startTime").value,
         endTime: document.getElementById("endTime").value,
-        slotDuration: parseInt(document.getElementById("slotDuration").value),
+        slotDuration: slotDurationRaw,
         weeksAhead: parseInt(document.getElementById("weeksAhead").value)
     };
 
@@ -523,10 +537,14 @@ async function createCustomSlot() {
 function updateQsSummary() {
     const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const selected = [];
+    const selectedDayIndexes = [];
 
     for (let i = 0; i <= 6; i++) {
         const cb = document.querySelector(`.qs-days input[value="${i}"]`);
-        if (cb && cb.checked) selected.push(dayNames[i]);
+        if (cb && cb.checked) {
+            selected.push(dayNames[i]);
+            selectedDayIndexes.push(i);
+        }
     }
 
     const badge = document.getElementById("qsDayCount");
@@ -534,14 +552,35 @@ function updateQsSummary() {
 
     const start = document.getElementById("startTime")?.value || "09:00";
     const end = document.getElementById("endTime")?.value || "17:00";
-    const dur = parseInt(document.getElementById("slotDuration")?.value || "30");
+    const durRaw = parseInt(document.getElementById("slotDuration")?.value || "30", 10);
+    const dur = Number.isFinite(durRaw) && durRaw > 0 ? durRaw : 30;
     const weeks = parseInt(document.getElementById("weeksAhead")?.value || "2");
 
     const [sh, sm] = start.split(":").map(Number);
     const [eh, em] = end.split(":").map(Number);
-    const minsPerDay = (eh * 60 + em) - (sh * 60 + sm);
+    const startMinutes = (sh * 60 + sm);
+    const endMinutes = (eh * 60 + em);
+    const minsPerDay = endMinutes - startMinutes;
     const slotsPerDay = minsPerDay > 0 ? Math.floor(minsPerDay / dur) : 0;
-    const totalSlots = slotsPerDay * selected.length * weeks;
+    const totalSelectedDaysSlots = slotsPerDay * selected.length * weeks;
+
+    // Backend behavior: today's remaining slots are also included by quick setup
+    // even when today is not selected in working days.
+    const todayDayIndex = new Date().getDay();
+    const todayAlreadySelected = selectedDayIndexes.includes(todayDayIndex);
+    let todayRemainingSlots = 0;
+
+    if (!todayAlreadySelected && minsPerDay > 0) {
+        const now = new Date();
+        const nowMinutes = (now.getHours() * 60) + now.getMinutes();
+
+        for (let current = startMinutes; current < endMinutes; current += dur) {
+            if (current <= nowMinutes) continue;
+            todayRemainingSlots++;
+        }
+    }
+
+    const totalSlots = totalSelectedDaysSlots + todayRemainingSlots;
 
     const pill = document.getElementById("qsSummaryText");
     if (pill) {
@@ -554,7 +593,8 @@ function updateQsSummary() {
                 const h12 = +h % 12 || 12;
                 return `${h12}:${m.padStart(2, "0")} ${a}`;
             };
-            pill.textContent = `${selected.join(", ")} · ${fmt(start)}–${fmt(end)} · ${weeks}w`;
+            const todayExtra = todayRemainingSlots > 0 ? ` + today(${todayRemainingSlots})` : "";
+            pill.textContent = `${selected.join(", ")} · ${fmt(start)}–${fmt(end)} · ${weeks}w${todayExtra}`;
         }
     }
 
