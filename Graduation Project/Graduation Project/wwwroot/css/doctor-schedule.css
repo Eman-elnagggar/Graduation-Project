@@ -1164,10 +1164,25 @@
   color: var(--white);
 }
 
+.sch-appt-btn.prescription {
+  background: #f3e8ff;
+  border-color: #a855f7;
+  color: #7e22ce;
+}
+
+.sch-appt-btn.prescription:hover {
+  background: #a855f7;
+  color: var(--white);
+}
+
 .sch-appt-btn.danger {
   background: var(--danger-lt);
   border-color: var(--danger);
   color: var(--danger);
+}
+
+.sch-prescription-modal {
+  max-width: 720px;
 }
 
 .sch-appt-btn.danger:hover {
@@ -1552,6 +1567,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 16px;
   z-index: 1000;
   opacity: 0;
   visibility: hidden;
@@ -1569,6 +1585,10 @@
   box-shadow: var(--shadow-lg);
   width: 90%;
   max-width: 500px;
+  max-height: 92dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   transform: scale(0.9);
   transition: var(--transition);
 }
@@ -1619,6 +1639,114 @@
 
 .sch-modal-body {
   padding: 24px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sch-prescription-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sch-form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.sch-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sch-form-group label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.sch-form-group input,
+.sch-form-group textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 11px;
+  font-size: 0.84rem;
+  color: var(--text);
+  transition: var(--transition);
+}
+
+.sch-form-group textarea {
+  resize: vertical;
+}
+
+.sch-form-group input:focus,
+.sch-form-group textarea:focus {
+  outline: none;
+  border-color: var(--p);
+  box-shadow: 0 0 0 3px rgba(20, 150, 127, 0.1);
+}
+
+.sch-form-group input[readonly] {
+  background: var(--bg);
+  color: var(--text-2);
+}
+
+.sch-prescription-items-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sch-prescription-items-header label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.sch-prescription-items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sch-medicine-item {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  background: #fcfeff;
+}
+
+.sch-medicine-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.sch-medicine-item-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-2);
+  text-transform: uppercase;
+}
+
+.sch-remove-medicine-btn {
+  border: none;
+  background: var(--danger-lt);
+  color: var(--danger);
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+}
+
+.sch-remove-medicine-btn:hover {
+  background: var(--danger);
+  color: var(--white);
 }
 
 .sch-modal-footer {
@@ -1743,6 +1871,10 @@
 
   .sch-appt-line {
     display: none;
+  }
+
+  .sch-form-row {
+    grid-template-columns: 1fr;
   }
 }
 

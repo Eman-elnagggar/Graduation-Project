@@ -237,36 +237,6 @@
                 </div>
                 <div class="sch-upcoming-list" id="upcomingList"></div>
             </div>
-
-            <div class="sch-card">
-                <div class="sch-card-header">
-                    <div class="sch-card-header-left">
-                        <div class="sch-card-ico blue"><i class="fas fa-bolt"></i></div>
-                        <div>
-                            <div class="sch-card-title">Quick Actions</div>
-                            <div class="sch-card-sub">Common tasks</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="sch-quick-actions">
-                    <button class="sch-quick-btn" data-action="new">
-                        <i class="fas fa-plus-circle"></i>
-                        <span>New Appointment</span>
-                    </button>
-                    <button class="sch-quick-btn" data-action="block">
-                        <i class="fas fa-ban"></i>
-                        <span>Block Time Slot</span>
-                    </button>
-                    <button class="sch-quick-btn" data-action="availability">
-                        <i class="fas fa-clock"></i>
-                        <span>Set Availability</span>
-                    </button>
-                    <button class="sch-quick-btn" data-action="recurring">
-                        <i class="fas fa-redo"></i>
-                        <span>Recurring Schedule</span>
-                    </button>
-                </div>
-            </div>
         </div>
 
         <div class="sch-content">
@@ -335,6 +305,10 @@
 
 <div class="sch-toast-container" id="toastContainer"></div>
 
+<form id="scheduleAntiForgeryForm" style="display:none;">
+    @Html.AntiForgeryToken()
+</form>
+
 <div class="sch-modal-overlay" id="modalOverlay">
     <div class="sch-modal" id="appointmentModal">
         <div class="sch-modal-header">
@@ -345,6 +319,39 @@
         <div class="sch-modal-footer">
             <button class="sch-btn outline" id="modalCancel">Cancel</button>
             <button class="sch-btn primary" id="modalConfirm">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<div class="sch-modal-overlay" id="prescriptionModalOverlay">
+    <div class="sch-modal sch-prescription-modal">
+        <div class="sch-modal-header">
+            <h3><i class="fas fa-prescription"></i> Write Prescription</h3>
+            <button class="sch-modal-close" id="closePrescriptionModal"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="sch-modal-body">
+            <form id="prescriptionForm" class="sch-prescription-form">
+                <input type="hidden" id="prescriptionPatientId" />
+                <div class="sch-form-group">
+                    <label for="prescriptionPatientName">Patient</label>
+                    <input type="text" id="prescriptionPatientName" readonly />
+                </div>
+                <div class="sch-prescription-items-header">
+                    <label>Medicines</label>
+                    <button class="sch-btn outline" id="addMedicineBtn" type="button">
+                        <i class="fas fa-plus"></i> Add Medicine
+                    </button>
+                </div>
+                <div id="prescriptionMedicinesContainer" class="sch-prescription-items"></div>
+                <div class="sch-form-group">
+                    <label for="prescriptionNotes">Doctor Notes</label>
+                    <textarea id="prescriptionNotes" rows="3" maxlength="600" placeholder="Additional notes for this prescription"></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="sch-modal-footer">
+            <button class="sch-btn outline" id="cancelPrescriptionBtn" type="button">Cancel</button>
+            <button class="sch-btn primary" id="savePrescriptionBtn" type="button">Save Prescription</button>
         </div>
     </div>
 </div>

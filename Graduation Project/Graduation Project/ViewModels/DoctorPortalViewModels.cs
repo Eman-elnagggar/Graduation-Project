@@ -169,9 +169,25 @@ namespace Graduation_Project.ViewModels
 
         public Appointment? NextAppointment { get; set; }
         public List<PatientBloodPressure> BloodPressureHistory { get; set; } = new();
+        public List<PatientBloodSugar> BloodSugarHistory { get; set; } = new();
         public List<LabTest> LabTests { get; set; } = new();
         public List<Appointment> AppointmentHistory { get; set; } = new();
         public List<Note> ClinicalNotes { get; set; } = new();
         public List<Prescription> Prescriptions { get; set; } = new();
+        public List<Alert> AlertRecords { get; set; } = new();
+        public List<MedicalHistoryEntry> TimelineEntries { get; set; } = new();
+    }
+
+    public class DoctorPrescriptionPrintViewModel
+    {
+        public Doctor Doctor { get; set; } = null!;
+        public string DoctorName { get; set; } = "Doctor";
+        public Patient Patient { get; set; } = null!;
+        public Prescription Prescription { get; set; } = null!;
+
+        public string? ClinicName { get; set; }
+        public string? ClinicAddress { get; set; }
+        public string? ClinicPhone { get; set; }
+        public DateTime? FollowUpDate { get; set; }
     }
 }

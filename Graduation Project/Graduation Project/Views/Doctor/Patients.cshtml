@@ -209,7 +209,6 @@
       <div class="modal-body" id="modalBody"></div>
       <div class="modal-footer">
         <button class="btn btn-outline" id="modalMessage"><i class="fas fa-comment-medical"></i> Send Message</button>
-        <button class="btn btn-outline" id="modalSchedule"><i class="fas fa-calendar-plus"></i> Schedule Appointment</button>
         <button class="btn btn-primary" id="modalViewFull"><i class="fas fa-external-link-alt"></i> View Full Profile</button>
       </div>
     </div>
@@ -631,7 +630,7 @@ function updateBulkActions() {
   }
 }
 
-function viewPatientDetails(patientId) { window.location.href = `/Doctor/PatientDetails/${DOCTOR_ID}/${patientId}`; }
+function viewPatientDetails(patientId) { window.location.href = `/Doctor/PatientDetails/${DOCTOR_ID}?patientId=${patientId}`; }
 function openMessages(patientId) { window.location.href = `/Doctor/Messages/${DOCTOR_ID}?patient=${patientId}`; }
 function calculateEDD(currentWeeks) {
   const d = new Date();
@@ -651,7 +650,6 @@ function openQuickView(patientId) {
   const conditions = (p.conditions && p.conditions.length) ? p.conditions : ['No documented conditions'];
   document.getElementById('modalBody').innerHTML = `<div class="modal-patient-header"><img class="modal-patient-avatar" src="${getAvatarUrl(p.firstName, p.lastName)}" alt="${p.firstName}"><div class="modal-patient-info"><h4>${p.firstName} ${p.lastName}</h4><p>${p.age ?? '--'} years old · ${p.bloodType || '-'}</p><div class="modal-patient-badges"><span class="risk-tag ${p.riskLevel}">${capitalize(p.riskLevel)} Risk</span><span class="trimester-badge">${trimester.label}</span>${p.needsAttention ? '<span class="risk-tag high">Needs Attention</span>' : ''}</div></div></div><div class="modal-section"><div class="modal-section-title">Pregnancy Information</div><div class="modal-details-grid"><div><span class="modal-detail-label">Gestational Age</span><div class="modal-detail-value">${p.gestationalWeeks} weeks</div></div><div><span class="modal-detail-label">Expected Due Date</span><div class="modal-detail-value">${calculateEDD(p.gestationalWeeks)}</div></div><div><span class="modal-detail-label">Pregnancy Progress</span><div class="modal-detail-value">${progress}%</div></div><div><span class="modal-detail-label">Next Appointment</span><div class="modal-detail-value">${formatDate(p.nextAppointment)}</div></div></div></div><div class="modal-section"><div class="modal-section-title">Latest Vitals</div><div class="modal-details-grid"><div><span class="modal-detail-label">Blood Pressure</span><div class="modal-detail-value ${bpWarning ? 'high-value' : ''}">${p.vitals?.bp || '--'}</div></div><div><span class="modal-detail-label">Blood Sugar</span><div class="modal-detail-value ${sugarWarning ? 'high-value' : ''}">${p.vitals?.sugar || '--'}</div></div><div><span class="modal-detail-label">Weight</span><div class="modal-detail-value">${p.vitals?.weight || '--'}</div></div><div><span class="modal-detail-label">Last Visit</span><div class="modal-detail-value">${formatDate(p.lastVisit)}</div></div></div></div><div class="modal-section"><div class="modal-section-title">Conditions & Notes</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">${conditions.map(c => `<span class="trimester-badge">${c}</span>`).join('')}</div><p style="font-size:.85rem;color:#4a5568;">${p.notes || 'No additional notes available.'}</p></div><div class="modal-section"><div class="modal-section-title">Contact Information</div><div class="modal-details-grid"><div><span class="modal-detail-label">Phone</span><div class="modal-detail-value">${p.phone || 'No phone'}</div></div><div><span class="modal-detail-label">Email</span><div class="modal-detail-value">${p.email || '--'}</div></div></div></div>`;
   document.getElementById('modalMessage').onclick = () => { closeModal(); openMessages(patientId); };
-  document.getElementById('modalSchedule').onclick = () => showToast('Schedule Appointment', 'Scheduler integration is not connected yet.', 'info');
   document.getElementById('modalViewFull').onclick = () => { closeModal(); viewPatientDetails(patientId); };
   document.getElementById('patientModal').classList.add('active');
 }

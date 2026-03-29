@@ -68,7 +68,9 @@
   }
 
   function getAntiForgeryToken() {
-    return document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+    return document.querySelector('#scheduleAntiForgeryForm input[name="__RequestVerificationToken"]')?.value
+      || document.querySelector('input[name="__RequestVerificationToken"]')?.value
+      || '';
   }
 
   async function updateAppointmentStatus(apptId, status) {
@@ -89,6 +91,36 @@
 
     if (!response.ok) {
       throw new Error('Failed to update appointment status.');
+    }
+
+    return response.json();
+  }
+
+  async function createPrescription(patientId, payload) {
+    const token = getAntiForgeryToken();
+    const body = new URLSearchParams();
+    body.append('patientId', String(patientId));
+    body.append('notes', payload.notes || '');
+    body.append('__RequestVerificationToken', token);
+
+    (payload.items || []).forEach(item => {
+      body.append('medicineNames', item.medicineName || '');
+      body.append('dosages', item.dosage || '');
+      body.append('frequencies', item.frequency || '');
+      body.append('durationDays', String(item.durationDays || 0));
+      body.append('instructions', item.instructions || '');
+    });
+
+    const response = await fetch(`/Doctor/CreatePrescription/${DOCTOR_ID}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+      },
+      body: body.toString()
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to save prescription.');
     }
 
     return response.json();
@@ -379,6 +411,9 @@
               <button class="sch-appt-btn" onclick="messagePatient(${appt.patient.id})">
                 <i class="fas fa-comment"></i> Message
               </button>
+              <button class="sch-appt-btn prescription" onclick="openPrescriptionModal(${appt.patient.id})">
+                <i class="fas fa-prescription"></i> Write Prescription
+              </button>
               ${appt.status !== 'completed' && appt.status !== 'cancelled' ? `
                 <button class="sch-appt-btn success" onclick="completeAppointment(${appt.id})">
                   <i class="fas fa-check"></i> Complete
@@ -639,7 +674,7 @@
       showToast('Unavailable', 'Patient details are not available for this slot', 'warning');
       return;
     }
-    window.location.href = `/Doctor/PatientDetails/${DOCTOR_ID}/${patientId}`;
+    window.location.href = `/Doctor/PatientDetails/${DOCTOR_ID}?patientId=${patientId}`;
   };
 
   window.messagePatient = function (patientId) {
@@ -781,6 +816,165 @@
     document.getElementById('modalOverlay').classList.remove('active');
   }
 
+  function closePrescriptionModal() {
+    document.getElementById('prescriptionModalOverlay').classList.remove('active');
+  }
+
+  function getMedicineItemMarkup(index) {
+    return `
+      <div class="sch-medicine-item" data-index="${index}">
+        <div class="sch-medicine-item-header">
+          <span class="sch-medicine-item-title">Medicine ${index + 1}</span>
+          <button class="sch-remove-medicine-btn" type="button" title="Remove medicine">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+        <div class="sch-form-row">
+          <div class="sch-form-group">
+            <label>Medicine Name</label>
+            <input type="text" class="medicine-name" maxlength="120" required />
+          </div>
+          <div class="sch-form-group">
+            <label>Dosage</label>
+            <input type="text" class="medicine-dosage" maxlength="80" placeholder="e.g. 500mg" />
+          </div>
+        </div>
+        <div class="sch-form-row">
+          <div class="sch-form-group">
+            <label>Frequency</label>
+            <input type="text" class="medicine-frequency" maxlength="120" placeholder="e.g. Twice daily" />
+          </div>
+          <div class="sch-form-group">
+            <label>Duration (days)</label>
+            <input type="number" class="medicine-duration" min="0" max="365" />
+          </div>
+        </div>
+        <div class="sch-form-group">
+          <label>Instructions</label>
+          <textarea class="medicine-instructions" rows="2" maxlength="400" placeholder="e.g. Take after meals"></textarea>
+        </div>
+      </div>
+    `;
+  }
+
+  function refreshMedicineRowsUI() {
+    const rows = Array.from(document.querySelectorAll('#prescriptionMedicinesContainer .sch-medicine-item'));
+    rows.forEach((row, idx) => {
+      row.dataset.index = String(idx);
+      const title = row.querySelector('.sch-medicine-item-title');
+      if (title) {
+        title.textContent = `Medicine ${idx + 1}`;
+      }
+      const removeBtn = row.querySelector('.sch-remove-medicine-btn');
+      if (removeBtn) {
+        removeBtn.style.display = rows.length > 1 ? 'inline-flex' : 'none';
+      }
+    });
+  }
+
+  function bindMedicineRowEvents(row) {
+    const removeBtn = row.querySelector('.sch-remove-medicine-btn');
+    if (!removeBtn) {
+      return;
+    }
+
+    removeBtn.addEventListener('click', () => {
+      row.remove();
+      refreshMedicineRowsUI();
+    });
+  }
+
+  function addMedicineRow() {
+    const container = document.getElementById('prescriptionMedicinesContainer');
+    const index = container.querySelectorAll('.sch-medicine-item').length;
+    container.insertAdjacentHTML('beforeend', getMedicineItemMarkup(index));
+    const row = container.lastElementChild;
+    if (row) {
+      bindMedicineRowEvents(row);
+    }
+    refreshMedicineRowsUI();
+  }
+
+  function resetMedicineRows() {
+    const container = document.getElementById('prescriptionMedicinesContainer');
+    container.innerHTML = getMedicineItemMarkup(0);
+    const firstRow = container.querySelector('.sch-medicine-item');
+    if (firstRow) {
+      bindMedicineRowEvents(firstRow);
+    }
+    refreshMedicineRowsUI();
+  }
+
+  window.openPrescriptionModal = function (patientId) {
+    if (!patientId) {
+      showToast('Unavailable', 'Prescription is not available for this slot', 'warning');
+      return;
+    }
+
+    const contextAppointment = state.appointments.find(a => a.patient.id === patientId && a.date === formatDateKey(state.selectedDate))
+      || state.appointments.find(a => a.patient.id === patientId);
+
+    const patientName = contextAppointment?.patient?.name || 'Patient';
+    const form = document.getElementById('prescriptionForm');
+    form.reset();
+    resetMedicineRows();
+    document.getElementById('prescriptionPatientId').value = String(patientId);
+    document.getElementById('prescriptionPatientName').value = patientName;
+    document.getElementById('prescriptionModalOverlay').classList.add('active');
+    const firstMedicine = document.querySelector('#prescriptionMedicinesContainer .medicine-name');
+    if (firstMedicine) {
+      firstMedicine.focus();
+    }
+  };
+
+  async function savePrescription() {
+    const patientId = parseInt(document.getElementById('prescriptionPatientId').value, 10);
+    const notes = document.getElementById('prescriptionNotes').value.trim();
+
+    if (!patientId) {
+      showToast('Validation Error', 'Patient is required.', 'error');
+      return;
+    }
+
+    const medicineRows = Array.from(document.querySelectorAll('#prescriptionMedicinesContainer .sch-medicine-item'));
+    const items = medicineRows.map(row => {
+      const durationRaw = row.querySelector('.medicine-duration')?.value?.trim() || '';
+      return {
+        medicineName: row.querySelector('.medicine-name')?.value?.trim() || '',
+        dosage: row.querySelector('.medicine-dosage')?.value?.trim() || '',
+        frequency: row.querySelector('.medicine-frequency')?.value?.trim() || '',
+        durationDays: durationRaw ? Math.max(0, parseInt(durationRaw, 10) || 0) : 0,
+        instructions: row.querySelector('.medicine-instructions')?.value?.trim() || ''
+      };
+    }).filter(item => item.medicineName);
+
+    if (!items.length) {
+      showToast('Validation Error', 'Please add at least one medicine name.', 'error');
+      return;
+    }
+
+    try {
+      const result = await createPrescription(patientId, {
+        items,
+        notes
+      });
+
+      if (!result?.success) {
+        showToast('Save Failed', result?.message || 'Could not save prescription.', 'error');
+        return;
+      }
+
+      closePrescriptionModal();
+      showToast('Prescription Saved', result.message || 'Prescription has been created successfully.', 'success');
+
+      if (result?.prescriptionId && DOCTOR_ID) {
+        window.open(`/Doctor/PrintPrescription/${DOCTOR_ID}?prescriptionId=${result.prescriptionId}`, '_blank');
+      }
+    } catch {
+      showToast('Save Failed', 'Could not save prescription.', 'error');
+    }
+  }
+
   function init() {
     loadAppointments();
     renderCalendar();
@@ -893,6 +1087,20 @@
     document.getElementById('modalOverlay').addEventListener('click', (e) => {
       if (e.target === e.currentTarget) closeModal();
     });
+
+    document.getElementById('closePrescriptionModal').addEventListener('click', closePrescriptionModal);
+    document.getElementById('cancelPrescriptionBtn').addEventListener('click', closePrescriptionModal);
+    document.getElementById('addMedicineBtn').addEventListener('click', addMedicineRow);
+    document.getElementById('savePrescriptionBtn').addEventListener('click', savePrescription);
+    document.getElementById('prescriptionForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      savePrescription();
+    });
+    document.getElementById('prescriptionModalOverlay').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closePrescriptionModal();
+    });
+
+    resetMedicineRows();
   }
 
   if (document.readyState === 'loading') {

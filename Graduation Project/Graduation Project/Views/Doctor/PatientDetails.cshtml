@@ -1,290 +1,956 @@
 @model DoctorPatientDetailsViewModel
 @{
-  Layout = "~/Views/Shared/_DoctorLayout.cshtml";
-  ViewData["Title"] = "Patient Details";
-  ViewData["ActivePage"] = "Patients";
-  ViewData["DoctorId"] = Model.Doctor.DoctorID;
-  ViewData["DoctorName"] = Model.DoctorName;
-  ViewData["PageTitle"] = "Patient Details";
-  ViewData["PageSubtitle"] = "Detailed patient profile and clinical history";
+    Layout = "~/Views/Shared/_DoctorLayout.cshtml";
+    ViewData["Title"] = "Patient Details";
+    ViewData["ActivePage"] = "Patients";
+    ViewData["DoctorId"] = Model.Doctor.DoctorID;
+    ViewData["DoctorName"] = Model.DoctorName;
+    ViewData["PageTitle"] = "Patient Details";
+    ViewData["PageSubtitle"] = "Detailed patient profile and clinical history";
 
-  var p = Model.Patient;
-  var name = ((p?.User?.FirstName ?? "") + " " + (p?.User?.LastName ?? "")).Trim();
-  var risk = (Model.RiskLevel ?? "low").ToLower();
-  var weeks = p?.GestationalWeeks ?? 0;
-  var trim = weeks <= 12 ? "1st" : weeks <= 26 ? "2nd" : "3rd";
+    var p = Model.Patient;
+    var patientName = ((p?.User?.FirstName ?? "") + " " + (p?.User?.LastName ?? "")).Trim();
+    if (string.IsNullOrWhiteSpace(patientName))
+    {
+        patientName = "Patient";
+    }
+
+    var risk = (Model.RiskLevel ?? "low").ToLowerInvariant();
+    var riskText = risk switch
+    {
+        "high" => "High Risk",
+        "medium" => "Medium Risk",
+        _ => "Low Risk"
+    };
+
+    var gestationalWeeks = p?.GestationalWeeks ?? 0;
+    var trim = gestationalWeeks <= 12 ? "1st" : gestationalWeeks <= 26 ? "2nd" : "3rd";
+    var age = p?.User != null && p.User.DateOfBirth > DateTime.MinValue
+        ? DateTime.Today.Year - p.User.DateOfBirth.Year - (p.User.DateOfBirth.Date > DateTime.Today.AddYears(-(DateTime.Today.Year - p.User.DateOfBirth.Year)) ? 1 : 0)
+        : 0;
+    var dueDate = Model.ExpectedDeliveryDate;
+    var daysRemaining = dueDate.HasValue ? (int?)(dueDate.Value.Date - DateTime.Today).TotalDays : null;
+    var progressPercent = Math.Clamp((int)Math.Round((gestationalWeeks / 40d) * 100d), 0, 100);
+
+    var bpChartReadings = Model.BloodPressureHistory.Take(7).ToList();
+    bpChartReadings.Reverse();
+    var bsChartReadings = Model.BloodSugarHistory.Take(7).ToList();
+    bsChartReadings.Reverse();
+    var alertRecords = Model.AlertRecords ?? new List<Graduation_Project.Models.Alert>();
+    var alertPreview = alertRecords.Take(2).ToList();
+    var historyTimeline = (Model.TimelineEntries ?? new List<Graduation_Project.ViewModels.MedicalHistoryEntry>())
+        .Where(e => !string.Equals(e.EventType, "alert", StringComparison.OrdinalIgnoreCase))
+        .ToList();
+    var historyGroups = historyTimeline
+        .GroupBy(e => e.DateTime.Date)
+        .OrderByDescending(g => g.Key)
+        .ToList();
+    var historyPreview = historyTimeline.Take(5).ToList();
+    var prescriptions = Model.Prescriptions ?? new List<Graduation_Project.Models.Prescription>();
 }
 
-<div class="patient-header-card">
-  <div class="patient-header-main">
-    <div class="patient-avatar-large">
-      <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(name)&background=14967f&color=fff&size=100"
-           alt="@name" />
-      <span class="risk-indicator @risk"></span>
+<div class="pp-wrap" data-patient-profile>
+    <div class="pp-header">
+        <div class="pp-header-left">
+            <a asp-controller="Doctor" asp-action="Patients" asp-route-id="@Model.Doctor.DoctorID" class="pp-back"><i class="fas fa-arrow-left"></i> Back to Patients</a>
+            <div class="pp-patient-main">
+                <div class="pp-avatar-wrap">
+                    <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(patientName)&background=14967f&color=fff&size=120" alt="@patientName" class="pp-avatar" id="patientAvatar">
+                    <span class="pp-risk-badge @risk" id="riskBadge" data-risk="@risk"></span>
+                </div>
+                <div class="pp-patient-info">
+                    <h1 class="pp-patient-name" id="patientName">@patientName</h1>
+                    <div class="pp-patient-meta">
+                        <span class="pp-meta-item"><i class="fas fa-calendar"></i> @(age > 0 ? age : 0) years old</span>
+                        <span class="pp-meta-item"><i class="fas fa-id-card"></i> ID: P-@p.PatientID</span>
+                        <span class="pp-meta-item"><i class="fas fa-phone"></i> @(string.IsNullOrWhiteSpace(p.User?.PhoneNumber) ? "No phone" : p.User.PhoneNumber)</span>
+                    </div>
+                    <div class="pp-patient-tags">
+                        <span class="pp-tag high-risk"><i class="fas fa-exclamation-triangle"></i> @riskText</span>
+                        <span class="pp-tag pregnant"><i class="fas fa-baby"></i> Week @gestationalWeeks</span>
+                        <span class="pp-tag trimester"><i class="fas fa-calendar-check"></i> @trim Trimester</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="pp-header-right">
+            <a id="btnMessage" asp-controller="Doctor" asp-action="Messages" asp-route-id="@Model.Doctor.DoctorID" asp-route-patient="@p.PatientID" class="pp-btn pp-btn-secondary"><i class="fas fa-comment-medical"></i> Send Message</a>
+            <button type="button" class="pp-btn pp-btn-secondary" id="btnWritePrescription"><i class="fas fa-prescription"></i> Write Prescription</button>
+            <button type="button" class="pp-btn pp-btn-primary" id="btnAddNote"><i class="fas fa-notes-medical"></i> Add Note</button>
+        </div>
     </div>
-    <div class="patient-header-info">
-      <h1>@name</h1>
-      <div class="patient-meta">
-        <span><i class="fas fa-baby"></i> @weeks weeks pregnant</span>
-        <span><i class="fas fa-layer-group"></i> @trim Trimester</span>
-        @if (Model.ExpectedDeliveryDate.HasValue)
-        {
-          <span><i class="fas fa-calendar-day"></i> EDD: @Model.ExpectedDeliveryDate.Value.ToString("MMM dd, yyyy")</span>
-        }
-      </div>
-      <div class="patient-tags">
-        <span class="tag">@(char.ToUpper(risk[0]) + risk[1..]) Risk</span>
-      </div>
+
+    <div class="pp-quick-stats">
+        <div class="pp-stat-card">
+            <div class="pp-stat-icon blue"><i class="fas fa-heartbeat"></i></div>
+            <div class="pp-stat-body">
+                <div class="pp-stat-label">Blood Pressure</div>
+                <div class="pp-stat-value">@(string.IsNullOrWhiteSpace(Model.LastBloodPressure) ? "-" : Model.LastBloodPressure)</div>
+                <div class="pp-stat-foot @(risk == "high" ? "high" : "normal")">@(Model.LastBPDate?.ToString("MMM dd, yyyy") ?? "No readings")</div>
+            </div>
+        </div>
+        <div class="pp-stat-card">
+            <div class="pp-stat-icon amber"><i class="fas fa-weight"></i></div>
+            <div class="pp-stat-body">
+                <div class="pp-stat-label">Current Weight</div>
+                <div class="pp-stat-value">@(p.WeightKg > 0 ? p.WeightKg + " kg" : "-")</div>
+                <div class="pp-stat-foot normal">Latest recorded value</div>
+            </div>
+        </div>
+        <div class="pp-stat-card">
+            <div class="pp-stat-icon green"><i class="fas fa-vial"></i></div>
+            <div class="pp-stat-body">
+                <div class="pp-stat-label">Glucose Level</div>
+                <div class="pp-stat-value">@(Model.LastBloodSugar > 0 ? Model.LastBloodSugar + " mg/dL" : "-")</div>
+                <div class="pp-stat-foot normal">@(Model.LastBSDate?.ToString("MMM dd, yyyy") ?? "No readings")</div>
+            </div>
+        </div>
+        <div class="pp-stat-card">
+            <div class="pp-stat-icon teal"><i class="fas fa-calendar-day"></i></div>
+            <div class="pp-stat-body">
+                <div class="pp-stat-label">Due Date</div>
+                <div class="pp-stat-value" id="statDueDate">@(dueDate?.ToString("MMM dd, yyyy") ?? "-")</div>
+                <div class="pp-stat-foot" id="dueDateFoot">@(daysRemaining.HasValue ? $"{Math.Max(daysRemaining.Value, 0)} days remaining" : "Not available")</div>
+            </div>
+        </div>
     </div>
-  </div>
-  <div class="patient-header-actions">
-    <a href="/Doctor/Messages/@Model.Doctor.DoctorID?patient=@p.PatientID" class="btn btn-primary">
-      <i class="fas fa-comment-medical"></i> Send Message
-    </a>
-    <button class="btn btn-outline" id="addNoteBtn"><i class="fas fa-sticky-note"></i> Add Note</button>
-  </div>
+
+    <div class="pp-main-grid">
+        <div class="pp-left-col">
+            <div class="pp-card">
+                <div class="pp-card-header">
+                    <div class="pp-card-header-left">
+                        <div class="pp-card-ico blue"><i class="fas fa-user"></i></div>
+                        <div>
+                            <div class="pp-card-title">Personal Information</div>
+                            <div class="pp-card-sub">Contact & demographic details</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="pp-card-body">
+                    <div class="pp-info-grid">
+                        <div class="pp-info-item"><div class="pp-info-label"><i class="fas fa-phone"></i> Phone Number</div><div class="pp-info-value">@(string.IsNullOrWhiteSpace(p.User?.PhoneNumber) ? "Not provided" : p.User.PhoneNumber)</div></div>
+                        <div class="pp-info-item"><div class="pp-info-label"><i class="fas fa-envelope"></i> Email Address</div><div class="pp-info-value">@(string.IsNullOrWhiteSpace(p.User?.Email) ? "Not provided" : p.User.Email)</div></div>
+                        <div class="pp-info-item"><div class="pp-info-label"><i class="fas fa-map-marker-alt"></i> Address</div><div class="pp-info-value">@(string.IsNullOrWhiteSpace(p.Address) ? "Not provided" : p.Address)</div></div>
+                        <div class="pp-info-item"><div class="pp-info-label"><i class="fas fa-calendar-alt"></i> Date of Birth</div><div class="pp-info-value">@(p.User?.DateOfBirth > DateTime.MinValue ? p.User.DateOfBirth.ToString("MMMM dd, yyyy") : "Not provided")</div></div>
+                        <div class="pp-info-item"><div class="pp-info-label"><i class="fas fa-ring"></i> Pregnancy Count</div><div class="pp-info-value">@p.PregnancyCount</div></div>
+                        <div class="pp-info-item"><div class="pp-info-label"><i class="fas fa-ruler"></i> Height</div><div class="pp-info-value">@(p.HeightCm > 0 ? p.HeightCm + " cm" : "Not provided")</div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pp-card">
+                <div class="pp-card-header">
+                    <div class="pp-card-header-left">
+                        <div class="pp-card-ico teal"><i class="fas fa-baby"></i></div>
+                        <div>
+                            <div class="pp-card-title">Pregnancy Details</div>
+                            <div class="pp-card-sub">Current pregnancy information</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="pp-card-body">
+                    <div class="pp-pregnancy-timeline">
+                        <div class="pp-timeline-bar">
+                            <div class="pp-timeline-fill" style="width: @progressPercent%"></div>
+                            <div class="pp-timeline-marker" style="left: @progressPercent%"><span class="pp-timeline-week">Week @gestationalWeeks</span></div>
+                        </div>
+                        <div class="pp-timeline-labels"><span>Week 0</span><span>Week 40</span></div>
+                    </div>
+                    <div class="pp-info-grid">
+                        <div class="pp-info-item"><div class="pp-info-label"><i class="fas fa-calendar-check"></i> Gestational Age</div><div class="pp-info-value">@gestationalWeeks weeks</div></div>
+                        <div class="pp-info-item"><div class="pp-info-label"><i class="fas fa-calendar-star"></i> Expected Due Date</div><div class="pp-info-value">@(dueDate?.ToString("MMMM dd, yyyy") ?? "Not available")</div></div>
+                        <div class="pp-info-item"><div class="pp-info-label"><i class="fas fa-calendar-plus"></i> Last Pregnancy Start</div><div class="pp-info-value">@(p.LastPregnancyStartedAt?.ToString("MMMM dd, yyyy") ?? p.DateOfPregnancy?.ToString("MMMM dd, yyyy") ?? "Not available")</div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pp-card">
+                <div class="pp-card-header">
+                    <div class="pp-card-header-left">
+                        <div class="pp-card-ico red"><i class="fas fa-file-medical"></i></div>
+                        <div>
+                            <div class="pp-card-title">Medical History</div>
+                            <div class="pp-card-sub">Recent timeline records</div>
+                        </div>
+                    </div>
+                    <button type="button" class="pp-card-link" id="btnViewFullHistory"><i class="fas fa-external-link-alt"></i> View Full History</button>
+                </div>
+                <div class="pp-card-body">
+                    @if (historyPreview.Any())
+                    {
+                        <div class="pp-history-timeline">
+                            @foreach (var entry in historyPreview)
+                            {
+                                var entryClass = entry.Status == "critical"
+                                    ? "critical"
+                                    : entry.Status == "attention"
+                                        ? "warning"
+                                        : "normal";
+
+                                <div class="pp-history-timeline-item @entryClass">
+                                    <div class="pp-history-timeline-main">
+                                        <div class="pp-history-timeline-title">@entry.Title</div>
+                                        @if (!string.IsNullOrWhiteSpace(entry.SubTitle))
+                                        {
+                                            <div class="pp-history-timeline-sub">@entry.SubTitle</div>
+                                        }
+                                    </div>
+                                    <div class="pp-history-timeline-time">@entry.DateTime.ToString("MMM dd, h:mm tt")</div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="pp-info-value">No medical history records available.</div>
+                    }
+                </div>
+            </div>
+
+            <div class="pp-card pp-health-card">
+                <div class="pp-card-header">
+                    <div class="pp-card-header-left">
+                        <div class="pp-card-ico red"><i class="fas fa-notes-medical"></i></div>
+                        <div>
+                            <div class="pp-card-title">Health Background</div>
+                            <div class="pp-card-sub">Conditions, obstetric and social history</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="pp-card-body">
+                    <div class="pp-health-block">
+                        <div class="pp-section-label">Current Conditions</div>
+                        <div class="pp-condition-list">
+                            <div class="pp-condition-item @(p.BloodPressureIssue ? "high" : "medium")">
+                                <i class="fas fa-heartbeat"></i>
+                                <span>Blood Pressure Issue: @(p.BloodPressureIssue ? "Yes" : "No")</span>
+                                <span class="pp-condition-badge @(p.BloodPressureIssue ? "high" : "medium")">@(p.BloodPressureIssue ? "Monitor" : "Stable")</span>
+                            </div>
+                            <div class="pp-condition-item @(p.Smoking || p.AlcoholUse ? "high" : "medium")">
+                                <i class="fas fa-shield-heart"></i>
+                                <span>Risk Habits: @(p.Smoking || p.AlcoholUse ? "Present" : "None")</span>
+                                <span class="pp-condition-badge @(p.Smoking || p.AlcoholUse ? "high" : "medium")">@(p.Smoking || p.AlcoholUse ? "Attention" : "Good")</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pp-health-block">
+                        <div class="pp-section-label">Obstetric History</div>
+                        <div class="pp-health-metrics">
+                            <div class="pp-health-metric">
+                                <div class="pp-health-metric-label">Pregnancy Count</div>
+                                <div class="pp-health-metric-value">@p.PregnancyCount</div>
+                            </div>
+                            <div class="pp-health-metric">
+                                <div class="pp-health-metric-label">Births</div>
+                                <div class="pp-health-metric-value">@p.Births</div>
+                            </div>
+                            <div class="pp-health-metric">
+                                <div class="pp-health-metric-label">Abortions</div>
+                                <div class="pp-health-metric-value">@p.Abortions</div>
+                            </div>
+                            <div class="pp-health-metric">
+                                <div class="pp-health-metric-label">First Pregnancy</div>
+                                <div class="pp-health-metric-value">@(p.IsFirstPregnancy ? "Yes" : "No")</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pp-health-block">
+                        <div class="pp-section-label">Social History</div>
+                        <div class="pp-health-metrics pp-health-metrics-two">
+                            <div class="pp-health-metric">
+                                <div class="pp-health-metric-label">Smoking</div>
+                                <div class="pp-health-metric-value">@(p.Smoking ? "Yes" : "No")</div>
+                            </div>
+                            <div class="pp-health-metric">
+                                <div class="pp-health-metric-label">Alcohol Use</div>
+                                <div class="pp-health-metric-value">@(p.AlcoholUse ? "Yes" : "No")</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pp-card">
+                <div class="pp-card-header">
+                    <div class="pp-card-header-left">
+                        <div class="pp-card-ico amber"><i class="fas fa-pills"></i></div>
+                        <div>
+                            <div class="pp-card-title">Current Medications</div>
+                            <div class="pp-card-sub">All prescriptions issued</div>
+                        </div>
+                    </div>
+                    <div class="pp-card-links-group">
+                        <button type="button" class="pp-card-link pp-card-link-soft" data-open-modal="prescriptionModal"><i class="fas fa-plus"></i> Write New</button>
+                        <button type="button" class="pp-card-link pp-card-link-soft" id="btnViewAllPrescriptions"><i class="fas fa-external-link-alt"></i> View All</button>
+                    </div>
+                </div>
+                <div class="pp-card-body">
+                    <div class="pp-medication-list">
+                        @if (prescriptions.Any())
+                        {
+                            @foreach (var rx in prescriptions.Take(4))
+                            {
+                                var itemCount = rx.Items?.Count ?? 0;
+                                <div class="pp-medication-item">
+                                    <div class="pp-med-icon"><i class="fas fa-prescription-bottle-alt"></i></div>
+                                    <div class="pp-med-body">
+                                        <div class="pp-med-name">Prescription</div>
+                                        <div class="pp-med-dosage">@(string.IsNullOrWhiteSpace(rx.Notes) ? "No prescription notes provided." : rx.Notes)</div>
+                                        <div class="pp-med-meta">
+                                            <span><i class="fas fa-calendar-alt"></i> @rx.PrescriptionDate.ToString("MMM dd, yyyy")</span>
+                                            <span><i class="fas fa-user-md"></i> Dr. @Model.DoctorName</span>
+                                            <span><i class="fas fa-capsules"></i> @itemCount item@(itemCount == 1 ? "" : "s")</span>
+                                        </div>
+                                    </div>
+                                    <div class="pp-med-actions">
+                                        <div style="display:flex;gap:6px;">
+                                            <button type="button" class="pp-med-details-btn" data-open-modal="prescriptionDetailsModal-@rx.PrescriptionID">View Details</button>
+                                            <a class="pp-med-details-btn" target="_blank" asp-controller="Doctor" asp-action="PrintPrescription" asp-route-id="@Model.Doctor.DoctorID" asp-route-prescriptionId="@rx.PrescriptionID">Print</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="pp-info-value">No active medications found.</div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pp-right-col">
+            <div class="pp-card">
+                <div class="pp-card-header">
+                    <div class="pp-card-header-left">
+                        <div class="pp-card-ico red"><i class="fas fa-bell"></i></div>
+                        <div>
+                            <div class="pp-card-title">Active Alerts</div>
+                            <div class="pp-card-sub">Latest system highlights</div>
+                        </div>
+                    </div>
+                    <button type="button" class="pp-card-link" id="btnViewAllAlerts"><i class="fas fa-external-link-alt"></i> View All</button>
+                </div>
+                <div class="pp-card-body">
+                    <div class="pp-alert-list">
+                        @if (alertPreview.Any())
+                        {
+                            @foreach (var alert in alertPreview)
+                            {
+                                var rawType = (alert.AlertType ?? "info").ToLowerInvariant();
+                                var alertClass = rawType == "danger" || rawType == "critical"
+                                    ? "critical"
+                                    : rawType == "warning"
+                                        ? "warning"
+                                        : rawType == "success"
+                                            ? "success"
+                                            : "info";
+                                var iconClass = alertClass switch
+                                {
+                                    "critical" => "fa-exclamation-circle",
+                                    "warning" => "fa-triangle-exclamation",
+                                    "success" => "fa-circle-check",
+                                    _ => "fa-circle-info"
+                                };
+
+                                <div class="pp-alert-item @alertClass">
+                                    <div class="pp-alert-strip"></div>
+                                    <div class="pp-alert-ico"><i class="fas @iconClass"></i></div>
+                                    <div class="pp-alert-body">
+                                        <div class="pp-alert-title">@alert.Title</div>
+                                        <div class="pp-alert-msg">@alert.Message</div>
+                                        <div class="pp-alert-time"><i class="fas fa-clock"></i> @alert.DateCreated.ToString("MMM dd, yyyy h:mm tt")</div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="pp-info-value">No alerts available for this patient.</div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="pp-card">
+                <div class="pp-card-header">
+                    <div class="pp-card-header-left">
+                        <div class="pp-card-ico green"><i class="fas fa-chart-area"></i></div>
+                        <div>
+                            <div class="pp-card-title">Blood Sugar Trend</div>
+                            <div class="pp-card-sub">Last @(bsChartReadings.Count) readings</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="pp-card-body">
+                    <div class="pp-vitals-chart">
+                        <div class="pp-chart-bars pp-chart-bars-sugar">
+                            @if (bsChartReadings.Any())
+                            {
+                                @foreach (var bs in bsChartReadings)
+                                {
+                                    var sugar = (int)Math.Round(bs.BloodSugar);
+                                    <div class="pp-chart-bar-group">
+                                        <div class="pp-chart-bar sugar" style="height:@Math.Clamp(sugar / 3, 22, 95)px" data-value="@sugar"></div>
+                                        <div class="pp-chart-reading">@sugar mg/dL</div>
+                                        <div class="pp-chart-date">@bs.DateTime.ToString("MMM dd")</div>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="pp-info-value">No blood sugar readings available.</div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pp-card">
+                <div class="pp-card-header">
+                    <div class="pp-card-header-left">
+                        <div class="pp-card-ico blue"><i class="fas fa-chart-line"></i></div>
+                        <div>
+                            <div class="pp-card-title">Blood Pressure Trend</div>
+                            <div class="pp-card-sub">Last @(bpChartReadings.Count) readings</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="pp-card-body">
+                    <div class="pp-vitals-chart">
+                        <div class="pp-chart-bars">
+                            @if (bpChartReadings.Any())
+                            {
+                                @foreach (var bp in bpChartReadings)
+                                {
+                                    var parts = (bp.BloodPressure ?? "0/0").Split('/');
+                                    var sys = int.TryParse(parts.ElementAtOrDefault(0), out var systolic) ? systolic : 0;
+                                    var dia = int.TryParse(parts.ElementAtOrDefault(1), out var diastolic) ? diastolic : 0;
+                                    <div class="pp-chart-bar-group @(bp == bpChartReadings.Last() ? "today" : string.Empty)">
+                                        <div class="pp-chart-bar systolic" style="height:@Math.Clamp(sys / 2, 20, 90)px" data-value="@sys"></div>
+                                        <div class="pp-chart-bar diastolic" style="height:@Math.Clamp(dia / 2, 14, 60)px" data-value="@dia"></div>
+                                        <div class="pp-chart-reading">@sys/@dia</div>
+                                        <div class="pp-chart-date">@bp.DateTime.ToString("MMM dd")</div>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="pp-info-value">No blood pressure readings available.</div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pp-card">
+                <div class="pp-card-header">
+                    <div class="pp-card-header-left">
+                        <div class="pp-card-ico teal"><i class="fas fa-calendar-alt"></i></div>
+                        <div>
+                            <div class="pp-card-title">Appointments</div>
+                            <div class="pp-card-sub">Latest visits</div>
+                        </div>
+                    </div>
+                    <button type="button" class="pp-card-link" id="btnViewAllAppointments"><i class="fas fa-external-link-alt"></i> View All</button>
+                </div>
+                <div class="pp-card-body">
+                    <div class="pp-appointment-list">
+                        @if (Model.AppointmentHistory.Any())
+                        {
+                            @foreach (var appt in Model.AppointmentHistory.Take(3))
+                            {
+                                var statusCls = (appt.Booking?.Status ?? (appt.isBooked ? "confirmed" : "pending")).ToLowerInvariant();
+                                <div class="pp-appointment-item">
+                                    <div class="pp-appt-date">
+                                        <div class="pp-appt-day">@appt.Date.ToString("dd")</div>
+                                        <div class="pp-appt-month">@appt.Date.ToString("MMM")</div>
+                                    </div>
+                                    <div class="pp-appt-line @(statusCls == "confirmed" ? "confirmed" : "pending")"></div>
+                                    <div class="pp-appt-body">
+                                        <div class="pp-appt-title">@(string.IsNullOrWhiteSpace(appt.Booking?.Reason) ? "Consultation" : appt.Booking.Reason)</div>
+                                        <div class="pp-appt-time"><i class="fas fa-clock"></i> @DateTime.Today.Add(appt.Time).ToString("h:mm tt")</div>
+                                        <span class="pp-appt-status @(statusCls == "confirmed" ? "confirmed" : "pending")">@statusCls</span>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="pp-info-value">No appointments available.</div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+
+
+            <div class="pp-card">
+                <div class="pp-card-header">
+                    <div class="pp-card-header-left">
+                        <div class="pp-card-ico amber"><i class="fas fa-vials"></i></div>
+                        <div>
+                            <div class="pp-card-title">Recent Lab Results</div>
+                            <div class="pp-card-sub">Latest uploaded tests</div>
+                        </div>
+                    </div>
+                    <button type="button" class="pp-card-link" id="btnViewAllLabs"><i class="fas fa-external-link-alt"></i> View All</button>
+                </div>
+                <div class="pp-card-body">
+                    <div class="pp-lab-list">
+                        @if (Model.LabTests.Any())
+                        {
+                            @foreach (var test in Model.LabTests.Take(4))
+                            {
+                                <div class="pp-lab-item">
+                                    <div class="pp-lab-name">@test.TestType</div>
+                                    <div class="pp-lab-value">@test.UploadDate.ToString("MMM dd")</div>
+                                    <div class="pp-lab-status normal"><i class="fas fa-check-circle"></i> Uploaded</div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="pp-info-value">No lab tests found.</div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="pp-card">
+                <div class="pp-card-header">
+                    <div class="pp-card-header-left">
+                        <div class="pp-card-ico green"><i class="fas fa-notes-medical"></i></div>
+                        <div>
+                            <div class="pp-card-title">Doctor's Notes</div>
+                            <div class="pp-card-sub">Clinical observations</div>
+                        </div>
+                    </div>
+                    <button class="pp-card-link" id="btnAddNote2"><i class="fas fa-plus"></i> Add Note</button>
+                </div>
+                <div class="pp-card-body">
+                    <div id="addNoteForm" class="pp-note-form" style="display:none;">
+                        @using (Html.BeginForm("AddNote", "Doctor", FormMethod.Post))
+                        {
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="patientId" value="@p.PatientID" />
+                            <input type="hidden" name="doctorId" value="@Model.Doctor.DoctorID" />
+                            <textarea id="noteText" name="content" rows="4" class="pp-note-input" placeholder="Write your clinical note here..." required></textarea>
+                            <div class="pp-note-form-actions">
+                                <button type="submit" class="pp-btn pp-btn-primary">Save Note</button>
+                                <button type="button" class="pp-btn pp-btn-secondary" id="cancelNote">Cancel</button>
+                            </div>
+                        }
+                    </div>
+                    <div class="pp-notes-list" id="notesList">
+                        @if (Model.ClinicalNotes.Any())
+                        {
+                            @foreach (var note in Model.ClinicalNotes)
+                            {
+                                <div class="pp-note-item">
+                                    <div class="pp-note-header">
+                                        <div class="pp-note-date">@note.CreatedDate.ToString("MMM dd, yyyy - h:mm tt")</div>
+                                        <div class="pp-note-author">Dr. @Model.DoctorName</div>
+                                    </div>
+                                    <div class="pp-note-content">@note.Content</div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="pp-info-value">No clinical notes yet.</div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<div class="patient-quick-stats">
-  <div class="stat-card">
-    <div class="stat-icon bp"><i class="fas fa-heartbeat"></i></div>
-    <div class="stat-info">
-      <span class="stat-value">@(Model.LastBloodPressure ?? "-")</span>
-      <span class="stat-label">Last Blood Pressure</span>
-      <span class="stat-date">@(Model.LastBPDate?.ToString("MMM dd") ?? "No readings")</span>
+<div class="pp-modal" id="allPrescriptionsModal">
+    <div class="pp-modal-overlay"></div>
+    <div class="pp-modal-content pp-modal-large">
+        <div class="pp-modal-header">
+            <h2><i class="fas fa-pills"></i> All Prescriptions</h2>
+            <button class="pp-modal-close" data-modal="allPrescriptionsModal"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="pp-modal-body">
+            <div class="pp-medication-list">
+                @if (prescriptions.Any())
+                {
+                    @foreach (var rx in prescriptions)
+                    {
+                        var itemCount = rx.Items?.Count ?? 0;
+                        <div class="pp-medication-item">
+                            <div class="pp-med-icon"><i class="fas fa-prescription-bottle-alt"></i></div>
+                            <div class="pp-med-body">
+                                <div class="pp-med-name">Prescription</div>
+                                <div class="pp-med-dosage">@(string.IsNullOrWhiteSpace(rx.Notes) ? "No prescription notes provided." : rx.Notes)</div>
+                                <div class="pp-med-meta">
+                                    <span><i class="fas fa-calendar-alt"></i> @rx.PrescriptionDate.ToString("MMM dd, yyyy")</span>
+                                    <span><i class="fas fa-user-md"></i> Dr. @Model.DoctorName</span>
+                                    <span><i class="fas fa-capsules"></i> @itemCount item@(itemCount == 1 ? "" : "s")</span>
+                                </div>
+                            </div>
+                            <div class="pp-med-actions">
+                                <div style="display:flex;gap:6px;">
+                                    <button type="button" class="pp-med-details-btn" data-open-modal="prescriptionDetailsModal-@rx.PrescriptionID">View Details</button>
+                                    <a class="pp-med-details-btn" target="_blank" asp-controller="Doctor" asp-action="PrintPrescription" asp-route-id="@Model.Doctor.DoctorID" asp-route-prescriptionId="@rx.PrescriptionID">Print</a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="pp-info-value">No prescriptions found.</div>
+                }
+            </div>
+        </div>
+        <div class="pp-modal-footer">
+            <button class="pp-btn pp-btn-secondary" data-open-modal="prescriptionModal"><i class="fas fa-plus"></i> Write New</button>
+            <button class="pp-btn pp-btn-primary" data-modal="allPrescriptionsModal">Close</button>
+        </div>
     </div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-icon sugar"><i class="fas fa-tint"></i></div>
-    <div class="stat-info">
-      <span class="stat-value">@(Model.LastBloodSugar > 0 ? Model.LastBloodSugar + " mg/dL" : "-")</span>
-      <span class="stat-label">Last Blood Sugar</span>
-      <span class="stat-date">@(Model.LastBSDate?.ToString("MMM dd") ?? "No readings")</span>
-    </div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-icon weight"><i class="fas fa-weight"></i></div>
-    <div class="stat-info">
-      <span class="stat-value">@(p?.WeightKg > 0 ? p.WeightKg + " kg" : "-")</span>
-      <span class="stat-label">Current Weight</span>
-      <span class="stat-date">Last recorded</span>
-    </div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-icon appointment"><i class="fas fa-calendar-check"></i></div>
-    <div class="stat-info">
-      <span class="stat-value">@(Model.NextAppointment?.Date.ToString("MMM dd") ?? "-")</span>
-      <span class="stat-label">Next Appointment</span>
-      <span class="stat-date">@(Model.NextAppointment != null ? DateTime.Today.Add(Model.NextAppointment.Time).ToString("h:mm tt") : "None scheduled")</span>
-    </div>
-  </div>
 </div>
 
-<div class="detail-tabs">
-  <button class="detail-tab active" data-tab="overview"><i class="fas fa-chart-pie"></i> Overview</button>
-  <button class="detail-tab" data-tab="vitals"><i class="fas fa-heartbeat"></i> Vitals History</button>
-  <button class="detail-tab" data-tab="tests"><i class="fas fa-flask"></i> Tests</button>
-  <button class="detail-tab" data-tab="appointments"><i class="fas fa-calendar-alt"></i> Appointments</button>
-  <button class="detail-tab" data-tab="notes"><i class="fas fa-sticky-note"></i> Notes</button>
-  <button class="detail-tab" data-tab="prescriptions"><i class="fas fa-prescription"></i> Prescriptions</button>
-</div>
+@if (prescriptions.Any())
+{
+    @foreach (var rx in prescriptions)
+    {
+        <div class="pp-modal" id="prescriptionDetailsModal-@rx.PrescriptionID">
+            <div class="pp-modal-overlay"></div>
+            <div class="pp-modal-content pp-modal-large">
+                <div class="pp-modal-header">
+                    <h2><i class="fas fa-file-prescription"></i> Prescription Details</h2>
+                    <button class="pp-modal-close" data-modal="prescriptionDetailsModal-@rx.PrescriptionID"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="pp-modal-body">
+                    <div class="pp-rx-meta-grid">
+                        <div class="pp-rx-meta-item"><span>Date</span><strong>@rx.PrescriptionDate.ToString("MMMM dd, yyyy")</strong></div>
+                        <div class="pp-rx-meta-item"><span>Doctor</span><strong>Dr. @Model.DoctorName</strong></div>
+                        <div class="pp-rx-meta-item"><span>Items</span><strong>@(rx.Items?.Count ?? 0)</strong></div>
+                    </div>
 
-<div class="tab-content active" id="tab-overview">
-  <div class="card">
-    <div class="card-header"><h3><i class="fas fa-notes-medical"></i> Medical Overview</h3></div>
-    <div class="card-body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.8rem;">
-      <div class="info-group"><label>Address</label><span>@(p?.Address ?? "-")</span></div>
-      <div class="info-group"><label>Height</label><span>@(p?.HeightCm > 0 ? p.HeightCm + " cm" : "-")</span></div>
-      <div class="info-group"><label>First Pregnancy</label><span>@(p?.IsFirstPregnancy == true ? "Yes" : "No")</span></div>
-      <div class="info-group"><label>Blood Pressure Issues</label><span>@(p?.BloodPressureIssue == true ? "Yes" : "No")</span></div>
-      <div class="info-group"><label>Smoking</label><span>@(p?.Smoking == true ? "Yes" : "No")</span></div>
-      <div class="info-group"><label>Alcohol</label><span>@(p?.AlcoholUse == true ? "Yes" : "No")</span></div>
+                    <div class="pp-rx-notes">
+                        <div class="pp-rx-notes-title">Prescription Notes</div>
+                        <div class="pp-rx-notes-text">@(string.IsNullOrWhiteSpace(rx.Notes) ? "No prescription notes provided." : rx.Notes)</div>
+                    </div>
+
+                    <div class="pp-rx-items">
+                        <div class="pp-rx-items-title">Medicines</div>
+                        @if (rx.Items != null && rx.Items.Any())
+                        {
+                            <div class="pp-rx-items-list">
+                                @foreach (var item in rx.Items)
+                                {
+                                    <div class="pp-rx-item-card">
+                                        <div class="pp-rx-item-head">
+                                            <strong>@item.MedicineName</strong>
+                                        </div>
+                                        <div class="pp-rx-item-grid">
+                                            <span><b>Dosage:</b> @(string.IsNullOrWhiteSpace(item.Dosage) ? "-" : item.Dosage)</span>
+                                            <span><b>Frequency:</b> @(string.IsNullOrWhiteSpace(item.Frequency) ? "-" : item.Frequency)</span>
+                                            <span><b>Duration:</b> @(item.DurationDays > 0 ? item.DurationDays + " day(s)" : "-")</span>
+                                        </div>
+                                        <div class="pp-rx-item-instructions"><b>Instructions:</b> @(string.IsNullOrWhiteSpace(item.Instructions) ? "-" : item.Instructions)</div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="pp-info-value">No medicine items found for this prescription.</div>
+                        }
+                    </div>
+                </div>
+                <div class="pp-modal-footer">
+                    <a class="pp-btn pp-btn-secondary" target="_blank" asp-controller="Doctor" asp-action="PrintPrescription" asp-route-id="@Model.Doctor.DoctorID" asp-route-prescriptionId="@rx.PrescriptionID"><i class="fas fa-print"></i> Print</a>
+                    <button class="pp-btn pp-btn-primary" data-modal="prescriptionDetailsModal-@rx.PrescriptionID">Close</button>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+<div class="pp-modal" id="appointmentsModal">
+    <div class="pp-modal-overlay"></div>
+    <div class="pp-modal-content pp-modal-large">
+        <div class="pp-modal-header">
+            <h2><i class="fas fa-calendar-alt"></i> All Appointments</h2>
+            <button class="pp-modal-close" data-modal="appointmentsModal"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="pp-modal-body">
+            <div class="pp-appointment-list">
+                @if (Model.AppointmentHistory.Any())
+                {
+                    @foreach (var appt in Model.AppointmentHistory)
+                    {
+                        var statusCls = (appt.Booking?.Status ?? (appt.isBooked ? "confirmed" : "pending")).ToLowerInvariant();
+                        var statusStyle = statusCls == "confirmed" ? "confirmed" : "pending";
+                        <div class="pp-appointment-item">
+                            <div class="pp-appt-date">
+                                <div class="pp-appt-day">@appt.Date.ToString("dd")</div>
+                                <div class="pp-appt-month">@appt.Date.ToString("MMM")</div>
+                            </div>
+                            <div class="pp-appt-line @statusStyle"></div>
+                            <div class="pp-appt-body">
+                                <div class="pp-appt-title">@(string.IsNullOrWhiteSpace(appt.Booking?.Reason) ? "Consultation" : appt.Booking.Reason)</div>
+                                <div class="pp-appt-time"><i class="fas fa-clock"></i> @DateTime.Today.Add(appt.Time).ToString("h:mm tt")</div>
+                                <span class="pp-appt-status @statusStyle">@statusCls</span>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="pp-info-value">No appointments available.</div>
+                }
+            </div>
+        </div>
+        <div class="pp-modal-footer">
+            <button class="pp-btn pp-btn-primary" data-modal="appointmentsModal">Close</button>
+        </div>
     </div>
-  </div>
 </div>
 
-<div class="tab-content" id="tab-vitals">
-  <div class="card">
-    <div class="card-header"><h3><i class="fas fa-heartbeat"></i> Blood Pressure History</h3></div>
-    <div style="overflow-x:auto;">
-      <table style="width:100%;border-collapse:collapse;font-size:.84rem;">
-        <thead>
-          <tr style="border-bottom:1px solid var(--dr-border);text-align:left;">
-            <th style="padding:.7rem;">Date</th>
-            <th style="padding:.7rem;">Reading</th>
-            <th style="padding:.7rem;">Measurement Time</th>
-          </tr>
-        </thead>
-        <tbody>
-          @if (Model.BloodPressureHistory.Any())
-          {
-            @foreach (var bp in Model.BloodPressureHistory)
+<div class="pp-modal" id="prescriptionModal">
+    <div class="pp-modal-overlay"></div>
+    <div class="pp-modal-content pp-modal-large">
+        <div class="pp-modal-header">
+            <h2><i class="fas fa-prescription"></i> Write Prescription</h2>
+            <button class="pp-modal-close" data-modal="prescriptionModal"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="pp-modal-body">
+            <form id="prescriptionForm">
+                <input type="hidden" id="prescriptionPatientId" value="@p.PatientID" />
+                <div class="pp-form-group">
+                    <label for="prescriptionPatientName">Patient</label>
+                    <input type="text" id="prescriptionPatientName" class="pp-form-input" value="@patientName" readonly>
+                </div>
+
+                <div class="pp-rx-form-head">
+                    <label>Medicines</label>
+                    <button type="button" class="pp-rx-add-btn" id="btnAddMedicineRow"><i class="fas fa-plus"></i> Add Medicine</button>
+                </div>
+
+                <div id="prescriptionMedicinesContainer" class="pp-rx-medicines-container"></div>
+
+                <div class="pp-form-group">
+                    <label for="rxNotes">Doctor Notes</label>
+                    <textarea id="rxNotes" class="pp-form-input" rows="3" placeholder="Additional notes for this prescription"></textarea>
+                </div>
+
+                <template id="ppMedicineRowTemplate">
+                    <div class="pp-rx-medicine-item">
+                        <div class="pp-rx-medicine-header">
+                            <span class="pp-rx-medicine-title">Medicine 1</span>
+                            <button class="pp-rx-remove-btn" type="button" title="Remove medicine"><i class="fas fa-trash"></i></button>
+                        </div>
+                        <div class="pp-form-row">
+                            <div class="pp-form-group">
+                                <label>Medicine Name</label>
+                                <input type="text" class="pp-medicine-name pp-form-input" maxlength="120" required>
+                            </div>
+                            <div class="pp-form-group">
+                                <label>Dosage</label>
+                                <input type="text" class="pp-medicine-dosage pp-form-input" maxlength="80" placeholder="e.g. 500mg">
+                            </div>
+                        </div>
+                        <div class="pp-form-row">
+                            <div class="pp-form-group">
+                                <label>Frequency</label>
+                                <input type="text" class="pp-medicine-frequency pp-form-input" maxlength="120" placeholder="e.g. Twice daily">
+                            </div>
+                            <div class="pp-form-group">
+                                <label>Duration (days)</label>
+                                <input type="number" class="pp-medicine-duration pp-form-input" min="0" max="365">
+                            </div>
+                        </div>
+                        <div class="pp-form-group">
+                            <label>Instructions</label>
+                            <textarea class="pp-medicine-instructions pp-form-input" rows="2" maxlength="400" placeholder="e.g. Take after meals"></textarea>
+                        </div>
+                    </div>
+                </template>
+            </form>
+        </div>
+        <div class="pp-modal-footer">
+            <button class="pp-btn pp-btn-secondary" data-modal="prescriptionModal">Cancel</button>
+            <button class="pp-btn pp-btn-primary" id="btnSavePrescription"><i class="fas fa-check"></i> Save Prescription</button>
+        </div>
+    </div>
+</div>
+
+<div class="pp-modal" id="alertsModal">
+    <div class="pp-modal-overlay"></div>
+    <div class="pp-modal-content">
+        <div class="pp-modal-header">
+            <h2><i class="fas fa-bell"></i> All Alerts</h2>
+            <button class="pp-modal-close" data-modal="alertsModal"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="pp-modal-body">
+            <div class="pp-alert-list">
+                @if (alertRecords.Any())
+                {
+                    @foreach (var alert in alertRecords)
+                    {
+                        var rawType = (alert.AlertType ?? "info").ToLowerInvariant();
+                        var alertClass = rawType == "danger" || rawType == "critical"
+                            ? "critical"
+                            : rawType == "warning"
+                                ? "warning"
+                                : rawType == "success"
+                                    ? "success"
+                                    : "info";
+                        var iconClass = alertClass switch
+                        {
+                            "critical" => "fa-exclamation-circle",
+                            "warning" => "fa-triangle-exclamation",
+                            "success" => "fa-circle-check",
+                            _ => "fa-circle-info"
+                        };
+
+                        <div class="pp-alert-item @alertClass">
+                            <div class="pp-alert-strip"></div>
+                            <div class="pp-alert-ico"><i class="fas @iconClass"></i></div>
+                            <div class="pp-alert-body">
+                                <div class="pp-alert-title">@alert.Title</div>
+                                <div class="pp-alert-msg">@alert.Message</div>
+                                <div class="pp-alert-time"><i class="fas fa-clock"></i> @alert.DateCreated.ToString("MMM dd, yyyy h:mm tt")</div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="pp-info-value">No alerts available for this patient.</div>
+                }
+            </div>
+        </div>
+        <div class="pp-modal-footer">
+            <button class="pp-btn pp-btn-primary" data-modal="alertsModal">Close</button>
+        </div>
+    </div>
+</div>
+
+<div class="pp-modal" id="medicalHistoryModal">
+    <div class="pp-modal-overlay"></div>
+    <div class="pp-modal-content pp-modal-large">
+        <div class="pp-modal-header">
+            <h2><i class="fas fa-file-medical"></i> Complete Medical History</h2>
+            <button class="pp-modal-close" data-modal="medicalHistoryModal"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="pp-modal-body">
+            @if (historyGroups.Any())
             {
-              <tr style="border-bottom:1px solid var(--dr-border);">
-                <td style="padding:.7rem;">@bp.DateTime.ToString("MMM dd, yyyy h:mm tt")</td>
-                <td style="padding:.7rem;">@bp.BloodPressure</td>
-                <td style="padding:.7rem;">@(bp.MeasurementTime ?? "-")</td>
-              </tr>
+                <div class="pp-history-timeline">
+                    @foreach (var group in historyGroups)
+                    {
+                        <div class="pp-history-date-group">
+                            <div class="pp-history-date-header">
+                                <span class="pp-history-date">@group.Key.ToString("MMMM dd, yyyy")</span>
+                            </div>
+
+                            @foreach (var entry in group.OrderByDescending(e => e.DateTime))
+                            {
+                                var entryClass = entry.Status == "critical"
+                                    ? "critical"
+                                    : entry.Status == "attention"
+                                        ? "warning"
+                                        : "normal";
+
+                                <div class="pp-history-timeline-item @entryClass">
+                                    <div class="pp-history-timeline-main">
+                                        <div class="pp-history-timeline-title">@entry.Title</div>
+                                        @if (!string.IsNullOrWhiteSpace(entry.SubTitle))
+                                        {
+                                            <div class="pp-history-timeline-sub">@entry.SubTitle</div>
+                                        }
+                                    </div>
+                                    <div class="pp-history-timeline-time">@entry.DateTime.ToString("h:mm tt")</div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
             }
-          }
-          else
-          {
-            <tr><td colspan="3" style="padding:1rem;color:var(--dr-muted);">No blood pressure records.</td></tr>
-          }
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-<div class="tab-content" id="tab-tests">
-  <div class="card">
-    <div class="card-header"><h3><i class="fas fa-flask"></i> Lab Test Results</h3></div>
-    <div style="display:flex;flex-direction:column;gap:.7rem;">
-      @if (Model.LabTests.Any())
-      {
-        @foreach (var test in Model.LabTests)
-        {
-          <div class="schedule-item" style="border-left-color:var(--dr-primary);">
-            <div class="schedule-content">
-              <h4>@test.TestType</h4>
-              <p>@test.UploadDate.ToString("MMM dd, yyyy")</p>
-            </div>
-          </div>
-        }
-      }
-      else
-      {
-        <div class="no-appointments" style="padding:1.5rem;"><p>No lab tests found.</p></div>
-      }
-    </div>
-  </div>
-</div>
-
-<div class="tab-content" id="tab-appointments">
-  <div class="card">
-    <div class="card-header"><h3><i class="fas fa-calendar-alt"></i> Appointment History</h3></div>
-    <div class="schedule-timeline">
-      @if (Model.AppointmentHistory.Any())
-      {
-        @foreach (var appt in Model.AppointmentHistory)
-        {
-          var statusCls = (appt.Booking?.Status ?? (appt.isBooked ? "confirmed" : "pending")).ToLower();
-          <div class="schedule-item @statusCls">
-            <div class="schedule-time">
-              <span class="time">@appt.Date.ToString("MMM dd")</span>
-              <span class="duration">@DateTime.Today.Add(appt.Time).ToString("h:mm tt")</span>
-            </div>
-            <div class="schedule-content">
-              <h4>@(appt.Booking?.Reason ?? "Consultation")</h4>
-              <p>@statusCls</p>
-            </div>
-          </div>
-        }
-      }
-      else
-      {
-        <div class="no-appointments" style="padding:1.5rem;"><p>No appointments found.</p></div>
-      }
-    </div>
-  </div>
-</div>
-
-<div class="tab-content" id="tab-notes">
-  <div class="card">
-    <div class="card-header">
-      <h3><i class="fas fa-sticky-note"></i> Clinical Notes</h3>
-      <button class="btn btn-sm btn-primary" id="addNoteBtn2"><i class="fas fa-plus"></i> Add Note</button>
-    </div>
-    <div id="addNoteForm" style="display:none;padding:1rem;border-bottom:1px solid var(--dr-border);background:var(--dr-light);">
-      @using (Html.BeginForm("AddNote", "Doctor", FormMethod.Post))
-      {
-        @Html.AntiForgeryToken()
-        <input type="hidden" name="patientId" value="@p.PatientID" />
-        <input type="hidden" name="doctorId" value="@Model.Doctor.DoctorID" />
-        <div class="form-group" style="margin-bottom:.6rem;">
-          <textarea id="noteText" name="content" class="form-input" rows="4" placeholder="Write your clinical note here..." required></textarea>
+            else
+            {
+                <div class="pp-info-value">No medical history records available.</div>
+            }
         </div>
-        <div style="display:flex;gap:.6rem;">
-          <button type="submit" class="btn btn-primary">Save Note</button>
-          <button type="button" class="btn btn-outline" id="cancelNote">Cancel</button>
+        <div class="pp-modal-footer">
+            <button class="pp-btn pp-btn-primary" data-modal="medicalHistoryModal">Close</button>
         </div>
-      }
     </div>
-    <div style="display:flex;flex-direction:column;gap:.7rem;margin-top:.5rem;">
-      @if (Model.ClinicalNotes.Any())
-      {
-        @foreach (var note in Model.ClinicalNotes)
-        {
-          <div class="schedule-item">
-            <div class="schedule-content">
-              <h4>@note.CreatedDate.ToString("MMM dd, yyyy h:mm tt")</h4>
-              <p>@note.Content</p>
-            </div>
-          </div>
-        }
-      }
-      else
-      {
-        <div class="no-appointments" style="padding:1.5rem;"><p>No clinical notes yet.</p></div>
-      }
-    </div>
-  </div>
 </div>
 
-<div class="tab-content" id="tab-prescriptions">
-  <div class="card">
-    <div class="card-header">
-      <h3><i class="fas fa-prescription"></i> Prescriptions</h3>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:.7rem;margin-top:.5rem;">
-      @if (Model.Prescriptions.Any())
-      {
-        @foreach (var rx in Model.Prescriptions)
-        {
-          <div class="schedule-item">
-            <div class="schedule-content">
-              <h4>@rx.PrescriptionDate.ToString("MMM dd, yyyy")</h4>
-              <p>@(string.IsNullOrWhiteSpace(rx.Notes) ? "No notes" : rx.Notes)</p>
+<div class="pp-modal" id="labTestsModal">
+    <div class="pp-modal-overlay"></div>
+    <div class="pp-modal-content pp-modal-large">
+        <div class="pp-modal-header">
+            <h2><i class="fas fa-vials"></i> Complete Lab Test Results</h2>
+            <button class="pp-modal-close" data-modal="labTestsModal"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="pp-modal-body">
+            <div class="pp-lab-test-group">
+                <div class="pp-lab-test-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Test Name</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.LabTests.Any())
+                            {
+                                @foreach (var test in Model.LabTests)
+                                {
+                                    <tr>
+                                        <td><strong>@test.TestType</strong></td>
+                                        <td>@test.UploadDate.ToString("MMM dd, yyyy")</td>
+                                        <td><span class="pp-lab-badge normal"><i class="fas fa-check-circle"></i> Uploaded</span></td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="3">No lab tests available.</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
             </div>
-          </div>
-        }
-      }
-      else
-      {
-        <div class="no-appointments" style="padding:1.5rem;"><p>No prescriptions found.</p></div>
-      }
+        </div>
+        <div class="pp-modal-footer">
+            <button class="pp-btn pp-btn-secondary" onclick="window.print()"><i class="fas fa-print"></i> Print Results</button>
+            <button class="pp-btn pp-btn-primary" data-modal="labTestsModal">Close</button>
+        </div>
     </div>
-  </div>
 </div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/doctor-patient-profile.css" asp-append-version="true" />
+}
 
 @section Scripts {
-<script>
-document.querySelectorAll('.detail-tab').forEach(tab => {
-  tab.addEventListener('click', function () {
-    document.querySelectorAll('.detail-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    this.classList.add('active');
-    document.getElementById('tab-' + this.dataset.tab).classList.add('active');
-  });
-});
-
-['addNoteBtn','addNoteBtn2'].forEach(id => {
-  document.getElementById(id)?.addEventListener('click', () => {
-    const f = document.getElementById('addNoteForm');
-    f.style.display = f.style.display === 'none' ? 'block' : 'none';
-    if (f.style.display === 'block') {
-      document.querySelectorAll('.detail-tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      document.querySelector('.detail-tab[data-tab="notes"]').classList.add('active');
-      document.getElementById('tab-notes').classList.add('active');
-      document.getElementById('noteText')?.focus();
-    }
-  });
-});
-
-document.getElementById('cancelNote')?.addEventListener('click', () => {
-  document.getElementById('addNoteForm').style.display = 'none';
-});
-</script>
+    <script>
+        window.patientProfileBootstrap = {
+            dueDate: '@(dueDate?.ToString("yyyy-MM-dd") ?? string.Empty)',
+            doctorId: @Model.Doctor.DoctorID,
+            patientId: @p.PatientID,
+            patientName: '@patientName',
+            createPrescriptionUrl: '@Url.Action("CreatePrescription", "Doctor", new { id = Model.Doctor.DoctorID })'
+        };
+    </script>
+    <script src="~/js/doctor-patient-profile.js" asp-append-version="true"></script>
 }
