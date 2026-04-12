@@ -16,6 +16,156 @@
 }
 @section Head {
     @Html.AntiForgeryToken()
+    <style>
+        #rescheduleModal {
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+        }
+
+        #rescheduleModal .pa-modal {
+            max-width: 640px;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid #dbe7f3;
+            box-shadow: 0 20px 55px rgba(15, 23, 42, 0.2);
+        }
+
+        #rescheduleModal .pa-modal-header {
+            background: linear-gradient(135deg, #f8fbff 0%, #f0f9ff 100%);
+            border-bottom: 1px solid #e2e8f0;
+            padding: 16px 20px;
+        }
+
+        #rescheduleModal .pa-modal-header h3 {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+            color: #1e293b;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        #rescheduleModal .pa-modal-body {
+            padding: 18px 20px;
+            background: #ffffff;
+        }
+
+        .reschedule-current-box {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 10px 12px;
+            margin-bottom: 14px;
+            color: #334155;
+            font-weight: 500;
+        }
+
+        .reschedule-current-box i {
+            color: #0ea5e9;
+        }
+
+        .reschedule-hint {
+            margin-top: 8px;
+            font-size: 0.9rem;
+            color: #64748b;
+            min-height: 20px;
+        }
+
+        #rescheduleModal .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: #334155;
+            font-weight: 600;
+            font-size: 0.92rem;
+        }
+
+        #rescheduleModal .form-select {
+            width: 100%;
+            height: 42px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            padding: 0 12px;
+            background: #fff;
+            color: #1e293b;
+            transition: border-color .2s ease, box-shadow .2s ease;
+        }
+
+        .reschedule-select-wrap {
+            position: relative;
+        }
+
+        .reschedule-time-select {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            padding-right: 40px !important;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .reschedule-select-wrap::after {
+            content: "\f078";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: #64748b;
+            font-size: 0.8rem;
+        }
+
+        .reschedule-time-select option {
+            color: #1e293b;
+        }
+
+        #rescheduleModal .form-select:focus {
+            outline: none;
+            border-color: #22b8cf;
+            box-shadow: 0 0 0 3px rgba(34, 184, 207, 0.16);
+        }
+
+        .reschedule-field {
+            margin-top: 12px;
+        }
+
+        .reschedule-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            border-top: 1px solid #e5e7eb;
+            background: #fafcff;
+        }
+
+        .btn-reschedule-cancel,
+        .btn-reschedule-save {
+            min-width: 92px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .btn-reschedule-save {
+            background: linear-gradient(135deg, #14b8a6 0%, #06b6d4 100%);
+            border: none;
+            color: #fff;
+        }
+
+        .btn-reschedule-save:hover {
+            filter: brightness(0.97);
+        }
+
+        .btn-reschedule-save:disabled {
+            opacity: .75;
+            cursor: not-allowed;
+        }
+    </style>
 }
 
 <header class="header pa-header pa-hero">
@@ -205,6 +355,7 @@
                                 var status = appt.Booking?.Status ?? "Confirmed";
                                 var canCancel = string.Equals(status, "Confirmed", StringComparison.OrdinalIgnoreCase)
                                              || string.Equals(status, "Modified", StringComparison.OrdinalIgnoreCase);
+                                var canReschedule = string.Equals(status, "Modified", StringComparison.OrdinalIgnoreCase);
                                 var timeDisplay = DateTime.Today.Add(appt.Time).ToString("h:mm tt");
                                 var reason = appt.Booking?.Reason;
                                 if (string.IsNullOrWhiteSpace(reason)) reason = "Appointment";
@@ -231,6 +382,18 @@
                                     <div class="appointment-actions">
                                         @if (canCancel)
                                         {
+                                            @if (canReschedule)
+                                            {
+                                                <button class="btn btn-sm btn-outline reschedule-btn"
+                                                        data-appointment-id="@appt.AppointmentID"
+                                                        data-patient-id="@patientId"
+                                                        data-doctor-id="@appt.DoctorID"
+                                                        data-clinic-id="@appt.ClinicID"
+                                                        data-date="@appt.Date.ToString("yyyy-MM-dd")"
+                                                        data-time="@DateTime.Today.Add(appt.Time).ToString("hh:mm tt")">
+                                                    <i class="fas fa-edit"></i> Change Time
+                                                </button>
+                                            }
                                             <button class="btn btn-sm btn-outline danger cancel-btn"
                                                     data-appointment-id="@appt.AppointmentID"
                                                     data-patient-id="@patientId">
@@ -366,6 +529,42 @@
                     </div>
                 </div>
             }
+
+            <div class="pa-modal-overlay" id="rescheduleModal" aria-hidden="true">
+                <div class="pa-modal" role="dialog" aria-modal="true" aria-labelledby="rescheduleModalTitle">
+                    <div class="pa-modal-header">
+                        <h3 id="rescheduleModalTitle"><i class="fas fa-edit"></i> Change Appointment Time</h3>
+                        <button class="pa-modal-close" id="closeRescheduleModalBtn" type="button" aria-label="Close">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="pa-modal-body">
+                        <div class="reschedule-current-box">
+                            <i class="fas fa-clock"></i>
+                            <span id="rescheduleCurrentInfo">Current time:</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="rescheduleDate">Date</label>
+                            <input id="rescheduleDate" type="date" class="form-select" />
+                        </div>
+                        <div class="form-group reschedule-field">
+                            <label for="rescheduleSlot">Available Times</label>
+                            <div class="reschedule-select-wrap">
+                                <select id="rescheduleSlot" class="form-select reschedule-time-select">
+                                    <option value="">Choose a time</option>
+                                </select>
+                            </div>
+                            <p id="rescheduleHint" class="reschedule-hint">Pick a date to load available times.</p>
+                        </div>
+                    </div>
+                    <div class="booking-navigation reschedule-footer">
+                        <button type="button" class="btn btn-outline btn-reschedule-cancel" id="cancelRescheduleBtn">Cancel</button>
+                        <button type="button" class="btn btn-primary btn-reschedule-save" id="confirmRescheduleBtn">
+                            <i class="fas fa-check"></i> Save
+                        </button>
+                    </div>
+                </div>
+            </div>
 </div>
 @section Scripts {
     <script>
@@ -406,6 +605,197 @@
           const antiForgeryToken = document.querySelector(
             '[name="__RequestVerificationToken"]'
           )?.value ?? "";
+
+          // ================================
+          // Reschedule Modal
+          // ================================
+          const rescheduleModal = document.getElementById("rescheduleModal");
+          const closeRescheduleModalBtn = document.getElementById("closeRescheduleModalBtn");
+          const cancelRescheduleBtn = document.getElementById("cancelRescheduleBtn");
+          const confirmRescheduleBtn = document.getElementById("confirmRescheduleBtn");
+          const rescheduleDate = document.getElementById("rescheduleDate");
+          const rescheduleSlot = document.getElementById("rescheduleSlot");
+          const rescheduleCurrentInfo = document.getElementById("rescheduleCurrentInfo");
+          const rescheduleHint = document.getElementById("rescheduleHint");
+
+          let rescheduleContext = {
+            patientId: null,
+            currentAppointmentId: null,
+            doctorId: null,
+            clinicId: null,
+          };
+
+          function openRescheduleModal() {
+            if (!rescheduleModal) return;
+            rescheduleModal.classList.add("open");
+            rescheduleModal.setAttribute("aria-hidden", "false");
+            document.body.style.overflow = "hidden";
+          }
+
+          function closeRescheduleModal() {
+            if (!rescheduleModal) return;
+            rescheduleModal.classList.remove("open");
+            rescheduleModal.setAttribute("aria-hidden", "true");
+            document.body.style.overflow = "";
+
+            if (rescheduleSlot) {
+              rescheduleSlot.innerHTML = '<option value="">Choose a time</option>';
+            }
+
+            if (rescheduleHint) {
+              rescheduleHint.textContent = "Pick a date to load available times.";
+            }
+          }
+
+          async function loadRescheduleSlots() {
+            if (!rescheduleDate || !rescheduleSlot) return;
+            if (!rescheduleDate.value || !rescheduleContext.patientId || !rescheduleContext.doctorId) return;
+
+            rescheduleSlot.innerHTML = '<option value="">Loading...</option>';
+            if (rescheduleHint) rescheduleHint.textContent = "Loading available times...";
+
+            try {
+              let url = `/PatientAppointments/GetDoctorSlots?patientId=${rescheduleContext.patientId}&doctorId=${rescheduleContext.doctorId}&date=${rescheduleDate.value}`;
+              if (rescheduleContext.clinicId) {
+                url += `&clinicId=${rescheduleContext.clinicId}`;
+              }
+
+              const response = await fetch(url);
+              const slots = await response.json();
+              rescheduleSlot.innerHTML = '<option value="">Choose a time</option>';
+
+              if (!Array.isArray(slots) || slots.length === 0) {
+                if (rescheduleHint) rescheduleHint.textContent = "No available times on this date.";
+                window.showNotification?.("No available slots for this date.", "info");
+                return;
+              }
+
+              if (rescheduleHint) rescheduleHint.textContent = `${slots.length} available time slot(s).`;
+
+              slots.forEach((slot) => {
+                const option = document.createElement("option");
+                option.value = String(slot.appointmentId);
+                option.textContent = slot.timeDisplay;
+                rescheduleSlot.appendChild(option);
+              });
+            } catch {
+              rescheduleSlot.innerHTML = '<option value="">Choose a time</option>';
+              if (rescheduleHint) rescheduleHint.textContent = "Unable to load times. Please try another date.";
+              window.showNotification?.("Error loading available times.", "error");
+            }
+          }
+
+          async function dateHasAvailability(dateValue) {
+            if (!dateValue || !rescheduleContext.patientId || !rescheduleContext.doctorId) return false;
+
+            const selected = new Date(dateValue + "T00:00:00");
+            const month = selected.getMonth() + 1;
+            const year = selected.getFullYear();
+
+            try {
+              let url = `/PatientAppointments/GetAvailableDates?patientId=${rescheduleContext.patientId}&doctorId=${rescheduleContext.doctorId}&year=${year}&month=${month}`;
+              if (rescheduleContext.clinicId) {
+                url += `&clinicId=${rescheduleContext.clinicId}`;
+              }
+
+              const response = await fetch(url);
+              const dates = await response.json();
+              return Array.isArray(dates) && dates.includes(dateValue);
+            } catch {
+              return false;
+            }
+          }
+
+          document.querySelectorAll(".reschedule-btn").forEach((btn) => {
+            btn.addEventListener("click", async function () {
+              rescheduleContext.patientId = parseInt(this.dataset.patientId);
+              rescheduleContext.currentAppointmentId = parseInt(this.dataset.appointmentId);
+              rescheduleContext.doctorId = parseInt(this.dataset.doctorId);
+              rescheduleContext.clinicId = parseInt(this.dataset.clinicId);
+
+              if (rescheduleCurrentInfo) {
+                rescheduleCurrentInfo.textContent = `Current slot: ${this.dataset.date} at ${this.dataset.time}`;
+              }
+
+              const today = new Date().toISOString().split("T")[0];
+              if (rescheduleDate) {
+                rescheduleDate.min = today;
+                rescheduleDate.value = this.dataset.date || today;
+              }
+
+              if (rescheduleSlot) {
+                rescheduleSlot.innerHTML = '<option value="">Choose a time</option>';
+              }
+
+              openRescheduleModal();
+              const hasAvailability = await dateHasAvailability(rescheduleDate?.value || "");
+              if (hasAvailability) {
+                await loadRescheduleSlots();
+              } else {
+                if (rescheduleHint) rescheduleHint.textContent = "No available times on this date.";
+                window.showNotification?.("No available slots on this date. Please choose another date.", "info");
+              }
+            });
+          });
+
+          rescheduleDate?.addEventListener("change", async function () {
+            if (!rescheduleDate?.value) return;
+            const hasAvailability = await dateHasAvailability(rescheduleDate.value);
+            if (!hasAvailability) {
+              if (rescheduleSlot) {
+                rescheduleSlot.innerHTML = '<option value="">Choose a time</option>';
+              }
+              if (rescheduleHint) rescheduleHint.textContent = "No available times on this date.";
+              window.showNotification?.("No available slots on this date. Please choose another date.", "info");
+              return;
+            }
+
+            await loadRescheduleSlots();
+          });
+          closeRescheduleModalBtn?.addEventListener("click", closeRescheduleModal);
+          cancelRescheduleBtn?.addEventListener("click", closeRescheduleModal);
+          rescheduleModal?.addEventListener("click", function (e) {
+            if (e.target === rescheduleModal) closeRescheduleModal();
+          });
+
+          confirmRescheduleBtn?.addEventListener("click", async function () {
+            const newAppointmentId = parseInt(rescheduleSlot?.value || "0");
+            if (!newAppointmentId) {
+              window.showNotification?.("Please select a new time.", "error");
+              return;
+            }
+
+            confirmRescheduleBtn.disabled = true;
+            confirmRescheduleBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            try {
+              const response = await fetch("/PatientAppointments/RescheduleAppointment", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: new URLSearchParams({
+                  __RequestVerificationToken: antiForgeryToken,
+                  patientId: String(rescheduleContext.patientId),
+                  currentAppointmentId: String(rescheduleContext.currentAppointmentId),
+                  newAppointmentId: String(newAppointmentId),
+                }),
+              });
+
+              const result = await response.json();
+              if (result.success) {
+                window.showNotification?.("Appointment rescheduled.", "success");
+                closeRescheduleModal();
+                setTimeout(() => window.location.reload(), 700);
+              } else {
+                window.showNotification?.(result.message || "Failed to reschedule.", "error");
+              }
+            } catch {
+              window.showNotification?.("Error while rescheduling.", "error");
+            } finally {
+              confirmRescheduleBtn.disabled = false;
+              confirmRescheduleBtn.innerHTML = '<i class="fas fa-check"></i> Save';
+            }
+          });
 
           document.querySelectorAll(".cancel-btn").forEach(function (btn) {
             btn.addEventListener("click", async function () {

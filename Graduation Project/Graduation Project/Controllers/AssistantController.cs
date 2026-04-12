@@ -679,7 +679,6 @@ namespace Graduation_Project.Controllers
                 return Json(new { success = false, message = "Access denied." });
 
             appointment.isBooked = false;
-            appointment.PatientID = null;
             _appointmentRepository.Update(appointment);
 
             if (appointment.Booking != null)
@@ -695,7 +694,6 @@ namespace Graduation_Project.Controllers
             return Json(new { success = true, message = "Appointment cancelled successfully." });
         }
 
-        // ── Availability ────────────────────────────────────────────────────
 
         public IActionResult Availability(int id, int? doctorId)
         {

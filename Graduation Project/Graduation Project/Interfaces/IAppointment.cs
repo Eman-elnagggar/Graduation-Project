@@ -32,5 +32,6 @@ namespace Graduation_Project.Interfaces
         IEnumerable<Appointment> GetAvailableByDoctorClinicAndDate(int doctorId, int clinicId, DateTime date);
         IEnumerable<Appointment> GetByDoctorAndDate(int doctorId, DateTime date);
         IEnumerable<Appointment> GetByDoctorAndDateRange(int doctorId, DateTime startDate, DateTime endDate);
+        Appointment? GetAvailableSlotById(int appointmentId, int doctorId, int? clinicId = null);
     }
 }

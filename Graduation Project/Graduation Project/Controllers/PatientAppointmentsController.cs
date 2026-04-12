@@ -319,6 +319,64 @@ namespace Graduation_Project.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        public IActionResult RescheduleAppointment(int patientId, int currentAppointmentId, int newAppointmentId)
+        {
+            var (_, failure) = AuthorizePatientAccess(patientId, true);
+            if (failure != null)
+                return failure;
+
+            var current = _appointment.GetByIdWithBooking(currentAppointmentId);
+            if (current == null || !current.isBooked || current.PatientID != patientId)
+                return Json(new { success = false, message = "Appointment not found." });
+
+            var currentStatus = current.Booking?.Status ?? "Confirmed";
+            var canReschedule = string.Equals(currentStatus, "Modified", StringComparison.OrdinalIgnoreCase)
+                             || string.Equals(currentStatus, "Confirmed", StringComparison.OrdinalIgnoreCase);
+            if (!canReschedule)
+                return Json(new { success = false, message = "Only confirmed or modified appointments can be rescheduled." });
+
+            var newSlot = _appointment.GetAvailableSlotById(newAppointmentId, current.DoctorID, current.ClinicID);
+            if (newSlot == null)
+                return Json(new { success = false, message = "Selected time is no longer available." });
+
+            var now = DateTime.Now;
+            if (newSlot.Date.Date < now.Date || (newSlot.Date.Date == now.Date && newSlot.Time <= now.TimeOfDay))
+                return Json(new { success = false, message = "Please choose a future time slot." });
+
+            if (current.Booking == null)
+                return Json(new { success = false, message = "Booking data is missing for this appointment." });
+
+            var booking = current.Booking;
+
+            current.isBooked = false;
+            current.PatientID = null;
+            _appointment.Update(current);
+
+            newSlot.PatientID = patientId;
+            newSlot.isBooked = true;
+            _appointment.Update(newSlot);
+
+            booking.AppointmentID = newSlot.AppointmentID;
+            booking.ClinicID = newSlot.ClinicID;
+            booking.DoctorID = newSlot.DoctorID;
+            booking.PatientID = patientId;
+            booking.Status = "Confirmed";
+            _bookingRepository.Update(booking);
+
+            try
+            {
+                _bookingRepository.Save();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return Json(new { success = false, message = "This slot was just taken. Please choose another one." });
+            }
+
+            return Json(new { success = true, message = "Appointment rescheduled successfully." });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult SetPrimaryDoctor(int patientId, int doctorId)
         {
             var (_, failure) = AuthorizePatientAccess(patientId, true);
