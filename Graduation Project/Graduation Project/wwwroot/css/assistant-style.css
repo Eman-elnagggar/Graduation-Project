@@ -2257,7 +2257,7 @@
 }
 
 .sidebar .brand-icon {
-  background: linear-gradient(135deg, var(--assistant-primary), var(--assistant-accent-dark));
+  background: white;
   box-shadow: 0 6px 18px rgba(124, 58, 237, 0.35);
 }
 
