@@ -44,9 +44,10 @@ namespace Graduation_Project.ViewModels
 
     public class PatientConversationSummary
     {
-        public int DoctorId { get; set; }
+        public int ParticipantId { get; set; }
+        public string ParticipantType { get; set; } = "Doctor";
         public string ReceiverUserId { get; set; } = string.Empty;
-        public string DoctorName { get; set; } = "Doctor";
+        public string ParticipantName { get; set; } = "Doctor";
         public int UnreadCount { get; set; }
         public DateTime? LastMessageTime { get; set; }
         public string? LastMessagePreview { get; set; }

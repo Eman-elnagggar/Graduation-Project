@@ -10,7 +10,7 @@
     <div class="sidebar-brand">
         <div class="brand-logo">
             <div class="brand-icon">
-                <i class="fas fa-user-nurse"></i>
+                <img src="~/images/logo.png" alt="NABD Logo" asp-append-version="true" />
             </div>
             <div class="brand-text">
                 <span class="brand-name">NABD - نبض</span>
@@ -71,10 +71,6 @@
 
     <!-- Sidebar Footer -->
     <div class="sidebar-footer">
-        <a href="#" class="nav-item" data-tooltip="Patient Portal">
-            <div class="nav-icon"><i class="fas fa-exchange-alt"></i></div>
-            <span>Patient Portal</span>
-        </a>
         <a asp-controller="Account" asp-action="LogoutGet" class="nav-item logout-item" data-tooltip="Logout">
             <div class="nav-icon"><i class="fas fa-sign-out-alt"></i></div>
             <span>Logout</span>

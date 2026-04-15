@@ -84,10 +84,17 @@ body {
 }
 .panel-brand-icon {
   width: 46px; height: 46px; border-radius: 14px;
-  background: linear-gradient(135deg, var(--mc-primary), var(--mc-primary-dk));
+  background: #fff;
   display: flex; align-items: center; justify-content: center;
   font-size: 1.25rem; color: #fff;
+  overflow: hidden;
   box-shadow: 0 6px 20px rgba(27,174,190,.45);
+}
+.panel-brand-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 .panel-brand-name {
   font-family: var(--mc-font-serif);
@@ -139,9 +146,16 @@ body {
 @media (max-width: 900px) { .mobile-brand { display: flex; } }
 .mobile-brand-icon {
   width: 40px; height: 40px; border-radius: 12px;
-  background: linear-gradient(135deg, var(--mc-primary), var(--mc-primary-dk));
+  background: #fff;
   display: flex; align-items: center; justify-content: center;
   font-size: 1.1rem; color: #fff;
+  overflow: hidden;
+}
+.mobile-brand-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 .mobile-brand-name {
   font-family: var(--mc-font-serif); font-size: 1.4rem;

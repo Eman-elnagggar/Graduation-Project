@@ -288,37 +288,89 @@ namespace Graduation_Project.Controllers
                 return NotFound();
 
             var patientUserId = patient.UserID;
+            var approvedDoctorIds = approvedLinks
+                .Select(pd => pd.DoctorID)
+                .Distinct()
+                .ToList();
+
             var doctorUserIds = approvedLinks
                 .Select(pd => pd.Doctor!.UserID)
                 .Where(userId => !string.IsNullOrWhiteSpace(userId))
                 .Distinct()
                 .ToList();
 
+            var linkedAssistants = _context.AssistantDoctors
+                .Where(ad => approvedDoctorIds.Contains(ad.DoctorID))
+                .Include(ad => ad.Assistant)
+                    .ThenInclude(a => a.User)
+                .Where(ad => ad.Assistant != null && !string.IsNullOrWhiteSpace(ad.Assistant!.UserID))
+                .Select(ad => ad.Assistant!)
+                .GroupBy(a => a.AssistantID)
+                .Select(g => g.First())
+                .ToList();
+
+            var assistantUserIds = linkedAssistants
+                .Select(a => a.UserID)
+                .Where(userId => !string.IsNullOrWhiteSpace(userId))
+                .Distinct()
+                .ToList();
+
+            var receiverUserIds = doctorUserIds
+                .Concat(assistantUserIds)
+                .Distinct()
+                .ToList();
+
             var chatMessages = _context.ChatMessages
-                .Where(m => (m.SenderUserId == patientUserId && doctorUserIds.Contains(m.ReceiverUserId))
-                         || (m.ReceiverUserId == patientUserId && doctorUserIds.Contains(m.SenderUserId)))
+                .Where(m => (m.SenderUserId == patientUserId && receiverUserIds.Contains(m.ReceiverUserId))
+                         || (m.ReceiverUserId == patientUserId && receiverUserIds.Contains(m.SenderUserId)))
                 .OrderByDescending(m => m.SentAtUtc)
                 .ToList();
 
-            var conversations = approvedLinks
-                .Select(pd => new PatientConversationSummary
+            var doctorConversations = approvedLinks
+                .Select(pd => new
                 {
-                    DoctorId = pd.DoctorID,
+                    ParticipantId = pd.DoctorID,
+                    ParticipantType = "Doctor",
                     ReceiverUserId = pd.Doctor?.UserID ?? string.Empty,
-                    DoctorName = pd.Doctor?.User != null
+                    ParticipantName = pd.Doctor?.User != null
                         ? $"Dr. {pd.Doctor.User.FirstName} {pd.Doctor.User.LastName}".Trim()
-                        : "Doctor",
-                    UnreadCount = chatMessages.Count(m => m.SenderUserId == (pd.Doctor?.UserID ?? string.Empty) && m.ReceiverUserId == patientUserId && !m.IsRead),
+                        : "Doctor"
+                });
+
+            var assistantConversations = linkedAssistants
+                .Select(a => new
+                {
+                    ParticipantId = a.AssistantID,
+                    ParticipantType = "Assistant",
+                    ReceiverUserId = a.UserID ?? string.Empty,
+                    ParticipantName = a.User != null
+                        ? $"{a.User.FirstName} {a.User.LastName}".Trim()
+                        : "Assistant"
+                });
+
+            var conversations = doctorConversations
+                .Concat(assistantConversations)
+                .Where(c => !string.IsNullOrWhiteSpace(c.ReceiverUserId))
+                .GroupBy(c => c.ReceiverUserId)
+                .Select(g => g.First())
+                .Select(c => new PatientConversationSummary
+                {
+                    ParticipantId = c.ParticipantId,
+                    ParticipantType = c.ParticipantType,
+                    ReceiverUserId = c.ReceiverUserId,
+                    ParticipantName = c.ParticipantName,
+                    UnreadCount = chatMessages.Count(m => m.SenderUserId == c.ReceiverUserId && m.ReceiverUserId == patientUserId && !m.IsRead),
                     LastMessageTime = chatMessages
-                        .Where(m => m.SenderUserId == (pd.Doctor?.UserID ?? string.Empty) || m.ReceiverUserId == (pd.Doctor?.UserID ?? string.Empty))
+                        .Where(m => m.SenderUserId == c.ReceiverUserId || m.ReceiverUserId == c.ReceiverUserId)
                         .Select(m => (DateTime?)m.SentAtUtc)
                         .FirstOrDefault(),
                     LastMessagePreview = chatMessages
-                        .Where(m => m.SenderUserId == (pd.Doctor?.UserID ?? string.Empty) || m.ReceiverUserId == (pd.Doctor?.UserID ?? string.Empty))
+                        .Where(m => m.SenderUserId == c.ReceiverUserId || m.ReceiverUserId == c.ReceiverUserId)
                         .Select(m => _chatMessageCrypto.Decrypt(m.Message))
                         .FirstOrDefault() ?? "Start a conversation"
                 })
-                .OrderBy(c => c.DoctorName)
+                .OrderBy(c => c.ParticipantType)
+                .ThenBy(c => c.ParticipantName)
                 .ToList();
 
             var vm = new PatientMessagesViewModel
@@ -332,34 +384,51 @@ namespace Graduation_Project.Controllers
         }
 
         [HttpGet]
-        public IActionResult ConversationMessages(int id, int doctorId)
+        public IActionResult ConversationMessages(int id, string userId)
         {
             var (patient, failure) = AuthorizePatientAccess(id);
             if (failure != null)
                 return failure;
 
-            var approvedLink = _patientDoctorRepository
+            var approvedDoctorIds = _patientDoctorRepository
                 .GetByPatientId(id)
-                .FirstOrDefault(pd => pd.DoctorID == doctorId
-                                   && string.Equals(pd.Status, "Approved", StringComparison.OrdinalIgnoreCase));
+                .Where(pd => string.Equals(pd.Status, "Approved", StringComparison.OrdinalIgnoreCase))
+                .Select(pd => pd.DoctorID)
+                .Distinct()
+                .ToList();
 
-            if (approvedLink == null)
+            var linkedDoctorUserIds = _context.Doctors
+                .AsNoTracking()
+                .Where(d => approvedDoctorIds.Contains(d.DoctorID)
+                         && !string.IsNullOrWhiteSpace(d.UserID))
+                .Select(d => d.UserID!)
+                .ToList();
+
+            var linkedAssistantUserIds = _context.AssistantDoctors
+                .Where(ad => approvedDoctorIds.Contains(ad.DoctorID))
+                .Include(ad => ad.Assistant)
+                .Where(ad => ad.Assistant != null && !string.IsNullOrWhiteSpace(ad.Assistant!.UserID))
+                .Select(ad => ad.Assistant!.UserID!)
+                .Distinct()
+                .ToList();
+
+            var linkedUserIds = linkedDoctorUserIds
+                .Concat(linkedAssistantUserIds)
+                .Distinct()
+                .ToList();
+
+            if (string.IsNullOrWhiteSpace(userId) || !linkedUserIds.Contains(userId))
                 return Forbid();
 
-            var doctorUserId = approvedLink.Doctor?.UserID ?? _context.Doctors
-                .AsNoTracking()
-                .Where(d => d.DoctorID == doctorId)
-                .Select(d => d.UserID)
-                .FirstOrDefault();
-
-            if (string.IsNullOrWhiteSpace(patient.UserID) || string.IsNullOrWhiteSpace(doctorUserId))
+            if (string.IsNullOrWhiteSpace(patient.UserID))
                 return NotFound();
 
             var patientUserId = patient.UserID;
+            var receiverUserId = userId;
 
             var messages = _context.ChatMessages
-                .Where(m => (m.SenderUserId == patientUserId && m.ReceiverUserId == doctorUserId)
-                         || (m.SenderUserId == doctorUserId && m.ReceiverUserId == patientUserId))
+                .Where(m => (m.SenderUserId == patientUserId && m.ReceiverUserId == receiverUserId)
+                         || (m.SenderUserId == receiverUserId && m.ReceiverUserId == patientUserId))
                 .OrderBy(m => m.SentAtUtc)
                 .ToList()
                 .Select(m => new
@@ -373,7 +442,7 @@ namespace Graduation_Project.Controllers
                 .ToList();
 
             var unreadIncoming = _context.ChatMessages
-                .Where(m => m.SenderUserId == doctorUserId
+                .Where(m => m.SenderUserId == receiverUserId
                          && m.ReceiverUserId == patientUserId
                          && !m.IsRead)
                 .ToList();

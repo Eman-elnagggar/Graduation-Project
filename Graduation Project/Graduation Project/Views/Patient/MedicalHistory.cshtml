@@ -2,7 +2,7 @@
 @{
     Layout = "~/Views/Shared/_PatientLayout.cshtml";
     ViewData["Title"] = "Medical History";
-    ViewData["PatientId"]  = Model.Patient.PatientID;
+    ViewData["PatientId"] = Model.Patient.PatientID;
     ViewData["ActivePage"] = "MedicalHistory";
     var groups = Model.TimelineEntries
         .GroupBy(e => e.DateTime.Date)
@@ -10,1447 +10,2226 @@
         .ToList();
 }
 
-<!-- ══════════════════ HERO HEADER ══════════════════ -->
-<header class="mh-hero">
-    <div class="mh-hero-left">
-        <div class="mh-hero-icon">
-            <i class="fas fa-notes-medical"></i>
-        </div>
-        <div>
-            <h1 class="mh-hero-title">Medical History</h1>
-            <p class="mh-hero-sub">Your complete pregnancy journey and medical records</p>
-        </div>
-    </div>
-</header>
+<div class="mh-container">
 
-<!-- ══════════════════ QUICK STATS ══════════════════ -->
-<section class="mh-stats-grid">
-    <div class="mh-stat-card mh-stat-lab">
-        <div class="mh-stat-icon"><i class="fas fa-flask"></i></div>
-        <div class="mh-stat-body">
-            <span class="mh-stat-num">@Model.LabTestCount</span>
-            <span class="mh-stat-lbl">Lab Tests</span>
-        </div>
-        <div class="mh-stat-bg-icon"><i class="fas fa-flask"></i></div>
-    </div>
-    <div class="mh-stat-card mh-stat-ultra">
-        <div class="mh-stat-icon"><i class="fas fa-baby"></i></div>
-        <div class="mh-stat-body">
-            <span class="mh-stat-num">@Model.UltrasoundCount</span>
-            <span class="mh-stat-lbl">Ultrasounds</span>
-        </div>
-        <div class="mh-stat-bg-icon"><i class="fas fa-baby"></i></div>
-    </div>
-    <div class="mh-stat-card mh-stat-appt">
-        <div class="mh-stat-icon"><i class="fas fa-calendar-check"></i></div>
-        <div class="mh-stat-body">
-            <span class="mh-stat-num">@Model.AppointmentCount</span>
-            <span class="mh-stat-lbl">Appointments</span>
-        </div>
-        <div class="mh-stat-bg-icon"><i class="fas fa-calendar-check"></i></div>
-    </div>
-    <div class="mh-stat-card mh-stat-bp">
-        <div class="mh-stat-icon"><i class="fas fa-heartbeat"></i></div>
-        <div class="mh-stat-body">
-            <span class="mh-stat-num">@Model.BloodPressureCount</span>
-            <span class="mh-stat-lbl">BP Readings</span>
-        </div>
-        <div class="mh-stat-bg-icon"><i class="fas fa-heartbeat"></i></div>
-    </div>
-    <div class="mh-stat-card mh-stat-alert">
-        <div class="mh-stat-icon"><i class="fas fa-bell"></i></div>
-        <div class="mh-stat-body">
-            <span class="mh-stat-num">@Model.AlertCount</span>
-            <span class="mh-stat-lbl">Alerts</span>
-        </div>
-        <div class="mh-stat-bg-icon"><i class="fas fa-bell"></i></div>
-    </div>
-</section>
-
-<!-- ══════════════════ FILTERS ══════════════════ -->
-<section class="mh-filters-wrap">
-    <div class="mh-filters-card">
-        <div class="mh-filters-row">
-            <div class="mh-search-box">
-                <i class="fas fa-search mh-search-icon"></i>
-                <input type="text" placeholder="Search medical records…" id="historySearch" class="mh-search-input" />
+    <!-- ══════════════════ HERO HEADER ══════════════════ -->
+    <header class="mh-hero">
+        <div class="mh-hero-content">
+            <div class="mh-hero-left">
+                <span class="mh-hero-eyebrow">
+                    <i class="fas fa-heartbeat"></i> Medical Records
+                </span>
+                <h1 class="mh-hero-title">Health Timeline</h1>
+                <p class="mh-hero-subtitle">Your complete pregnancy journey and medical records</p>
             </div>
-            <div class="mh-filter-group">
-                <span class="mh-filter-label">Event Type</span>
-                <select id="eventTypeFilter" class="mh-select">
-                    <option value="all">All Events</option>
-                    <option value="lab-test">Lab Tests</option>
-                    <option value="ultrasound">Ultrasounds</option>
-                    <option value="appointment">Appointments</option>
-                    <option value="bp-reading">Blood Pressure</option>
-                    <option value="blood-sugar">Blood Sugar</option>
-                    <option value="alert">Alerts</option>
-                    <option value="doctor-note">Doctor Notes</option>
-                    <option value="medication">Medications</option>
-                    <option value="pregnancy-started">Pregnancy Started</option>
-                    <option value="pregnancy-ended">Pregnancy Updates</option>
-                </select>
+            <div class="mh-hero-right">
+                <button class="mh-action-btn mh-btn-secondary" id="printHistory">
+                    <i class="fas fa-print"></i>
+                    <span>Print</span>
+                </button>
+                <button class="mh-action-btn mh-btn-primary" id="exportHistory">
+                    <i class="fas fa-download"></i>
+                    <span>Export</span>
+                </button>
             </div>
-            <div class="mh-filter-group">
-                <span class="mh-filter-label">Status</span>
-                <select id="statusFilter" class="mh-select">
-                    <option value="all">All Status</option>
-                    <option value="normal">Normal</option>
-                    <option value="attention">Needs Attention</option>
-                    <option value="critical">Critical</option>
-                </select>
-            </div>
-            <button class="mh-btn mh-btn-ghost" id="clearFilters">
-                <i class="fas fa-times"></i> Clear
-            </button>
-            <button class="mh-btn mh-btn-primary" id="exportHistory">
-                <i class="fas fa-download"></i> Export
-            </button>
         </div>
-        <div class="mh-results-count" id="resultsCount"></div>
-    </div>
-</section>
+    </header>
 
-<!-- ══════════════════ TIMELINE ══════════════════ -->
-<section class="mh-timeline-section">
-    @if (!Model.TimelineEntries.Any())
-    {
-        <div class="mh-empty-state">
-            <div class="mh-empty-icon"><i class="fas fa-history"></i></div>
-            <h3>No medical records yet</h3>
-            <p>Records will appear here as you add health data.</p>
-        </div>
-    }
-    else
-    {
-        <div class="mh-timeline" id="timelineContainer">
-            @foreach (var group in groups)
-            {
-                string dayLabel;
-                if (group.Key == DateTime.Today) dayLabel = "Today";
-                else if (group.Key == DateTime.Today.AddDays(-1)) dayLabel = "Yesterday";
-                else dayLabel = group.Key.ToString("ddd");
+    <!-- ══════════════════ MAIN LAYOUT ══════════════════ -->
+    <div class="mh-main-layout">
 
-                <div class="mh-date-group timeline-date-group">
-                    <div class="mh-date-header">
-                        <span class="mh-day-badge @(group.Key == DateTime.Today ? "mh-day-today" : "")">@dayLabel</span>
-                        <div class="mh-date-line"></div>
-                        <span class="mh-date-full">@group.Key.ToString("MMMM dd, yyyy")</span>
+        <!-- LEFT SIDEBAR: STATS & FILTERS -->
+        <aside class="mh-sidebar">
+
+            <!-- Overview Card -->
+            <div class="mh-sidebar-card mh-overview-card">
+                <div class="mh-sidebar-header">
+                    <div class="mh-sidebar-icon">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <div>
+                        <h3 class="mh-sidebar-title">Records Overview</h3>
+                        <p class="mh-sidebar-subtitle">Summary statistics</p>
+                    </div>
+                </div>
+
+                <div class="mh-stats-list">
+                    <div class="mh-stat-item">
+                        <div class="mh-stat-icon mh-stat-lab">
+                            <i class="fas fa-flask"></i>
+                        </div>
+                        <div class="mh-stat-info">
+                            <span class="mh-stat-value">@Model.LabTestCount</span>
+                            <span class="mh-stat-label">Lab Tests</span>
+                        </div>
                     </div>
 
-                    @foreach (var entry in group.OrderByDescending(e => e.DateTime))
+                    <div class="mh-stat-item">
+                        <div class="mh-stat-icon mh-stat-ultrasound">
+                            <i class="fas fa-baby"></i>
+                        </div>
+                        <div class="mh-stat-info">
+                            <span class="mh-stat-value">@Model.UltrasoundCount</span>
+                            <span class="mh-stat-label">Ultrasounds</span>
+                        </div>
+                    </div>
+
+                    <div class="mh-stat-item">
+                        <div class="mh-stat-icon mh-stat-appointment">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div class="mh-stat-info">
+                            <span class="mh-stat-value">@Model.AppointmentCount</span>
+                            <span class="mh-stat-label">Appointments</span>
+                        </div>
+                    </div>
+
+                    <div class="mh-stat-item">
+                        <div class="mh-stat-icon mh-stat-vitals">
+                            <i class="fas fa-heartbeat"></i>
+                        </div>
+                        <div class="mh-stat-info">
+                            <span class="mh-stat-value">@Model.BloodPressureCount</span>
+                            <span class="mh-stat-label">Vital Signs</span>
+                        </div>
+                    </div>
+
+                    <div class="mh-stat-item">
+                        <div class="mh-stat-icon mh-stat-alert">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <div class="mh-stat-info">
+                            <span class="mh-stat-value">@Model.AlertCount</span>
+                            <span class="mh-stat-label">Health Alerts</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters Card -->
+            <div class="mh-sidebar-card mh-filter-card">
+                <div class="mh-sidebar-header">
+                    <div class="mh-sidebar-icon">
+                        <i class="fas fa-filter"></i>
+                    </div>
+                    <div>
+                        <h3 class="mh-sidebar-title">Filters</h3>
+                        <p class="mh-sidebar-subtitle">Refine records</p>
+                    </div>
+                </div>
+
+                <div class="mh-filter-section">
+                    <label class="mh-filter-label">
+                        <i class="fas fa-search"></i>
+                        Search Records
+                    </label>
+                    <input type="text"
+                           id="historySearch"
+                           class="mh-filter-input"
+                           placeholder="Search by keyword..." />
+                </div>
+
+                <div class="mh-filter-section">
+                    <label class="mh-filter-label">
+                        <i class="fas fa-layer-group"></i>
+                        Event Type
+                    </label>
+                    <select id="eventTypeFilter" class="mh-filter-select">
+                        <option value="all">All Events</option>
+                        <option value="lab-test">Lab Tests</option>
+                        <option value="ultrasound">Ultrasounds</option>
+                        <option value="appointment">Appointments</option>
+                        <option value="bp-reading">Blood Pressure</option>
+                        <option value="blood-sugar">Blood Sugar</option>
+                        <option value="alert">Alerts</option>
+                        <option value="doctor-note">Doctor Notes</option>
+                        <option value="medication">Medications</option>
+                        <option value="pregnancy-started">Pregnancy Started</option>
+                        <option value="pregnancy-ended">Pregnancy Updates</option>
+                    </select>
+                </div>
+
+                <div class="mh-filter-section">
+                    <label class="mh-filter-label">
+                        <i class="fas fa-flag"></i>
+                        Status
+                    </label>
+                    <select id="statusFilter" class="mh-filter-select">
+                        <option value="all">All Status</option>
+                        <option value="normal">Normal</option>
+                        <option value="attention">Needs Attention</option>
+                        <option value="critical">Critical</option>
+                    </select>
+                </div>
+
+                <button class="mh-clear-filters-btn" id="clearFilters">
+                    <i class="fas fa-redo"></i>
+                    Clear All Filters
+                </button>
+
+                <div class="mh-results-summary" id="resultsCount"></div>
+            </div>
+        </aside>
+
+        <!-- RIGHT CONTENT: TIMELINE -->
+        <main class="mh-content">
+
+            @if (!Model.TimelineEntries.Any())
+            {
+                <div class="mh-empty-state">
+                    <div class="mh-empty-icon">
+                        <i class="fas fa-clipboard-list"></i>
+                    </div>
+                    <h3 class="mh-empty-title">No Medical Records Yet</h3>
+                    <p class="mh-empty-text">Your health records and timeline will appear here as you add data.</p>
+                    <a href="/PatientDashboard/Dashboard/@Model.Patient.PatientID" class="mh-btn-primary">
+                        <i class="fas fa-plus"></i>
+                        Go to Dashboard
+                    </a>
+                </div>
+            }
+            else
+            {
+                <div class="mh-timeline" id="timelineContainer">
+                    @foreach (var group in groups)
                     {
-                        string markerClass = entry.EventType switch
-                        {
-                            "bp-reading"   => "bp",
-                            "blood-sugar"  => "bs",
-                            "lab-test"     => "lab",
-                            "ultrasound"   => "ultrasound",
-                            "appointment"  => "appointment",
-                            "alert"        => "alert",
-                            "doctor-note"  => "doctor",
-                            "medication"   => "medication",
-                            "pregnancy-started" => "system",
-                            "pregnancy-ended" => "system",
-                            _              => "system"
-                        };
-                        string icon = entry.EventType switch
-                        {
-                            "bp-reading"   => "fas fa-heartbeat",
-                            "blood-sugar"  => "fas fa-tint",
-                            "lab-test"     => "fas fa-flask",
-                            "ultrasound"   => "fas fa-baby",
-                            "appointment"  => "fas fa-calendar-check",
-                            "alert"        => "fas fa-exclamation-triangle",
-                            "doctor-note"  => "fas fa-user-md",
-                            "medication"   => "fas fa-pills",
-                            "pregnancy-started" => "fas fa-play-circle",
-                            "pregnancy-ended" => "fas fa-flag-checkered",
-                            _              => "fas fa-circle"
-                        };
-                        bool isWarning = entry.Status == "critical" || entry.Status == "attention";
+                        string dayLabel;
+                        if (group.Key == DateTime.Today) dayLabel = "Today";
+                        else if (group.Key == DateTime.Today.AddDays(-1)) dayLabel = "Yesterday";
+                        else dayLabel = group.Key.ToString("dddd");
 
-                        <div class="mh-card @markerClass @(isWarning ? "mh-card-warning" : "") timeline-item"
-                             data-type="@entry.EventType"
-                             data-status="@entry.Status"
-                             data-text="@(entry.Title + " " + entry.SubTitle + " " + entry.DoctorName)">
+                        <div class="mh-timeline-group timeline-date-group">
 
-                            <!-- Card left accent bar is via CSS border-left on .mh-card.{type} -->
-
-                            <div class="mh-card-marker @markerClass">
-                                <i class="@icon"></i>
+                            <!-- Date Header -->
+                            <div class="mh-timeline-date">
+                                <div class="mh-date-badge @(group.Key == DateTime.Today ? "today" : "")">
+                                    <span class="mh-date-day">@dayLabel</span>
+                                    <span class="mh-date-full">@group.Key.ToString("MMM dd, yyyy")</span>
+                                </div>
                             </div>
 
-                            <div class="mh-card-body">
-                                <!-- Card Header -->
-                                <div class="mh-card-header">
-                                    <div class="mh-card-title-row">
-                                        <span class="mh-event-type-pill @markerClass">@(entry.EventType?.Replace("-", " ").ToUpper() ?? "RECORD")</span>
-                                        <h4 class="mh-card-title">@entry.Title</h4>
-                                    </div>
-                                    <div class="mh-card-time">
-                                        <i class="fas fa-clock"></i>
-                                        @entry.DateTime.ToString("h:mm tt")
-                                    </div>
-                                </div>
-
-                                <!-- Card Content -->
-                                <div class="mh-card-content">
-
-                                    @* ── Blood Pressure ── *@
-                                    @if (entry.BloodPressure != null)
+                            <!-- Timeline Items -->
+                            <div class="mh-timeline-items">
+                                @foreach (var entry in group.OrderByDescending(e => e.DateTime))
+                                {
+                                    string eventClass = entry.EventType switch
                                     {
-                                        string bpBadge = entry.Status == "critical" ? "mh-badge-critical"
-                                                       : entry.Status == "attention" ? "mh-badge-elevated"
-                                                       : "mh-badge-normal";
-                                        string bpText  = entry.Status == "critical" ? "Critical"
-                                                       : entry.Status == "attention" ? "Elevated" : "Normal";
-                                        <div class="mh-reading-row">
-                                            <div class="mh-reading-block">
-                                                <span class="mh-reading-val">@entry.BloodPressure.BloodPressure</span>
-                                                <span class="mh-reading-unit">mmHg</span>
-                                            </div>
-                                            <span class="mh-badge @bpBadge"><i class="fas fa-circle"></i> @bpText</span>
+                                        "bp-reading" => "bp",
+                                        "blood-sugar" => "bs",
+                                        "lab-test" => "lab",
+                                        "ultrasound" => "ultrasound",
+                                        "appointment" => "appointment",
+                                        "alert" => "alert",
+                                        "doctor-note" => "doctor",
+                                        "medication" => "medication",
+                                        "pregnancy-started" => "default",
+                                        "pregnancy-ended" => "default",
+                                        _ => "default"
+                                    };
+
+                                    string icon = entry.EventType switch
+                                    {
+                                        "bp-reading" => "fas fa-heartbeat",
+                                        "blood-sugar" => "fas fa-tint",
+                                        "lab-test" => "fas fa-flask",
+                                        "ultrasound" => "fas fa-baby",
+                                        "appointment" => "fas fa-calendar-check",
+                                        "alert" => "fas fa-exclamation-triangle",
+                                        "doctor-note" => "fas fa-user-md",
+                                        "medication" => "fas fa-pills",
+                                        "pregnancy-started" => "fas fa-play-circle",
+                                        "pregnancy-ended" => "fas fa-flag-checkered",
+                                        _ => "fas fa-circle"
+                                    };
+
+                                    bool isCritical = entry.Status == "critical" || entry.Status == "attention";
+
+                                    <div class="mh-timeline-item timeline-item @eventClass @(isCritical ? "critical" : "")"
+                                         data-type="@entry.EventType"
+                                         data-status="@entry.Status"
+                                         data-text="@(entry.Title + " " + entry.SubTitle + " " + entry.DoctorName)">
+
+                                        <!-- Timeline Dot -->
+                                        <div class="mh-timeline-dot">
+                                            <i class="@icon"></i>
                                         </div>
-                                        @if (entry.BloodPressure.MeasurementTime != null)
-                                        {
-                                            <p class="mh-meta"><i class="fas fa-clock"></i> @entry.BloodPressure.MeasurementTime</p>
-                                        }
-                                    }
 
-                                    @* ── Blood Sugar ── *@
-                                    @if (entry.BloodSugar != null)
-                                    {
-                                        string bsBadge = entry.Status == "critical" ? "mh-badge-critical"
-                                                       : entry.Status == "attention" ? "mh-badge-elevated"
-                                                       : "mh-badge-normal";
-                                        string bsText  = entry.Status == "critical" ? "Critical"
-                                                       : entry.Status == "attention" ? "High" : "Normal";
-                                        <div class="mh-reading-row">
-                                            <div class="mh-reading-block">
-                                                <span class="mh-reading-val">@entry.BloodSugar.BloodSugar</span>
-                                                <span class="mh-reading-unit">mg/dL</span>
-                                            </div>
-                                            <span class="mh-badge @bsBadge"><i class="fas fa-circle"></i> @bsText</span>
-                                        </div>
-                                        @if (entry.BloodSugar.MeasurementTime != null)
-                                        {
-                                            <p class="mh-meta"><i class="fas fa-clock"></i> @entry.BloodSugar.MeasurementTime</p>
-                                        }
-                                    }
+                                        <!-- Timeline Card -->
+                                        <div class="mh-timeline-card">
 
-                                    @* ── Lab Test ── *@
-                                    @if (entry.LabTest != null)
-                                    {
-                                        bool hasAI = !string.IsNullOrWhiteSpace(entry.LabTest.AI_AnalysisJSON);
-                                        string labId = $"labReport_{entry.LabTest.LabTestID}";
-
-                                        <div class="mh-lab-card">
-                                            <!-- Coloured header band -->
-                                            <div class="mh-lab-header-band">
-                                                <div class="mh-lab-header-icon">
-                                                    <i class="fas fa-flask"></i>
-                                                </div>
-                                                <div class="mh-lab-header-info">
-                                                    <span class="mh-lab-test-type">@entry.LabTest.TestType</span>
-                                                    <span class="mh-lab-sub">Laboratory Test Result</span>
-                                                </div>
-                                                @if (hasAI)
-                                                {
-                                                    <span class="mh-lab-ai-badge"><i class="fas fa-robot"></i> AI Analysed</span>
-                                                }
-                                            </div>
-
-                                            <!-- Body: info chips + AI preview -->
-                                            <div class="mh-lab-body">
-                                                <div class="mh-lab-info-grid">
-                                                    <div class="mh-lab-info-cell">
-                                                        <div class="mh-lab-info-icon"><i class="fas fa-vial"></i></div>
-                                                        <div>
-                                                            <span class="mh-lab-info-label">Test Type</span>
-                                                            <span class="mh-lab-info-value">@entry.LabTest.TestType</span>
-                                                        </div>
-                                                    </div>
-                                                    <div class="mh-lab-info-cell">
-                                                        <div class="mh-lab-info-icon"><i class="fas fa-calendar-alt"></i></div>
-                                                        <div>
-                                                            <span class="mh-lab-info-label">Uploaded</span>
-                                                            <span class="mh-lab-info-value">@entry.LabTest.UploadDate.ToString("MMM dd, yyyy")</span>
-                                                        </div>
-                                                    </div>
-                                                    @if (!string.IsNullOrWhiteSpace(entry.LabTest.ImagePath))
-                                                    {
-                                                        <div class="mh-lab-info-cell">
-                                                            <div class="mh-lab-info-icon"><i class="fas fa-image"></i></div>
-                                                            <div>
-                                                                <span class="mh-lab-info-label">Image</span>
-                                                                <span class="mh-lab-info-value">Available</span>
-                                                            </div>
-                                                        </div>
-                                                    }
-                                                </div>
-
-                                                @if (hasAI)
-                                                {
-                                                    <div class="mh-lab-ai-preview">
-                                                        <div class="mh-lab-ai-preview-top">
-                                                            <span class="mh-lab-ai-title"><i class="fas fa-robot"></i> AI Analysis Summary</span>
-                                                            <span class="mh-lab-ai-dot mh-lab-ai-dot-active"></span>
-                                                        </div>
-                                                        <p class="mh-lab-ai-preview-text">AI analysis is available for this test. Open the full report to view detailed findings and parameter breakdown.</p>
-                                                    </div>
-                                                }
-                                                else
-                                                {
-                                                    <div class="mh-lab-ai-preview mh-lab-ai-preview-pending">
-                                                        <div class="mh-lab-ai-preview-top">
-                                                            <span class="mh-lab-ai-title"><i class="fas fa-hourglass-half"></i> AI Analysis</span>
-                                                        </div>
-                                                        <p class="mh-lab-ai-preview-text">Analysis not yet available for this test.</p>
-                                                    </div>
-                                                }
-
-                                                <!-- Action buttons -->
-                                                <div class="mh-lab-actions">
-                                                    <button class="mh-btn mh-btn-primary mh-lab-report-btn"
-                                                            data-labid="@entry.LabTest.LabTestID"
-                                                            data-testtype="@entry.LabTest.TestType"
-                                                            data-uploaddate="@entry.LabTest.UploadDate.ToString("MMMM dd, yyyy")"
-                                                            data-imagepath="@entry.LabTest.ImagePath"
-                                                            data-hasai="@hasAI.ToString().ToLower()"
-                                                            data-aijson="@(hasAI ? System.Web.HttpUtility.HtmlAttributeEncode(entry.LabTest.AI_AnalysisJSON) : "")">
-                                                        <i class="fas fa-file-medical-alt"></i> View Full Report
-                                                    </button>
-                                                    @if (!string.IsNullOrWhiteSpace(entry.LabTest.ImagePath))
-                                                    {
-                                                        <a href="/@entry.LabTest.ImagePath.TrimStart('/')" target="_blank" class="mh-btn mh-btn-ghost mh-lab-img-btn">
-                                                            <i class="fas fa-image"></i> View Image
-                                                        </a>
-                                                    }
-                                                </div>
-                                            </div>
-                                        </div>
-                                    }
-
-                                    @* ── Ultrasound ── *@
-                                    @if (entry.Ultrasound != null)
-                                    {
-                                        bool noAnomaly = string.IsNullOrWhiteSpace(entry.Ultrasound.DetectedAnomaly);
-                                        <div class="mh-ai-box @(noAnomaly ? "mh-ai-box-success" : "mh-ai-box-warn")">
-                                            <span class="mh-ai-label"><i class="fas fa-robot"></i> AI Analysis</span>
-                                            <p>@(noAnomaly ? "No anomalies detected. Fetal development appears normal." : entry.Ultrasound.DetectedAnomaly)</p>
-                                        </div>
-                                        @if (!string.IsNullOrWhiteSpace(entry.Ultrasound.DoctorComments))
-                                        {
-                                            <p class="mh-meta" style="margin-top:.5rem"><strong>Doctor note:</strong> @entry.Ultrasound.DoctorComments</p>
-                                        }
-                                    }
-
-                                    @* ── Appointment ── *@
-                                    @if (entry.Appointment != null)
-                                    {
-                                        bool isPast = entry.Appointment.Date < DateTime.Now;
-                                        string apptStatusClass = isPast ? "mh-appt-status-completed" : "mh-appt-status-upcoming";
-                                        string apptStatusIcon  = isPast ? "fa-check-circle" : "fa-hourglass-half";
-                                        string apptStatusText  = isPast ? "Completed" : "Upcoming";
-                                        string apptAccentClass = isPast ? "mh-appt-completed" : "mh-appt-upcoming";
-
-                                        <div class="mh-appt-card @apptAccentClass">
-                                            <!-- Header band -->
-                                            <div class="mh-appt-header-band">
-                                                <div class="mh-appt-doctor-avatar">
-                                                    <i class="fas fa-user-md"></i>
-                                                </div>
-                                                <div class="mh-appt-header-info">
-                                                    <span class="mh-appt-doctor-name">
-                                                        @(string.IsNullOrWhiteSpace(entry.DoctorName) ? "Doctor" : entry.DoctorName)
+                                            <!-- Card Header -->
+                                            <div class="mh-card-header">
+                                                <div class="mh-card-header-left">
+                                                    <span class="mh-event-badge @eventClass">
+                                                        <i class="@icon"></i>
+                                                        @(entry.EventType?.Replace("-", " ") ?? "Record")
                                                     </span>
-                                                    <span class="mh-appt-specialty">General Practitioner</span>
+                                                    <h4 class="mh-card-title">@entry.Title</h4>
                                                 </div>
-                                                <span class="mh-appt-status-pill @apptStatusClass">
-                                                    <i class="fas @apptStatusIcon"></i>
-                                                    @apptStatusText
+                                                <span class="mh-card-time">
+                                                    <i class="fas fa-clock"></i>
+                                                    @entry.DateTime.ToString("h:mm tt")
                                                 </span>
                                             </div>
 
-                                            <!-- Body -->
-                                            <div class="mh-appt-body">
-                                                <div class="mh-appt-info-grid">
-                                                    @if (!string.IsNullOrWhiteSpace(entry.ClinicName))
-                                                    {
-                                                        <div class="mh-appt-info-cell">
-                                                            <div class="mh-appt-info-icon mh-appt-icon-clinic">
-                                                                <i class="fas fa-hospital"></i>
-                                                            </div>
-                                                            <div>
-                                                                <span class="mh-appt-info-label">Clinic</span>
-                                                                <span class="mh-appt-info-value">@entry.ClinicName</span>
-                                                            </div>
-                                                        </div>
-                                                    }
-                                                    <div class="mh-appt-info-cell">
-                                                        <div class="mh-appt-info-icon mh-appt-icon-time">
-                                                            <i class="fas fa-clock"></i>
-                                                        </div>
-                                                        <div>
-                                                            <span class="mh-appt-info-label">Time</span>
-                                                            <span class="mh-appt-info-value">@entry.Appointment.Time.ToString(@"hh\:mm")</span>
-                                                        </div>
-                                                    </div>
-                                                    <div class="mh-appt-info-cell">
-                                                        <div class="mh-appt-info-icon mh-appt-icon-date">
-                                                            <i class="fas fa-calendar-alt"></i>
-                                                        </div>
-                                                        <div>
-                                                            <span class="mh-appt-info-label">Date</span>
-                                                            <span class="mh-appt-info-value">@entry.Appointment.Date.ToString("MMM dd, yyyy")</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    }
+                                            <!-- Card Body -->
+                                            <div class="mh-card-body">
 
-                                    @* ── Alert ── *@
-                                    @if (entry.Alert != null)
-                                    {
-                                        // Determine severity tier from AlertType
-                                        string alertType    = (entry.Alert.AlertType ?? "info").ToLower();
-                                        bool isAlertDanger  = alertType == "danger"  || alertType == "critical";
-                                        bool isAlertWarning = alertType == "warning";
-                                        bool isAlertSuccess = alertType == "success";
-
-                                        string alertBoxClass  = isAlertDanger  ? "mh-alert-box-danger"
-                                                              : isAlertWarning ? "mh-alert-box-warning"
-                                                              : isAlertSuccess ? "mh-alert-box-success"
-                                                              :                  "mh-alert-box-info";
-
-                                        string alertIconClass = isAlertDanger  ? "fas fa-exclamation-circle"
-                                                              : isAlertWarning ? "fas fa-exclamation-triangle"
-                                                              : isAlertSuccess ? "fas fa-check-circle"
-                                                              :                  "fas fa-info-circle";
-
-                                        string severityLabel  = isAlertDanger  ? "Danger"
-                                                              : isAlertWarning ? "Warning"
-                                                              : isAlertSuccess ? "All Clear"
-                                                              :                  "Info";
-
-                                        <div class="mh-alert-card-inner @alertBoxClass">
-                                            <div class="mh-alert-stripe"></div>
-                                            <div class="mh-alert-card-body">
-                                                <div class="mh-alert-top-row">
-                                                    <span class="mh-alert-severity-pill @alertBoxClass">
-                                                        <i class="@alertIconClass"></i> @severityLabel
-                                                    </span>
-                                                    @if (!entry.Alert.IsRead)
-                                                    {
-                                                        <span class="mh-alert-unread-dot" title="Unread"></span>
-                                                    }
-                                                </div>
-                                                <p class="mh-alert-message-text">@entry.Alert.Message</p>
-                                                <div class="mh-badge-row" style="margin-top:.55rem">
-                                                    <span class="mh-badge @(entry.Alert.IsRead ? "mh-badge-completed" : "mh-badge-elevated")">
-                                                        <i class="fas @(entry.Alert.IsRead ? "fa-envelope-open" : "fa-envelope")"></i>
-                                                        @(entry.Alert.IsRead ? "Read" : "Unread")
-                                                    </span>
-                                                    <span class="mh-badge mh-badge-type">
-                                                        <i class="fas fa-tag"></i> @entry.Alert.AlertType
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    }
-
-                                    @* ── Doctor Note ── *@
-                                    @if (entry.DoctorNote != null)
-                                    {
-                                        <div class="mh-note-box">
-                                            <i class="fas fa-quote-left mh-note-quote"></i>
-                                            <p class="mh-note-text">@entry.DoctorNote.Content</p>
-                                        </div>
-                                    }
-
-                                    @* ── Medication / Prescription ── *@
-                                    @if (entry.Prescription != null)
-                                    {
-                                        <div class="mh-meds-list">
-                                            @if (entry.Prescription.Items != null && entry.Prescription.Items.Any())
-                                            {
-                                                foreach (var item in entry.Prescription.Items)
+                                                @* ── Blood Pressure ── *@
+                                                @if (entry.BloodPressure != null)
                                                 {
-                                                    <div class="mh-med-item">
-                                                        <div class="mh-med-pill-icon"><i class="fas fa-capsules"></i></div>
-                                                        <div class="mh-med-info">
-                                                            <strong>@item.MedicineName</strong>
-                                                            <span>@item.Dosage · @item.Frequency</span>
-                                                            @if (!string.IsNullOrWhiteSpace(item.Instructions))
+                                                    string statusClass = entry.Status == "critical" ? "critical" : entry.Status == "attention" ? "warning" : "normal";
+                                                    string statusText = entry.Status == "critical" ? "Critical" : entry.Status == "attention" ? "Elevated" : "Normal";
+
+                                                    <div class="mh-vitals-display">
+                                                        <div class="mh-vitals-reading">
+                                                            <span class="mh-vitals-value">@entry.BloodPressure.BloodPressure</span>
+                                                            <span class="mh-vitals-unit">mmHg</span>
+                                                        </div>
+                                                        <span class="mh-status-badge @statusClass">
+                                                            <i class="fas fa-circle"></i>
+                                                            @statusText
+                                                        </span>
+                                                    </div>
+                                                    @if (!string.IsNullOrWhiteSpace(entry.BloodPressure.MeasurementTime))
+                                                    {
+                                                        <p class="mh-card-meta">
+                                                            <i class="fas fa-clock"></i>
+                                                            Measured: @entry.BloodPressure.MeasurementTime
+                                                        </p>
+                                                    }
+                                                }
+
+                                                @* ── Blood Sugar ── *@
+                                                @if (entry.BloodSugar != null)
+                                                {
+                                                    string statusClass = entry.Status == "critical" ? "critical" : entry.Status == "attention" ? "warning" : "normal";
+                                                    string statusText = entry.Status == "critical" ? "Critical" : entry.Status == "attention" ? "High" : "Normal";
+
+                                                    <div class="mh-vitals-display">
+                                                        <div class="mh-vitals-reading">
+                                                            <span class="mh-vitals-value">@entry.BloodSugar.BloodSugar</span>
+                                                            <span class="mh-vitals-unit">mg/dL</span>
+                                                        </div>
+                                                        <span class="mh-status-badge @statusClass">
+                                                            <i class="fas fa-circle"></i>
+                                                            @statusText
+                                                        </span>
+                                                    </div>
+                                                    @if (!string.IsNullOrWhiteSpace(entry.BloodSugar.MeasurementTime))
+                                                    {
+                                                        <p class="mh-card-meta">
+                                                            <i class="fas fa-utensils"></i>
+                                                            @entry.BloodSugar.MeasurementTime
+                                                        </p>
+                                                    }
+                                                }
+
+                                                @* ── Lab Test ── *@
+                                                @if (entry.LabTest != null)
+                                                {
+                                                    bool hasAI = !string.IsNullOrWhiteSpace(entry.LabTest.AI_AnalysisJSON);
+
+                                                    <div class="mh-lab-container">
+                                                        <div class="mh-lab-details">
+                                                            <div class="mh-lab-detail-item">
+                                                                <i class="fas fa-vial"></i>
+                                                                <div>
+                                                                    <span class="mh-lab-detail-label">Test Type</span>
+                                                                    <span class="mh-lab-detail-value">@entry.LabTest.TestType</span>
+                                                                </div>
+                                                            </div>
+                                                            <div class="mh-lab-detail-item">
+                                                                <i class="fas fa-calendar-alt"></i>
+                                                                <div>
+                                                                    <span class="mh-lab-detail-label">Date</span>
+                                                                    <span class="mh-lab-detail-value">@entry.LabTest.UploadDate.ToString("MMM dd, yyyy")</span>
+                                                                </div>
+                                                            </div>
+                                                            @if (hasAI)
                                                             {
-                                                                <em>@item.Instructions</em>
+                                                                <div class="mh-lab-detail-item">
+                                                                    <i class="fas fa-robot"></i>
+                                                                    <div>
+                                                                        <span class="mh-lab-detail-label">Analysis</span>
+                                                                        <span class="mh-lab-detail-value">AI Analyzed</span>
+                                                                    </div>
+                                                                </div>
+                                                            }
+                                                        </div>
+
+                                                        <div class="mh-lab-actions">
+                                                            <button class="mh-lab-btn mh-lab-btn-primary"
+                                                                    data-labid="@entry.LabTest.LabTestID"
+                                                                    data-testtype="@entry.LabTest.TestType"
+                                                                    data-uploaddate="@entry.LabTest.UploadDate.ToString("MMMM dd, yyyy")"
+                                                                    data-imagepath="@entry.LabTest.ImagePath"
+                                                                    data-hasai="@hasAI.ToString().ToLower()"
+                                                                    data-aijson="@(hasAI ? System.Net.WebUtility.HtmlEncode(entry.LabTest.AI_AnalysisJSON) : "")">
+                                                                <i class="fas fa-file-medical-alt"></i>
+                                                                View Full Report
+                                                            </button>
+                                                            @if (!string.IsNullOrWhiteSpace(entry.LabTest.ImagePath))
+                                                            {
+                                                                <a href="/@entry.LabTest.ImagePath.TrimStart('/')"
+                                                                   target="_blank"
+                                                                   class="mh-lab-btn mh-lab-btn-secondary">
+                                                                    <i class="fas fa-image"></i>
+                                                                    View Image
+                                                                </a>
                                                             }
                                                         </div>
                                                     </div>
                                                 }
-                                            }
-                                            else if (!string.IsNullOrWhiteSpace(entry.Prescription.Notes))
-                                            {
-                                                <p class="mh-meta">@entry.Prescription.Notes</p>
-                                            }
+
+                                                @* ── Ultrasound ── *@
+                                                @if (entry.Ultrasound != null)
+                                                {
+                                                    bool noAnomaly = string.IsNullOrWhiteSpace(entry.Ultrasound.DetectedAnomaly);
+
+                                                    <div class="mh-ai-analysis @(noAnomaly ? "success" : "warning")">
+                                                        <div class="mh-ai-header">
+                                                            <i class="fas fa-robot"></i>
+                                                            <span>AI Analysis</span>
+                                                        </div>
+                                                        <p class="mh-ai-text">
+                                                            @(noAnomaly ? "No anomalies detected. Fetal development appears normal." : entry.Ultrasound.DetectedAnomaly)
+                                                        </p>
+                                                    </div>
+
+                                                    @if (!string.IsNullOrWhiteSpace(entry.Ultrasound.DoctorComments))
+                                                    {
+                                                        <div class="mh-doctor-comment">
+                                                            <i class="fas fa-comment-medical"></i>
+                                                            <div>
+                                                                <strong>Doctor's Note:</strong>
+                                                                <p>@entry.Ultrasound.DoctorComments</p>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                }
+
+                                                @* ── Appointment ── *@
+                                                @if (entry.Appointment != null)
+                                                {
+                                                    bool isPast = entry.Appointment.Date < DateTime.Now;
+                                                    var appointmentDateTime = entry.Appointment.Date.Date.Add(entry.Appointment.Time);
+
+                                                    <div class="mh-appointment-info">
+                                                        <div class="mh-appt-status @(isPast ? "completed" : "upcoming")">
+                                                            <i class="fas @(isPast ? "fa-check-circle" : "fa-clock")"></i>
+                                                            <span>@(isPast ? "Completed" : "Upcoming")</span>
+                                                        </div>
+
+                                                        <div class="mh-appt-details">
+                                                            @if (!string.IsNullOrWhiteSpace(entry.DoctorName))
+                                                            {
+                                                                <div class="mh-appt-detail">
+                                                                    <i class="fas fa-user-md"></i>
+                                                                    <span>@entry.DoctorName</span>
+                                                                </div>
+                                                            }
+                                                            @if (!string.IsNullOrWhiteSpace(entry.ClinicName))
+                                                            {
+                                                                <div class="mh-appt-detail">
+                                                                    <i class="fas fa-hospital"></i>
+                                                                    <span>@entry.ClinicName</span>
+                                                                </div>
+                                                            }
+                                                            <div class="mh-appt-detail">
+                                                                <i class="fas fa-calendar"></i>
+                                                                <span>@appointmentDateTime.ToString("MMM dd, yyyy 'at' h:mm tt")</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                }
+
+                                                @* ── Alert ── *@
+                                                @if (entry.Alert != null)
+                                                {
+                                                    string alertType = (entry.Alert.AlertType ?? "info").ToLower();
+                                                    string alertClass = alertType == "danger" || alertType == "critical" ? "danger"
+                                                                      : alertType == "warning" ? "warning"
+                                                                      : alertType == "success" ? "success" : "info";
+
+                                                    <div class="mh-alert-box @alertClass">
+                                                        <div class="mh-alert-header">
+                                                            <span class="mh-alert-severity @alertClass">
+                                                                <i class="fas fa-exclamation-triangle"></i>
+                                                                @entry.Alert.AlertType
+                                                            </span>
+                                                            @if (!entry.Alert.IsRead)
+                                                            {
+                                                                <span class="mh-alert-unread"></span>
+                                                            }
+                                                        </div>
+                                                        <p class="mh-alert-message">@entry.Alert.Message</p>
+                                                        <div class="mh-alert-footer">
+                                                            <span class="mh-alert-status">
+                                                                <i class="fas @(entry.Alert.IsRead ? "fa-envelope-open" : "fa-envelope")"></i>
+                                                                @(entry.Alert.IsRead ? "Read" : "Unread")
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                }
+
+                                                @* ── Doctor Note ── *@
+                                                @if (entry.DoctorNote != null)
+                                                {
+                                                    <div class="mh-note-box">
+                                                        <i class="fas fa-quote-left"></i>
+                                                        <p>@entry.DoctorNote.Content</p>
+                                                    </div>
+                                                }
+
+                                                @* ── Medication ── *@
+                                                @if (entry.Prescription != null)
+                                                {
+                                                    <div class="mh-medications">
+                                                        @if (entry.Prescription.Items != null && entry.Prescription.Items.Any())
+                                                        {
+                                                            @foreach (var item in entry.Prescription.Items)
+                                                            {
+                                                                <div class="mh-med-item">
+                                                                    <div class="mh-med-icon">
+                                                                        <i class="fas fa-capsules"></i>
+                                                                    </div>
+                                                                    <div class="mh-med-info">
+                                                                        <strong>@item.MedicineName</strong>
+                                                                        <span>@item.Dosage · @item.Frequency</span>
+                                                                        @if (!string.IsNullOrWhiteSpace(item.Instructions))
+                                                                        {
+                                                                            <em>@item.Instructions</em>
+                                                                        }
+                                                                    </div>
+                                                                </div>
+                                                            }
+                                                        }
+                                                        else if (!string.IsNullOrWhiteSpace(entry.Prescription.Notes))
+                                                        {
+                                                            <p class="mh-card-meta">@entry.Prescription.Notes</p>
+                                                        }
+                                                    </div>
+                                                }
+
+                                            </div>
+
+                                            <!-- Card Footer -->
+                                            <div class="mh-card-footer">
+                                                @if (!string.IsNullOrWhiteSpace(entry.DoctorName) && entry.Appointment == null)
+                                                {
+                                                    <span class="mh-footer-info">
+                                                        <i class="fas fa-user-md"></i>
+                                                        Dr. @entry.DoctorName
+                                                    </span>
+                                                }
+                                                else if (entry.BloodPressure != null || entry.BloodSugar != null)
+                                                {
+                                                    <span class="mh-footer-info">
+                                                        <i class="fas fa-user"></i>
+                                                        Self-recorded
+                                                    </span>
+                                                }
+                                                else if (entry.Alert != null)
+                                                {
+                                                    <span class="mh-footer-info">
+                                                        <i class="fas fa-robot"></i>
+                                                        System Alert
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span></span>
+                                                }
+
+                                                <span class="mh-footer-date">
+                                                    @entry.DateTime.ToString("MMM dd, yyyy")
+                                                </span>
+                                            </div>
+
                                         </div>
-                                    }
-
-                                </div><!-- /.mh-card-content -->
-
-                                <!-- Card Footer -->
-                                <div class="mh-card-footer">
-                                    @if (!string.IsNullOrWhiteSpace(entry.DoctorName) && entry.Appointment == null)
-                                    {
-                                        <span class="mh-recorded-by"><i class="fas fa-user-md"></i> @entry.DoctorName</span>
-                                    }
-                                    else if (entry.BloodPressure != null || entry.BloodSugar != null)
-                                    {
-                                        <span class="mh-recorded-by"><i class="fas fa-user"></i> Self-recorded</span>
-                                    }
-                                    else if (entry.Alert != null)
-                                    {
-                                        <span class="mh-recorded-by"><i class="fas fa-robot"></i> AI System</span>
-                                    }
-                                    else
-                                    {
-                                        <span></span>
-                                    }
-                                    <span class="mh-card-date-chip">@entry.DateTime.ToString("MMM dd, yyyy")</span>
-                                </div>
-
-                            </div><!-- /.mh-card-body -->
-                        </div><!-- /.mh-card -->
+                                    </div>
+                                }
+                            </div>
+                        </div>
                     }
-                </div><!-- /.mh-date-group -->
+                </div>
             }
-        </div>
-    }
-</section>
+
+        </main>
+
+    </div>
+
+</div>
 
 @section Scripts {
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    const searchInput     = document.getElementById("historySearch");
+    const searchInput = document.getElementById("historySearch");
     const eventTypeFilter = document.getElementById("eventTypeFilter");
-    const statusFilter    = document.getElementById("statusFilter");
-    const clearBtn        = document.getElementById("clearFilters");
-    const exportBtn       = document.getElementById("exportHistory");
-    const resultsCount    = document.getElementById("resultsCount");
+    const statusFilter = document.getElementById("statusFilter");
+    const clearBtn = document.getElementById("clearFilters");
+    const exportBtn = document.getElementById("exportHistory");
+    const printBtn = document.getElementById("printHistory");
+    const resultsCount = document.getElementById("resultsCount");
 
-    function getItems() { return document.querySelectorAll(".timeline-item"); }
+    function getItems() {
+        return document.querySelectorAll(".timeline-item");
+    }
 
     function filterTimeline() {
-        const search    = (searchInput?.value ?? "").toLowerCase();
+        const search = (searchInput?.value ?? "").toLowerCase();
         const eventType = eventTypeFilter?.value ?? "all";
-        const status    = statusFilter?.value    ?? "all";
+        const status = statusFilter?.value ?? "all";
         let visible = 0;
+
         getItems().forEach(item => {
-            const t  = (item.dataset.type   ?? "").toLowerCase();
-            const s  = (item.dataset.status ?? "").toLowerCase();
-            const tx = (item.dataset.text   ?? "").toLowerCase();
+            const t = (item.dataset.type ?? "").toLowerCase();
+            const s = (item.dataset.status ?? "").toLowerCase();
+            const tx = (item.dataset.text ?? "").toLowerCase();
+
             const show = (!search || tx.includes(search))
                       && (eventType === "all" || t === eventType)
-                      && (status    === "all" || s === status);
+                      && (status === "all" || s === status);
+
             item.style.display = show ? "flex" : "none";
             if (show) visible++;
         });
+
         document.querySelectorAll(".timeline-date-group").forEach(g => {
-            const hasVisible = Array.from(g.querySelectorAll(".timeline-item")).some(i => i.style.display !== "none");
+            const hasVisible = Array.from(g.querySelectorAll(".timeline-item"))
+                .some(i => i.style.display !== "none");
             g.style.display = hasVisible ? "block" : "none";
         });
-        if (resultsCount)
-            resultsCount.textContent = `${visible} record${visible !== 1 ? "s" : ""} found`;
+
+        if (resultsCount) {
+            resultsCount.innerHTML = `<i class="fas fa-check-circle"></i> ${visible} record${visible !== 1 ? 's' : ''} found`;
+        }
     }
 
-    function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+    function debounce(fn, ms) {
+        let t;
+        return (...a) => {
+            clearTimeout(t);
+            t = setTimeout(() => fn(...a), ms);
+        };
+    }
 
     searchInput?.addEventListener("input", debounce(filterTimeline, 250));
     eventTypeFilter?.addEventListener("change", filterTimeline);
     statusFilter?.addEventListener("change", filterTimeline);
+
     clearBtn?.addEventListener("click", () => {
-        if (searchInput)     searchInput.value     = "";
+        if (searchInput) searchInput.value = "";
         if (eventTypeFilter) eventTypeFilter.value = "all";
-        if (statusFilter)    statusFilter.value    = "all";
+        if (statusFilter) statusFilter.value = "all";
         filterTimeline();
     });
+
     exportBtn?.addEventListener("click", showExportModal);
+    printBtn?.addEventListener("click", () => window.print());
+
     filterTimeline();
 
     function showExportModal() {
         const modal = document.createElement("div");
-        modal.className = "mh-modal-wrap";
+        modal.className = "mh-modal-overlay";
         modal.innerHTML = `
-            <div class="mh-modal-overlay"></div>
             <div class="mh-modal">
                 <div class="mh-modal-header">
                     <h3><i class="fas fa-download"></i> Export Medical History</h3>
                     <button class="mh-modal-close"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="mh-modal-body">
-                    <p style="color:#64748b;margin-bottom:1rem">Choose format to export your records:</p>
+                    <p class="mh-modal-desc">Select the format for exporting your medical records</p>
                     <div class="mh-export-options">
-                        <label class="mh-export-opt">
-                            <input type="radio" name="exportFmt" value="pdf" checked>
-                            <div class="mh-export-opt-inner">
+                        <label class="mh-export-option">
+                            <input type="radio" name="exportFormat" value="pdf" checked>
+                            <div class="mh-export-option-content">
                                 <i class="fas fa-file-pdf"></i>
-                                <div><span>PDF Document</span><small>Best for printing & sharing</small></div>
+                                <div>
+                                    <strong>PDF Document</strong>
+                                    <span>Best for printing and sharing with healthcare providers</span>
+                                </div>
                             </div>
                         </label>
-                        <label class="mh-export-opt">
-                            <input type="radio" name="exportFmt" value="excel">
-                            <div class="mh-export-opt-inner">
+                        <label class="mh-export-option">
+                            <input type="radio" name="exportFormat" value="excel">
+                            <div class="mh-export-option-content">
                                 <i class="fas fa-file-excel"></i>
-                                <div><span>Excel Spreadsheet</span><small>Best for data analysis</small></div>
+                                <div>
+                                    <strong>Excel Spreadsheet</strong>
+                                    <span>Best for data analysis and record keeping</span>
+                                </div>
                             </div>
                         </label>
                     </div>
                 </div>
                 <div class="mh-modal-footer">
-                    <button class="mh-btn mh-btn-ghost mh-modal-cancel">Cancel</button>
-                    <button class="mh-btn mh-btn-primary mh-modal-export"><i class="fas fa-download"></i> Export</button>
+                    <button class="mh-modal-btn mh-modal-btn-cancel">Cancel</button>
+                    <button class="mh-modal-btn mh-modal-btn-export">
+                        <i class="fas fa-download"></i>
+                        Export
+                    </button>
                 </div>
-            </div>`;
+            </div>
+        `;
+
         document.body.appendChild(modal);
+
         modal.querySelector(".mh-modal-close").addEventListener("click", () => modal.remove());
-        modal.querySelector(".mh-modal-cancel").addEventListener("click", () => modal.remove());
-        modal.querySelector(".mh-modal-overlay").addEventListener("click", () => modal.remove());
-        modal.querySelector(".mh-modal-export").addEventListener("click", function () {
-            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting…';
-            setTimeout(() => { modal.remove(); showNotif("Exported successfully!", "success"); }, 1500);
+        modal.querySelector(".mh-modal-btn-cancel").addEventListener("click", () => modal.remove());
+        modal.addEventListener("click", (e) => {
+            if (e.target === modal) modal.remove();
+        });
+
+        modal.querySelector(".mh-modal-btn-export").addEventListener("click", function() {
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
+            this.disabled = true;
+            setTimeout(() => {
+                modal.remove();
+                showNotification("Medical history exported successfully!", "success");
+            }, 1500);
         });
     }
 
-    function showNotif(msg, type = "info") {
-        const n = document.createElement("div");
-        n.className = `mh-notif mh-notif-${type}`;
-        n.innerHTML = `<i class="fas fa-check-circle"></i><span>${msg}</span><button class="mh-notif-close"><i class="fas fa-times"></i></button>`;
-        document.body.appendChild(n);
-        n.querySelector(".mh-notif-close").addEventListener("click", () => n.remove());
-        setTimeout(() => n.remove(), 4000);
+    function showNotification(message, type = "success") {
+        if (typeof window.showNotification === 'function') {
+            window.showNotification(message, type);
+        } else {
+            const notification = document.createElement("div");
+            notification.className = `mh-notification mh-notification-${type}`;
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+                <span>${message}</span>
+                <button class="mh-notification-close"><i class="fas fa-times"></i></button>
+            `;
+            document.body.appendChild(notification);
+
+            notification.querySelector(".mh-notification-close").addEventListener("click", () => {
+                notification.remove();
+            });
+
+            setTimeout(() => notification.remove(), 4000);
+        }
     }
+
+    // Lab report button handlers
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.mh-lab-btn-primary')) {
+            const btn = e.target.closest('.mh-lab-btn-primary');
+            const labData = {
+                labId: btn.dataset.labid,
+                testType: btn.dataset.testtype,
+                uploadDate: btn.dataset.uploaddate,
+                imagePath: btn.dataset.imagepath,
+                hasAI: btn.dataset.hasai === 'true',
+                aiJSON: btn.dataset.aijson
+            };
+
+            console.log('Lab Report:', labData);
+            showNotification("Lab report viewer coming soon!", "info");
+        }
+    });
 });
 </script>
 
 <style>
-/* ─────────────────────────────────────────
-   CSS VARIABLES
-───────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════
+   MEDICAL HISTORY - MODERN PROFESSIONAL DESIGN
+   Following healthcare dashboard best practices
+══════════════════════════════════════════════════════════════ */
+
 :root {
-    --mh-primary:    #1BAEBE;
-    --mh-primary-dk: #138fa0;
-    --mh-text:       #1e293b;
-    --mh-muted:      #64748b;
-    --mh-light:      #f8fafc;
-    --mh-border:     #e2e8f0;
-    --mh-radius:     16px;
-    --mh-shadow:     0 4px 24px rgba(0,0,0,.07);
-    --mh-shadow-hover: 0 8px 32px rgba(0,0,0,.12);
+    --mh-primary: #1BAEBE;
+    --mh-primary-dark: #138fa0;
+    --mh-primary-light: #e0f7fa;
+
+    --mh-success: #22c55e;
+    --mh-success-light: #dcfce7;
+    --mh-warning: #f59e0b;
+    --mh-warning-light: #fef3c7;
+    --mh-danger: #ef4444;
+    --mh-danger-light: #fee2e2;
+    --mh-info: #3b82f6;
+    --mh-info-light: #dbeafe;
+
+    --mh-lab: #4caf50;
+    --mh-lab-light: #e8f5e9;
+    --mh-ultrasound: #9c27b0;
+    --mh-ultrasound-light: #f3e5f5;
+    --mh-appointment: #ff9800;
+    --mh-appointment-light: #fff3e0;
+    --mh-vitals: #2196f3;
+    --mh-vitals-light: #e3f2fd;
+    --mh-alert: #e91e63;
+    --mh-alert-light: #fce4ec;
+    --mh-doctor: #3f51b5;
+    --mh-doctor-light: #e8eaf6;
+    --mh-medication: #00bcd4;
+    --mh-medication-light: #e0f7fa;
+
+    --mh-navy: #0b1f35;
+    --mh-navy-mid: #152d47;
+    --mh-text: #1e293b;
+    --mh-text-light: #64748b;
+    --mh-text-lighter: #94a3b8;
+    --mh-border: #e2e8f0;
+    --mh-bg: #f8fafc;
+    --mh-white: #ffffff;
+
+    --mh-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
+    --mh-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+    --mh-shadow-lg: 0 8px 32px rgba(15, 23, 42, 0.12);
+
+    --mh-radius: 12px;
+    --mh-radius-lg: 16px;
+    --mh-radius-xl: 20px;
 }
 
-/* ─────────────────────────────────────────
-   HERO HEADER
-───────────────────────────────────────── */
+.mh-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0;
+}
+
 .mh-hero {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: linear-gradient(135deg, #0f2942 0%, #1a4a6e 50%, #0d3d5c 100%);
-    border-radius: 18px;
-    padding: 1.8rem 2rem;
-    margin-bottom: 1.75rem;
-    flex-wrap: wrap;
-    gap: 1rem;
+    background: linear-gradient(135deg, var(--mh-navy) 0%, var(--mh-navy-mid) 50%, #0d3d5c 100%);
+    border-radius: var(--mh-radius-xl);
+    padding: 2rem 2.5rem;
+    margin-bottom: 2rem;
     position: relative;
     overflow: hidden;
 }
+
 .mh-hero::before {
     content: "";
     position: absolute;
-    top: -40px; right: -40px;
-    width: 200px; height: 200px;
-    background: radial-gradient(circle, rgba(27,174,190,.25) 0%, transparent 70%);
+    top: -50px;
+    right: -50px;
+    width: 250px;
+    height: 250px;
+    background: radial-gradient(circle, rgba(27, 174, 190, 0.15) 0%, transparent 70%);
     pointer-events: none;
 }
+
 .mh-hero::after {
     content: "";
     position: absolute;
-    bottom: -60px; left: 20%;
-    width: 260px; height: 260px;
-    background: radial-gradient(circle, rgba(0,180,216,.12) 0%, transparent 70%);
+    bottom: -80px;
+    left: 30%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(0, 180, 216, 0.1) 0%, transparent 70%);
     pointer-events: none;
 }
+
+.mh-hero-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+    position: relative;
+    z-index: 1;
+}
+
 .mh-hero-left {
-    display: flex; align-items: center; z-index: 1;
+    flex: 1;
 }
-.mh-hero-icon {
-    width: 56px; height: 56px;
-    background: linear-gradient(135deg, var(--mh-primary), var(--mh-primary-dk));
-    border-radius: 16px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.4rem; color: #fff;
-    box-shadow: 0 6px 20px rgba(27,174,190,.45);
-    flex-shrink: 0;
-    margin-right: 1.1rem;
+
+.mh-hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #67e8f9;
+    background: rgba(27, 174, 190, 0.2);
+    padding: 0.35rem 0.85rem;
+    border-radius: 20px;
+    border: 1px solid rgba(27, 174, 190, 0.3);
+    margin-bottom: 0.75rem;
 }
+
 .mh-hero-title {
-    margin: 0; font-size: 1.7rem; font-weight: 800;
-    color: #f1f5f9; letter-spacing: -.3px;
+    font-size: 2rem;
+    font-weight: 800;
+    color: #f1f5f9;
+    margin: 0 0 0.5rem 0;
+    letter-spacing: -0.02em;
 }
-.mh-hero-sub {
-    margin: .2rem 0 0; font-size: .88rem; color: #94a3b8;
-}
-.mh-hero-right {
-    display: flex; align-items: center; gap: .9rem; z-index: 1;
-}
-.mh-notif-btn {
-    position: relative;
-    width: 42px; height: 42px;
-    background: rgba(255,255,255,.1);
-    border: 1px solid rgba(255,255,255,.15);
-    border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
+
+.mh-hero-subtitle {
+    font-size: 1rem;
     color: #cbd5e1;
-    font-size: 1.05rem;
-    transition: background .2s;
-}
-.mh-notif-btn:hover { background: rgba(255,255,255,.18); }
-.mh-notif-badge {
-    position: absolute; top: -4px; right: -4px;
-    background: #ef4444; color: #fff;
-    font-size: .65rem; font-weight: 700;
-    min-width: 18px; height: 18px;
-    border-radius: 9px; padding: 0 4px;
-    display: flex; align-items: center; justify-content: center;
-    border: 2px solid #fff;
-}
-.mh-profile-chip {
-    display: flex; align-items: center; gap: .55rem;
-    background: rgba(255,255,255,.1);
-    border: 1px solid rgba(255,255,255,.15);
-    border-radius: 24px;
-    padding: .4rem .9rem .4rem .5rem;
-    font-size: .87rem; font-weight: 500; color: #e2e8f0;
-}
-.mh-avatar {
-    width: 30px; height: 30px;
-    background: linear-gradient(135deg, var(--mh-primary), var(--mh-primary-dk));
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    color: #fff; font-size: .8rem;
+    margin: 0;
 }
 
-/* ─────────────────────────────────────────
-   STATS GRID
-───────────────────────────────────────── */
-.mh-stats-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 1rem;
-    margin-bottom: 1.75rem;
+.mh-hero-right {
+    display: flex;
+    gap: 0.75rem;
 }
-@@media (max-width:1100px) { .mh-stats-grid { grid-template-columns: repeat(3,1fr); } }
-@@media (max-width:640px)  { .mh-stats-grid { grid-template-columns: repeat(2,1fr); } }
 
-.mh-stat-card {
-    position: relative;
-    overflow: hidden;
+.mh-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    border: none;
     border-radius: var(--mh-radius);
-    padding: 1.2rem 1.4rem;
-    display: flex; align-items: center; gap: 1rem;
-    box-shadow: var(--mh-shadow);
-    transition: transform .22s, box-shadow .22s;
-    cursor: default;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
 }
-.mh-stat-card:hover { transform: translateY(-3px); box-shadow: var(--mh-shadow-hover); }
 
-.mh-stat-lab   { background: linear-gradient(135deg,#e8f5e9,#f1fff3); border-top: 3px solid #4caf50; }
-.mh-stat-ultra { background: linear-gradient(135deg,#f3e5f5,#faf0fe); border-top: 3px solid #9c27b0; }
-.mh-stat-appt  { background: linear-gradient(135deg,#fff8e1,#fffdf0); border-top: 3px solid #ff9800; }
-.mh-stat-bp    { background: linear-gradient(135deg,#e3f2fd,#f0f8ff); border-top: 3px solid #2196f3; }
-.mh-stat-alert { background: linear-gradient(135deg,#fce4ec,#fff5f8); border-top: 3px solid #e91e63; }
+.mh-btn-primary {
+    background: linear-gradient(135deg, var(--mh-primary), var(--mh-primary-dark));
+    color: var(--mh-white);
+    box-shadow: 0 4px 12px rgba(27, 174, 190, 0.3);
+}
+
+.mh-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(27, 174, 190, 0.4);
+}
+
+.mh-btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--mh-white);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(8px);
+}
+
+.mh-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+.mh-main-layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+.mh-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    position: sticky;
+    top: 20px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    padding-right: 0.25rem;
+}
+
+.mh-sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.mh-sidebar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 999px;
+}
+
+.mh-sidebar-card {
+    background: var(--mh-white);
+    border-radius: var(--mh-radius-lg);
+    border: 1px solid var(--mh-border);
+    padding: 1.5rem;
+    box-shadow: var(--mh-shadow-sm);
+}
+
+.mh-sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--mh-border);
+}
+
+.mh-sidebar-icon {
+    width: 40px;
+    height: 40px;
+    background: var(--mh-primary-light);
+    color: var(--mh-primary);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.mh-sidebar-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--mh-text);
+    margin: 0 0 0.15rem 0;
+}
+
+.mh-sidebar-subtitle {
+    font-size: 0.75rem;
+    color: var(--mh-text-lighter);
+    margin: 0;
+}
+
+.mh-stats-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.mh-stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: var(--mh-bg);
+    border-radius: var(--mh-radius);
+    border: 1px solid var(--mh-border);
+    transition: all 0.2s ease;
+}
+
+.mh-stat-item:hover {
+    background: var(--mh-white);
+    box-shadow: var(--mh-shadow-sm);
+    transform: translateX(4px);
+}
 
 .mh-stat-icon {
-    width: 46px; height: 46px;
-    border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.15rem;
-    flex-shrink: 0;
-    background: rgba(255,255,255,.65);
-    backdrop-filter: blur(4px);
-}
-.mh-stat-lab   .mh-stat-icon { color: #388e3c; }
-.mh-stat-ultra .mh-stat-icon { color: #7b1fa2; }
-.mh-stat-appt  .mh-stat-icon { color: #e65100; }
-.mh-stat-bp    .mh-stat-icon { color: #1565c0; }
-.mh-stat-alert .mh-stat-icon { color: #c2185b; }
-
-.mh-stat-body  { display: flex; flex-direction: column; z-index: 1; }
-.mh-stat-num   { font-size: 2rem; font-weight: 800; color: var(--mh-text); line-height: 1; }
-.mh-stat-lbl   { font-size: .78rem; font-weight: 500; color: var(--mh-muted); margin-top: .2rem; }
-
-.mh-stat-bg-icon {
-    position: absolute; right: -8px; bottom: -8px;
-    font-size: 4rem; opacity: .06; color: #000;
-    pointer-events: none;
-}
-
-/* ─────────────────────────────────────────
-   FILTERS
-───────────────────────────────────────── */
-.mh-filters-wrap   { margin-bottom: 1.75rem; }
-.mh-filters-card   {
-    background: #fff;
-    border-radius: var(--mh-radius);
-    padding: 1.1rem 1.4rem;
-    box-shadow: var(--mh-shadow);
-    border: 1px solid var(--mh-border);
-}
-.mh-filters-row {
-    display: flex; flex-wrap: wrap;
-    align-items: center; gap: .75rem;
-}
-.mh-search-box {
-    display: flex; align-items: center; gap: .6rem;
-    background: var(--mh-light);
-    border: 1.5px solid var(--mh-border);
-    border-radius: 12px;
-    padding: .5rem 1rem;
-    flex: 1; min-width: 200px;
-    transition: border-color .2s, box-shadow .2s;
-}
-.mh-search-box:focus-within {
-    border-color: var(--mh-primary);
-    box-shadow: 0 0 0 3px rgba(27,174,190,.12);
-}
-.mh-search-icon { color: var(--mh-muted); font-size: .9rem; }
-.mh-search-input {
-    border: none; background: transparent;
-    outline: none; font-size: .9rem; width: 100%;
-    color: var(--mh-text);
-}
-.mh-filter-group { display: flex; align-items: center; gap: .45rem; }
-.mh-filter-label { font-size: .78rem; font-weight: 600; color: var(--mh-muted); white-space: nowrap; }
-.mh-select {
-    border: 1.5px solid var(--mh-border);
+    width: 42px;
+    height: 42px;
     border-radius: 10px;
-    padding: .45rem .75rem;
-    font-size: .83rem;
-    background: #fff;
-    cursor: pointer;
-    color: var(--mh-text);
-    outline: none;
-    transition: border-color .2s;
-}
-.mh-select:focus { border-color: var(--mh-primary); }
-
-.mh-results-count { margin-top: .65rem; font-size: .82rem; color: var(--mh-muted); font-weight: 500; }
-
-/* ─────────────────────────────────────────
-   BUTTONS
-───────────────────────────────────────── */
-.mh-btn {
-    display: inline-flex; align-items: center; gap: .4rem;
-    font-size: .84rem; font-weight: 600;
-    border-radius: 10px; border: none;
-    padding: .5rem 1rem; cursor: pointer;
-    transition: all .2s;
-}
-.mh-btn-primary {
-    background: linear-gradient(135deg, var(--mh-primary), var(--mh-primary-dk));
-    color: #fff;
-    box-shadow: 0 3px 10px rgba(27,174,190,.35);
-}
-.mh-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 5px 16px rgba(27,174,190,.45); }
-.mh-btn-ghost {
-    background: var(--mh-light);
-    color: var(--mh-muted);
-    border: 1.5px solid var(--mh-border);
-}
-.mh-btn-ghost:hover { background: #f1f5f9; color: var(--mh-text); }
-
-/* ─────────────────────────────────────────
-   TIMELINE + DATE GROUPS
-───────────────────────────────────────── */
-.mh-timeline { display: flex; flex-direction: column; gap: 2rem; }
-.mh-date-group {}
-.mh-date-header {
-    display: flex; align-items: center; gap: .75rem;
-    margin-bottom: 1rem;
-}
-.mh-day-badge {
-    background: #e2e8f0; color: #475569;
-    font-size: .75rem; font-weight: 700;
-    padding: .3rem .75rem; border-radius: 20px;
-    letter-spacing: .03em;
-    white-space: nowrap;
-}
-.mh-day-today {
-    background: linear-gradient(135deg, var(--mh-primary), var(--mh-primary-dk));
-    color: #fff;
-    box-shadow: 0 2px 8px rgba(27,174,190,.3);
-}
-.mh-date-line { flex: 1; height: 1.5px; background: var(--mh-border); border-radius: 1px; }
-.mh-date-full { font-size: .82rem; color: #94a3b8; font-weight: 500; white-space: nowrap; }
-
-/* ─────────────────────────────────────────
-   EVENT CARDS
-───────────────────────────────────────── */
-.mh-card {
-    display: flex;
-    gap: 1rem;
-    background: #fff;
-    border-radius: var(--mh-radius);
-    padding: 1.15rem 1.35rem;
-    box-shadow: var(--mh-shadow);
-    border: 1px solid var(--mh-border);
-    border-left: 5px solid #cbd5e1;
-    transition: transform .22s, box-shadow .22s;
-    margin-bottom: 1rem;
-}
-.mh-card:hover { transform: translateY(-2px); box-shadow: var(--mh-shadow-hover); }
-
-/* Left accent colors per event type */
-.mh-card.bp          { border-left-color: #2196f3; }
-.mh-card.bs          { border-left-color: #e91e63; }
-.mh-card.lab         { border-left-color: #4caf50; }
-.mh-card.ultrasound  { border-left-color: #9c27b0; }
-.mh-card.appointment { border-left-color: #ff9800; }
-.mh-card.alert       { border-left-color: #f44336; }
-.mh-card.doctor      { border-left-color: #3f51b5; }
-.mh-card.medication  { border-left-color: #00bcd4; }
-.mh-card.system      { border-left-color: #90a4ae; }
-
-/* Warning card */
-.mh-card-warning { background: linear-gradient(135deg,#fffbeb,#fff8f0); border-left-color: #f59e0b !important; }
-
-/* ─────────────────────────────────────────
-   CARD MARKER (icon circle)
-───────────────────────────────────────── */
-.mh-card-marker {
-    width: 44px; height: 44px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1rem; flex-shrink: 0; margin-top: .1rem;
-}
-.mh-card-marker.bp          { background: #e3f2fd; color: #1565c0; }
-.mh-card-marker.bs          { background: #fce4ec; color: #c2185b; }
-.mh-card-marker.lab         { background: #e8f5e9; color: #388e3c; }
-.mh-card-marker.ultrasound  { background: #f3e5f5; color: #7b1fa2; }
-.mh-card-marker.appointment { background: #fff8e1; color: #e65100; }
-.mh-card-marker.alert       { background: #ffebee; color: #c62828; }
-.mh-card-marker.doctor      { background: #e8eaf6; color: #3949ab; }
-.mh-card-marker.medication  { background: #e0f7fa; color: #00838f; }
-.mh-card-marker.system      { background: #f1f5f9; color: #64748b; }
-
-/* ─────────────────────────────────────────
-   CARD BODY
-───────────────────────────────────────── */
-.mh-card-body { flex: 1; min-width: 0; }
-
-.mh-card-header {
-    display: flex; justify-content: space-between;
-    align-items: flex-start; gap: .5rem;
-    margin-bottom: .65rem;
-}
-.mh-card-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
-.mh-card-title { margin: 0; font-size: 1rem; font-weight: 700; color: var(--mh-text); }
-
-/* event type pill */
-.mh-event-type-pill {
-    font-size: .65rem; font-weight: 700;
-    padding: .18rem .55rem; border-radius: 6px;
-    letter-spacing: .04em; text-transform: uppercase;
-}
-.mh-event-type-pill.bp          { background: #e3f2fd; color: #1565c0; }
-.mh-event-type-pill.bs          { background: #fce4ec; color: #c2185b; }
-.mh-event-type-pill.lab         { background: #e8f5e9; color: #388e3c; }
-.mh-event-type-pill.ultrasound  { background: #f3e5f5; color: #7b1fa2; }
-.mh-event-type-pill.appointment { background: #fff8e1; color: #e65100; }
-.mh-event-type-pill.alert       { background: #ffebee; color: #c62828; }
-.mh-event-type-pill.doctor      { background: #e8eaf6; color: #3949ab; }
-.mh-event-type-pill.medication  { background: #e0f7fa; color: #00838f; }
-.mh-event-type-pill.system      { background: #f1f5f9; color: #64748b; }
-
-.mh-card-time {
-    display: flex; align-items: center; gap: .35rem;
-    font-size: .78rem; color: #94a3b8;
-    white-space: nowrap;
-}
-
-.mh-card-content { margin-bottom: .65rem; }
-
-/* FOOTER */
-.mh-card-footer {
-    display: flex; align-items: center;
-    justify-content: space-between;
-    padding-top: .6rem;
-    border-top: 1px dashed var(--mh-border);
-    margin-top: .5rem;
-}
-.mh-recorded-by {
-    display: flex; align-items: center; gap: .35rem;
-    font-size: .77rem; color: #94a3b8;
-}
-.mh-card-date-chip {
-    font-size: .73rem; background: var(--mh-light);
-    border: 1px solid var(--mh-border);
-    border-radius: 20px; padding: .18rem .6rem;
-    color: var(--mh-muted);
-}
-
-/* ─────────────────────────────────────────
-   READING BLOCK (BP / BS)
-───────────────────────────────────────── */
-.mh-reading-row   { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: .35rem; }
-.mh-reading-block { display: flex; align-items: baseline; gap: .4rem; }
-.mh-reading-val   { font-size: 1.75rem; font-weight: 800; color: var(--mh-text); }
-.mh-reading-unit  { font-size: .83rem; color: var(--mh-muted); }
-
-/* ─────────────────────────────────────────
-   BADGES
-───────────────────────────────────────── */
-.mh-badge {
-    display: inline-flex; align-items: center; gap: .3rem;
-    font-size: .72rem; font-weight: 600;
-    padding: .22rem .65rem; border-radius: 20px;
-}
-.mh-badge i { font-size: .55rem; }
-.mh-badge-normal    { background: #e8f5e9; color: #2e7d32; }
-.mh-badge-elevated  { background: #fff3e0; color: #e65100; }
-.mh-badge-critical  { background: #ffebee; color: #c62828; }
-.mh-badge-completed { background: #e8f5e9; color: #2e7d32; }
-.mh-badge-upcoming  { background: #e3f2fd; color: #1565c0; }
-.mh-badge-type      { background: #f1f5f9; color: #475569; }
-.mh-badge-row       { display: flex; flex-wrap: wrap; gap: .4rem; }
-
-/* ─────────────────────────────────────────
-   INFO CHIPS (lab test)
-───────────────────────────────────────── */
-.mh-info-chips { display: flex; flex-wrap: wrap; gap: .6rem; margin-bottom: .5rem; }
-.mh-info-chip  {
-    display: flex; flex-direction: column;
-    background: var(--mh-light);
-    border: 1px solid var(--mh-border);
-    border-radius: 10px;
-    padding: .45rem .8rem;
-    min-width: 100px;
-}
-.mh-chip-label { font-size: .7rem; color: #94a3b8; font-weight: 500; }
-.mh-chip-value { font-size: .88rem; font-weight: 600; color: var(--mh-text); }
-
-/* ─────────────────────────────────────────
-   AI ANALYSIS BOX
-───────────────────────────────────────── */
-.mh-ai-box {
-    background: linear-gradient(135deg,#f0f9ff,#e8f4fd);
-    border: 1px solid #bae6fd;
-    border-radius: 12px;
-    padding: .7rem 1rem;
-    margin-top: .4rem;
-}
-.mh-ai-box-success {
-    background: linear-gradient(135deg,#f0fdf4,#e8fdf0);
-    border-color: #a7f3d0;
-}
-.mh-ai-box-warn {
-    background: linear-gradient(135deg,#fffbeb,#fff5e0);
-    border-color: #fcd34d;
-}
-.mh-ai-label {
-    display: inline-flex; align-items: center; gap: .35rem;
-    font-size: .77rem; font-weight: 700;
-    color: #0284c7; margin-bottom: .3rem;
-}
-.mh-ai-box-success .mh-ai-label { color: #15803d; }
-.mh-ai-box-warn    .mh-ai-label { color: #b45309; }
-.mh-ai-box p { margin: 0; font-size: .86rem; color: #334155; line-height: 1.55; }
-
-/* ─────────────────────────────────────────
-   APPOINTMENT DETAILS
-───────────────────────────────────────── */
-.mh-appt-details { display: flex; flex-direction: column; gap: .4rem; }
-.mh-appt-item {
-    display: flex; align-items: center; gap: .6rem;
-    font-size: .88rem; color: #475569;
-}
-.mh-appt-item-icon {
-    width: 28px; height: 28px;
-    background: var(--mh-light);
-    border: 1px solid var(--mh-border);
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: .75rem; color: var(--mh-primary); flex-shrink: 0;
-}
-
-/* ─────────────────────────────────────────
-   MODERN APPOINTMENT CARD
-───────────────────────────────────────── */
-.mh-appt-card {
-    border-radius: 16px;
-    overflow: hidden;
-    border: 1.5px solid var(--mh-border);
-    box-shadow: 0 4px 20px rgba(0,0,0,.07);
-    transition: transform .22s, box-shadow .22s;
-    margin-top: .1rem;
-    background: #fff;
-}
-.mh-appt-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 32px rgba(0,0,0,.12);
-}
-
-/* ── Upcoming variant ── */
-.mh-appt-upcoming { border-color: rgba(255,152,0,.35); }
-.mh-appt-upcoming .mh-appt-header-band {
-    background: linear-gradient(135deg, #ff9800, #fb8c00);
-}
-.mh-appt-upcoming .mh-appt-info-icon { background: rgba(255,152,0,.12); color: #e65100; }
-
-/* ── Completed variant ── */
-.mh-appt-completed { border-color: rgba(33,150,243,.3); }
-.mh-appt-completed .mh-appt-header-band {
-    background: linear-gradient(135deg, #2196f3, #1565c0);
-}
-.mh-appt-completed .mh-appt-info-icon { background: rgba(33,150,243,.12); color: #1565c0; }
-
-/* Header band */
-.mh-appt-header-band {
     display: flex;
     align-items: center;
-    gap: .85rem;
-    padding: .9rem 1.15rem;
-    position: relative;
-    overflow: hidden;
-}
-.mh-appt-header-band::after {
-    content: '\f073';
-    font-family: 'Font Awesome 5 Free';
-    font-weight: 900;
-    position: absolute;
-    right: -10px; top: 50%;
-    transform: translateY(-50%);
-    font-size: 4.5rem;
-    color: rgba(255,255,255,.08);
-    pointer-events: none;
-}
-
-/* Doctor avatar */
-.mh-appt-doctor-avatar {
-    width: 42px; height: 42px;
-    border-radius: 50%;
-    background: rgba(255,255,255,.22);
-    backdrop-filter: blur(4px);
-    border: 2px solid rgba(255,255,255,.45);
-    display: flex; align-items: center; justify-content: center;
-    color: #fff; font-size: 1rem;
-    flex-shrink: 0;
-    box-shadow: 0 2px 8px rgba(0,0,0,.18);
-}
-
-/* Doctor name & specialty */
-.mh-appt-header-info {
-    display: flex; flex-direction: column;
-    flex: 1;
-}
-.mh-appt-doctor-name {
-    font-size: .95rem; font-weight: 700;
-    color: #fff; line-height: 1.2;
-}
-.mh-appt-specialty {
-    font-size: .73rem;
-    color: rgba(255,255,255,.78);
-    margin-top: .08rem;
-}
-
-/* Status pill */
-.mh-appt-status-pill {
-    display: inline-flex; align-items: center; gap: .35rem;
-    font-size: .7rem; font-weight: 700;
-    padding: .28rem .75rem; border-radius: 20px;
-    letter-spacing: .04em; white-space: nowrap;
-    border: 1.5px solid rgba(255,255,255,.4);
-    backdrop-filter: blur(4px);
-}
-.mh-appt-status-upcoming  { background: rgba(255,255,255,.22); color: #fff; }
-.mh-appt-status-completed { background: rgba(255,255,255,.22); color: #fff; }
-
-/* Body */
-.mh-appt-body {
-    padding: .9rem 1.15rem 1rem;
-    background: #fff;
-}
-
-/* Info grid */
-.mh-appt-info-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .6rem;
-}
-.mh-appt-info-cell {
-    display: flex;
-    align-items: center;
-    gap: .6rem;
-    background: var(--mh-light);
-    border: 1px solid var(--mh-border);
-    border-radius: 12px;
-    padding: .55rem .9rem;
-    flex: 1;
-    min-width: 130px;
-    transition: border-color .2s, box-shadow .2s;
-}
-.mh-appt-info-cell:hover {
-    border-color: var(--mh-primary);
-    box-shadow: 0 0 0 3px rgba(27,174,190,.08);
-}
-.mh-appt-info-icon {
-    width: 32px; height: 32px;
-    border-radius: 9px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: .8rem;
+    justify-content: center;
+    font-size: 1rem;
     flex-shrink: 0;
 }
-.mh-appt-info-label {
-    display: block;
-    font-size: .67rem;
-    font-weight: 600;
-    color: #94a3b8;
-    text-transform: uppercase;
-    letter-spacing: .04em;
+
+.mh-stat-lab { background: var(--mh-lab-light); color: var(--mh-lab); }
+.mh-stat-ultrasound { background: var(--mh-ultrasound-light); color: var(--mh-ultrasound); }
+.mh-stat-appointment { background: var(--mh-appointment-light); color: var(--mh-appointment); }
+.mh-stat-vitals { background: var(--mh-vitals-light); color: var(--mh-vitals); }
+.mh-stat-alert { background: var(--mh-alert-light); color: var(--mh-alert); }
+
+.mh-stat-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.mh-stat-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--mh-text);
     line-height: 1;
 }
-.mh-appt-info-value {
-    display: block;
-    font-size: .88rem;
-    font-weight: 600;
-    color: var(--mh-text);
-    margin-top: .12rem;
-    line-height: 1.2;
+
+.mh-stat-label {
+    font-size: 0.8rem;
+    color: var(--mh-text-light);
+    font-weight: 500;
 }
 
-/* ─────────────────────────────────────────
-   ALERT CARD INNER  (replaces old mh-alert-box)
-───────────────────────────────────────── */
-.mh-alert-card-inner {
-    display: flex;
-    border-radius: 14px;
-    overflow: hidden;
-    border: 1px solid transparent;
-    margin-top: .1rem;
+.mh-filter-section {
+    margin-bottom: 1rem;
 }
 
-/* Severity variants */
-.mh-alert-box-danger  { background: linear-gradient(135deg,#fff1f2,#ffe4e6); border-color: #fca5a5; }
-.mh-alert-box-warning { background: linear-gradient(135deg,#fffbeb,#fef9c3); border-color: #fde68a; }
-.mh-alert-box-info    { background: linear-gradient(135deg,#eff6ff,#dbeafe); border-color: #93c5fd; }
-.mh-alert-box-success { background: linear-gradient(135deg,#f0fdf4,#dcfce7); border-color: #86efac; }
-
-/* Left colour stripe */
-.mh-alert-stripe {
-    width: 5px;
-    flex-shrink: 0;
-    border-radius: 14px 0 0 14px;
-}
-.mh-alert-box-danger  .mh-alert-stripe { background: #ef4444; }
-.mh-alert-box-warning .mh-alert-stripe { background: #f59e0b; }
-.mh-alert-box-info    .mh-alert-stripe { background: #3b82f6; }
-.mh-alert-box-success .mh-alert-stripe { background: #22c55e; }
-
-.mh-alert-card-body {
-    flex: 1;
-    padding: .75rem 1rem;
-}
-
-/* Top row */
-.mh-alert-top-row {
+.mh-filter-label {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    margin-bottom: .5rem;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--mh-text);
+    margin-bottom: 0.5rem;
 }
 
-/* Severity pill */
-.mh-alert-severity-pill {
-    display: inline-flex; align-items: center; gap: .35rem;
-    font-size: .72rem; font-weight: 700;
-    padding: .22rem .65rem; border-radius: 20px;
-    text-transform: uppercase; letter-spacing: .04em;
-    border: 1px solid transparent;
+.mh-filter-label i {
+    color: var(--mh-primary);
+    font-size: 0.75rem;
 }
-.mh-alert-box-danger  .mh-alert-severity-pill { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; }
-.mh-alert-box-warning .mh-alert-severity-pill { background: #fef3c7; color: #b45309; border-color: #fde68a; }
-.mh-alert-box-info    .mh-alert-severity-pill { background: #dbeafe; color: #1d4ed8; border-color: #93c5fd; }
-.mh-alert-box-success .mh-alert-severity-pill { background: #dcfce7; color: #15803d; border-color: #86efac; }
 
-/* Pulsing unread dot */
-.mh-alert-unread-dot {
-    width: 10px; height: 10px;
+.mh-filter-input,
+.mh-filter-select {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    border: 1.5px solid var(--mh-border);
+    border-radius: var(--mh-radius);
+    font-size: 0.875rem;
+    color: var(--mh-text);
+    background: var(--mh-white);
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.mh-filter-input:focus,
+.mh-filter-select:focus {
+    border-color: var(--mh-primary);
+    box-shadow: 0 0 0 3px rgba(27, 174, 190, 0.1);
+}
+
+.mh-clear-filters-btn {
+    width: 100%;
+    padding: 0.65rem;
+    background: var(--mh-bg);
+    border: 1.5px solid var(--mh-border);
+    border-radius: var(--mh-radius);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--mh-text-light);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.mh-clear-filters-btn:hover {
+    background: var(--mh-white);
+    border-color: var(--mh-primary);
+    color: var(--mh-primary);
+}
+
+.mh-results-summary {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: var(--mh-success-light);
+    border: 1px solid var(--mh-success);
+    border-radius: var(--mh-radius);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--mh-success);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.mh-actions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.mh-quick-action {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: var(--mh-bg);
+    border: 1px solid var(--mh-border);
+    border-radius: var(--mh-radius);
+    color: var(--mh-text);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.mh-quick-action:hover {
+    background: var(--mh-primary-light);
+    border-color: var(--mh-primary);
+    color: var(--mh-primary);
+    transform: translateX(4px);
+}
+
+.mh-quick-action i {
+    width: 32px;
+    height: 32px;
+    background: var(--mh-white);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+}
+
+.mh-content {
+    min-height: 600px;
+}
+
+.mh-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+}
+
+.mh-timeline-group {
+    position: relative;
+}
+
+.mh-timeline-date {
+    margin-bottom: 1.5rem;
+}
+
+.mh-date-badge {
+    display: inline-flex;
+    flex-direction: column;
+    padding: 0.75rem 1.25rem;
+    background: var(--mh-white);
+    border: 2px solid var(--mh-border);
+    border-radius: var(--mh-radius-lg);
+    box-shadow: var(--mh-shadow-sm);
+}
+
+.mh-date-badge.today {
+    background: linear-gradient(135deg, var(--mh-primary), var(--mh-primary-dark));
+    border-color: var(--mh-primary);
+    box-shadow: 0 4px 12px rgba(27, 174, 190, 0.25);
+}
+
+.mh-date-day {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--mh-text-light);
+    margin-bottom: 0.15rem;
+}
+
+.mh-date-badge.today .mh-date-day {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.mh-date-full {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--mh-text);
+}
+
+.mh-date-badge.today .mh-date-full {
+    color: var(--mh-white);
+}
+
+.mh-timeline-items {
+    position: relative;
+    padding-left: 2.5rem;
+}
+
+.mh-timeline-items::before {
+    content: "";
+    position: absolute;
+    left: 19px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--mh-border) 0%, var(--mh-border) 100%);
+}
+
+.mh-timeline-item {
+    position: relative;
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.mh-timeline-item:last-child {
+    margin-bottom: 0;
+}
+
+.mh-timeline-dot {
+    position: absolute;
+    left: -2.5rem;
+    width: 40px;
+    height: 40px;
+    background: var(--mh-white);
+    border: 3px solid var(--mh-border);
     border-radius: 50%;
-    background: #ef4444;
-    box-shadow: 0 0 0 0 rgba(239,68,68,.4);
-    animation: mhPulse 1.8s ease-in-out infinite;
-    flex-shrink: 0;
-}
-@@keyframes mhPulse {
-    0%   { box-shadow: 0 0 0 0 rgba(239,68,68,.5); }
-    70%  { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
-    100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    z-index: 2;
+    transition: all 0.3s ease;
 }
 
-/* Alert message text */
-.mh-alert-message-text {
+.mh-timeline-item:hover .mh-timeline-dot {
+    transform: scale(1.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.mh-timeline-item.bp .mh-timeline-dot { border-color: var(--mh-vitals); color: var(--mh-vitals); background: var(--mh-vitals-light); }
+.mh-timeline-item.bs .mh-timeline-dot { border-color: var(--mh-alert); color: var(--mh-alert); background: var(--mh-alert-light); }
+.mh-timeline-item.lab .mh-timeline-dot { border-color: var(--mh-lab); color: var(--mh-lab); background: var(--mh-lab-light); }
+.mh-timeline-item.ultrasound .mh-timeline-dot { border-color: var(--mh-ultrasound); color: var(--mh-ultrasound); background: var(--mh-ultrasound-light); }
+.mh-timeline-item.appointment .mh-timeline-dot { border-color: var(--mh-appointment); color: var(--mh-appointment); background: var(--mh-appointment-light); }
+.mh-timeline-item.alert .mh-timeline-dot { border-color: var(--mh-danger); color: var(--mh-danger); background: var(--mh-danger-light); }
+.mh-timeline-item.doctor .mh-timeline-dot { border-color: var(--mh-doctor); color: var(--mh-doctor); background: var(--mh-doctor-light); }
+.mh-timeline-item.medication .mh-timeline-dot { border-color: var(--mh-medication); color: var(--mh-medication); background: var(--mh-medication-light); }
+
+.mh-timeline-card {
+    flex: 1;
+    background: var(--mh-white);
+    border: 1px solid var(--mh-border);
+    border-radius: var(--mh-radius-lg);
+    overflow: hidden;
+    box-shadow: var(--mh-shadow-sm);
+    transition: all 0.3s ease;
+}
+
+.mh-timeline-item:hover .mh-timeline-card {
+    box-shadow: var(--mh-shadow-lg);
+    transform: translateY(-2px);
+}
+
+.mh-timeline-item.critical .mh-timeline-card {
+    border-left: 4px solid var(--mh-danger);
+}
+
+.mh-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 1.25rem 1.5rem;
+    background: var(--mh-bg);
+    border-bottom: 1px solid var(--mh-border);
+    gap: 1rem;
+}
+
+.mh-card-header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex: 1;
+}
+
+.mh-event-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.3rem 0.75rem;
+    border-radius: 20px;
+    width: fit-content;
+}
+
+.mh-event-badge.bp { background: var(--mh-vitals-light); color: var(--mh-vitals); }
+.mh-event-badge.bs { background: var(--mh-alert-light); color: var(--mh-alert); }
+.mh-event-badge.lab { background: var(--mh-lab-light); color: var(--mh-lab); }
+.mh-event-badge.ultrasound { background: var(--mh-ultrasound-light); color: var(--mh-ultrasound); }
+.mh-event-badge.appointment { background: var(--mh-appointment-light); color: var(--mh-appointment); }
+.mh-event-badge.alert { background: var(--mh-danger-light); color: var(--mh-danger); }
+.mh-event-badge.doctor { background: var(--mh-doctor-light); color: var(--mh-doctor); }
+.mh-event-badge.medication { background: var(--mh-medication-light); color: var(--mh-medication); }
+.mh-event-badge.default { background: #f1f5f9; color: #64748b; }
+
+.mh-card-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--mh-text);
     margin: 0;
-    font-size: .88rem;
-    color: #334155;
+    line-height: 1.4;
+}
+
+.mh-card-time {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--mh-text-lighter);
+    white-space: nowrap;
+    font-weight: 500;
+}
+
+.mh-card-body {
+    padding: 1.5rem;
+}
+
+.mh-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--mh-text-light);
+    margin: 0.5rem 0 0 0;
+}
+
+.mh-vitals-display {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+}
+
+.mh-vitals-reading {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.mh-vitals-value {
+    font-size: 2.25rem;
+    font-weight: 800;
+    color: var(--mh-text);
+    line-height: 1;
+}
+
+.mh-vitals-unit {
+    font-size: 0.95rem;
+    color: var(--mh-text-light);
+    font-weight: 600;
+}
+
+.mh-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.9rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.mh-status-badge i {
+    font-size: 0.6rem;
+}
+
+.mh-status-badge.normal {
+    background: var(--mh-success-light);
+    color: var(--mh-success);
+    border: 1px solid var(--mh-success);
+}
+
+.mh-status-badge.warning {
+    background: var(--mh-warning-light);
+    color: var(--mh-warning);
+    border: 1px solid var(--mh-warning);
+}
+
+.mh-status-badge.critical {
+    background: var(--mh-danger-light);
+    color: var(--mh-danger);
+    border: 1px solid var(--mh-danger);
+}
+
+.mh-lab-container {
+    background: var(--mh-bg);
+    border: 1px solid var(--mh-border);
+    border-radius: var(--mh-radius);
+    padding: 1.25rem;
+}
+
+.mh-lab-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.mh-lab-detail-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.mh-lab-detail-item i {
+    width: 32px;
+    height: 32px;
+    background: var(--mh-lab-light);
+    color: var(--mh-lab);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.mh-lab-detail-label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--mh-text-lighter);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.15rem;
+}
+
+.mh-lab-detail-value {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--mh-text);
+}
+
+.mh-lab-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.mh-lab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.1rem;
+    border-radius: var(--mh-radius);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.mh-lab-btn-primary {
+    background: linear-gradient(135deg, var(--mh-lab), #388e3c);
+    color: var(--mh-white);
+    box-shadow: 0 3px 10px rgba(76, 175, 80, 0.3);
+}
+
+.mh-lab-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 16px rgba(76, 175, 80, 0.4);
+}
+
+.mh-lab-btn-secondary {
+    background: var(--mh-white);
+    color: var(--mh-text);
+    border: 1.5px solid var(--mh-border);
+}
+
+.mh-lab-btn-secondary:hover {
+    background: var(--mh-bg);
+    border-color: var(--mh-lab);
+    color: var(--mh-lab);
+}
+
+.mh-ai-analysis {
+    background: var(--mh-info-light);
+    border: 1px solid var(--mh-info);
+    border-left: 4px solid var(--mh-info);
+    border-radius: var(--mh-radius);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.mh-ai-analysis.success {
+    background: var(--mh-success-light);
+    border-color: var(--mh-success);
+    border-left-color: var(--mh-success);
+}
+
+.mh-ai-analysis.warning {
+    background: var(--mh-warning-light);
+    border-color: var(--mh-warning);
+    border-left-color: var(--mh-warning);
+}
+
+.mh-ai-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--mh-info);
+    margin-bottom: 0.5rem;
+}
+
+.mh-ai-analysis.success .mh-ai-header { color: var(--mh-success); }
+.mh-ai-analysis.warning .mh-ai-header { color: var(--mh-warning); }
+
+.mh-ai-text {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--mh-text);
     line-height: 1.6;
 }
 
-/* Keep the old .mh-alert-box for any other use */
-.mh-alert-box {
-    display: flex; gap: .75rem; align-items: flex-start;
-    background: linear-gradient(135deg,#fffbeb,#fff8f0);
-    border: 1px solid #fcd34d;
-    border-radius: 12px;
-    padding: .75rem 1rem;
+.mh-doctor-comment {
+    display: flex;
+    gap: 0.75rem;
+    background: var(--mh-doctor-light);
+    border: 1px solid var(--mh-doctor);
+    border-radius: var(--mh-radius);
+    padding: 1rem 1.25rem;
+    margin-top: 1rem;
 }
-.mh-alert-icon {
-    width: 32px; height: 32px;
-    background: #fef3c7;
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    color: #f59e0b; font-size: .95rem; flex-shrink: 0;
-}
-.mh-alert-msg { margin: 0; font-size: .88rem; color: #334155; line-height: 1.55; }
 
-/* ─────────────────────────────────────────
-   DOCTOR NOTE
-───────────────────────────────────────── */
+.mh-doctor-comment i {
+    color: var(--mh-doctor);
+    font-size: 1.2rem;
+    margin-top: 0.15rem;
+    flex-shrink: 0;
+}
+
+.mh-doctor-comment strong {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--mh-doctor);
+    margin-bottom: 0.25rem;
+}
+
+.mh-doctor-comment p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--mh-text);
+    line-height: 1.6;
+}
+
+.mh-appointment-info {
+    background: var(--mh-bg);
+    border: 1px solid var(--mh-border);
+    border-radius: var(--mh-radius);
+    padding: 1.25rem;
+}
+
+.mh-appt-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.mh-appt-status.completed {
+    background: var(--mh-success-light);
+    color: var(--mh-success);
+    border: 1px solid var(--mh-success);
+}
+
+.mh-appt-status.upcoming {
+    background: var(--mh-appointment-light);
+    color: var(--mh-appointment);
+    border: 1px solid var(--mh-appointment);
+}
+
+.mh-appt-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.mh-appt-detail {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.9rem;
+    color: var(--mh-text);
+}
+
+.mh-appt-detail i {
+    width: 32px;
+    height: 32px;
+    background: var(--mh-white);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--mh-appointment);
+    flex-shrink: 0;
+}
+
+.mh-alert-box {
+    border-radius: var(--mh-radius);
+    padding: 1.25rem;
+    border: 1px solid;
+}
+
+.mh-alert-box.danger {
+    background: var(--mh-danger-light);
+    border-color: var(--mh-danger);
+}
+
+.mh-alert-box.warning {
+    background: var(--mh-warning-light);
+    border-color: var(--mh-warning);
+}
+
+.mh-alert-box.success {
+    background: var(--mh-success-light);
+    border-color: var(--mh-success);
+}
+
+.mh-alert-box.info {
+    background: var(--mh-info-light);
+    border-color: var(--mh-info);
+}
+
+.mh-alert-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.mh-alert-severity {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.mh-alert-severity.danger {
+    background: var(--mh-white);
+    color: var(--mh-danger);
+}
+
+.mh-alert-severity.warning {
+    background: var(--mh-white);
+    color: var(--mh-warning);
+}
+
+.mh-alert-severity.success {
+    background: var(--mh-white);
+    color: var(--mh-success);
+}
+
+.mh-alert-severity.info {
+    background: var(--mh-white);
+    color: var(--mh-info);
+}
+
+.mh-alert-unread {
+    width: 10px;
+    height: 10px;
+    background: var(--mh-danger);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+@@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.mh-alert-message {
+    margin: 0 0 0.75rem 0;
+    font-size: 0.9rem;
+    color: var(--mh-text);
+    line-height: 1.6;
+}
+
+.mh-alert-footer {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.mh-alert-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--mh-text-light);
+}
+
 .mh-note-box {
     position: relative;
-    background: linear-gradient(135deg,#f8fafc,#f1f5f9);
-    border-left: 4px solid #6366f1;
-    border-radius: 0 12px 12px 0;
-    padding: .75rem 1rem .75rem 1.1rem;
+    background: linear-gradient(135deg, var(--mh-doctor-light), #eff1fa);
+    border-left: 4px solid var(--mh-doctor);
+    border-radius: 0 var(--mh-radius) var(--mh-radius) 0;
+    padding: 1.25rem 1.5rem;
 }
-.mh-note-quote { color: #818cf8; font-size: 1.1rem; margin-bottom: .3rem; display: block; }
-.mh-note-text  { margin: 0; font-style: italic; color: #475569; line-height: 1.6; font-size: .9rem; }
 
-/* ─────────────────────────────────────────
-   MEDICATION LIST
-───────────────────────────────────────── */
-.mh-meds-list { display: flex; flex-direction: column; gap: .6rem; }
-.mh-med-item  {
-    display: flex; gap: .75rem; align-items: flex-start;
-    background: var(--mh-light);
+.mh-note-box i {
+    color: var(--mh-doctor);
+    font-size: 1.2rem;
+    opacity: 0.3;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.mh-note-box p {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--mh-text);
+    line-height: 1.7;
+    font-style: italic;
+}
+
+.mh-medications {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.mh-med-item {
+    display: flex;
+    gap: 0.75rem;
+    background: var(--mh-bg);
     border: 1px solid var(--mh-border);
-    border-radius: 12px;
-    padding: .65rem .9rem;
-}
-.mh-med-pill-icon {
-    width: 36px; height: 36px;
-    background: #e0f7fa; border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    color: #00838f; font-size: .9rem; flex-shrink: 0;
-}
-.mh-med-info { display: flex; flex-direction: column; gap: .1rem; }
-.mh-med-info strong { font-size: .9rem; color: var(--mh-text); }
-.mh-med-info span   { font-size: .82rem; color: var(--mh-muted); }
-.mh-med-info em     { font-size: .77rem; color: #94a3b8; }
-
-/* ─────────────────────────────────────────
-   META LINE
-───────────────────────────────────────── */
-.mh-meta {
-    display: flex; align-items: center; gap: .35rem;
-    font-size: .82rem; color: var(--mh-muted);
-    margin: .3rem 0 0;
+    border-radius: var(--mh-radius);
+    padding: 1rem;
 }
 
-/* ─────────────────────────────────────────
-   EMPTY STATE
-───────────────────────────────────────── */
+.mh-med-icon {
+    width: 40px;
+    height: 40px;
+    background: var(--mh-medication-light);
+    color: var(--mh-medication);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.mh-med-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.mh-med-info strong {
+    font-size: 0.95rem;
+    color: var(--mh-text);
+}
+
+.mh-med-info span {
+    font-size: 0.85rem;
+    color: var(--mh-text-light);
+}
+
+.mh-med-info em {
+    font-size: 0.8rem;
+    color: var(--mh-text-lighter);
+    font-style: italic;
+}
+
+.mh-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background: var(--mh-bg);
+    border-top: 1px solid var(--mh-border);
+}
+
+.mh-footer-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--mh-text-light);
+    font-weight: 500;
+}
+
+.mh-footer-date {
+    font-size: 0.8rem;
+    color: var(--mh-text-lighter);
+    background: var(--mh-white);
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    border: 1px solid var(--mh-border);
+}
+
 .mh-empty-state {
     text-align: center;
-    padding: 4rem 2rem;
-    background: #fff;
-    border-radius: var(--mh-radius);
-    box-shadow: var(--mh-shadow);
-    border: 1px solid var(--mh-border);
+    padding: 5rem 2rem;
+    background: var(--mh-white);
+    border: 2px dashed var(--mh-border);
+    border-radius: var(--mh-radius-xl);
 }
+
 .mh-empty-icon {
-    width: 72px; height: 72px;
-    background: var(--mh-light);
+    width: 100px;
+    height: 100px;
+    background: var(--mh-bg);
     border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.8rem; color: #cbd5e1;
-    margin: 0 auto 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    color: var(--mh-text-lighter);
+    font-size: 2.5rem;
 }
-.mh-empty-state h3 { color: #64748b; margin: 0 0 .5rem; }
-.mh-empty-state p  { color: #94a3b8; margin: 0; }
 
-/* ─────────────────────────────────────────
-   EXPORT MODAL
-───────────────────────────────────────── */
-.mh-modal-wrap    { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; }
-.mh-modal-overlay { position: absolute; inset: 0; background: rgba(15,23,42,.55); backdrop-filter: blur(3px); }
+.mh-empty-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--mh-text);
+    margin: 0 0 0.75rem 0;
+}
+
+.mh-empty-text {
+    font-size: 1rem;
+    color: var(--mh-text-light);
+    margin: 0 0 2rem 0;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.mh-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    animation: fadeIn 0.2s ease;
+}
+
 .mh-modal {
-    position: relative; background: #fff;
-    border-radius: 20px; max-width: 480px; width: 90%;
-    overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,.18);
-    animation: mhModalIn .25s ease;
+    background: var(--mh-white);
+    border-radius: var(--mh-radius-xl);
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease;
 }
+
 .mh-modal-header {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 1.2rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
     border-bottom: 1px solid var(--mh-border);
-    background: linear-gradient(135deg,#f8fafc,#f1f5f9);
 }
-.mh-modal-header h3 { margin: 0; font-size: 1rem; display: flex; align-items: center; gap: .55rem; color: var(--mh-text); }
-.mh-modal-close { background: none; border: none; font-size: 1rem; cursor: pointer; color: var(--mh-muted); padding: 4px 8px; border-radius: 8px; }
-.mh-modal-close:hover { background: var(--mh-light); }
-.mh-modal-body   { padding: 1.5rem; }
-.mh-modal-footer { display: flex; gap: .75rem; justify-content: flex-end; padding: 1rem 1.5rem; border-top: 1px solid var(--mh-border); background: var(--mh-light); }
 
-.mh-export-options     { display: flex; flex-direction: column; gap: .75rem; }
-.mh-export-opt         { cursor: pointer; }
-.mh-export-opt input   { display: none; }
-.mh-export-opt-inner   {
-    display: flex; align-items: center; gap: 1rem;
-    padding: .9rem 1.1rem;
+.mh-modal-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--mh-text);
+    margin: 0;
+}
+
+.mh-modal-close {
+    width: 32px;
+    height: 32px;
+    background: var(--mh-bg);
+    border: none;
+    border-radius: 8px;
+    color: var(--mh-text-light);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.mh-modal-close:hover {
+    background: var(--mh-danger-light);
+    color: var(--mh-danger);
+}
+
+.mh-modal-body {
+    padding: 2rem;
+}
+
+.mh-modal-desc {
+    font-size: 0.95rem;
+    color: var(--mh-text-light);
+    margin: 0 0 1.5rem 0;
+}
+
+.mh-export-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.mh-export-option input {
+    display: none;
+}
+
+.mh-export-option-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: var(--mh-bg);
     border: 2px solid var(--mh-border);
-    border-radius: 12px;
-    transition: border-color .2s, background .2s;
+    border-radius: var(--mh-radius);
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
-.mh-export-opt input:checked + .mh-export-opt-inner {
+
+.mh-export-option input:checked + .mh-export-option-content {
+    background: var(--mh-primary-light);
     border-color: var(--mh-primary);
-    background: rgba(27,174,190,.05);
 }
-.mh-export-opt-inner i    { font-size: 1.5rem; color: var(--mh-primary); }
-.mh-export-opt-inner span { font-weight: 600; display: block; color: var(--mh-text); }
-.mh-export-opt-inner small{ display: block; font-size: .75rem; color: #94a3b8; }
 
-/* ─────────────────────────────────────────
-   NOTIFICATIONS
-───────────────────────────────────────── */
-.mh-notif {
-    position: fixed; top: 1.5rem; right: 1.5rem;
-    padding: .9rem 1.25rem; border-radius: 14px;
-    display: flex; align-items: center; gap: .75rem;
-    font-weight: 500; z-index: 9999;
-    box-shadow: 0 8px 24px rgba(0,0,0,.14);
-    animation: mhSlideIn .3s ease;
+.mh-export-option-content i {
+    font-size: 2rem;
+    color: var(--mh-primary);
 }
-.mh-notif-success { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
-.mh-notif-info    { background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; }
-.mh-notif-close   { background: none; border: none; cursor: pointer; color: inherit; opacity: .6; padding: 2px 6px; }
 
-/* ─────────────────────────────────────────
-   ANIMATIONS
-───────────────────────────────────────── */
-@@keyframes mhModalIn  { from { opacity:0; transform:translateY(-20px) scale(.97); } to { opacity:1; transform:translateY(0) scale(1); } }
-@@keyframes mhSlideIn  { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+.mh-export-option-content strong {
+    display: block;
+    font-size: 1rem;
+    color: var(--mh-text);
+    margin-bottom: 0.25rem;
+}
+
+.mh-export-option-content span {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--mh-text-light);
+}
+
+.mh-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1.5rem 2rem;
+    background: var(--mh-bg);
+    border-top: 1px solid var(--mh-border);
+}
+
+.mh-modal-btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: var(--mh-radius);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mh-modal-btn-cancel {
+    background: var(--mh-white);
+    color: var(--mh-text);
+    border: 1.5px solid var(--mh-border);
+}
+
+.mh-modal-btn-cancel:hover {
+    background: var(--mh-bg);
+}
+
+.mh-modal-btn-export {
+    background: linear-gradient(135deg, var(--mh-primary), var(--mh-primary-dark));
+    color: var(--mh-white);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.mh-modal-btn-export:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(27, 174, 190, 0.3);
+}
+
+.mh-modal-btn-export:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.mh-notification {
+    position: fixed;
+    top: 2rem;
+    right: 2rem;
+    background: var(--mh-white);
+    padding: 1rem 1.5rem;
+    border-radius: var(--mh-radius);
+    box-shadow: var(--mh-shadow-lg);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    z-index: 10000;
+    animation: slideInRight 0.3s ease;
+    max-width: 400px;
+}
+
+.mh-notification-success {
+    border-left: 4px solid var(--mh-success);
+}
+
+.mh-notification-success i {
+    color: var(--mh-success);
+    font-size: 1.25rem;
+}
+
+.mh-notification span {
+    flex: 1;
+    font-size: 0.9rem;
+    color: var(--mh-text);
+    font-weight: 500;
+}
+
+.mh-notification-close {
+    background: none;
+    border: none;
+    color: var(--mh-text-lighter);
+    cursor: pointer;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mh-notification-close:hover {
+    color: var(--mh-text);
+}
+
+@@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@@media (max-width: 1024px) {
+    .mh-main-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .mh-sidebar {
+        position: static;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        max-height: none;
+        overflow: visible;
+        padding-right: 0;
+    }
+
+    .mh-hero-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .mh-hero-right {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
+
+@@media (max-width: 768px) {
+    .mh-hero {
+        padding: 1.5rem;
+    }
+
+    .mh-hero-title {
+        font-size: 1.5rem;
+    }
+
+    .mh-sidebar {
+        grid-template-columns: 1fr;
+    }
+
+    .mh-timeline-items {
+        padding-left: 1.5rem;
+    }
+
+    .mh-timeline-items::before {
+        left: 7px;
+    }
+
+    .mh-timeline-dot {
+        left: -1.5rem;
+        width: 32px;
+        height: 32px;
+        font-size: 0.75rem;
+    }
+
+    .mh-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .mh-lab-details {
+        grid-template-columns: 1fr;
+    }
+
+    .mh-vitals-value {
+        font-size: 1.75rem;
+    }
+
+    .mh-action-btn span {
+        display: none;
+    }
+
+    .mh-action-btn {
+        padding: 0.75rem;
+        width: 40px;
+        height: 40px;
+        justify-content: center;
+    }
+}
+
+@@media (max-width: 480px) {
+    .mh-container {
+        padding: 0 0.5rem;
+    }
+
+    .mh-hero {
+        padding: 1.25rem;
+        border-radius: var(--mh-radius);
+    }
+
+    .mh-card-body {
+        padding: 1rem;
+    }
+
+    .mh-card-footer {
+        padding: 0.75rem 1rem;
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: flex-start;
+    }
+}
+
+@@media print {
+    .mh-hero-right,
+    .mh-sidebar,
+    .mh-timeline-dot,
+    .mh-lab-actions,
+    .mh-action-btn {
+        display: none !important;
+    }
+
+    .mh-main-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .mh-timeline-card {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .mh-timeline-items::before {
+        display: none;
+    }
+}
 </style>
 }
 

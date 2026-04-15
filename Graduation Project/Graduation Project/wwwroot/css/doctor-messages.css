@@ -244,8 +244,13 @@
   border-color: #b8ebf0;
 }
 
-.conversation-role-badge.assistant,
 .conversation-role-badge.doctor {
+  background: #e8f0ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.conversation-role-badge.assistant {
   background: #f3e8ff;
   color: #6d28d9;
   border-color: #dec5ff;
@@ -255,8 +260,11 @@
   border-left: 3px solid transparent;
 }
 
-.conversation-item.conversation-assistant,
 .conversation-item.conversation-doctor {
+  border-left: 3px solid #93c5fd;
+}
+
+.conversation-item.conversation-assistant {
   border-left: 3px solid #d8b4fe;
 }
 

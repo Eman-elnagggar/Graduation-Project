@@ -8,17 +8,18 @@
   ViewData["PatientId"] = Model.Patient.PatientID;
   ViewData["UserName"] = Model.UserName;
   ViewData["PageTitle"] = "Messages";
-  ViewData["PageSubtitle"] = "Communicate securely with your doctors";
+  ViewData["PageSubtitle"] = "Communicate securely with your care team";
 
   var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
   var patientId = Model.Patient.PatientID.ToString();
   var conversations = Model.Conversations.Select(c => new
   {
-    id = c.DoctorId,
-    doctorId = c.DoctorId.ToString(),
-    receiverUserId = string.IsNullOrWhiteSpace(c.ReceiverUserId) ? c.DoctorId.ToString() : c.ReceiverUserId,
-    name = string.IsNullOrWhiteSpace(c.DoctorName) ? "Doctor" : c.DoctorName,
-    avatar = $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(string.IsNullOrWhiteSpace(c.DoctorName) ? "D" : c.DoctorName)}&background=1baebe&color=fff&size=80",
+    id = $"{c.ParticipantType}-{c.ParticipantId}",
+    participantId = c.ParticipantId.ToString(),
+    participantType = c.ParticipantType,
+    receiverUserId = string.IsNullOrWhiteSpace(c.ReceiverUserId) ? c.ParticipantId.ToString() : c.ReceiverUserId,
+    name = string.IsNullOrWhiteSpace(c.ParticipantName) ? "Care Team" : c.ParticipantName,
+    avatar = $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(string.IsNullOrWhiteSpace(c.ParticipantName) ? "C" : c.ParticipantName)}&background=1baebe&color=fff&size=80",
     status = "online",
     lastMessage = string.IsNullOrWhiteSpace(c.LastMessagePreview) ? "Start a conversation" : c.LastMessagePreview,
     unreadCount = c.UnreadCount,
@@ -65,7 +66,7 @@
         <div class="empty-content">
           <div class="empty-icon"><i class="fas fa-comments"></i></div>
           <h3>Select a conversation</h3>
-          <p>Choose a doctor from the list to start messaging</p>
+          <p>Choose a care team member from the list to start messaging</p>
         </div>
       </div>
 
@@ -78,6 +79,7 @@
             </div>
             <div class="user-details">
               <h3 id="chatUserName">Doctor Name</h3>
+              <p class="chat-user-role" id="chatUserRole">Doctor</p>
             </div>
           </div>
         </header>
@@ -106,7 +108,7 @@
     window.__patientMessagesConfig = {
       patientId: @Html.Raw(JsonSerializer.Serialize(patientId)),
       currentUserId: @Html.Raw(JsonSerializer.Serialize(currentUserId)),
-      conversationMessagesEndpointTemplate: @Html.Raw(JsonSerializer.Serialize(Url.Action("ConversationMessages", "Patient", new { id = "__PATIENT_ID__", doctorId = "__DOCTOR_ID__" }))),
+      conversationMessagesEndpointTemplate: @Html.Raw(JsonSerializer.Serialize(Url.Action("ConversationMessages", "Patient", new { id = "__PATIENT_ID__", userId = "__USER_ID__" }))),
       conversations: @Html.Raw(JsonSerializer.Serialize(conversations))
     };
   </script>

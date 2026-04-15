@@ -6,623 +6,1096 @@
     ViewData["ActivePage"] = "Prescriptions";
 }
 
-<!-- ??????????????????????????????????????????????
-     PAGE HEADER
-?????????????????????????????????????????????? -->
-<header class="pl-hero">
-    <div class="pl-hero-left">
-        <div class="pl-hero-icon">
-            <i class="fas fa-prescription-bottle-alt"></i>
-        </div>
-        <div>
-            <h1 class="pl-hero-title">My Prescriptions</h1>
-            <p class="pl-hero-sub">All prescriptions issued by your doctors, with full medication details</p>
-        </div>
-    </div>
-    <div class="pl-hero-right">
-        <div class="pl-profile-chip">
-            <div class="pl-avatar"><i class="fas fa-user"></i></div>
-            <span>@Model.UserName</span>
-        </div>
-    </div>
-</header>
+<div class="rx-wrap">
 
-<!-- ??????????????????????????????????????????????
-     STAT CARDS
-?????????????????????????????????????????????? -->
-<section class="rx-stats-row">
-    <div class="rx-stat-card rx-stat-teal">
-        <div class="rx-stat-icon-wrap"><i class="fas fa-file-prescription"></i></div>
-        <div class="rx-stat-body">
-            <span class="rx-stat-num">@Model.TotalCount</span>
-            <span class="rx-stat-label">Total Prescriptions</span>
+    <!-- HERO BANNER -->
+    <div class="rx-hero">
+        <div class="rx-hero-left">
+            <span class="rx-hero-eyebrow"><i class="fas fa-prescription-bottle-alt"></i> My Prescriptions</span>
+            <h2 class="rx-hero-title">Prescriptions <span>Overview</span></h2>
+            <p class="rx-hero-sub">
+                <i class="fas fa-circle"></i>
+                <span>View all prescriptions issued by your doctors</span>
+            </p>
+        </div>
+        <div class="rx-hero-right">
+            <div class="rx-hero-stat">
+                <div class="rx-hero-stat-ico"><i class="fas fa-file-prescription"></i></div>
+                <div class="rx-hero-stat-body">
+                    <span class="rx-hero-stat-val">@Model.TotalCount</span>
+                    <span class="rx-hero-stat-lbl">Total Prescriptions</span>
+                </div>
+            </div>
+            <div class="rx-hero-stat">
+                <div class="rx-hero-stat-ico"><i class="fas fa-calendar-alt"></i></div>
+                <div class="rx-hero-stat-body">
+                    <span class="rx-hero-stat-val rx-hero-stat-val-md">
+                        @(Model.LatestDate.HasValue ? Model.LatestDate.Value.ToString("MMM dd") : "—")
+                    </span>
+                    <span class="rx-hero-stat-lbl">Latest Prescription</span>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="rx-stat-card rx-stat-amber">
-        <div class="rx-stat-icon-wrap"><i class="fas fa-calendar-check"></i></div>
-        <div class="rx-stat-body">
-            <span class="rx-stat-num" style="font-size:1.25rem;line-height:1.2;">
-                @(Model.LatestDate.HasValue ? Model.LatestDate.Value.ToString("MMM dd, yyyy") : "—")
-            </span>
-            <span class="rx-stat-label">Latest Prescription</span>
-        </div>
-    </div>
-    <div class="rx-stat-card rx-stat-green">
-        <div class="rx-stat-icon-wrap"><i class="fas fa-pills"></i></div>
-        <div class="rx-stat-body">
-            <span class="rx-stat-num">@Model.Prescriptions.Sum(p => p.Items?.Count ?? 0)</span>
-            <span class="rx-stat-label">Medications Prescribed</span>
-        </div>
-    </div>
-</section>
 
-<!-- ??????????????????????????????????????????????
-     SEARCH + FILTER BAR
-?????????????????????????????????????????????? -->
-<div class="card" style="margin-bottom:24px;padding:16px 20px;">
-    <div class="rx-toolbar">
-        <div class="search-bar" style="flex:1;min-width:220px;">
-            <i class="fas fa-search"></i>
-            <input type="text" id="rxSearch" class="search-input"
-                   placeholder="Search by doctor, medicine, or date…" />
+    <!-- KPI GRID -->
+    <div class="rx-kpi-grid">
+
+        <!-- Total Prescriptions -->
+        <div class="rx-kpi">
+            <div class="rx-kpi-top">
+                <div class="rx-kpi-ico teal"><i class="fas fa-file-prescription"></i></div>
+                <span class="rx-kpi-trend neu"><i class="fas fa-list"></i> All Time</span>
+            </div>
+            <div class="rx-kpi-mid">
+                <div class="rx-kpi-val">@Model.TotalCount</div>
+                <div class="rx-kpi-label">Total Prescriptions</div>
+            </div>
+            <div class="rx-kpi-foot"><i class="fas fa-info-circle"></i> All issued prescriptions</div>
+            <div class="rx-kpi-glow teal"></div>
         </div>
-        <div class="rx-filter-tabs">
-            <button class="rx-filter-btn active" data-filter="all">
-                <i class="fas fa-list"></i> All
-                <span class="rx-filter-count">@Model.TotalCount</span>
-            </button>
-            <button class="rx-filter-btn" data-filter="recent">
-                <i class="fas fa-clock"></i> Last 30 Days
-            </button>
+
+        <!-- Latest Date -->
+        <div class="rx-kpi">
+            <div class="rx-kpi-top">
+                <div class="rx-kpi-ico amber"><i class="fas fa-calendar-alt"></i></div>
+                <span class="rx-kpi-trend up"><i class="fas fa-clock"></i> Latest</span>
+            </div>
+            <div class="rx-kpi-mid">
+                <div class="rx-kpi-val rx-kpi-val-md">
+                    @(Model.LatestDate.HasValue ? Model.LatestDate.Value.ToString("MMM dd") : "—")
+                </div>
+                <div class="rx-kpi-label">Latest Prescription</div>
+            </div>
+            <div class="rx-kpi-foot">
+                <i class="fas fa-calendar"></i>
+                @(Model.LatestDate.HasValue ? Model.LatestDate.Value.ToString("yyyy") : "No prescriptions yet")
+            </div>
+            <div class="rx-kpi-glow amber"></div>
+        </div>
+
+        <!-- Recent (last 30 days) -->
+        <div class="rx-kpi">
+            <div class="rx-kpi-top">
+                <div class="rx-kpi-ico blue"><i class="fas fa-star"></i></div>
+                <span class="rx-kpi-trend up"><i class="fas fa-check-circle"></i> Active</span>
+            </div>
+            <div class="rx-kpi-mid">
+                <div class="rx-kpi-val">
+                    @(Model.Prescriptions.Count(r => (DateTime.Today - r.PrescriptionDate.Date).TotalDays <= 30))
+                </div>
+                <div class="rx-kpi-label">Last 30 Days</div>
+            </div>
+            <div class="rx-kpi-foot"><i class="fas fa-history"></i> Recent prescriptions</div>
+            <div class="rx-kpi-glow blue"></div>
+        </div>
+
+        <!-- Unique Doctors -->
+        <div class="rx-kpi">
+            <div class="rx-kpi-top">
+                <div class="rx-kpi-ico purple"><i class="fas fa-user-md"></i></div>
+                <span class="rx-kpi-trend neu"><i class="fas fa-minus"></i> Doctors</span>
+            </div>
+            <div class="rx-kpi-mid">
+                <div class="rx-kpi-val">
+                    @(Model.Prescriptions.Select(r => r.Doctor?.DoctorID).Distinct().Count())
+                </div>
+                <div class="rx-kpi-label">Unique Doctors</div>
+            </div>
+            <div class="rx-kpi-foot"><i class="fas fa-stethoscope"></i> Prescribing physicians</div>
+            <div class="rx-kpi-glow purple"></div>
+        </div>
+
+    </div>
+
+    <!-- FILTER / SEARCH CARD -->
+    <div class="rx-card rx-filter-card">
+        <div class="rx-filter-body">
+            <div class="rx-search-wrap">
+                <i class="fas fa-search rx-search-icon"></i>
+                <input type="text" id="rxSearch" class="rx-search-input"
+                       placeholder="Search by medicine, doctor or date…" />
+                <button class="rx-clear-btn" id="clearSearch" style="display:none;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="rx-filter-controls">
+                <div class="rx-filter-tabs">
+                    <button class="rx-tab active" data-filter="all">
+                        <i class="fas fa-list"></i> All
+                        <span class="rx-tab-count">@Model.TotalCount</span>
+                    </button>
+                    <button class="rx-tab" data-filter="recent">
+                        <i class="fas fa-clock"></i> Last 30 Days
+                    </button>
+                </div>
+                <div class="rx-expand-controls">
+                    <button class="rx-control-btn" id="expandAll">
+                        <i class="fas fa-chevron-down"></i> Expand All
+                    </button>
+                    <button class="rx-control-btn" id="collapseAll">
+                        <i class="fas fa-chevron-up"></i> Collapse All
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- ??????????????????????????????????????????????
-     PRESCRIPTIONS LIST
-?????????????????????????????????????????????? -->
-<section id="prescriptionsList">
+    <!-- PRESCRIPTIONS LIST -->
+    <div class="rx-prescriptions-container">
 
-    @if (!Model.Prescriptions.Any())
-    {
-        <div class="card" style="text-align:center;padding:64px 32px;">
-            <div class="rx-empty-icon"><i class="fas fa-prescription-bottle"></i></div>
-            <h3 style="color:#64748b;margin:0 0 8px;">No prescriptions yet</h3>
-            <p style="color:#94a3b8;margin:0;">Your doctor-issued prescriptions will appear here once added.</p>
-        </div>
-    }
-    else
-    {
-        @foreach (var rx in Model.Prescriptions)
+        @if (!Model.Prescriptions.Any())
         {
-            var doctorName     = rx.Doctor?.User != null
-                ? $"Dr. {rx.Doctor.User.FirstName} {rx.Doctor.User.LastName}"
-                : "Unknown Doctor";
-            var specialization = rx.Doctor?.Specialization ?? "";
-            var itemCount      = rx.Items?.Count ?? 0;
-            var isRecent       = (DateTime.Today - rx.PrescriptionDate.Date).TotalDays <= 30;
-            var medicines      = string.Join(" ", rx.Items?.Select(i => i.MedicineName?.ToLower() ?? "") ?? Enumerable.Empty<string>());
+            <div class="rx-empty-state">
+                <div class="rx-empty-icon"><i class="fas fa-prescription-bottle"></i></div>
+                <h3>No prescriptions yet</h3>
+                <p>Your doctor-issued prescriptions will appear here.</p>
+            </div>
+        }
+        else
+        {
+            @foreach (var rx in Model.Prescriptions)
+            {
+                var doctorName = rx.Doctor?.User != null
+                    ? $"Dr. {rx.Doctor.User.FirstName} {rx.Doctor.User.LastName}"
+                    : "Unknown Doctor";
+                var specialization = rx.Doctor?.Specialization ?? "";
+                var itemCount = rx.Items?.Count ?? 0;
+                var isRecent = (DateTime.Today - rx.PrescriptionDate.Date).TotalDays <= 30;
 
-            <div class="card rx-prescription-card prescription-card"
-                 data-date="@rx.PrescriptionDate.ToString("yyyy-MM-dd")"
-                 data-doctor="@doctorName.ToLower()"
-                 data-medicines="@medicines"
-                 data-recent="@isRecent.ToString().ToLower()">
+                <div class="rx-card rx-prescription-card prescription-card"
+                     data-date="@rx.PrescriptionDate.ToString("yyyy-MM-dd")"
+                     data-doctor="@doctorName.ToLower()"
+                     data-medicines="@string.Join(" ", rx.Items?.Select(i => i.MedicineName?.ToLower() ?? "") ?? Enumerable.Empty<string>())"
+                     data-recent="@isRecent.ToString().ToLower()">
 
-                <!-- ?? Card Header ?? -->
-                <div class="rx-card-top">
-                    <div class="rx-card-top-left">
-                        <div class="rx-card-icon">
-                            <i class="fas fa-prescription-bottle-alt"></i>
-                        </div>
-                        <div>
-                            <div class="rx-card-title-row">
-                                <h4 class="rx-card-title">Prescription&nbsp;#@rx.PrescriptionID</h4>
+                    <!-- Card Header -->
+                    <div class="rx-pcard-header" data-target="rx-body-@rx.PrescriptionID">
+                        <div class="rx-pcard-main">
+                            <div class="rx-pcard-title-row">
+                                <h3 class="rx-pcard-title">
+                                    <i class="fas fa-file-prescription"></i>
+                                    Prescription #@rx.PrescriptionID
+                                </h3>
                                 @if (isRecent)
                                 {
-                                    <span class="rx-badge-recent"><i class="fas fa-star"></i> Recent</span>
+                                    <span class="rx-badge-recent">
+                                        <i class="fas fa-star"></i> Recent
+                                    </span>
                                 }
                             </div>
-                            <div class="rx-card-meta">
-                                <span class="rx-meta-pill">
+                            <div class="rx-pcard-meta">
+                                <span class="rx-meta-item">
                                     <i class="fas fa-calendar-alt"></i>
                                     @rx.PrescriptionDate.ToString("MMMM dd, yyyy")
                                 </span>
-                                <span class="rx-meta-pill">
+                                <span class="rx-meta-divider">•</span>
+                                <span class="rx-meta-item">
                                     <i class="fas fa-pills"></i>
                                     @itemCount medication@(itemCount != 1 ? "s" : "")
                                 </span>
                             </div>
                         </div>
+                        <button class="rx-expand-btn" data-target="rx-body-@rx.PrescriptionID"
+                                aria-expanded="false" title="Toggle details">
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
                     </div>
-                    <button class="rx-toggle-btn btn btn-sm btn-outline"
-                            data-target="rxBody-@rx.PrescriptionID"
-                            aria-expanded="false">
-                        <i class="fas fa-chevron-down"></i>
-                        <span>Details</span>
-                    </button>
-                </div>
 
-                <!-- ?? Doctor Strip ?? -->
-                <div class="rx-doctor-strip">
-                    <div class="rx-doctor-avatar">
-                        <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(doctorName)&background=8b5cf6&color=fff&size=40"
-                             alt="@doctorName" />
-                    </div>
-                    <div class="rx-doctor-details">
-                        <span class="rx-doctor-name">@doctorName</span>
-                        @if (!string.IsNullOrWhiteSpace(specialization))
-                        {
-                            <span class="rx-doctor-spec">
-                                <i class="fas fa-stethoscope"></i> @specialization
-                            </span>
-                        }
-                    </div>
-                    <div class="rx-doctor-date-right">
-                        <i class="fas fa-clock"></i>
-                        @rx.PrescriptionDate.ToString("hh:mm tt") · @rx.PrescriptionDate.ToString("MMM dd, yyyy")
-                    </div>
-                </div>
-
-                <!-- ?? Collapsible Body ?? -->
-                <div class="rx-card-body" id="rxBody-@rx.PrescriptionID">
-
-                    @if (!string.IsNullOrWhiteSpace(rx.Notes))
-                    {
-                        <div class="rx-notes-block">
-                            <div class="rx-notes-label">
-                                <i class="fas fa-sticky-note"></i> Doctor's Notes
-                            </div>
-                            <p class="rx-notes-text">@rx.Notes</p>
+                    <!-- Doctor Info -->
+                    <div class="rx-doctor-info">
+                        <div class="rx-doctor-avatar">
+                            <i class="fas fa-user-md"></i>
                         </div>
-                    }
+                        <div class="rx-doctor-details">
+                            <span class="rx-doctor-name">@doctorName</span>
+                            @if (!string.IsNullOrWhiteSpace(specialization))
+                            {
+                                <span class="rx-doctor-spec">@specialization</span>
+                            }
+                        </div>
+                    </div>
 
-                    @if (rx.Items != null && rx.Items.Any())
-                    {
-                        <div class="rx-meds-section">
-                            <div class="rx-meds-header">
-                                <span><i class="fas fa-pills"></i> Medications</span>
-                                <span class="doctors-count">@itemCount item@(itemCount != 1 ? "s" : "")</span>
+                    <!-- Collapsible Body -->
+                    <div class="rx-pcard-body" id="rx-body-@rx.PrescriptionID">
+
+                        @if (!string.IsNullOrWhiteSpace(rx.Notes))
+                        {
+                            <div class="rx-notes-section">
+                                <div class="rx-section-label">
+                                    <i class="fas fa-sticky-note"></i> Doctor's Notes
+                                </div>
+                                <p class="rx-notes-text">@rx.Notes</p>
                             </div>
-                            <div class="rx-meds-grid">
-                                @foreach (var item in rx.Items)
-                                {
-                                    <div class="rx-med-card">
-                                        <div class="rx-med-icon">
-                                            <i class="fas fa-capsules"></i>
-                                        </div>
-                                        <div class="rx-med-body">
-                                            <span class="rx-med-name">@item.MedicineName</span>
-                                            <div class="rx-med-chips">
-                                                @if (!string.IsNullOrWhiteSpace(item.Dosage))
+                        }
+
+                        @if (rx.Items != null && rx.Items.Any())
+                        {
+                            <div class="rx-meds-section">
+                                <div class="rx-section-label">
+                                    <i class="fas fa-pills"></i> Medications (@itemCount)
+                                </div>
+                                <div class="rx-meds-list">
+                                    @foreach (var item in rx.Items)
+                                    {
+                                        <div class="rx-med-row">
+                                            <div class="rx-med-icon">
+                                                <i class="fas fa-capsules"></i>
+                                            </div>
+                                            <div class="rx-med-content">
+                                                <div class="rx-med-name">@item.MedicineName</div>
+                                                <div class="rx-med-details">
+                                                    @if (!string.IsNullOrWhiteSpace(item.Dosage))
+                                                    {
+                                                        <span class="rx-detail-item">
+                                                            <i class="fas fa-weight"></i> @item.Dosage
+                                                        </span>
+                                                    }
+                                                    @if (!string.IsNullOrWhiteSpace(item.Frequency))
+                                                    {
+                                                        <span class="rx-detail-item">
+                                                            <i class="fas fa-redo"></i> @item.Frequency
+                                                        </span>
+                                                    }
+                                                    @if (item.DurationDays > 0)
+                                                    {
+                                                        <span class="rx-detail-item">
+                                                            <i class="fas fa-hourglass-half"></i> @item.DurationDays day@(item.DurationDays != 1 ? "s" : "")
+                                                        </span>
+                                                    }
+                                                </div>
+                                                @if (!string.IsNullOrWhiteSpace(item.Instructions))
                                                 {
-                                                    <span class="rx-chip rx-chip-blue">
-                                                        <i class="fas fa-balance-scale"></i> @item.Dosage
-                                                    </span>
-                                                }
-                                                @if (!string.IsNullOrWhiteSpace(item.Frequency))
-                                                {
-                                                    <span class="rx-chip rx-chip-green">
-                                                        <i class="fas fa-redo-alt"></i> @item.Frequency
-                                                    </span>
-                                                }
-                                                @if (item.DurationDays > 0)
-                                                {
-                                                    <span class="rx-chip rx-chip-purple">
-                                                        <i class="fas fa-hourglass-half"></i>
-                                                        @item.DurationDays day@(item.DurationDays != 1 ? "s" : "")
-                                                    </span>
+                                                    <div class="rx-med-instructions">
+                                                        <i class="fas fa-info-circle"></i>
+                                                        <span>@item.Instructions</span>
+                                                    </div>
                                                 }
                                             </div>
-                                            @if (!string.IsNullOrWhiteSpace(item.Instructions))
-                                            {
-                                                <div class="rx-med-instructions">
-                                                    <i class="fas fa-info-circle"></i>
-                                                    @item.Instructions
-                                                </div>
-                                            }
                                         </div>
-                                    </div>
-                                }
+                                    }
+                                </div>
                             </div>
-                        </div>
-                    }
-                    else
-                    {
-                        <p class="rx-no-items">
-                            <i class="fas fa-info-circle"></i>
-                            No medication items recorded for this prescription.
-                        </p>
-                    }
+                        }
+                        else
+                        {
+                            <p class="rx-no-items">
+                                <i class="fas fa-info-circle"></i> No medication items recorded for this prescription.
+                            </p>
+                        }
 
-                </div><!-- /rx-card-body -->
-            </div><!-- /rx-prescription-card -->
+                    </div><!-- /rx-pcard-body -->
+                </div><!-- /rx-prescription-card -->
+            }
         }
-    }
-</section>
+    </div>
+
+</div><!-- /rx-wrap -->
 
 @section Scripts {
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
-    /* ?? Toggle expand / collapse ??????????????????? */
-    document.querySelectorAll(".rx-toggle-btn").forEach(btn => {
-        btn.addEventListener("click", function () {
-            const bodyId   = this.dataset.target;
-            const body     = document.getElementById(bodyId);
-            const icon     = this.querySelector("i");
-            const label    = this.querySelector("span");
-            const expanded = this.getAttribute("aria-expanded") === "true";
+    // Expand / Collapse cards
+    function toggleCard(btn) {
+        const targetId = btn.dataset.target;
+        const body = document.getElementById(targetId);
+        if (!body) return;
+        
+        const expanded = btn.getAttribute("aria-expanded") === "true";
+        
+        if (expanded) {
+            body.style.maxHeight = body.scrollHeight + "px";
+            requestAnimationFrame(() => { body.style.maxHeight = "0"; });
+            btn.setAttribute("aria-expanded", "false");
+            btn.querySelector("i").style.transform = "rotate(0deg)";
+        } else {
+            body.style.maxHeight = body.scrollHeight + "px";
+            btn.setAttribute("aria-expanded", "true");
+            btn.querySelector("i").style.transform = "rotate(180deg)";
+        }
+    }
 
-            if (expanded) {
-                body.style.maxHeight = body.scrollHeight + "px";
-                requestAnimationFrame(() => body.style.maxHeight = "0");
-                this.setAttribute("aria-expanded", "false");
-                icon.style.transform = "rotate(0deg)";
-                label.textContent = "Details";
-                this.classList.remove("btn-primary");
-                this.classList.add("btn-outline");
-            } else {
-                body.style.maxHeight = body.scrollHeight + "px";
-                body.addEventListener("transitionend", () => {
-                    if (this.getAttribute("aria-expanded") === "true")
-                        body.style.maxHeight = "none";
-                }, { once: true });
-                this.setAttribute("aria-expanded", "true");
-                icon.style.transform = "rotate(180deg)";
-                label.textContent = "Close";
-                this.classList.remove("btn-outline");
-                this.classList.add("btn-primary");
+    document.querySelectorAll(".rx-expand-btn").forEach(btn => {
+        btn.addEventListener("click", function(e) {
+            e.stopPropagation();
+            toggleCard(this);
+        });
+    });
+
+    // Click header to expand/collapse
+    document.querySelectorAll(".rx-pcard-header").forEach(header => {
+        header.addEventListener("click", function() {
+            const btn = this.querySelector(".rx-expand-btn");
+            if (btn) toggleCard(btn);
+        });
+    });
+
+    // Expand All / Collapse All
+    document.getElementById("expandAll")?.addEventListener("click", function() {
+        document.querySelectorAll(".rx-expand-btn").forEach(btn => {
+            if (btn.getAttribute("aria-expanded") !== "true") {
+                toggleCard(btn);
             }
         });
     });
 
-    /* ?? Filter tabs ???????????????????????????????? */
-    document.querySelectorAll(".rx-filter-btn").forEach(btn => {
-        btn.addEventListener("click", function () {
-            document.querySelectorAll(".rx-filter-btn").forEach(b => b.classList.remove("active"));
+    document.getElementById("collapseAll")?.addEventListener("click", function() {
+        document.querySelectorAll(".rx-expand-btn").forEach(btn => {
+            if (btn.getAttribute("aria-expanded") === "true") {
+                toggleCard(btn);
+            }
+        });
+    });
+
+    // Filter tabs
+    document.querySelectorAll(".rx-tab").forEach(tab => {
+        tab.addEventListener("click", function () {
+            document.querySelectorAll(".rx-tab").forEach(t => t.classList.remove("active"));
             this.classList.add("active");
             applyFilters();
         });
     });
 
-    /* ?? Live search ???????????????????????????????? */
-    document.getElementById("rxSearch").addEventListener("input", applyFilters);
+    // Search
+    const searchInput = document.getElementById("rxSearch");
+    const clearBtn = document.getElementById("clearSearch");
+
+    searchInput.addEventListener("input", function() {
+        clearBtn.style.display = this.value ? "flex" : "none";
+        applyFilters();
+    });
+
+    clearBtn?.addEventListener("click", function() {
+        searchInput.value = "";
+        this.style.display = "none";
+        applyFilters();
+    });
 
     function applyFilters() {
-        const query  = document.getElementById("rxSearch").value.toLowerCase().trim();
-        const filter = document.querySelector(".rx-filter-btn.active")?.dataset.filter ?? "all";
-        let visible  = 0;
+        const query = searchInput.value.toLowerCase().trim();
+        const filter = document.querySelector(".rx-tab.active")?.dataset.filter ?? "all";
 
         document.querySelectorAll(".prescription-card").forEach(card => {
-            const matchSearch = !query ||
-                (card.dataset.doctor    ?? "").includes(query) ||
-                (card.dataset.medicines ?? "").includes(query) ||
-                (card.dataset.date      ?? "").includes(query);
+            const doctor = card.dataset.doctor ?? "";
+            const medicines = card.dataset.medicines ?? "";
+            const date = card.dataset.date ?? "";
+            const isRecent = card.dataset.recent === "true";
 
-            const matchFilter = filter === "all" || (filter === "recent" && card.dataset.recent === "true");
+            const matchesSearch = !query ||
+                doctor.includes(query) ||
+                medicines.includes(query) ||
+                date.includes(query);
 
-            const show = matchSearch && matchFilter;
-            card.style.display = show ? "block" : "none";
-            if (show) visible++;
+            const matchesFilter = filter === "all" ||
+                (filter === "recent" && isRecent);
+
+            card.style.display = (matchesSearch && matchesFilter) ? "block" : "none";
         });
-
-        /* update "All" tab count */
-        const allTab = document.querySelector(".rx-filter-btn[data-filter='all'] .rx-filter-count");
-        if (allTab) allTab.textContent = visible;
     }
 });
 </script>
 
 <style>
-/* ??? Hero Header (matches Places page) ??????? */
-.pl-hero {
+/* ???????????????????????????????????????????????????????????????
+   PRESCRIPTIONS PAGE — Clean, Modern, Professional Design
+??????????????????????????????????????????????????????????????? */
+
+.rx-wrap {
+    --p:       #1BAEBE;
+    --p-dk:    #138fa0;
+    --p-mid:   #22c9db;
+    --p-lt:    #e0f7fa;
+    --p-xlt:   #f0fdfe;
+
+    --pink:    #e91e63;
+    --pink-lt: #fce4ec;
+    --purple:  #9c27b0;
+    --purp-lt: #f3e5f5;
+    --green:   #4caf50;
+    --grn-lt:  #e8f5e9;
+    --amber:   #ff9800;
+    --amb-lt:  #fff8e1;
+    --blue:    #2196f3;
+    --blue-lt: #e3f2fd;
+
+    --navy:      #0b1f35;
+    --navy-mid:  #152d47;
+    --text:      #1e293b;
+    --text-2:    #4a5568;
+    --text-3:    #8896ab;
+    --border:    #e4eaf2;
+    --border-2:  #cdd6e3;
+    --bg:        #f3f6fb;
+    --white:     #fff;
+    --danger:    #ef4444;
+    --warning:   #f59e0b;
+    --success:   #22c55e;
+    --info:      #3b82f6;
+
+    --r:         10px;
+    --r-lg:      16px;
+    --r-xl:      22px;
+    --shadow-sm: 0 1px 4px rgba(15,28,46,.06);
+    --shadow:    0 4px 16px rgba(15,28,46,.08);
+    --shadow-md: 0 8px 28px rgba(15,28,46,.11);
+
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* ?? HERO ?? */
+.rx-wrap .rx-hero {
+    background: linear-gradient(130deg, var(--navy) 0%, var(--navy-mid) 50%, #0d3d5c 100%);
+    border-radius: var(--r-xl);
+    padding: 28px 32px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: linear-gradient(135deg, #0f2942 0%, #1a4a6e 50%, #0d3d5c 100%);
-    border-radius: 18px;
-    padding: 1.8rem 2rem;
-    margin-bottom: 1.5rem;
+    gap: 20px;
     flex-wrap: wrap;
-    gap: 1rem;
-    position: relative;
-    overflow: hidden;
 }
-.pl-hero::before {
-    content: "";
-    position: absolute; top: -40px; right: -40px;
-    width: 200px; height: 200px;
-    background: radial-gradient(circle, rgba(27,174,190,.25) 0%, transparent 70%);
-    pointer-events: none;
+.rx-wrap .rx-hero-left {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
-.pl-hero::after {
-    content: "";
-    position: absolute; bottom: -60px; left: 20%;
-    width: 260px; height: 260px;
-    background: radial-gradient(circle, rgba(0,180,216,.12) 0%, transparent 70%);
-    pointer-events: none;
+.rx-wrap .rx-hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: .68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--p-mid);
+    background: rgba(27,174,190,.18);
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(27,174,190,.25);
+    width: fit-content;
 }
-.pl-hero-left {
-    display: flex; align-items: center;
-    gap: 1.1rem; z-index: 1;
+.rx-wrap .rx-hero-title {
+    font-size: 1.85rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    line-height: 1.25;
+    margin: 0;
 }
-.pl-hero-icon {
-    width: 56px; height: 56px;
-    background: linear-gradient(135deg, #1baebe, #138fa0);
-    border-radius: 16px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.4rem; color: #fff;
-    box-shadow: 0 6px 20px rgba(27,174,190,.45);
-    flex-shrink: 0;
-}
-.pl-hero-title {
-    margin: 0; font-size: 1.7rem;
-    font-weight: 800; color: #f1f5f9; letter-spacing: -.3px;
-}
-.pl-hero-sub {
-    margin: .2rem 0 0; font-size: .88rem; color: #94a3b8;
-}
-.pl-hero-right {
-    display: flex; align-items: center;
-    gap: .85rem; z-index: 1;
-}
-.pl-profile-chip {
-    display: flex; align-items: center; gap: .55rem;
-    background: rgba(255,255,255,.1);
-    border: 1px solid rgba(255,255,255,.15);
-    border-radius: 24px;
-    padding: .4rem .9rem .4rem .5rem;
-    font-size: .87rem; font-weight: 500; color: #e2e8f0;
-}
-.pl-avatar {
-    width: 30px; height: 30px;
-    background: linear-gradient(135deg, #1baebe, #138fa0);
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: .8rem; color: #fff;
-}
-@@media(max-width:768px) {
-    .pl-hero { padding: 1.3rem 1.2rem; }
-    .pl-hero-title { font-size: 1.35rem; }
-}
-
-/* ??? Stat Row ????????????????????????????????? */
-.rx-stats-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    margin-bottom: 24px;
-}
-@@media(max-width:700px) { .rx-stats-row { grid-template-columns: 1fr; } }
-
-.rx-stat-card {
+.rx-wrap .rx-hero-title span { color: var(--p-mid); }
+.rx-wrap .rx-hero-sub {
+    font-size: .95rem;
+    color: #94a3b8;
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 20px 22px;
-    border-radius: var(--radius-lg);
+    gap: 7px;
+    margin: 0;
+}
+.rx-wrap .rx-hero-sub i { font-size: .45rem; color: var(--p-mid); }
+.rx-wrap .rx-hero-right {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.rx-wrap .rx-hero-stat {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: var(--r-lg);
+    padding: 12px 18px;
+    min-width: 140px;
+}
+.rx-wrap .rx-hero-stat-ico {
+    width: 38px;
+    height: 38px;
+    border-radius: 9px;
+    background: rgba(27,174,190,.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--p-mid);
+    flex-shrink: 0;
+}
+.rx-wrap .rx-hero-stat-body {
+    display: flex;
+    flex-direction: column;
+}
+.rx-wrap .rx-hero-stat-val {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+}
+.rx-wrap .rx-hero-stat-val-md { font-size: 1.15rem; }
+.rx-wrap .rx-hero-stat-lbl {
+    font-size: .72rem;
+    color: #94a3b8;
+    margin-top: 3px;
+}
+
+/* ?? KPI GRID ?? */
+.rx-wrap .rx-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+}
+.rx-wrap .rx-kpi {
+    background: var(--white);
+    border-radius: var(--r-lg);
+    border: 1px solid var(--border);
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
     box-shadow: var(--shadow-sm);
-    border: 1px solid var(--border-color);
+    position: relative;
+    overflow: hidden;
     transition: transform .2s, box-shadow .2s;
 }
-.rx-stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
-
-.rx-stat-teal  { background: linear-gradient(135deg,#e0f7fa,#b2ebf2); border-top: 3px solid #1baebe; }
-.rx-stat-amber { background: linear-gradient(135deg,#fffbeb,#fef9c3); border-top: 3px solid #f59e0b; }
-.rx-stat-green { background: linear-gradient(135deg,#ecfdf5,#d1fae5); border-top: 3px solid #10b981; }
-
-.rx-stat-icon-wrap {
-    width: 48px; height: 48px; border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.2rem; flex-shrink: 0;
-    background: rgba(255,255,255,.65); backdrop-filter: blur(4px);
+.rx-wrap .rx-kpi:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.rx-wrap .rx-kpi-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
 }
-.rx-stat-teal  .rx-stat-icon-wrap { color: #138fa0; }
-.rx-stat-amber .rx-stat-icon-wrap { color: #b45309; }
-.rx-stat-green .rx-stat-icon-wrap { color: #059669; }
-
-.rx-stat-body { display: flex; flex-direction: column; }
-.rx-stat-num   { font-size: 2rem; font-weight: 800; color: #1e293b; line-height: 1; }
-.rx-stat-label { font-size: .78rem; font-weight: 500; color: #64748b; margin-top: .2rem; }
-
-/* ??? Toolbar ?????????????????????????????????? */
-.rx-toolbar {
-    display: flex; align-items: center;
-    gap: 14px; flex-wrap: wrap;
+.rx-wrap .rx-kpi-ico {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .9rem;
 }
-.rx-filter-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
-
-.rx-filter-btn {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 8px 16px; border-radius: 22px;
-    border: 1.5px solid var(--border-color);
-    background: var(--bg-primary);
-    font-size: .82rem; font-weight: 600; color: #64748b;
-    cursor: pointer; transition: all .2s; font-family: inherit;
+.rx-wrap .rx-kpi-ico.teal   { background: var(--p-lt);    color: var(--p); }
+.rx-wrap .rx-kpi-ico.amber  { background: var(--amb-lt);  color: var(--amber); }
+.rx-wrap .rx-kpi-ico.blue   { background: var(--blue-lt); color: var(--blue); }
+.rx-wrap .rx-kpi-ico.purple { background: var(--purp-lt); color: var(--purple); }
+.rx-wrap .rx-kpi-trend {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: .69rem;
+    font-weight: 700;
+    padding: 3px 7px;
+    border-radius: 14px;
 }
-.rx-filter-btn:hover { background: #f1f5f9; color: #1e293b; }
-.rx-filter-btn.active {
-    background: linear-gradient(135deg,#1baebe,#138fa0);
-    color: #fff; border-color: transparent;
+.rx-wrap .rx-kpi-trend.up  { background: #f0fdf4; color: #15803d; }
+.rx-wrap .rx-kpi-trend.neu { background: #f8fafc; color: #64748b; }
+.rx-wrap .rx-kpi-mid { display: flex; flex-direction: column; gap: 4px; }
+.rx-wrap .rx-kpi-val {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1;
+}
+.rx-wrap .rx-kpi-val-md { font-size: 1.45rem; }
+.rx-wrap .rx-kpi-label { font-size: .88rem; color: var(--text-3); }
+.rx-wrap .rx-kpi-foot {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: .82rem;
+    color: var(--text-3);
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+}
+.rx-wrap .rx-kpi-glow {
+    position: absolute;
+    bottom: -20px;
+    right: -20px;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    opacity: .06;
+    pointer-events: none;
+}
+.rx-wrap .rx-kpi-glow.teal   { background: var(--p); }
+.rx-wrap .rx-kpi-glow.amber  { background: var(--amber); }
+.rx-wrap .rx-kpi-glow.blue   { background: var(--blue); }
+.rx-wrap .rx-kpi-glow.purple { background: var(--purple); }
+
+/* ?? CARD BASE ?? */
+.rx-wrap .rx-card {
+    background: var(--white);
+    border-radius: var(--r-lg);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+/* ?? FILTER CARD ?? */
+.rx-wrap .rx-filter-card {
+    padding: 16px 20px;
+}
+.rx-wrap .rx-filter-body {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.rx-wrap .rx-search-wrap {
+    position: relative;
+    width: 100%;
+}
+.rx-wrap .rx-search-icon {
+    position: absolute;
+    left: .9rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-3);
+    font-size: .85rem;
+    pointer-events: none;
+}
+.rx-wrap .rx-search-input {
+    width: 100%;
+    padding: 10px 42px 10px 2.6rem;
+    border: 1.5px solid var(--border);
+    border-radius: var(--r);
+    font-size: .88rem;
+    color: var(--text);
+    background: var(--bg);
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+}
+.rx-wrap .rx-search-input:focus {
+    border-color: var(--p);
+    box-shadow: 0 0 0 3px rgba(27,174,190,.12);
+}
+.rx-wrap .rx-clear-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: var(--border);
+    color: var(--text-3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background .2s, color .2s;
+}
+.rx-wrap .rx-clear-btn:hover {
+    background: var(--border-2);
+    color: var(--text);
+}
+
+.rx-wrap .rx-filter-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.rx-wrap .rx-filter-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.rx-wrap .rx-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 7px 14px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    font-size: .8rem;
+    font-weight: 600;
+    color: var(--text-3);
+    cursor: pointer;
+    transition: all .18s;
+}
+.rx-wrap .rx-tab:hover {
+    background: var(--p-lt);
+    color: var(--text);
+    border-color: var(--p-lt);
+}
+.rx-wrap .rx-tab.active {
+    background: linear-gradient(135deg, var(--p), var(--p-dk));
+    color: #fff;
+    border-color: transparent;
     box-shadow: 0 3px 10px rgba(27,174,190,.3);
 }
-.rx-filter-count {
-    background: rgba(0,0,0,.1); border-radius: 20px;
-    padding: 1px 7px; font-size: .7rem; min-width: 18px; text-align: center;
+.rx-wrap .rx-tab-count {
+    background: rgba(0,0,0,.1);
+    border-radius: 20px;
+    padding: 1px 7px;
+    font-size: .7rem;
+    min-width: 18px;
+    text-align: center;
 }
-.rx-filter-btn.active .rx-filter-count { background: rgba(255,255,255,.3); }
-
-/* ??? Prescription Card ???????????????????????? */
-.rx-prescription-card { padding: 0; overflow: hidden; }
-
-.rx-card-top {
-    display: flex; align-items: center;
-    justify-content: space-between; gap: 14px;
-    padding: 18px 22px;
-    background: linear-gradient(135deg,#f0fdfe,#e0f7fa);
-    border-bottom: 1px solid #b2ebf2;
-}
-.rx-card-top-left {
-    display: flex; align-items: center; gap: 14px; min-width: 0;
-}
-.rx-card-icon {
-    width: 48px; height: 48px; border-radius: 12px; flex-shrink: 0;
-    background: linear-gradient(135deg,#1baebe,#138fa0);
-    display: flex; align-items: center; justify-content: center;
-    color: #fff; font-size: 1.2rem;
-    box-shadow: 0 4px 12px rgba(27,174,190,.3);
-}
-.rx-card-title-row {
-    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-    margin-bottom: 6px;
-}
-.rx-card-title { margin: 0; font-size: 1rem; font-weight: 700; color: #1e293b; }
-.rx-badge-recent {
-    display: inline-flex; align-items: center; gap: 4px;
-    font-size: .7rem; font-weight: 700;
-    background: linear-gradient(135deg,#fbbf24,#f59e0b);
-    color: #fff; border-radius: 20px; padding: 3px 9px;
-    box-shadow: 0 2px 6px rgba(245,158,11,.3);
-}
-.rx-card-meta { display: flex; flex-wrap: wrap; gap: 6px; }
-.rx-meta-pill {
-    display: inline-flex; align-items: center; gap: 5px;
-    font-size: .75rem; font-weight: 500; color: #64748b;
-    background: rgba(255,255,255,.75); border: 1px solid #e2e8f0;
-    border-radius: 20px; padding: 3px 10px;
+.rx-wrap .rx-tab.active .rx-tab-count {
+    background: rgba(255,255,255,.28);
 }
 
-.rx-toggle-btn {
+.rx-wrap .rx-expand-controls {
+    display: flex;
+    gap: 6px;
+}
+.rx-wrap .rx-control-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 7px 12px;
+    border-radius: var(--r);
+    border: 1.5px solid var(--border);
+    background: var(--white);
+    font-size: .76rem;
+    font-weight: 600;
+    color: var(--text-2);
+    cursor: pointer;
+    transition: all .18s;
+}
+.rx-wrap .rx-control-btn:hover {
+    background: var(--bg);
+    border-color: var(--border-2);
+    color: var(--text);
+}
+
+/* ?? PRESCRIPTIONS CONTAINER ?? */
+.rx-wrap .rx-prescriptions-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* ?? PRESCRIPTION CARD ?? */
+.rx-wrap .rx-prescription-card {
+    transition: box-shadow .2s, border-color .2s;
+}
+.rx-wrap .rx-prescription-card:hover {
+    box-shadow: var(--shadow);
+    border-color: var(--p-lt);
+}
+
+/* ?? CARD HEADER ?? */
+.rx-wrap .rx-pcard-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    cursor: pointer;
+    gap: 16px;
+    border-bottom: 1px solid var(--border);
+}
+.rx-wrap .rx-pcard-main {
+    flex: 1;
+    min-width: 0;
+}
+.rx-wrap .rx-pcard-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+.rx-wrap .rx-pcard-title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.rx-wrap .rx-pcard-title i {
+    color: var(--p);
+}
+.rx-wrap .rx-badge-recent {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: .7rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    color: #fff;
+    border-radius: 20px;
+    padding: 3px 9px;
+}
+.rx-wrap .rx-pcard-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: .82rem;
+    color: var(--text-3);
+}
+.rx-wrap .rx-meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+.rx-wrap .rx-meta-item i {
+    font-size: .75rem;
+    color: var(--p);
+}
+.rx-wrap .rx-meta-divider {
+    color: var(--border-2);
+}
+
+.rx-wrap .rx-expand-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-3);
+    cursor: pointer;
+    transition: all .2s;
     flex-shrink: 0;
-    display: inline-flex; align-items: center; gap: 6px;
 }
-.rx-toggle-btn i { transition: transform .3s ease; }
+.rx-wrap .rx-expand-btn:hover {
+    background: var(--p-lt);
+    border-color: var(--p);
+    color: var(--p);
+}
+.rx-wrap .rx-expand-btn i {
+    transition: transform .3s ease;
+}
 
-/* ??? Doctor Strip ????????????????????????????? */
-.rx-doctor-strip {
-    display: flex; align-items: center; gap: 12px;
-    padding: 12px 22px; background: #fafcff;
-    border-bottom: 1px solid var(--border-color);
+/* ?? DOCTOR INFO ?? */
+.rx-wrap .rx-doctor-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 24px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
 }
-.rx-doctor-avatar img {
-    width: 40px; height: 40px; border-radius: 50%;
-    border: 2px solid rgba(139,92,246,.3);
-    object-fit: cover; flex-shrink: 0;
+.rx-wrap .rx-doctor-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--purple), #7c3aed);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: .9rem;
+    flex-shrink: 0;
 }
-.rx-doctor-details { display: flex; flex-direction: column; flex: 1; min-width: 0; }
-.rx-doctor-name {
-    font-size: .92rem; font-weight: 700; color: #1e293b;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+.rx-wrap .rx-doctor-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
-.rx-doctor-spec {
-    font-size: .78rem; color: #64748b;
-    display: flex; align-items: center; gap: 4px; margin-top: 1px;
+.rx-wrap .rx-doctor-name {
+    font-size: .88rem;
+    font-weight: 700;
+    color: var(--text);
 }
-.rx-doctor-spec i { color: #1baebe; }
-.rx-doctor-date-right {
-    font-size: .75rem; color: #94a3b8; flex-shrink: 0;
-    display: flex; align-items: center; gap: 5px; white-space: nowrap;
+.rx-wrap .rx-doctor-spec {
+    font-size: .76rem;
+    color: var(--text-3);
 }
-.rx-doctor-date-right i { color: #f59e0b; }
 
-/* ??? Collapsible Body ????????????????????????? */
-.rx-card-body {
-    max-height: 0; overflow: hidden;
+/* ?? COLLAPSIBLE BODY ?? */
+.rx-wrap .rx-pcard-body {
+    max-height: 0;
+    overflow: hidden;
     transition: max-height .4s ease;
 }
 
-/* ??? Doctor's Notes ??????????????????????????? */
-.rx-notes-block {
-    margin: 20px 22px 8px;
-    background: #fffbeb; border: 1px solid #fde68a;
-    border-radius: 10px; padding: 14px 16px;
+/* ?? SECTION LABEL ?? */
+.rx-wrap .rx-section-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: .82rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 12px;
 }
-.rx-notes-label {
-    font-size: .8rem; font-weight: 700; color: #b45309;
-    margin-bottom: 6px;
-    display: flex; align-items: center; gap: 6px;
-}
-.rx-notes-text { font-size: .9rem; color: #78350f; line-height: 1.65; margin: 0; }
-
-/* ??? Medications Section ?????????????????????? */
-.rx-meds-section { padding: 16px 22px 22px; }
-.rx-meds-header {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 14px;
-    font-size: .88rem; font-weight: 700; color: #1e293b;
-}
-.rx-meds-header i { color: #1baebe; margin-right: 5px; }
-
-.rx-meds-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(270px,1fr));
-    gap: 12px;
+.rx-wrap .rx-section-label i {
+    color: var(--p);
 }
 
-.rx-med-card {
-    display: flex; gap: 12px;
-    background: #f8fafc; border: 1.5px solid #e2e8f0;
-    border-radius: 12px; padding: 14px 16px;
-    transition: border-color .2s, box-shadow .2s, transform .2s;
+/* ?? NOTES SECTION ?? */
+.rx-wrap .rx-notes-section {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
 }
-.rx-med-card:hover {
-    border-color: #1baebe;
-    box-shadow: 0 4px 14px rgba(27,174,190,.12);
-    transform: translateY(-1px);
-}
-
-.rx-med-icon {
-    width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
-    background: linear-gradient(135deg,#e0f7fa,#b2ebf2);
-    display: flex; align-items: center; justify-content: center;
-    color: #138fa0; font-size: 1rem;
-}
-.rx-med-body { flex: 1; min-width: 0; }
-.rx-med-name {
-    display: block; font-size: .95rem; font-weight: 700;
-    color: #1e293b; margin-bottom: 7px;
-}
-.rx-med-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 7px; }
-
-.rx-chip {
-    display: inline-flex; align-items: center; gap: 4px;
-    font-size: .72rem; font-weight: 600;
-    border-radius: 20px; padding: 3px 9px;
-    border: 1px solid transparent;
-}
-.rx-chip-blue   { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
-.rx-chip-green  { background: #ecfdf5; color: #059669; border-color: #6ee7b7; }
-.rx-chip-purple { background: #f5f3ff; color: #7c3aed; border-color: #c4b5fd; }
-
-.rx-med-instructions {
-    font-size: .78rem; color: #64748b; line-height: 1.5;
-    display: flex; align-items: flex-start; gap: 5px;
-}
-.rx-med-instructions i { color: #1baebe; flex-shrink: 0; margin-top: 2px; }
-
-/* ??? No items ????????????????????????????????? */
-.rx-no-items {
-    margin: 16px 22px 22px; font-size: .88rem; color: #64748b;
-    display: flex; align-items: center; gap: 6px;
-}
-.rx-no-items i { color: #1baebe; }
-
-/* ??? Empty state ?????????????????????????????? */
-.rx-empty-icon {
-    width: 80px; height: 80px; border-radius: 50%;
-    background: #f8fafc; border: 1px solid #e2e8f0;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 2rem; color: #cbd5e1; margin: 0 auto 20px;
+.rx-wrap .rx-notes-text {
+    font-size: .88rem;
+    color: var(--text-2);
+    line-height: 1.6;
+    margin: 0;
+    padding-left: 22px;
+    border-left: 3px solid var(--amber);
+    background: var(--amb-lt);
+    padding: 10px 14px;
+    border-radius: var(--r);
 }
 
-/* ??? Responsive ??????????????????????????????? */
-@@media(max-width:600px) {
-    .rx-card-top   { flex-wrap: wrap; gap: 12px; padding: 14px 16px; }
-    .rx-doctor-strip { flex-wrap: wrap; padding: 10px 16px; }
-    .rx-doctor-date-right { display: none; }
-    .rx-notes-block, .rx-meds-section, .rx-no-items { margin-left: 16px; margin-right: 16px; }
-    .rx-meds-grid  { grid-template-columns: 1fr; }
+/* ?? MEDICATIONS SECTION ?? */
+.rx-wrap .rx-meds-section {
+    padding: 20px 24px;
+}
+.rx-wrap .rx-meds-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+/* ?? MEDICATION ROW ?? */
+.rx-wrap .rx-med-row {
+    display: flex;
+    gap: 14px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+}
+.rx-wrap .rx-med-row:last-child {
+    border-bottom: none;
+}
+.rx-wrap .rx-med-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--p-lt);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--p);
+    font-size: .9rem;
+    flex-shrink: 0;
+}
+.rx-wrap .rx-med-content {
+    flex: 1;
+    min-width: 0;
+}
+.rx-wrap .rx-med-name {
+    font-size: .95rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+}
+.rx-wrap .rx-med-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.rx-wrap .rx-detail-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: .76rem;
+    font-weight: 500;
+    color: var(--text-2);
+    background: var(--bg);
+    padding: 4px 10px;
+    border-radius: 20px;
+}
+.rx-wrap .rx-detail-item i {
+    font-size: .7rem;
+    color: var(--text-3);
+}
+.rx-wrap .rx-med-instructions {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    font-size: .82rem;
+    color: var(--text-2);
+    line-height: 1.5;
+    padding: 8px 12px;
+    background: var(--blue-lt);
+    border-radius: var(--r);
+}
+.rx-wrap .rx-med-instructions i {
+    margin-top: 2px;
+    flex-shrink: 0;
+    color: var(--blue);
+    font-size: .78rem;
+}
+
+/* ?? EMPTY/NO ITEMS ?? */
+.rx-wrap .rx-no-items {
+    margin: 0;
+    padding: 20px 24px;
+    font-size: .86rem;
+    color: var(--text-3);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.rx-wrap .rx-no-items i {
+    color: var(--p);
+}
+
+.rx-wrap .rx-empty-state {
+    text-align: center;
+    padding: 60px 24px;
+}
+.rx-wrap .rx-empty-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.9rem;
+    color: var(--border-2);
+    margin: 0 auto 16px;
+}
+.rx-wrap .rx-empty-state h3 {
+    color: var(--text-3);
+    margin: 0 0 6px;
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+.rx-wrap .rx-empty-state p {
+    color: var(--text-3);
+    margin: 0;
+    font-size: .88rem;
+}
+
+/* ?? RESPONSIVE ?? */
+@@media (max-width: 1100px) {
+    .rx-wrap .rx-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@@media (max-width: 900px) {
+    .rx-wrap .rx-hero { flex-direction: column; align-items: flex-start; }
+    .rx-wrap .rx-hero-right { width: 100%; justify-content: flex-start; }
+}
+@@media (max-width: 768px) {
+    .rx-wrap .rx-hero { padding: 20px; }
+    .rx-wrap .rx-hero-title { font-size: 1.45rem; }
+    .rx-wrap .rx-pcard-header { padding: 16px 18px; }
+    .rx-wrap .rx-doctor-info { padding: 12px 18px; }
+    .rx-wrap .rx-notes-section { padding: 16px 18px; }
+    .rx-wrap .rx-meds-section { padding: 16px 18px; }
+    .rx-wrap .rx-expand-controls {
+        width: 100%;
+    }
+    .rx-wrap .rx-control-btn {
+        flex: 1;
+    }
+}
+@@media (max-width: 600px) {
+    .rx-wrap .rx-kpi-grid { grid-template-columns: 1fr; }
+    .rx-wrap .rx-filter-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .rx-wrap .rx-filter-tabs {
+        width: 100%;
+    }
+    .rx-wrap .rx-tab {
+        flex: 1;
+        justify-content: center;
+    }
 }
 </style>
 }

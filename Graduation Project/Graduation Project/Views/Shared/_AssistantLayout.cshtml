@@ -1,11 +1,13 @@
 @using System.Globalization
 @using System.Linq
+@using System.Security.Claims
 <!doctype html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - NABD - نبض</title>
+    <link rel="icon" type="image/png" href="~/images/logo.png" asp-append-version="true" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -17,10 +19,27 @@
 </head>
 @{
     var layoutAssistantId = ViewData["AssistantId"] as int? ?? 0;
-    var layoutAssistantName = ViewData["AssistantName"] as string
+    var layoutAssistantName = (ViewData["AssistantName"] as string)?.Trim()
+        ?? User?.FindFirstValue(ClaimTypes.GivenName)
+        ?? User?.FindFirst("FirstName")?.Value
         ?? User?.Identity?.Name
         ?? "Assistant";
-    var shortAssistantName = layoutAssistantName.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? layoutAssistantName;
+
+    var normalizedAssistantName = layoutAssistantName;
+    if (normalizedAssistantName.Contains('@'))
+    {
+        var emailLocalPart = normalizedAssistantName.Split('@', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        var firstToken = emailLocalPart?
+            .Split(new[] { '.', '_', '-' }, StringSplitOptions.RemoveEmptyEntries)
+            .FirstOrDefault();
+
+        if (!string.IsNullOrWhiteSpace(firstToken))
+        {
+            normalizedAssistantName = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(firstToken.ToLowerInvariant());
+        }
+    }
+
+    var shortAssistantName = normalizedAssistantName.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? normalizedAssistantName;
     var now = DateTime.Now;
     var greeting = now.Hour < 12 ? "Good morning" : now.Hour < 17 ? "Good afternoon" : "Good evening";
     var headerDateChip = now.ToString("ddd, MMM d", new CultureInfo("en-US"));
@@ -72,9 +91,9 @@
                 <button class="icon-btn" title="Search" type="button">
                     <i class="fas fa-search"></i>
                 </button>
-                <div class="topbar-avatar user-menu" title="@layoutAssistantName">
-                    <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(layoutAssistantName)&background=7c3aed&color=fff&size=80"
-                         alt="@layoutAssistantName" />
+                <div class="topbar-avatar user-menu" title="@normalizedAssistantName">
+                    <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(normalizedAssistantName)&background=7c3aed&color=fff&size=80"
+                         alt="@normalizedAssistantName" />
                     <span>@shortAssistantName</span>
                 </div>
             </div>

@@ -6,524 +6,527 @@
 
 @Html.AntiForgeryToken()
 
-<!-- ?????????????????? PAGE HEADER ?????????????????? -->
-<header class="ps-hero">
-    <div class="ps-hero-left">
-        <div class="ps-hero-icon">
-            <i class="fas fa-shield-alt"></i>
-        </div>
-        <div>
-            <h1 class="ps-hero-title">Product Safety Checker</h1>
-            <p class="ps-hero-sub">Analyze ingredient labels for pregnancy safety � skincare, food &amp; household products</p>
-        </div>
-    </div>
-    <div class="ps-hero-right">
-        <div class="ps-hero-chip ps-hero-chip-safe"><i class="fas fa-check-circle"></i><span>Safe</span></div>
-        <div class="ps-hero-chip ps-hero-chip-caution"><i class="fas fa-exclamation-circle"></i><span>Caution</span></div>
-        <div class="ps-hero-chip ps-hero-chip-avoid"><i class="fas fa-times-circle"></i><span>Avoid</span></div>
-    </div>
-</header>
+<!-- Main Wrapper -->
+<div class="ps-wrap">
 
-<!-- ?????????????????? HOW IT WORKS ?????????????????? -->
-<div class="ps-how-it-works">
-    <div class="ps-step">
-        <div class="ps-step-num">1</div>
-        <div class="ps-step-body">
-            <strong>Upload Photo</strong>
-            <span>Take or upload an image of the product's ingredient label</span>
-        </div>
-    </div>
-    <div class="ps-step-arrow"><i class="fas fa-chevron-right"></i></div>
-    <div class="ps-step">
-        <div class="ps-step-num">2</div>
-        <div class="ps-step-body">
-            <strong>OCR Analysis</strong>
-            <span>Our AI reads and extracts all ingredients from the label</span>
-        </div>
-    </div>
-    <div class="ps-step-arrow"><i class="fas fa-chevron-right"></i></div>
-    <div class="ps-step">
-        <div class="ps-step-num">3</div>
-        <div class="ps-step-body">
-            <strong>Safety Report</strong>
-            <span>Get an instant pregnancy-safety verdict for each ingredient</span>
-        </div>
-    </div>
-</div>
-
-<!-- ?????????????????? SCANNER SECTION ?????????????????? -->
-<section class="ps-scanner-section">
-
-    <!-- ?? Left: Scan Card ?? -->
-    <div class="ps-card ps-scan-card">
-        <div class="ps-card-header">
-            <div class="ps-card-title">
-                <div class="ps-card-icon-wrap"><i class="fas fa-tag"></i></div>
-                <div>
-                    <h3>Analyze Product Label</h3>
-                    <p>Upload an image or enter ingredients manually</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tab switcher -->
-        <div class="ps-tabs">
-            <button class="ps-tab active" id="cameraOption" type="button">
-                <i class="fas fa-camera"></i> Capture Label
-            </button>
-            <button class="ps-tab" id="manualOption" type="button">
-                <i class="fas fa-keyboard"></i> Enter Manually
-            </button>
-        </div>
-
-        <!-- ?? Upload Tab ?? -->
-        <div id="cameraScanner">
-            <div class="ps-upload-zone" id="psUploadZone">
-                <div class="ps-upload-icon-wrap"><i class="fas fa-cloud-upload-alt"></i></div>
-                <p class="ps-upload-title">Drop your image here</p>
-                <p class="ps-upload-sub">or <span class="ps-upload-link">click to browse</span></p>
-                <div class="ps-upload-hint">
-                    <i class="fas fa-info-circle"></i>
-                    JPG � PNG � WebP &nbsp;�&nbsp; max 5 MB
-                </div>
-                <input type="file" id="imageFile" accept="image/jpeg,image/png,image/webp" style="display:none" />
+    <!-- ══════════════════ HERO BANNER ══════════════════ -->
+    <div class="hero">
+        <div class="hero-top">
+            <div class="hero-left">
+                <span class="hero-eyebrow"><i class="fas fa-shield-alt"></i> Product Safety</span>
+                <h2 class="hero-title">Product Safety <span>Checker</span> 🛡️</h2>
+                <p class="hero-sub">
+                    <i class="fas fa-circle"></i>
+                    <span>Analyze ingredient labels for pregnancy safety · skincare, food &amp; household products</span>
+                </p>
             </div>
 
-            <!-- Preview -->
-            <div id="psPreviewWrap" style="display:none; position:relative;">
-                <div class="ps-preview-frame">
-                    <img id="psPreviewImg" src="" alt="Selected label" />
-                    <div class="ps-preview-overlay">
-                        <button id="psRemoveFile" class="ps-preview-remove" type="button">
-                            <i class="fas fa-trash-alt"></i> Remove
-                        </button>
+            <div class="hero-right">
+                <div class="hero-stat">
+                    <div class="hero-stat-ico safe-ico"><i class="fas fa-check-circle"></i></div>
+                    <div class="hero-stat-body">
+                        <span class="hero-stat-lbl">Safe</span>
                     </div>
                 </div>
-                <div class="ps-preview-filename" id="psFileName"></div>
+                <div class="hero-stat">
+                    <div class="hero-stat-ico caution-ico"><i class="fas fa-exclamation-circle"></i></div>
+                    <div class="hero-stat-body">
+                        <span class="hero-stat-lbl">Caution</span>
+                    </div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-ico avoid-ico"><i class="fas fa-times-circle"></i></div>
+                    <div class="hero-stat-body">
+                        <span class="hero-stat-lbl">Avoid</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════ HOW IT WORKS ══════════════════ -->
+    <div class="how-it-works">
+        <div class="hw-step">
+            <div class="hw-step-num">1</div>
+            <div class="hw-step-body">
+                <strong>Upload Photo</strong>
+                <span>Take or upload an image of the product's ingredient label</span>
+            </div>
+        </div>
+        <div class="hw-step-arrow"><i class="fas fa-chevron-right"></i></div>
+        <div class="hw-step">
+            <div class="hw-step-num">2</div>
+            <div class="hw-step-body">
+                <strong>OCR Analysis</strong>
+                <span>Our AI reads and extracts all ingredients from the label</span>
+            </div>
+        </div>
+        <div class="hw-step-arrow"><i class="fas fa-chevron-right"></i></div>
+        <div class="hw-step">
+            <div class="hw-step-num">3</div>
+            <div class="hw-step-body">
+                <strong>Safety Report</strong>
+                <span>Get an instant pregnancy-safety verdict for each ingredient</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════ MAIN GRID ══════════════════ -->
+    <div class="main-grid">
+
+        <!-- LEFT: SCANNER CARD -->
+        <div class="card scan-card">
+            <div class="card-header">
+                <div class="card-header-left">
+                    <div class="card-ico teal"><i class="fas fa-tag"></i></div>
+                    <div>
+                        <div class="card-title">Analyze Product Label</div>
+                        <div class="card-sub">Upload an image or enter ingredients manually</div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Loading -->
-            <div id="psLoadingOverlay" class="ps-loading-overlay" style="display:none;">
-                <div class="ps-loading-spinner"><i class="fas fa-spinner fa-spin"></i></div>
-                <p class="ps-loading-title">Analyzing ingredients�</p>
-                <p class="ps-loading-sub">Reading label text via OCR � this may take a few seconds</p>
-                <div class="ps-loading-bar"><div class="ps-loading-bar-fill"></div></div>
+            <!-- Tab Switcher -->
+            <div class="tab-wrap">
+                <div class="tracker-tabs">
+                    <button class="tracker-tab active" id="cameraOption" type="button">
+                        <i class="fas fa-camera"></i> Capture Label
+                    </button>
+                    <button class="tracker-tab" id="manualOption" type="button">
+                        <i class="fas fa-keyboard"></i> Enter Manually
+                    </button>
+                </div>
             </div>
 
-            <div class="ps-scan-actions">
-                <button class="ps-btn ps-btn-primary ps-btn-analyze" id="analyzeBtn" type="button">
+            <!-- ── Upload Tab ── -->
+            <div class="tracker-tab-content active" id="cameraScanner">
+                <div class="upload-zone" id="psUploadZone">
+                    <div class="upload-icon-wrap"><i class="fas fa-cloud-upload-alt"></i></div>
+                    <p class="upload-title">Drop your image here</p>
+                    <p class="upload-sub">or <span class="upload-link">click to browse</span></p>
+                    <div class="upload-hint">
+                        <i class="fas fa-info-circle"></i>
+                        JPG · PNG · WebP &nbsp;·&nbsp; max 5 MB
+                    </div>
+                    <input type="file" id="imageFile" accept="image/jpeg,image/png,image/webp" style="display:none" />
+                </div>
+
+                <!-- Preview -->
+                <div id="psPreviewWrap" style="display:none; position:relative;">
+                    <div class="preview-frame">
+                        <img id="psPreviewImg" src="" alt="Selected label" />
+                        <div class="preview-overlay">
+                            <button id="psRemoveFile" class="preview-remove" type="button">
+                                <i class="fas fa-trash-alt"></i> Remove
+                            </button>
+                        </div>
+                    </div>
+                    <div class="preview-filename" id="psFileName"></div>
+                </div>
+
+                <!-- Loading -->
+                <div id="psLoadingOverlay" class="loading-overlay" style="display:none;">
+                    <div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i></div>
+                    <p class="loading-title">Analyzing ingredients…</p>
+                    <p class="loading-sub">Reading label text via OCR · this may take a few seconds</p>
+                    <div class="loading-bar"><div class="loading-bar-fill"></div></div>
+                </div>
+
+                <div class="scan-actions">
+                    <button class="save-btn save-btn-bp" id="analyzeBtn" type="button">
+                        <i class="fas fa-search"></i> Analyze Ingredients
+                    </button>
+                </div>
+            </div>
+
+            <!-- ── Manual Tab ── -->
+            <div class="tracker-tab-content" id="manualEntry">
+                <div class="inp-group inp-full">
+                    <label for="productName">
+                        <i class="fas fa-box"></i> Product Name <span class="optional-lbl">(Optional)</span>
+                    </label>
+                    <input type="text" id="productName" class="inp"
+                           placeholder="e.g., Dove Body Lotion, Cereal Brand" />
+                </div>
+                <div class="inp-group inp-full">
+                    <label for="ingredientsInput">
+                        <i class="fas fa-list"></i> Ingredients / Components
+                    </label>
+                    <p class="inp-hint">Separate each ingredient by a comma or new line</p>
+                    <textarea id="ingredientsInput" class="inp textarea-inp" rows="6"
+                              placeholder="e.g., Water, Glycerin, Paraben, Retinol…"></textarea>
+                </div>
+                <button class="save-btn save-btn-bp" id="checkProduct" type="button">
                     <i class="fas fa-search"></i> Analyze Ingredients
                 </button>
             </div>
         </div>
 
-        <!-- ?? Manual Tab ?? -->
-        <div id="manualEntry" style="display:none">
-            <div class="ps-form-group">
-                <label for="productName">
-                    <i class="fas fa-box"></i> Product Name <span class="ps-optional">(Optional)</span>
-                </label>
-                <input type="text" id="productName" class="ps-input"
-                       placeholder="e.g., Dove Body Lotion, Cereal Brand" />
+        <!-- RIGHT: RESULTS CARD -->
+        <div class="card results-card" id="resultsCard">
+            <div class="card-header">
+                <div class="card-header-left">
+                    <div class="card-ico purple"><i class="fas fa-shield-alt"></i></div>
+                    <div>
+                        <div class="card-title">Safety Analysis</div>
+                        <div class="card-sub">Results will appear here after analysis</div>
+                    </div>
+                </div>
             </div>
-            <div class="ps-form-group">
-                <label for="ingredientsInput">
-                    <i class="fas fa-list"></i> Ingredients / Components
-                </label>
-                <p class="ps-field-hint">Separate each ingredient by a comma or new line</p>
-                <textarea id="ingredientsInput" class="ps-input ps-textarea" rows="6"
-                          placeholder="e.g., Water, Glycerin, Paraben, Retinol�"></textarea>
+
+            <div class="results-placeholder" id="resultsPlaceholder">
+                <div class="placeholder-icon"><i class="fas fa-shield-alt"></i></div>
+                <h4>Ready to Analyze</h4>
+                <p>Upload a product label photo or enter ingredients manually to see a full pregnancy-safety breakdown.</p>
+                <div class="placeholder-chips">
+                    <span class="ph-chip safe"><i class="fas fa-check-circle"></i> Safe</span>
+                    <span class="ph-chip caution"><i class="fas fa-exclamation-circle"></i> Caution</span>
+                    <span class="ph-chip danger"><i class="fas fa-times-circle"></i> Avoid</span>
+                </div>
             </div>
-            <button class="ps-btn ps-btn-primary ps-btn-analyze" id="checkProduct" type="button">
-                <i class="fas fa-search"></i> Analyze Ingredients
-            </button>
+
+            <div id="dynamicResult" style="display:none;"></div>
+        </div>
+
+    </div>
+    <!-- / MAIN GRID -->
+
+    <!-- ══════════════════ QUICK REFERENCE ══════════════════ -->
+    <div class="card reference-card">
+        <div class="card-header">
+            <div class="card-header-left">
+                <div class="card-ico amber"><i class="fas fa-book-medical"></i></div>
+                <div>
+                    <div class="card-title">Quick Reference Guide</div>
+                    <div class="card-sub">Common ingredients and their pregnancy safety classification</div>
+                </div>
+            </div>
+            <span class="badge-info"><i class="fas fa-info-circle"></i> Always consult your doctor</span>
+        </div>
+
+        <div class="reference-grid">
+            <!-- Avoid -->
+            <div class="ref-card ref-danger">
+                <div class="ref-card-header">
+                    <div class="ref-icon-wrap danger"><i class="fas fa-ban"></i></div>
+                    <div>
+                        <h4>Avoid During Pregnancy</h4>
+                        <span class="ref-count">6 ingredients</span>
+                    </div>
+                </div>
+                <ul class="ref-list">
+                    <li><i class="fas fa-times-circle"></i> Retinoids (Retinol, Tretinoin)</li>
+                    <li><i class="fas fa-times-circle"></i> Salicylic Acid (high dose)</li>
+                    <li><i class="fas fa-times-circle"></i> Parabens (high concentrations)</li>
+                    <li><i class="fas fa-times-circle"></i> Formaldehyde &amp; Toluene</li>
+                    <li><i class="fas fa-times-circle"></i> Hydroquinone</li>
+                    <li><i class="fas fa-times-circle"></i> Phthalates</li>
+                </ul>
+            </div>
+
+            <!-- Caution -->
+            <div class="ref-card ref-warning">
+                <div class="ref-card-header">
+                    <div class="ref-icon-wrap warning"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div>
+                        <h4>Use with Caution</h4>
+                        <span class="ref-count">6 ingredients</span>
+                    </div>
+                </div>
+                <ul class="ref-list">
+                    <li><i class="fas fa-exclamation-circle"></i> Caffeine (limit 200 mg/day)</li>
+                    <li><i class="fas fa-exclamation-circle"></i> Essential oils (concentrated)</li>
+                    <li><i class="fas fa-exclamation-circle"></i> Artificial sweeteners</li>
+                    <li><i class="fas fa-exclamation-circle"></i> Some fragrances</li>
+                    <li><i class="fas fa-exclamation-circle"></i> Sodium Lauryl Sulfate (SLS)</li>
+                    <li><i class="fas fa-exclamation-circle"></i> Chemical sunscreens</li>
+                </ul>
+            </div>
+
+            <!-- Safe -->
+            <div class="ref-card ref-safe">
+                <div class="ref-card-header">
+                    <div class="ref-icon-wrap safe"><i class="fas fa-check-circle"></i></div>
+                    <div>
+                        <h4>Generally Safe</h4>
+                        <span class="ref-count">6 ingredients</span>
+                    </div>
+                </div>
+                <ul class="ref-list">
+                    <li><i class="fas fa-check-circle"></i> Vitamin C (topical)</li>
+                    <li><i class="fas fa-check-circle"></i> Hyaluronic Acid</li>
+                    <li><i class="fas fa-check-circle"></i> Glycerin &amp; Shea Butter</li>
+                    <li><i class="fas fa-check-circle"></i> Mineral sunscreens (Zinc oxide)</li>
+                    <li><i class="fas fa-check-circle"></i> Natural oils (Coconut, Jojoba)</li>
+                    <li><i class="fas fa-check-circle"></i> Cocoa Butter</li>
+                </ul>
+            </div>
         </div>
     </div>
 
-    <!-- ?? Right: Results Card ?? -->
-    <div class="ps-card ps-results-card" id="resultsCard">
-        <div class="ps-card-header">
-            <div class="ps-card-title">
-                <div class="ps-card-icon-wrap ps-icon-results"><i class="fas fa-shield-alt"></i></div>
-                <div>
-                    <h3>Safety Analysis</h3>
-                    <p>Results will appear here after analysis</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="ps-results-placeholder" id="resultsPlaceholder">
-            <div class="ps-placeholder-icon"><i class="fas fa-shield-alt"></i></div>
-            <h4>Ready to Analyze</h4>
-            <p>Upload a product label photo or enter ingredients manually to see a full pregnancy-safety breakdown.</p>
-            <div class="ps-placeholder-chips">
-                <span class="ps-ph-chip safe"><i class="fas fa-check-circle"></i> Safe</span>
-                <span class="ps-ph-chip caution"><i class="fas fa-exclamation-circle"></i> Caution</span>
-                <span class="ps-ph-chip danger"><i class="fas fa-times-circle"></i> Avoid</span>
-            </div>
-        </div>
-
-        <div id="dynamicResult" style="display:none;"></div>
-    </div>
-
-</section>
-
-<!-- ?????????????????? QUICK REFERENCE ?????????????????? -->
-<section class="ps-reference-section">
-    <div class="ps-reference-header">
-        <div class="ps-reference-title">
-            <div class="ps-card-icon-wrap ps-icon-book"><i class="fas fa-book-medical"></i></div>
-            <div>
-                <h3>Quick Reference Guide</h3>
-                <p>Common ingredients and their pregnancy safety classification</p>
-            </div>
-        </div>
-        <span class="ps-badge-info"><i class="fas fa-info-circle"></i> Always consult your doctor</span>
-    </div>
-
-    <div class="ps-reference-grid">
-        <!-- Avoid -->
-        <div class="ps-ref-card ps-ref-danger">
-            <div class="ps-ref-card-header">
-                <div class="ps-ref-icon-wrap danger"><i class="fas fa-ban"></i></div>
-                <div>
-                    <h4>Avoid During Pregnancy</h4>
-                    <span class="ps-ref-count">6 ingredients</span>
-                </div>
-            </div>
-            <ul class="ps-ref-list">
-                <li><i class="fas fa-times-circle"></i> Retinoids (Retinol, Tretinoin)</li>
-                <li><i class="fas fa-times-circle"></i> Salicylic Acid (high dose)</li>
-                <li><i class="fas fa-times-circle"></i> Parabens (high concentrations)</li>
-                <li><i class="fas fa-times-circle"></i> Formaldehyde &amp; Toluene</li>
-                <li><i class="fas fa-times-circle"></i> Hydroquinone</li>
-                <li><i class="fas fa-times-circle"></i> Phthalates</li>
-            </ul>
-        </div>
-
-        <!-- Caution -->
-        <div class="ps-ref-card ps-ref-warning">
-            <div class="ps-ref-card-header">
-                <div class="ps-ref-icon-wrap warning"><i class="fas fa-exclamation-triangle"></i></div>
-                <div>
-                    <h4>Use with Caution</h4>
-                    <span class="ps-ref-count">6 ingredients</span>
-                </div>
-            </div>
-            <ul class="ps-ref-list">
-                <li><i class="fas fa-exclamation-circle"></i> Caffeine (limit 200 mg/day)</li>
-                <li><i class="fas fa-exclamation-circle"></i> Essential oils (concentrated)</li>
-                <li><i class="fas fa-exclamation-circle"></i> Artificial sweeteners</li>
-                <li><i class="fas fa-exclamation-circle"></i> Some fragrances</li>
-                <li><i class="fas fa-exclamation-circle"></i> Sodium Lauryl Sulfate (SLS)</li>
-                <li><i class="fas fa-exclamation-circle"></i> Chemical sunscreens</li>
-            </ul>
-        </div>
-
-        <!-- Safe -->
-        <div class="ps-ref-card ps-ref-safe">
-            <div class="ps-ref-card-header">
-                <div class="ps-ref-icon-wrap safe"><i class="fas fa-check-circle"></i></div>
-                <div>
-                    <h4>Generally Safe</h4>
-                    <span class="ps-ref-count">6 ingredients</span>
-                </div>
-            </div>
-            <ul class="ps-ref-list">
-                <li><i class="fas fa-check-circle"></i> Vitamin C (topical)</li>
-                <li><i class="fas fa-check-circle"></i> Hyaluronic Acid</li>
-                <li><i class="fas fa-check-circle"></i> Glycerin &amp; Shea Butter</li>
-                <li><i class="fas fa-check-circle"></i> Mineral sunscreens (Zinc oxide)</li>
-                <li><i class="fas fa-check-circle"></i> Natural oils (Coconut, Jojoba)</li>
-                <li><i class="fas fa-check-circle"></i> Cocoa Butter</li>
-            </ul>
-        </div>
-    </div>
-</section>
+</div>
+<!-- / ps-wrap -->
 
 @section Styles {
 <style>
-/* ????????????????????????????????????????????????????????????
-   Product Safety � Page Variables
-???????????????????????????????????????????????????????????? */
-:root {
-    --ps-primary:     #1BAEBE;
-    --ps-primary-dk:  #138fa0;
-    --ps-text:        #1e293b;
-    --ps-muted:       #64748b;
-    --ps-light:       #f8fafc;
-    --ps-border:      #e2e8f0;
-    --ps-radius:      16px;
-    --ps-shadow:      0 4px 24px rgba(0,0,0,.07);
-    --ps-shadow-hov:  0 8px 32px rgba(0,0,0,.12);
+/* ═══════════════════════════════════════════════════════════════
+   PRODUCT SAFETY — using Patient Dashboard design system
+═══════════════════════════════════════════════════════════════ */
+
+.ps-wrap {
+    --p:       #1BAEBE;
+    --p-dk:    #138fa0;
+    --p-mid:   #22c9db;
+    --p-lt:    #e0f7fa;
+    --p-xlt:   #f0fdfe;
+    --pink:    #e91e63;
+    --pink-lt: #fce4ec;
+    --purple:  #9c27b0;
+    --purp-lt: #f3e5f5;
+    --green:   #4caf50;
+    --grn-lt:  #e8f5e9;
+    --amber:   #ff9800;
+    --amb-lt:  #fff8e1;
+    --blue:    #2196f3;
+    --blue-lt: #e3f2fd;
+    --navy:       #0b1f35;
+    --navy-mid:   #152d47;
+    --text:       #1e293b;
+    --text-2:     #4a5568;
+    --text-3:     #8896ab;
+    --border:     #e4eaf2;
+    --border-2:   #cdd6e3;
+    --bg:         #f3f6fb;
+    --white:      #fff;
+    --danger:     #ef4444;
+    --warning:    #f59e0b;
+    --success:    #22c55e;
+    --info:       #3b82f6;
+    --r:          10px;
+    --r-lg:       16px;
+    --r-xl:       22px;
+    --shadow-sm:  0 1px 4px rgba(15,28,46,.06);
+    --shadow:     0 4px 16px rgba(15,28,46,.08);
+    --shadow-md:  0 8px 28px rgba(15,28,46,.11);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
 
-/* ????????????????????????????????????????????????????????????
-   PAGE HEADER  � dark gradient hero (matches Community / Alerts)
-???????????????????????????????????????????????????????????? */
-.ps-hero {
+.ps-wrap .hero {
+    background: linear-gradient(130deg, var(--navy) 0%, var(--navy-mid) 50%, #0d3d5c 100%);
+    border-radius: var(--r-xl);
+    padding: 24px 28px;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: linear-gradient(135deg, #0f2942 0%, #1a4a6e 50%, #0d3d5c 100%);
-    border-radius: 18px;
-    padding: 1.8rem 2rem;
-    margin-bottom: 1.5rem;
-    flex-wrap: wrap;
-    gap: 1rem;
+    flex-direction: column;
+    gap: 18px;
     position: relative;
     overflow: hidden;
 }
-.ps-hero::before {
-    content: "";
-    position: absolute;
-    top: -40px; right: -40px;
-    width: 200px; height: 200px;
+.ps-wrap .hero::before {
+    content: ''; position: absolute; right: -40px; top: -40px;
+    width: 200px; height: 200px; border-radius: 50%;
     background: radial-gradient(circle, rgba(27,174,190,.25) 0%, transparent 70%);
     pointer-events: none;
 }
-.ps-hero::after {
-    content: "";
-    position: absolute;
-    bottom: -60px; left: 20%;
-    width: 260px; height: 260px;
+.ps-wrap .hero::after {
+    content: ''; position: absolute; bottom: -60px; left: 20%;
+    width: 260px; height: 260px; border-radius: 50%;
     background: radial-gradient(circle, rgba(0,180,216,.12) 0%, transparent 70%);
     pointer-events: none;
 }
-.ps-hero-left {
-    display: flex; align-items: center; gap: 1.1rem; z-index: 1;
-}
-.ps-hero-icon {
-    width: 56px; height: 56px;
-    background: linear-gradient(135deg, var(--ps-primary), var(--ps-primary-dk));
-    border-radius: 16px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.4rem; color: #fff;
-    box-shadow: 0 6px 20px rgba(27,174,190,.45);
-    flex-shrink: 0;
-}
-.ps-hero-title {
-    margin: 0; font-size: 1.7rem; font-weight: 800;
-    color: #f1f5f9; letter-spacing: -.3px;
-}
-.ps-hero-sub {
-    margin: .2rem 0 0; font-size: .88rem; color: #94a3b8;
-}
-.ps-hero-right {
-    display: flex; align-items: center; gap: .65rem; flex-wrap: wrap; z-index: 1;
-}
-.ps-hero-chip {
-    display: inline-flex; align-items: center; gap: .4rem;
-    padding: .38rem .95rem; border-radius: 22px;
-    font-size: .8rem; font-weight: 700;
-    background: rgba(255,255,255,.1);
-    border: 1.5px solid rgba(255,255,255,.2);
-    color: #e2f8fa;
-    white-space: nowrap;
-    backdrop-filter: blur(4px);
-    transition: background .2s;
-}
-.ps-hero-chip:hover { background: rgba(255,255,255,.18); }
-.ps-hero-chip-safe    { border-color: rgba(74,222,128,.45);  color: #bbf7d0; }
-.ps-hero-chip-caution { border-color: rgba(251,191,36,.45);  color: #fde68a; }
-.ps-hero-chip-avoid   { border-color: rgba(252,165,165,.45); color: #fecaca; }
-
-/* ????????????????????????????????????????????????????????????
-   HOW IT WORKS BANNER
-???????????????????????????????????????????????????????????? */
-.ps-how-it-works {
+.ps-wrap .hero-top {
     display: flex;
-    align-items: center;
-    gap: .75rem;
-    background: #fff;
-    border: 1px solid var(--ps-border);
-    border-radius: var(--ps-radius);
-    padding: 1rem 1.5rem;
-    margin-bottom: 1.5rem;
-    box-shadow: var(--ps-shadow);
-    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    z-index: 1;
 }
-.ps-step {
-    display: flex; align-items: center; gap: .75rem; flex: 1; min-width: 160px;
+.ps-wrap .hero-left { display: flex; flex-direction: column; gap: 8px; }
+.ps-wrap .hero-eyebrow {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: .68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .1em;
+    color: var(--p-mid); background: rgba(27,174,190,.18);
+    padding: 4px 10px; border-radius: 20px;
+    border: 1px solid rgba(27,174,190,.25); width: fit-content;
 }
-.ps-step-num {
+.ps-wrap .hero-title { font-size: 1.85rem; font-weight: 700; color: #f1f5f9; line-height: 1.25; }
+.ps-wrap .hero-title span { color: var(--p-mid); }
+.ps-wrap .hero-sub { font-size: 1rem; color: #94a3b8; display: flex; align-items: center; gap: 7px; }
+.ps-wrap .hero-sub i { font-size: .45rem; color: var(--p-mid); }
+.ps-wrap .hero-right {
+    display: flex; gap: 12px; align-items: center; justify-content: flex-end; flex-wrap: wrap; z-index: 1;
+}
+.ps-wrap .hero-stat {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12);
+    border-radius: var(--r-lg); padding: 12px 16px; min-width: 100px;
+}
+.ps-wrap .hero-stat-ico {
+    width: 38px; height: 38px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center; font-size: 1rem;
+}
+.ps-wrap .hero-stat-ico.safe-ico { background: rgba(74,222,128,.25); color: #bbf7d0; }
+.ps-wrap .hero-stat-ico.caution-ico { background: rgba(251,191,36,.25); color: #fde68a; }
+.ps-wrap .hero-stat-ico.avoid-ico { background: rgba(252,165,165,.25); color: #fecaca; }
+.ps-wrap .hero-stat-body { display: flex; flex-direction: column; }
+.ps-wrap .hero-stat-lbl { font-size: .82rem; color: #e2e8f0; font-weight: 600; }
+
+.ps-wrap .how-it-works {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    background: var(--white); border-radius: var(--r-lg);
+    border: 1px solid var(--border); padding: 16px 20px;
+    box-shadow: var(--shadow-sm);
+}
+.ps-wrap .hw-step {
+    display: flex; align-items: center; gap: 10px; flex: 1; min-width: 160px;
+}
+.ps-wrap .hw-step-num {
     width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
-    background: linear-gradient(135deg, var(--ps-primary), var(--ps-primary-dk));
+    background: linear-gradient(135deg, var(--p), var(--p-dk));
     color: #fff; font-size: .9rem; font-weight: 800;
     display: flex; align-items: center; justify-content: center;
     box-shadow: 0 3px 10px rgba(27,174,190,.3);
 }
-.ps-step-body strong { display: block; font-size: .85rem; font-weight: 700; color: var(--ps-text); }
-.ps-step-body span   { font-size: .78rem; color: var(--ps-muted); line-height: 1.4; }
-.ps-step-arrow { color: var(--ps-border); font-size: .85rem; flex-shrink: 0; }
-@@media (max-width: 600px) { .ps-step-arrow { display: none; } }
+.ps-wrap .hw-step-body { flex: 1; }
+.ps-wrap .hw-step-body strong { display: block; font-size: .85rem; font-weight: 700; color: var(--text); }
+.ps-wrap .hw-step-body span { font-size: .78rem; color: var(--text-3); line-height: 1.4; }
+.ps-wrap .hw-step-arrow { color: var(--border-2); font-size: .85rem; flex-shrink: 0; }
 
-/* ????????????????????????????????????????????????????????????
-   SCANNER / RESULTS GRID
-???????????????????????????????????????????????????????????? */
-.ps-scanner-section {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.25rem;
-    margin-bottom: 1.5rem;
-    align-items: start;
-}
-@@media (max-width: 900px) { .ps-scanner-section { grid-template-columns: 1fr; } }
+.ps-wrap .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
 
-/* ????????????????????????????????????????????????????????????
-   CARDS
-???????????????????????????????????????????????????????????? */
-.ps-card {
-    background: #fff;
-    border-radius: var(--ps-radius);
-    box-shadow: var(--ps-shadow);
-    border: 1px solid var(--ps-border);
-    padding: 1.4rem 1.5rem;
-    transition: box-shadow .2s;
+.ps-wrap .card {
+    background: var(--white); border-radius: var(--r-lg);
+    border: 1px solid var(--border); box-shadow: var(--shadow-sm); overflow: hidden;
 }
-.ps-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 1.2rem;
-    padding-bottom: 1rem;
-    border-bottom: 1.5px solid var(--ps-border);
+.ps-wrap .card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid var(--border); gap: 10px;
 }
-.ps-card-title { display: flex; align-items: flex-start; gap: .75rem; }
-.ps-card-title h3 { margin: 0 0 .15rem; font-size: 1rem; font-weight: 700; color: var(--ps-text); }
-.ps-card-title p  { margin: 0; font-size: .8rem; color: var(--ps-muted); }
-.ps-card-icon-wrap {
-    width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
-    background: rgba(27,174,190,.12); color: var(--ps-primary);
-    display: flex; align-items: center; justify-content: center; font-size: .95rem;
+.ps-wrap .card-header-left { display: flex; align-items: center; gap: 10px; }
+.ps-wrap .card-ico {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .8rem; flex-shrink: 0;
 }
-.ps-icon-results { background: rgba(139,92,246,.12); color: #7c3aed; }
-.ps-icon-book    { background: rgba(245,158,11,.12);  color: #b45309; }
+.ps-wrap .card-ico.teal   { background: var(--p-lt);    color: var(--p); }
+.ps-wrap .card-ico.purple { background: var(--purp-lt); color: var(--purple); }
+.ps-wrap .card-ico.amber  { background: var(--amb-lt);  color: var(--amber); }
+.ps-wrap .card-title { font-size: .88rem; font-weight: 700; color: var(--text); }
+.ps-wrap .card-sub   { font-size: .71rem; color: var(--text-3); margin-top: 1px; }
+.ps-wrap .badge-info {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px; border-radius: 20px;
+    background: var(--p-lt); color: var(--p);
+    font-size: .72rem; font-weight: 600;
+    border: 1px solid rgba(27,174,190,.25);
+    white-space: nowrap; flex-shrink: 0;
+}
 
-/* ????????????????????????????????????????????????????????????
-   TABS
-???????????????????????????????????????????????????????????? */
-.ps-tabs {
-    display: flex; gap: .55rem; margin-bottom: 1.25rem;
+.ps-wrap .tab-wrap { padding: 12px 16px 4px; }
+.ps-wrap .tracker-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.ps-wrap .tracker-tab {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 6px 14px; border-radius: 20px;
+    border: 1.5px solid var(--border); background: var(--bg);
+    font-size: .8rem; font-weight: 600; color: var(--text-3);
+    cursor: pointer; transition: all .18s;
 }
-.ps-tab {
-    display: inline-flex; align-items: center; gap: .45rem;
-    padding: .5rem 1.1rem; border-radius: 22px;
-    border: 1.5px solid var(--ps-border);
-    background: var(--ps-light);
-    font-size: .84rem; font-weight: 600; color: var(--ps-muted);
-    cursor: pointer; transition: all .2s;
-}
-.ps-tab:hover { background: #f1f5f9; color: var(--ps-text); }
-.ps-tab.active {
-    background: linear-gradient(135deg, var(--ps-primary), var(--ps-primary-dk));
+.ps-wrap .tracker-tab:hover { background: var(--p-lt); color: var(--text); border-color: var(--p-lt); }
+.ps-wrap .tracker-tab.active {
+    background: linear-gradient(135deg, var(--p), var(--p-dk));
     color: #fff; border-color: transparent;
     box-shadow: 0 3px 10px rgba(27,174,190,.3);
 }
+.ps-wrap .tracker-tab-content { display: none; padding: 0 16px 16px; }
+.ps-wrap .tracker-tab-content.active { display: block; }
 
-/* ????????????????????????????????????????????????????????????
-   UPLOAD ZONE
-???????????????????????????????????????????????????????????? */
-.ps-upload-zone {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: .55rem;
-    padding: 2.5rem 1.5rem;
-    border: 2px dashed #c8d8e4;
-    border-radius: 14px;
-    background: #f8fafc;
-    cursor: pointer;
+.ps-wrap .upload-zone {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; padding: 40px 24px;
+    border: 2px dashed var(--border-2); border-radius: 14px;
+    background: var(--bg); cursor: pointer;
     transition: border-color .2s, background .2s, box-shadow .2s;
-    text-align: center;
-    min-height: 210px;
-    margin-bottom: 1rem;
+    text-align: center; min-height: 210px; margin-bottom: 16px;
 }
-.ps-upload-zone:hover,
-.ps-upload-zone.drag-over {
-    border-color: var(--ps-primary);
-    background: rgba(27,174,190,.04);
+.ps-wrap .upload-zone:hover,
+.ps-wrap .upload-zone.drag-over {
+    border-color: var(--p);
+    background: var(--p-xlt);
     box-shadow: 0 0 0 4px rgba(27,174,190,.08);
 }
-.ps-upload-icon-wrap {
+.ps-wrap .upload-icon-wrap {
     width: 64px; height: 64px; border-radius: 16px;
-    background: rgba(27,174,190,.12);
+    background: var(--p-lt);
     display: flex; align-items: center; justify-content: center;
-    font-size: 1.7rem; color: var(--ps-primary);
+    font-size: 1.7rem; color: var(--p);
     transition: transform .2s;
 }
-.ps-upload-zone:hover .ps-upload-icon-wrap { transform: scale(1.08); }
-.ps-upload-title { margin: 0; font-size: 1rem; font-weight: 700; color: var(--ps-text); }
-.ps-upload-sub   { margin: 0; font-size: .85rem; color: var(--ps-muted); }
-.ps-upload-link  { color: var(--ps-primary); font-weight: 600; text-decoration: underline; text-decoration-style: dotted; }
-.ps-upload-hint {
-    display: inline-flex; align-items: center; gap: .4rem;
-    background: var(--ps-light); border: 1px solid var(--ps-border);
-    border-radius: 20px; padding: .3rem .85rem;
-    font-size: .75rem; color: var(--ps-muted);
-    margin-top: .15rem;
+.ps-wrap .upload-zone:hover .upload-icon-wrap { transform: scale(1.08); }
+.ps-wrap .upload-title { margin: 0; font-size: 1rem; font-weight: 700; color: var(--text); }
+.ps-wrap .upload-sub   { margin: 0; font-size: .85rem; color: var(--text-3); }
+.ps-wrap .upload-link  { color: var(--p); font-weight: 600; text-decoration: underline; text-decoration-style: dotted; cursor: pointer; }
+.ps-wrap .upload-hint {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 20px; padding: 4px 12px;
+    font-size: .75rem; color: var(--text-3); margin-top: 4px;
 }
 
-/* ????????????????????????????????????????????????????????????
-   PREVIEW
-???????????????????????????????????????????????????????????? */
-.ps-preview-frame {
+.ps-wrap .preview-frame {
     position: relative; border-radius: 14px; overflow: hidden;
-    border: 2px solid var(--ps-border);
-    background: var(--ps-light);
-    margin-bottom: .6rem;
+    border: 2px solid var(--border); background: var(--bg);
+    margin-bottom: 8px;
 }
-.ps-preview-frame img {
+.ps-wrap .preview-frame img {
     width: 100%; max-height: 300px; object-fit: contain; display: block;
 }
-.ps-preview-overlay {
+.ps-wrap .preview-overlay {
     position: absolute; inset: 0;
     background: rgba(15,23,42,0);
     display: flex; align-items: flex-start; justify-content: flex-end;
-    padding: .7rem;
-    transition: background .2s;
+    padding: 12px; transition: background .2s;
 }
-.ps-preview-frame:hover .ps-preview-overlay { background: rgba(15,23,42,.15); }
-.ps-preview-remove {
-    display: inline-flex; align-items: center; gap: .4rem;
+.ps-wrap .preview-frame:hover .preview-overlay { background: rgba(15,23,42,.15); }
+.ps-wrap .preview-remove {
+    display: inline-flex; align-items: center; gap: 5px;
     background: rgba(239,68,68,.92); color: #fff; border: none; border-radius: 8px;
-    padding: .38rem .8rem; font-size: .78rem; font-weight: 600; cursor: pointer;
+    padding: 6px 12px; font-size: .78rem; font-weight: 600; cursor: pointer;
     transition: background .2s;
 }
-.ps-preview-remove:hover { background: #dc2626; }
-.ps-preview-filename {
-    font-size: .78rem; color: var(--ps-muted); padding: 0 .25rem;
-    display: flex; align-items: center; gap: .35rem; margin-bottom: .9rem;
+.ps-wrap .preview-remove:hover { background: #dc2626; }
+.ps-wrap .preview-filename {
+    font-size: .78rem; color: var(--text-3); padding: 0 4px;
+    display: flex; align-items: center; gap: 6px; margin-bottom: 12px;
 }
-.ps-preview-filename::before { content: '\f15b'; font-family: 'Font Awesome 6 Free'; font-weight: 900; color: var(--ps-primary); }
+.ps-wrap .preview-filename::before {
+    content: '\f15b'; font-family: 'Font Awesome 6 Free';
+    font-weight: 900; color: var(--p);
+}
 
-/* ????????????????????????????????????????????????????????????
-   LOADING OVERLAY
-???????????????????????????????????????????????????????????? */
-.ps-loading-overlay {
+.ps-wrap .loading-overlay {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: .75rem; padding: 2.5rem 1.5rem;
-    background: rgba(248,250,252,.95);
-    border: 2px dashed var(--ps-primary);
+    gap: 12px; padding: 40px 24px;
+    background: var(--p-xlt);
+    border: 2px dashed var(--p);
     border-radius: 14px; text-align: center;
-    margin-bottom: 1rem;
+    margin-bottom: 16px;
 }
-.ps-loading-spinner {
+.ps-wrap .loading-spinner {
     width: 62px; height: 62px; border-radius: 50%;
-    background: rgba(27,174,190,.12);
+    background: var(--p-lt);
     display: flex; align-items: center; justify-content: center;
-    font-size: 1.6rem; color: var(--ps-primary);
+    font-size: 1.6rem; color: var(--p);
 }
-.ps-loading-title { margin: 0; font-size: 1rem; font-weight: 700; color: var(--ps-primary); }
-.ps-loading-sub   { margin: 0; font-size: .82rem; color: var(--ps-muted); }
-.ps-loading-bar {
+.ps-wrap .loading-title { margin: 0; font-size: 1rem; font-weight: 700; color: var(--p); }
+.ps-wrap .loading-sub   { margin: 0; font-size: .82rem; color: var(--text-3); }
+.ps-wrap .loading-bar {
     width: 80%; max-width: 240px; height: 4px;
-    background: #e2e8f0; border-radius: 4px; overflow: hidden;
+    background: var(--border); border-radius: 4px; overflow: hidden;
 }
-.ps-loading-bar-fill {
+.ps-wrap .loading-bar-fill {
     height: 100%; width: 0%; border-radius: 4px;
-    background: linear-gradient(90deg, var(--ps-primary), var(--ps-primary-dk));
+    background: linear-gradient(90deg, var(--p), var(--p-dk));
     animation: psLoadBar 2s ease-in-out infinite;
 }
 @@keyframes psLoadBar {
@@ -532,232 +535,210 @@
     100% { width: 0%;   margin-left: 100%; }
 }
 
-/* ????????????????????????????????????????????????????????????
-   BUTTONS
-???????????????????????????????????????????????????????????? */
-.ps-scan-actions { margin-top: .85rem; }
-.ps-btn {
-    display: inline-flex; align-items: center; gap: .5rem;
-    padding: .65rem 1.4rem; border-radius: 12px;
-    font-size: .88rem; font-weight: 700; cursor: pointer; border: none;
-    transition: all .2s;
+.ps-wrap .scan-actions { margin-top: 12px; }
+.ps-wrap .save-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: none; border-radius: var(--r); padding: 9px 18px;
+    font-size: .86rem; font-weight: 700; cursor: pointer;
+    transition: transform .18s, box-shadow .18s; width: 100%;
+    justify-content: center;
 }
-.ps-btn:hover { transform: translateY(-1px); }
-.ps-btn-primary {
-    background: linear-gradient(135deg, var(--ps-primary), var(--ps-primary-dk));
+.ps-wrap .save-btn:hover { transform: translateY(-1px); }
+.ps-wrap .save-btn-bp {
+    background: linear-gradient(135deg, var(--p), var(--p-dk));
     color: #fff; box-shadow: 0 3px 10px rgba(27,174,190,.35);
 }
-.ps-btn-primary:hover { box-shadow: 0 5px 18px rgba(27,174,190,.45); }
-.ps-btn-analyze { width: 100%; justify-content: center; }
-
-/* ????????????????????????????????????????????????????????????
-   FORM ELEMENTS (MANUAL TAB)
-???????????????????????????????????????????????????????????? */
-.ps-form-group { margin-bottom: 1rem; }
-.ps-form-group label {
-    display: flex; align-items: center; gap: .45rem;
-    font-size: .85rem; font-weight: 600; color: var(--ps-text);
-    margin-bottom: .45rem;
+.ps-wrap .save-btn-bp:hover { box-shadow: 0 5px 16px rgba(27,174,190,.45); }
+.ps-wrap .save-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
-.ps-form-group label i { color: var(--ps-primary); font-size: .8rem; }
-.ps-optional   { font-weight: 400; color: var(--ps-muted); font-size: .8rem; }
-.ps-field-hint { font-size: .78rem; color: var(--ps-muted); margin: -.2rem 0 .5rem; }
-.ps-input {
-    width: 100%; padding: .6rem .95rem;
-    border: 1.5px solid var(--ps-border);
-    border-radius: 10px; font-size: .9rem; color: var(--ps-text);
-    background: var(--ps-light); outline: none;
+
+.ps-wrap .inp-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+.ps-wrap .inp-full  { grid-column: 1 / -1; }
+.ps-wrap .inp-group label {
+    font-size: .78rem; font-weight: 600; color: var(--text);
+    display: flex; align-items: center; gap: 5px;
+}
+.ps-wrap .inp-group label i { color: var(--p); font-size: .75rem; }
+.ps-wrap .optional-lbl { font-weight: 400; color: var(--text-3); }
+.ps-wrap .inp-hint { font-size: .7rem; color: var(--text-3); margin: -2px 0 6px; }
+.ps-wrap .inp {
+    border: 1.5px solid var(--border); border-radius: var(--r);
+    padding: 8px 10px; font-size: .88rem; color: var(--text);
+    background: var(--bg); outline: none;
     transition: border-color .2s, box-shadow .2s;
-    font-family: inherit; box-sizing: border-box;
+    width: 100%; font-family: inherit; box-sizing: border-box;
 }
-.ps-input:focus {
-    border-color: var(--ps-primary);
+.ps-wrap .inp:focus {
+    border-color: var(--p);
     box-shadow: 0 0 0 3px rgba(27,174,190,.12);
-    background: #fff;
+    background: var(--white);
 }
-.ps-textarea { resize: vertical; min-height: 130px; }
+.ps-wrap .textarea-inp { resize: vertical; min-height: 130px; }
 
-/* ????????????????????????????????????????????????????????????
-   RESULTS PLACEHOLDER
-???????????????????????????????????????????????????????????? */
-.ps-results-placeholder {
+.ps-wrap .results-placeholder {
     display: flex; flex-direction: column; align-items: center;
     justify-content: center; text-align: center;
-    padding: 2.5rem 1.5rem; gap: .6rem;
+    padding: 40px 24px; gap: 8px;
 }
-.ps-placeholder-icon {
+.ps-wrap .placeholder-icon {
     width: 72px; height: 72px; border-radius: 50%;
-    background: linear-gradient(135deg, rgba(139,92,246,.12), rgba(139,92,246,.06));
+    background: linear-gradient(135deg, var(--purp-lt), rgba(139,92,246,.06));
     border: 2px dashed rgba(139,92,246,.25);
     display: flex; align-items: center; justify-content: center;
     font-size: 1.8rem; color: #c4b5fd;
-    margin-bottom: .4rem;
+    margin-bottom: 8px;
 }
-.ps-results-placeholder h4 { margin: 0; font-size: 1rem; font-weight: 700; color: var(--ps-text); }
-.ps-results-placeholder p  { margin: 0; font-size: .85rem; color: var(--ps-muted); max-width: 280px; line-height: 1.6; }
-.ps-placeholder-chips { display: flex; gap: .5rem; flex-wrap: wrap; justify-content: center; margin-top: .5rem; }
-.ps-ph-chip {
-    display: inline-flex; align-items: center; gap: .35rem;
-    padding: .28rem .75rem; border-radius: 20px;
+.ps-wrap .results-placeholder h4 { margin: 0; font-size: 1rem; font-weight: 700; color: var(--text); }
+.ps-wrap .results-placeholder p  { margin: 0; font-size: .85rem; color: var(--text-3); max-width: 280px; line-height: 1.6; }
+.ps-wrap .placeholder-chips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
+.ps-wrap .ph-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px; border-radius: 20px;
     font-size: .75rem; font-weight: 600; border: 1px solid transparent;
 }
-.ps-ph-chip.safe    { background: #e8f5e9; color: #2e7d32; border-color: #a5d6a7; }
-.ps-ph-chip.caution { background: #fff3e0; color: #e65100; border-color: #ffcc80; }
-.ps-ph-chip.danger  { background: #ffebee; color: #c62828; border-color: #ef9a9a; }
+.ps-wrap .ph-chip.safe    { background: var(--grn-lt); color: #2e7d32; border-color: #a5d6a7; }
+.ps-wrap .ph-chip.caution { background: var(--amb-lt); color: #e65100; border-color: #ffcc80; }
+.ps-wrap .ph-chip.danger  { background: #ffebee; color: #c62828; border-color: #ef9a9a; }
 
-/* ????????????????????????????????????????????????????????????
-   DYNAMIC RESULT CARD
-???????????????????????????????????????????????????????????? */
-.ps-result-wrap {
+.ps-wrap .ps-result-wrap {
     border-radius: 14px; overflow: hidden;
-    border: 1.5px solid var(--ps-border);
+    border: 1.5px solid var(--border);
     animation: psFadeIn .35s ease;
 }
-.ps-result-wrap.safe    { border-color: #a5d6a7; }
-.ps-result-wrap.warning { border-color: #fde68a; }
-.ps-result-wrap.danger  { border-color: #ef9a9a; }
+.ps-wrap .ps-result-wrap.safe    { border-color: #a5d6a7; }
+.ps-wrap .ps-result-wrap.warning { border-color: #fde68a; }
+.ps-wrap .ps-result-wrap.danger  { border-color: #ef9a9a; }
 
-.ps-result-header {
-    display: flex; align-items: center; gap: 1rem;
-    padding: 1rem 1.2rem;
-    border-bottom: 1px solid var(--ps-border);
+.ps-wrap .ps-result-header {
+    display: flex; align-items: center; gap: 16px;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--border);
 }
-.ps-result-wrap.safe    .ps-result-header { background: linear-gradient(135deg, #f6fff8, #f0fdf4); }
-.ps-result-wrap.warning .ps-result-header { background: linear-gradient(135deg, #fffdf5, #fffbeb); }
-.ps-result-wrap.danger  .ps-result-header { background: linear-gradient(135deg, #fff8f8, #fff1f2); }
+.ps-wrap .ps-result-wrap.safe    .ps-result-header { background: linear-gradient(135deg, #f6fff8, #f0fdf4); }
+.ps-wrap .ps-result-wrap.warning .ps-result-header { background: linear-gradient(135deg, #fffdf5, #fffbeb); }
+.ps-wrap .ps-result-wrap.danger  .ps-result-header { background: linear-gradient(135deg, #fff8f8, #fff1f2); }
 
-.ps-result-info { flex: 1; }
-.ps-result-info h4 { margin: 0 0 .15rem; font-size: .95rem; font-weight: 700; color: var(--ps-text); }
-.ps-result-info p  { margin: 0; font-size: .78rem; color: var(--ps-muted); display: flex; align-items: center; gap: .35rem; }
+.ps-wrap .ps-result-info { flex: 1; }
+.ps-wrap .ps-result-info h4 { margin: 0 0 2px; font-size: .95rem; font-weight: 700; color: var(--text); }
+.ps-wrap .ps-result-info p  { margin: 0; font-size: .78rem; color: var(--text-3); display: flex; align-items: center; gap: 5px; }
 
-.ps-verdict-badge {
-    display: inline-flex; align-items: center; gap: .45rem;
-    padding: .45rem 1.05rem; border-radius: 22px;
+.ps-wrap .ps-verdict-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 22px;
     font-size: .82rem; font-weight: 800;
     white-space: nowrap; flex-shrink: 0; letter-spacing: .03em;
 }
-.ps-verdict-badge.safe    { background: #e8f5e9; color: #1b5e20; border: 1.5px solid #a5d6a7; }
-.ps-verdict-badge.warning { background: #fff3e0; color: #b84700; border: 1.5px solid #ffcc80; }
-.ps-verdict-badge.danger  { background: #ffebee; color: #b71c1c; border: 1.5px solid #ef9a9a; }
+.ps-wrap .ps-verdict-badge.safe    { background: var(--grn-lt); color: #1b5e20; border: 1.5px solid #a5d6a7; }
+.ps-wrap .ps-verdict-badge.warning { background: var(--amb-lt); color: #b84700; border: 1.5px solid #ffcc80; }
+.ps-wrap .ps-verdict-badge.danger  { background: #ffebee; color: #b71c1c; border: 1.5px solid #ef9a9a; }
 
-.ps-ing-body  { padding: .85rem 1.2rem; }
-.ps-ing-group { margin-bottom: .85rem; }
-.ps-ing-group:last-child { margin-bottom: 0; }
-.ps-ing-group-title {
-    display: flex; align-items: center; gap: .4rem;
+.ps-wrap .ps-ing-body  { padding: 12px 18px; }
+.ps-wrap .ps-ing-group { margin-bottom: 12px; }
+.ps-wrap .ps-ing-group:last-child { margin-bottom: 0; }
+.ps-wrap .ps-ing-group-title {
+    display: flex; align-items: center; gap: 5px;
     font-size: .8rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: .05em; margin-bottom: .55rem;
+    letter-spacing: .05em; margin-bottom: 8px;
 }
-.ps-ing-group-title.safe    { color: #2e7d32; }
-.ps-ing-group-title.warning { color: #e65100; }
-.ps-ing-group-title.danger  { color: #c62828; }
-.ps-ing-list { display: flex; flex-direction: column; gap: .4rem; }
-.ps-ing-item {
-    display: flex; align-items: center; gap: .6rem;
-    padding: .42rem .8rem; border-radius: 8px;
+.ps-wrap .ps-ing-group-title.safe    { color: #2e7d32; }
+.ps-wrap .ps-ing-group-title.warning { color: #e65100; }
+.ps-wrap .ps-ing-group-title.danger  { color: #c62828; }
+.ps-wrap .ps-ing-list { display: flex; flex-direction: column; gap: 6px; }
+.ps-wrap .ps-ing-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 12px; border-radius: 8px;
     font-size: .84rem; font-weight: 500;
 }
-.ps-ing-item.safe    { background: #e8f5e9; color: #1b5e20; }
-.ps-ing-item.warning { background: #fff3e0; color: #7c4700; }
-.ps-ing-item.danger  { background: #ffebee; color: #7f1111; }
+.ps-wrap .ps-ing-item.safe    { background: var(--grn-lt); color: #1b5e20; }
+.ps-wrap .ps-ing-item.warning { background: var(--amb-lt); color: #7c4700; }
+.ps-wrap .ps-ing-item.danger  { background: #ffebee; color: #7f1111; }
 
-.ps-rec-box {
-    display: flex; align-items: flex-start; gap: .9rem;
-    padding: .9rem 1.2rem; border-top: 1px solid var(--ps-border);
+.ps-wrap .ps-rec-box {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 14px 18px; border-top: 1px solid var(--border);
 }
-.ps-rec-icon {
+.ps-wrap .ps-rec-icon {
     width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center; font-size: 1rem;
 }
-.ps-rec-body h5 { margin: 0 0 .25rem; font-size: .88rem; font-weight: 700; }
-.ps-rec-body p  { margin: 0; font-size: .82rem; line-height: 1.55; }
-.ps-rec-box.safe    { background: #f6fff8; }
-.ps-rec-box.warning { background: #fffdf5; }
-.ps-rec-box.danger  { background: #fff8f8; }
-.ps-rec-box.safe    .ps-rec-icon { background: rgba(76,175,80,.15);  color: #2e7d32; }
-.ps-rec-box.warning .ps-rec-icon { background: rgba(255,152,0,.15);  color: #e65100; }
-.ps-rec-box.danger  .ps-rec-icon { background: rgba(244,67,54,.15);  color: #c62828; }
-.ps-rec-box.safe    .ps-rec-body { color: #1b5e20; }
-.ps-rec-box.warning .ps-rec-body { color: #7c4700; }
-.ps-rec-box.danger  .ps-rec-body { color: #7f1111; }
+.ps-wrap .ps-rec-body h5 { margin: 0 0 4px; font-size: .88rem; font-weight: 700; }
+.ps-wrap .ps-rec-body p  { margin: 0; font-size: .82rem; line-height: 1.55; }
+.ps-wrap .ps-rec-box.safe    { background: #f6fff8; }
+.ps-wrap .ps-rec-box.warning { background: #fffdf5; }
+.ps-wrap .ps-rec-box.danger  { background: #fff8f8; }
+.ps-wrap .ps-rec-box.safe    .ps-rec-icon { background: rgba(76,175,80,.15);  color: #2e7d32; }
+.ps-wrap .ps-rec-box.warning .ps-rec-icon { background: rgba(255,152,0,.15);  color: #e65100; }
+.ps-wrap .ps-rec-box.danger  .ps-rec-icon { background: rgba(244,67,54,.15);  color: #c62828; }
+.ps-wrap .ps-rec-box.safe    .ps-rec-body { color: #1b5e20; }
+.ps-wrap .ps-rec-box.warning .ps-rec-body { color: #7c4700; }
+.ps-wrap .ps-rec-box.danger  .ps-rec-body { color: #7f1111; }
 
 @@keyframes psFadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
 
-/* ????????????????????????????????????????????????????????????
-   QUICK REFERENCE SECTION
-???????????????????????????????????????????????????????????? */
-.ps-reference-section {
-    background: #fff;
-    border-radius: var(--ps-radius);
-    box-shadow: var(--ps-shadow);
-    border: 1px solid var(--ps-border);
-    padding: 1.4rem 1.5rem;
-    margin-bottom: 1.5rem;
+.ps-wrap .reference-card { margin-top: 4px; }
+.ps-wrap .reference-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    padding: 0 20px 20px;
 }
-.ps-reference-header {
-    display: flex; justify-content: space-between; align-items: flex-start;
-    flex-wrap: wrap; gap: .75rem;
-    margin-bottom: 1.2rem; padding-bottom: 1rem;
-    border-bottom: 1.5px solid var(--ps-border);
-}
-.ps-reference-title { display: flex; align-items: flex-start; gap: .75rem; }
-.ps-reference-title h3 { margin: 0 0 .15rem; font-size: 1rem; font-weight: 700; color: var(--ps-text); }
-.ps-reference-title p  { margin: 0; font-size: .8rem; color: var(--ps-muted); }
-.ps-badge-info {
-    display: inline-flex; align-items: center; gap: .35rem;
-    padding: .35rem .85rem; border-radius: 20px;
-    background: rgba(27,174,190,.1); color: var(--ps-primary);
-    font-size: .75rem; font-weight: 600;
-    border: 1px solid rgba(27,174,190,.25);
-    white-space: nowrap; flex-shrink: 0;
-}
-.ps-reference-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-}
-@@media (max-width: 768px) { .ps-reference-grid { grid-template-columns: 1fr; } }
-
-.ps-ref-card {
-    border-radius: 14px; border: 1.5px solid var(--ps-border); overflow: hidden;
+.ps-wrap .ref-card {
+    border-radius: 14px; border: 1.5px solid var(--border); overflow: hidden;
     transition: box-shadow .2s, transform .2s;
 }
-.ps-ref-card:hover { box-shadow: var(--ps-shadow-hov); transform: translateY(-2px); }
-.ps-ref-danger  { border-color: #ef9a9a; }
-.ps-ref-warning { border-color: #fde68a; }
-.ps-ref-safe    { border-color: #a5d6a7; }
+.ps-wrap .ref-card:hover { box-shadow: var(--shadow); transform: translateY(-2px); }
+.ps-wrap .ref-danger  { border-color: #ef9a9a; }
+.ps-wrap .ref-warning { border-color: #fde68a; }
+.ps-wrap .ref-safe    { border-color: #a5d6a7; }
 
-.ps-ref-card-header {
-    display: flex; align-items: center; gap: .75rem;
-    padding: .85rem 1.1rem;
-    border-bottom: 1px solid var(--ps-border);
+.ps-wrap .ref-card-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
 }
-.ps-ref-danger  .ps-ref-card-header { background: linear-gradient(135deg, #fff8f8, #fff1f2); border-bottom-color: #fca5a5; }
-.ps-ref-warning .ps-ref-card-header { background: linear-gradient(135deg, #fffdf5, #fffbeb); border-bottom-color: #fde68a; }
-.ps-ref-safe    .ps-ref-card-header { background: linear-gradient(135deg, #f6fff8, #f0fdf4); border-bottom-color: #bbf7d0; }
+.ps-wrap .ref-danger  .ref-card-header { background: linear-gradient(135deg, #fff8f8, #fff1f2); border-bottom-color: #fca5a5; }
+.ps-wrap .ref-warning .ref-card-header { background: linear-gradient(135deg, #fffdf5, #fffbeb); border-bottom-color: #fde68a; }
+.ps-wrap .ref-safe    .ref-card-header { background: linear-gradient(135deg, #f6fff8, #f0fdf4); border-bottom-color: #bbf7d0; }
 
-.ps-ref-icon-wrap {
+.ps-wrap .ref-icon-wrap {
     width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center; font-size: .95rem;
 }
-.ps-ref-icon-wrap.danger  { background: rgba(244,67,54,.15);  color: #c62828; }
-.ps-ref-icon-wrap.warning { background: rgba(255,152,0,.15);  color: #e65100; }
-.ps-ref-icon-wrap.safe    { background: rgba(76,175,80,.15);   color: #2e7d32; }
+.ps-wrap .ref-icon-wrap.danger  { background: rgba(244,67,54,.15);  color: #c62828; }
+.ps-wrap .ref-icon-wrap.warning { background: rgba(255,152,0,.15);  color: #e65100; }
+.ps-wrap .ref-icon-wrap.safe    { background: rgba(76,175,80,.15);  color: #2e7d32; }
 
-.ps-ref-card-header h4 { margin: 0 0 .12rem; font-size: .88rem; font-weight: 700; color: var(--ps-text); }
-.ps-ref-count          { font-size: .72rem; color: var(--ps-muted); }
+.ps-wrap .ref-card-header h4 { margin: 0 0 2px; font-size: .88rem; font-weight: 700; color: var(--text); }
+.ps-wrap .ref-count { font-size: .72rem; color: var(--text-3); }
 
-.ps-ref-list {
-    list-style: none; padding: .85rem 1.1rem; margin: 0;
-    display: flex; flex-direction: column; gap: .45rem;
+.ps-wrap .ref-list {
+    list-style: none; padding: 12px 16px; margin: 0;
+    display: flex; flex-direction: column; gap: 6px;
 }
-.ps-ref-list li {
-    display: flex; align-items: center; gap: .55rem;
-    font-size: .82rem; color: var(--ps-muted); line-height: 1.45;
+.ps-wrap .ref-list li {
+    display: flex; align-items: center; gap: 8px;
+    font-size: .82rem; color: var(--text-2); line-height: 1.45;
 }
-.ps-ref-danger  .ps-ref-list li i { color: #ef5350; }
-.ps-ref-warning .ps-ref-list li i { color: #ff9800; }
-.ps-ref-safe    .ps-ref-list li i { color: #4caf50; }
+.ps-wrap .ref-danger  .ref-list li i { color: #ef5350; }
+.ps-wrap .ref-warning .ref-list li i { color: #ff9800; }
+.ps-wrap .ref-safe    .ref-list li i { color: #4caf50; }
+
+@@media (max-width: 1200px) {
+    .ps-wrap .main-grid { grid-template-columns: 1fr; }
+}
+@@media (max-width: 900px) {
+    .ps-wrap .reference-grid { grid-template-columns: 1fr; }
+}
+@@media (max-width: 768px) {
+    .ps-wrap .hero { padding: 18px 20px; }
+    .ps-wrap .hero-top { flex-direction: column; gap: 14px; }
+    .ps-wrap .hero-right { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); }
+    .ps-wrap .how-it-works { padding: 12px 16px; }
+    .ps-wrap .hw-step-arrow { display: none; }
+}
+@@media (max-width: 480px) {
+    .ps-wrap .hero-right { grid-template-columns: 1fr; }
+}
 </style>
 }
 
@@ -786,21 +767,19 @@
     const resultsPlaceholder = document.getElementById('resultsPlaceholder');
     const dynamicResult      = document.getElementById('dynamicResult');
 
-    // Tab switching
     cameraOption?.addEventListener('click', () => {
         cameraOption.classList.add('active');
         manualOption.classList.remove('active');
-        cameraScanner.style.display = 'block';
-        manualEntry.style.display   = 'none';
+        cameraScanner.classList.add('active');
+        manualEntry.classList.remove('active');
     });
     manualOption?.addEventListener('click', () => {
         manualOption.classList.add('active');
         cameraOption.classList.remove('active');
-        manualEntry.style.display   = 'block';
-        cameraScanner.style.display = 'none';
+        manualEntry.classList.add('active');
+        cameraScanner.classList.remove('active');
     });
 
-    // Upload zone
     psUploadZone?.addEventListener('click', () => imageFileInput?.click());
     psUploadZone?.addEventListener('dragover', e => { e.preventDefault(); psUploadZone.classList.add('drag-over'); });
     psUploadZone?.addEventListener('dragleave', () => psUploadZone.classList.remove('drag-over'));
@@ -836,7 +815,6 @@
         clearResult();
     });
 
-    // Analyze
     analyzeBtn?.addEventListener('click', async () => {
         if (!imageFileInput?.files?.length) { notify('Please select an image first.', 'warning'); return; }
         showLoading(true);
@@ -923,15 +901,15 @@
         let cls, icon, label, recIcon, recTitle, recMsg;
 
         if (status === 'Unsafe') {
-            cls = 'danger'; icon = 'fa-exclamation-triangle'; label = '? AVOID';
+            cls = 'danger'; icon = 'fa-exclamation-triangle'; label = '🚫 AVOID';
             recIcon = 'fa-user-md'; recTitle = 'Consult Your Doctor';
             recMsg = 'This product contains ingredients flagged as unsafe during pregnancy. Please speak with your healthcare provider before use.';
         } else if (status === 'NeedsReview') {
-            cls = 'warning'; icon = 'fa-exclamation-circle'; label = '? CAUTION';
+            cls = 'warning'; icon = 'fa-exclamation-circle'; label = '⚠️ CAUTION';
             recIcon = 'fa-info-circle'; recTitle = 'Use with Caution';
             recMsg = 'Some ingredients require caution during pregnancy. Consult your doctor if you are unsure about continued use.';
         } else {
-            cls = 'safe'; icon = 'fa-check-circle'; label = '? SAFE';
+            cls = 'safe'; icon = 'fa-check-circle'; label = '✅ SAFE';
             recIcon = 'fa-thumbs-up'; recTitle = 'Safe to Use';
             recMsg = 'All analyzed ingredients are considered safe during pregnancy. No harmful chemicals were detected.';
         }
@@ -962,7 +940,7 @@
                     ${buildGroup(avoid, 'danger',  'fa-times-circle',       'Avoid',            'danger')}
                     ${buildGroup(risky, 'warning', 'fa-exclamation-circle', 'Use with Caution', 'warning')}
                     ${buildGroup(safe,  'safe',    'fa-check-circle',       'Safe Ingredients', 'safe')}
-                </div>` : `<div style="padding:.85rem 1.2rem;font-size:.85rem;color:var(--ps-muted);">No individual ingredients were identified in the image.</div>`}
+                </div>` : `<div style="padding:.85rem 1.2rem;font-size:.85rem;color:var(--text-3);">No individual ingredients were identified in the image.</div>`}
                 <div class="ps-rec-box ${cls}">
                     <div class="ps-rec-icon"><i class="fas ${recIcon}"></i></div>
                     <div class="ps-rec-body"><h5>${recTitle}</h5><p>${recMsg}</p></div>
@@ -971,7 +949,7 @@
 
         resultsPlaceholder.style.display = 'none';
         dynamicResult.style.display      = 'block';
-        dynamicResult.closest('.ps-results-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        dynamicResult.closest('.results-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     function notify(msg, type) {

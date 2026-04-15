@@ -28,8 +28,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   await setupSignalRConnection();
 
   const urlDoctor = new URLSearchParams(location.search).get("doctor");
-  if (urlDoctor) {
-    const target = state.conversations.find(c => String(c.doctorId) === String(urlDoctor));
+  const urlUser = new URLSearchParams(location.search).get("user");
+  const autoTarget = urlUser || urlDoctor;
+  if (autoTarget) {
+    const target = state.conversations.find(c => String(c.receiverUserId) === String(autoTarget) || String(c.participantId) === String(autoTarget));
     if (target) {
       selectConversation(target.id);
     }
@@ -39,11 +41,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 function initializeState() {
   const initial = Array.isArray(config.conversations) ? config.conversations : [];
   state.conversations = initial.map((c, idx) => ({
-    id: c.id ?? idx + 1,
-    doctorId: String(c.doctorId ?? c.id ?? ""),
-    receiverUserId: String(c.receiverUserId ?? c.doctorId ?? c.id ?? ""),
-    name: c.name || "Doctor",
-    avatar: c.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name || "D")}&background=1baebe&color=fff&size=80`,
+    id: c.id ?? `conversation-${idx + 1}`,
+    participantId: String(c.participantId ?? c.id ?? ""),
+    participantType: String(c.participantType || "Doctor"),
+    receiverUserId: String(c.receiverUserId ?? c.participantId ?? c.id ?? ""),
+    name: c.name || "Care Team",
+    avatar: c.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name || "C")}&background=1baebe&color=fff&size=80`,
     status: c.status || "online",
     lastMessage: c.lastMessage || "Start a conversation",
     lastMessageTime: c.lastMessageTime ? new Date(c.lastMessageTime) : null,
@@ -182,13 +185,16 @@ function renderConversations() {
   }
 
   container.innerHTML = filtered.map(conv => `
-    <div class="conversation-item ${conv.unreadCount > 0 ? "unread" : ""} ${state.currentConversation?.id === conv.id ? "active" : ""}" data-id="${conv.id}">
+    <div class="conversation-item conversation-${getParticipantTypeClass(conv.participantType)} ${conv.unreadCount > 0 ? "unread" : ""} ${state.currentConversation?.id === conv.id ? "active" : ""}" data-id="${conv.id}">
       <div class="conversation-avatar">
         <img src="${conv.avatar}" alt="${escapeHtml(conv.name)}" />
       </div>
       <div class="conversation-content">
         <div class="conversation-header">
-          <span class="conversation-name">${escapeHtml(conv.name)}</span>
+          <div class="conversation-name-wrap">
+            <span class="conversation-name">${escapeHtml(conv.name)}</span>
+            <span class="conversation-role-badge ${getParticipantTypeClass(conv.participantType)}">${escapeHtml(getParticipantTypeLabel(conv.participantType))}</span>
+          </div>
           <span class="conversation-time">${formatTime(conv.lastMessageTime)}</span>
         </div>
         <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
@@ -201,7 +207,7 @@ function renderConversations() {
 
   container.querySelectorAll(".conversation-item").forEach(item => {
     item.addEventListener("click", () => {
-      selectConversation(Number(item.dataset.id));
+      selectConversation(item.dataset.id);
     });
   });
 }
@@ -216,6 +222,10 @@ function selectConversation(id) {
   document.getElementById("chatUserAvatar").src = conversation.avatar;
   document.getElementById("chatUserAvatar").alt = conversation.name;
   document.getElementById("chatUserName").textContent = conversation.name;
+  const chatUserRole = document.getElementById("chatUserRole");
+  if (chatUserRole) {
+    chatUserRole.textContent = getParticipantTypeLabel(conversation.participantType);
+  }
 
   document.getElementById("chatEmpty").style.display = "none";
   document.getElementById("chatContainer").style.display = "flex";
@@ -236,7 +246,7 @@ async function loadConversationMessages(conversation) {
 
   const endpoint = CONVERSATION_ENDPOINT_TEMPLATE
     .replace("__PATIENT_ID__", encodeURIComponent(PATIENT_ID))
-    .replace("__DOCTOR_ID__", encodeURIComponent(conversation.doctorId));
+    .replace("__USER_ID__", encodeURIComponent(conversation.receiverUserId));
 
   try {
     const response = await fetch(endpoint, { credentials: "same-origin" });
@@ -322,7 +332,7 @@ function handleIncomingMessage(senderId, message, sentAtUtc) {
   if (isSentByCurrentUser) {
     conversation = state.currentConversation;
   } else {
-    conversation = state.conversations.find(c => String(c.receiverUserId) === senderId || String(c.doctorId) === senderId || String(c.id) === senderId);
+    conversation = state.conversations.find(c => String(c.receiverUserId) === senderId || String(c.participantId) === senderId || String(c.id) === senderId);
   }
 
   if (!conversation) {
@@ -442,4 +452,14 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/\"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function getParticipantTypeLabel(type) {
+  const normalized = String(type || "Doctor").toLowerCase();
+  return normalized === "assistant" ? "Assistant" : "Doctor";
+}
+
+function getParticipantTypeClass(type) {
+  const normalized = String(type || "Doctor").toLowerCase();
+  return normalized === "assistant" ? "assistant" : "doctor";
 }

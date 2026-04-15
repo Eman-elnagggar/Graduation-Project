@@ -741,13 +741,6 @@ body.pp-notif-open .pp-notif-panel {
 }
 
 /* ================================
-   Logo & Branding
-================================ */
-.sidebar-brand .brand-icon {
-  background: linear-gradient(135deg, var(--primary), var(--accent));
-}
-
-/* ================================
    Navigation Active State
 ================================ */
 .nav-item.active {
