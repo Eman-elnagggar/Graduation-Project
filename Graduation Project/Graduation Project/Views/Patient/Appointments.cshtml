@@ -4,25 +4,213 @@
     ViewData["Title"] = "My Appointments";
     ViewData["PatientId"] = Model.Patient.PatientID;
     ViewData["ActivePage"] = "Appointments";
+    ViewData["UserName"] = Model.UserName;
+
+    var nameParts = (Model.UserName ?? "Patient").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+    var firstName = nameParts.Length > 0 ? nameParts[0] : "Patient";
+    ViewData["PageTitle"] = "Appointments";
+    ViewData["PageTitleHtml"] = $"Appointments for <span class='topbar-accent'>{firstName}</span>";
+    ViewData["PageSubtitle"] = "Manage upcoming and past visits";
+
     var patientId = Model.Patient.PatientID;
-    var fullName = $"{Model.Patient.User?.FirstName} {Model.Patient.User?.LastName}".Trim();
 }
 @section Head {
     @Html.AntiForgeryToken()
+    <style>
+        #rescheduleModal {
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+        }
+
+        #rescheduleModal .pa-modal {
+            max-width: 640px;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid #dbe7f3;
+            box-shadow: 0 20px 55px rgba(15, 23, 42, 0.2);
+        }
+
+        #rescheduleModal .pa-modal-header {
+            background: linear-gradient(135deg, #f8fbff 0%, #f0f9ff 100%);
+            border-bottom: 1px solid #e2e8f0;
+            padding: 16px 20px;
+        }
+
+        #rescheduleModal .pa-modal-header h3 {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+            color: #1e293b;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        #rescheduleModal .pa-modal-body {
+            padding: 18px 20px;
+            background: #ffffff;
+        }
+
+        .reschedule-current-box {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 10px 12px;
+            margin-bottom: 14px;
+            color: #334155;
+            font-weight: 500;
+        }
+
+        .reschedule-current-box i {
+            color: #0ea5e9;
+        }
+
+        .reschedule-hint {
+            margin-top: 8px;
+            font-size: 0.9rem;
+            color: #64748b;
+            min-height: 20px;
+        }
+
+        #rescheduleModal .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: #334155;
+            font-weight: 600;
+            font-size: 0.92rem;
+        }
+
+        #rescheduleModal .form-select {
+            width: 100%;
+            height: 42px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            padding: 0 12px;
+            background: #fff;
+            color: #1e293b;
+            transition: border-color .2s ease, box-shadow .2s ease;
+        }
+
+        .reschedule-select-wrap {
+            position: relative;
+        }
+
+        .reschedule-time-select {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            padding-right: 40px !important;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .reschedule-select-wrap::after {
+            content: "\f078";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: #64748b;
+            font-size: 0.8rem;
+        }
+
+        .reschedule-time-select option {
+            color: #1e293b;
+        }
+
+        #rescheduleModal .form-select:focus {
+            outline: none;
+            border-color: #22b8cf;
+            box-shadow: 0 0 0 3px rgba(34, 184, 207, 0.16);
+        }
+
+        .reschedule-field {
+            margin-top: 12px;
+        }
+
+        .reschedule-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            border-top: 1px solid #e5e7eb;
+            background: #fafcff;
+        }
+
+        .btn-reschedule-cancel,
+        .btn-reschedule-save {
+            min-width: 92px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .btn-reschedule-save {
+            background: linear-gradient(135deg, #14b8a6 0%, #06b6d4 100%);
+            border: none;
+            color: #fff;
+        }
+
+        .btn-reschedule-save:hover {
+            filter: brightness(0.97);
+        }
+
+        .btn-reschedule-save:disabled {
+            opacity: .75;
+            cursor: not-allowed;
+        }
+    </style>
 }
 
-<header class="header">
-                <div class="header-left">
-                    <h1>My Appointments 📅</h1>
-                    <p>View and manage your medical appointments</p>
+<header class="header pa-header pa-hero">
+    <div class="header-left pa-hero-left">
+        <div class="pa-hero-icon">
+            <i class="fas fa-calendar-check"></i>
+        </div>
+        <div>
+            <h1>My Appointments</h1>
+            <p>View and manage your medical appointments</p>
+        </div>
+    </div>
+    <div class="header-right pa-hero-right">
+        <button class="btn btn-primary"
+                onclick="window.location.href='@Url.Action("BookAppointment", "PatientAppointments", new { id = patientId })'">
+            <i class="fas fa-plus-circle"></i> Book New Appointment
+        </button>
+    </div>
+</header>
+
+<div class="patient-appointments-page">
+
+            <section class="pa-overview-grid">
+                <div class="pa-overview-card">
+                    <div class="pa-overview-icon"><i class="fas fa-clock"></i></div>
+                    <div class="pa-overview-content">
+                        <span class="pa-overview-label">Upcoming</span>
+                        <strong>@Model.UpcomingAppointments.Count</strong>
+                    </div>
                 </div>
-                <div class="header-right">
-                    <button class="btn btn-primary"
-                            onclick="window.location.href='@Url.Action("BookAppointment", "PatientAppointments", new { id = patientId })'">
-                        <i class="fas fa-plus-circle"></i> Book New Appointment
-                    </button>
+                <div class="pa-overview-card">
+                    <div class="pa-overview-icon"><i class="fas fa-history"></i></div>
+                    <div class="pa-overview-content">
+                        <span class="pa-overview-label">Past Visits</span>
+                        <strong>@Model.PastAppointments.Count</strong>
+                    </div>
                 </div>
-            </header>
+                <div class="pa-overview-card">
+                    <div class="pa-overview-icon"><i class="fas fa-user-md"></i></div>
+                    <div class="pa-overview-content">
+                        <span class="pa-overview-label">My Doctors</span>
+                        <strong>@Model.MyDoctors.Count</strong>
+                    </div>
+                </div>
+            </section>
 
             <!-- Primary Doctor Section -->
             <section class="primary-doctor-section">
@@ -50,7 +238,7 @@
                                         <h4>@docName</h4>
                                         <p class="specialty"><i class="fas fa-stethoscope"></i> @doc.Specialization</p>
                                         <p class="location"><i class="fas fa-map-marker-alt"></i> @(clinicDoc?.Clinic?.Name ?? "Clinic")</p>
-                                        <div class="quick-stats">
+                                        <div class="quick-stats pa-quick-stats">
                                             <span>
                                                 <i class="fas fa-calendar-check"></i>
                                                 @docApptCount appointment@(docApptCount != 1 ? "s" : "")
@@ -106,7 +294,7 @@
                                 if (doc == null) { continue; }
                                 var docName = doc.User != null ? $"Dr. {doc.User.FirstName} {doc.User.LastName}".Trim() : "Doctor";
                                 var clinicDoc = doc.ClinicDoctors?.FirstOrDefault();
-                                <div class="doctor-mini-card">
+                                <div class="doctor-mini-card" data-doctor-id="@doc.DoctorID">
                                     <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(docName)&background=1BAEBE&color=fff&size=60"
                                          alt="@docName" />
                                     <div class="doctor-mini-info">
@@ -117,10 +305,20 @@
                                         <p>@doc.Specialization</p>
                                         <p>@(clinicDoc?.Clinic?.Name ?? "")</p>
                                     </div>
-                                    <button class="btn btn-sm btn-outline"
-                                            onclick="window.location.href='@Url.Action("BookAppointment", "PatientAppointments", new { id = patientId, doctorId = doc.DoctorID })'">
-                                        Book
-                                    </button>
+                                    <div class="doctor-mini-actions">
+                                        <button class="btn btn-sm btn-outline"
+                                                onclick="window.location.href='@Url.Action("BookAppointment", "PatientAppointments", new { id = patientId, doctorId = doc.DoctorID })'">
+                                            Book
+                                        </button>
+                                        @if (!pd.IsPrimary)
+                                        {
+                                            <button class="btn btn-sm btn-outline set-primary-btn"
+                                                    data-doctor-id="@doc.DoctorID"
+                                                    data-patient-id="@patientId">
+                                                Set Primary
+                                            </button>
+                                        }
+                                    </div>
                                 </div>
                             }
                         </div>
@@ -140,8 +338,8 @@
                     <div class="appointments-list">
                         @if (!Model.UpcomingAppointments.Any())
                         {
-                            <div style="text-align:center; padding: 32px; color: #94a3b8;">
-                                <i class="fas fa-calendar-times" style="font-size:2rem; margin-bottom:12px; display:block;"></i>
+                            <div class="appointment-empty-state">
+                                <i class="fas fa-calendar-times"></i>
                                 <p>No upcoming appointments.
                                     <a href="@Url.Action("BookAppointment", "PatientAppointments", new { id = patientId })">Book one now</a>
                                 </p>
@@ -155,6 +353,9 @@
                                     ? $"Dr. {appt.Doctor.User.FirstName} {appt.Doctor.User.LastName}".Trim()
                                     : "Doctor";
                                 var status = appt.Booking?.Status ?? "Confirmed";
+                                var canCancel = string.Equals(status, "Confirmed", StringComparison.OrdinalIgnoreCase)
+                                             || string.Equals(status, "Modified", StringComparison.OrdinalIgnoreCase);
+                                var canReschedule = string.Equals(status, "Modified", StringComparison.OrdinalIgnoreCase);
                                 var timeDisplay = DateTime.Today.Add(appt.Time).ToString("h:mm tt");
                                 var reason = appt.Booking?.Reason;
                                 if (string.IsNullOrWhiteSpace(reason)) reason = "Appointment";
@@ -179,11 +380,26 @@
                                         <span class="status-badge @status.ToLower()">@status</span>
                                     </div>
                                     <div class="appointment-actions">
-                                        <button class="btn btn-sm btn-outline danger cancel-btn"
-                                                data-appointment-id="@appt.AppointmentID"
-                                                data-patient-id="@patientId">
-                                            <i class="fas fa-times"></i> Cancel
-                                        </button>
+                                        @if (canCancel)
+                                        {
+                                            @if (canReschedule)
+                                            {
+                                                <button class="btn btn-sm btn-outline reschedule-btn"
+                                                        data-appointment-id="@appt.AppointmentID"
+                                                        data-patient-id="@patientId"
+                                                        data-doctor-id="@appt.DoctorID"
+                                                        data-clinic-id="@appt.ClinicID"
+                                                        data-date="@appt.Date.ToString("yyyy-MM-dd")"
+                                                        data-time="@DateTime.Today.Add(appt.Time).ToString("hh:mm tt")">
+                                                    <i class="fas fa-edit"></i> Change Time
+                                                </button>
+                                            }
+                                            <button class="btn btn-sm btn-outline danger cancel-btn"
+                                                    data-appointment-id="@appt.AppointmentID"
+                                                    data-patient-id="@patientId">
+                                                <i class="fas fa-times"></i> Cancel
+                                            </button>
+                                        }
                                     </div>
                                 </div>
                             }
@@ -199,61 +415,189 @@
                     <div class="card">
                         <div class="card-header">
                             <h3><i class="fas fa-history"></i> Past Appointments</h3>
-                            <button class="btn btn-sm btn-outline" id="togglePastBtn">
-                                <i class="fas fa-chevron-up"></i> Hide
+                            <button class="btn btn-sm btn-outline" id="openPastModalBtn" type="button">
+                                <i class="fas fa-eye"></i> View All
                             </button>
                         </div>
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Doctor</th>
-                                    <th>Reason</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var appt in Model.PastAppointments)
-                                {
-                                    var docName = appt.Doctor?.User != null
-                                        ? $"Dr. {appt.Doctor.User.FirstName} {appt.Doctor.User.LastName}".Trim()
-                                        : "Doctor";
-                                    var status = appt.Booking?.Status ?? "Completed";
-                                    var badgeClass = status.ToLower() == "cancelled" ? "cancelled" : "completed";
-                                    var badgeLabel = status.ToLower() == "cancelled" ? "Cancelled" : "Completed";
-                                    var reason = appt.Booking?.Reason;
-                                    if (string.IsNullOrWhiteSpace(reason)) reason = "Visit";
+                        <div class="pa-table-wrap">
+                            <table class="data-table">
+                                <thead>
                                     <tr>
-                                        <td>@appt.Date.ToString("MMM dd, yyyy")</td>
-                                        <td>@docName</td>
-                                        <td>@reason</td>
-                                        <td><span class="status-badge @badgeClass">@badgeLabel</span></td>
+                                        <th>Date</th>
+                                        <th>Doctor</th>
+                                        <th>Reason</th>
+                                        <th>Status</th>
                                     </tr>
-                                }
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    @foreach (var appt in Model.PastAppointments.Take(3))
+                                    {
+                                        var docName = appt.Doctor?.User != null
+                                            ? $"Dr. {appt.Doctor.User.FirstName} {appt.Doctor.User.LastName}".Trim()
+                                            : "Doctor";
+                                        var status = appt.Booking?.Status ?? "Completed";
+                                        var normalizedStatus = status.Trim().ToLowerInvariant();
+                                        var badgeClass = normalizedStatus switch
+                                        {
+                                            "cancelled" or "canceled" => "cancelled",
+                                            "missed" => "cancelled",
+                                            "modified" => "modified",
+                                            "confirmed" => "confirmed",
+                                            _ => "completed"
+                                        };
+                                        var badgeLabel = normalizedStatus switch
+                                        {
+                                            "cancelled" or "canceled" => "Cancelled",
+                                            "missed" => "Missed",
+                                            "modified" => "Modified",
+                                            "confirmed" => "Confirmed",
+                                            _ => "Completed"
+                                        };
+                                        var reason = appt.Booking?.Reason;
+                                        if (string.IsNullOrWhiteSpace(reason)) reason = "Visit";
+                                        <tr>
+                                            <td>@appt.Date.ToString("MMM dd, yyyy")</td>
+                                            <td>@docName</td>
+                                            <td>@reason</td>
+                                            <td><span class="status-badge @badgeClass">@badgeLabel</span></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="past-summary">
+                            <i class="fas fa-calendar-check"></i>
+                            <span>Showing last @(Math.Min(3, Model.PastAppointments.Count)) of @Model.PastAppointments.Count appointments.</span>
+                        </div>
                     </div>
                 </section>
+
+                <div class="pa-modal-overlay" id="pastAppointmentsModal" aria-hidden="true">
+                    <div class="pa-modal" role="dialog" aria-modal="true" aria-labelledby="pastAppointmentsModalTitle">
+                        <div class="pa-modal-header">
+                            <h3 id="pastAppointmentsModalTitle"><i class="fas fa-history"></i> All Past Appointments</h3>
+                            <button class="pa-modal-close" id="closePastModalBtn" type="button" aria-label="Close">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="pa-modal-body pa-table-wrap">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Doctor</th>
+                                        <th>Reason</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var appt in Model.PastAppointments)
+                                    {
+                                        var docName = appt.Doctor?.User != null
+                                            ? $"Dr. {appt.Doctor.User.FirstName} {appt.Doctor.User.LastName}".Trim()
+                                            : "Doctor";
+                                        var status = appt.Booking?.Status ?? "Completed";
+                                        var normalizedStatus = status.Trim().ToLowerInvariant();
+                                        var badgeClass = normalizedStatus switch
+                                        {
+                                            "cancelled" or "canceled" => "cancelled",
+                                            "missed" => "cancelled",
+                                            "modified" => "modified",
+                                            "confirmed" => "confirmed",
+                                            _ => "completed"
+                                        };
+                                        var badgeLabel = normalizedStatus switch
+                                        {
+                                            "cancelled" or "canceled" => "Cancelled",
+                                            "missed" => "Missed",
+                                            "modified" => "Modified",
+                                            "confirmed" => "Confirmed",
+                                            _ => "Completed"
+                                        };
+                                        var reason = appt.Booking?.Reason;
+                                        if (string.IsNullOrWhiteSpace(reason)) reason = "Visit";
+                                        <tr>
+                                            <td>@appt.Date.ToString("MMM dd, yyyy")</td>
+                                            <td>@docName</td>
+                                            <td>@reason</td>
+                                            <td><span class="status-badge @badgeClass">@badgeLabel</span></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             }
+
+            <div class="pa-modal-overlay" id="rescheduleModal" aria-hidden="true">
+                <div class="pa-modal" role="dialog" aria-modal="true" aria-labelledby="rescheduleModalTitle">
+                    <div class="pa-modal-header">
+                        <h3 id="rescheduleModalTitle"><i class="fas fa-edit"></i> Change Appointment Time</h3>
+                        <button class="pa-modal-close" id="closeRescheduleModalBtn" type="button" aria-label="Close">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="pa-modal-body">
+                        <div class="reschedule-current-box">
+                            <i class="fas fa-clock"></i>
+                            <span id="rescheduleCurrentInfo">Current time:</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="rescheduleDate">Date</label>
+                            <input id="rescheduleDate" type="date" class="form-select" />
+                        </div>
+                        <div class="form-group reschedule-field">
+                            <label for="rescheduleSlot">Available Times</label>
+                            <div class="reschedule-select-wrap">
+                                <select id="rescheduleSlot" class="form-select reschedule-time-select">
+                                    <option value="">Choose a time</option>
+                                </select>
+                            </div>
+                            <p id="rescheduleHint" class="reschedule-hint">Pick a date to load available times.</p>
+                        </div>
+                    </div>
+                    <div class="booking-navigation reschedule-footer">
+                        <button type="button" class="btn btn-outline btn-reschedule-cancel" id="cancelRescheduleBtn">Cancel</button>
+                        <button type="button" class="btn btn-primary btn-reschedule-save" id="confirmRescheduleBtn">
+                            <i class="fas fa-check"></i> Save
+                        </button>
+                    </div>
+                </div>
+            </div>
+</div>
 @section Scripts {
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-          // ================================
-          // Show / Hide Past Appointments
-          // ================================
-          const togglePastBtn = document.getElementById("togglePastBtn");
-          const pastTable = document.querySelector("#pastAppointmentsSection table");
+          const pastModal = document.getElementById("pastAppointmentsModal");
+          const openPastModalBtn = document.getElementById("openPastModalBtn");
+          const closePastModalBtn = document.getElementById("closePastModalBtn");
 
-          if (togglePastBtn && pastTable) {
-            let collapsed = false;
-            togglePastBtn.addEventListener("click", function () {
-              collapsed = !collapsed;
-              pastTable.style.display = collapsed ? "none" : "";
-              this.innerHTML = collapsed
-                ? '<i class="fas fa-chevron-down"></i> Show'
-                : '<i class="fas fa-chevron-up"></i> Hide';
-            });
+          function openPastModal() {
+            if (!pastModal) return;
+            pastModal.classList.add("open");
+            pastModal.setAttribute("aria-hidden", "false");
+            document.body.style.overflow = "hidden";
           }
+
+          function closePastModal() {
+            if (!pastModal) return;
+            pastModal.classList.remove("open");
+            pastModal.setAttribute("aria-hidden", "true");
+            document.body.style.overflow = "";
+          }
+
+          openPastModalBtn?.addEventListener("click", openPastModal);
+          closePastModalBtn?.addEventListener("click", closePastModal);
+          pastModal?.addEventListener("click", function (e) {
+            if (e.target === pastModal) closePastModal();
+          });
+
+          document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape" && pastModal?.classList.contains("open")) {
+              closePastModal();
+            }
+          });
 
           // ================================
           // Cancel Appointment
@@ -261,6 +605,197 @@
           const antiForgeryToken = document.querySelector(
             '[name="__RequestVerificationToken"]'
           )?.value ?? "";
+
+          // ================================
+          // Reschedule Modal
+          // ================================
+          const rescheduleModal = document.getElementById("rescheduleModal");
+          const closeRescheduleModalBtn = document.getElementById("closeRescheduleModalBtn");
+          const cancelRescheduleBtn = document.getElementById("cancelRescheduleBtn");
+          const confirmRescheduleBtn = document.getElementById("confirmRescheduleBtn");
+          const rescheduleDate = document.getElementById("rescheduleDate");
+          const rescheduleSlot = document.getElementById("rescheduleSlot");
+          const rescheduleCurrentInfo = document.getElementById("rescheduleCurrentInfo");
+          const rescheduleHint = document.getElementById("rescheduleHint");
+
+          let rescheduleContext = {
+            patientId: null,
+            currentAppointmentId: null,
+            doctorId: null,
+            clinicId: null,
+          };
+
+          function openRescheduleModal() {
+            if (!rescheduleModal) return;
+            rescheduleModal.classList.add("open");
+            rescheduleModal.setAttribute("aria-hidden", "false");
+            document.body.style.overflow = "hidden";
+          }
+
+          function closeRescheduleModal() {
+            if (!rescheduleModal) return;
+            rescheduleModal.classList.remove("open");
+            rescheduleModal.setAttribute("aria-hidden", "true");
+            document.body.style.overflow = "";
+
+            if (rescheduleSlot) {
+              rescheduleSlot.innerHTML = '<option value="">Choose a time</option>';
+            }
+
+            if (rescheduleHint) {
+              rescheduleHint.textContent = "Pick a date to load available times.";
+            }
+          }
+
+          async function loadRescheduleSlots() {
+            if (!rescheduleDate || !rescheduleSlot) return;
+            if (!rescheduleDate.value || !rescheduleContext.patientId || !rescheduleContext.doctorId) return;
+
+            rescheduleSlot.innerHTML = '<option value="">Loading...</option>';
+            if (rescheduleHint) rescheduleHint.textContent = "Loading available times...";
+
+            try {
+              let url = `/PatientAppointments/GetDoctorSlots?patientId=${rescheduleContext.patientId}&doctorId=${rescheduleContext.doctorId}&date=${rescheduleDate.value}`;
+              if (rescheduleContext.clinicId) {
+                url += `&clinicId=${rescheduleContext.clinicId}`;
+              }
+
+              const response = await fetch(url);
+              const slots = await response.json();
+              rescheduleSlot.innerHTML = '<option value="">Choose a time</option>';
+
+              if (!Array.isArray(slots) || slots.length === 0) {
+                if (rescheduleHint) rescheduleHint.textContent = "No available times on this date.";
+                window.showNotification?.("No available slots for this date.", "info");
+                return;
+              }
+
+              if (rescheduleHint) rescheduleHint.textContent = `${slots.length} available time slot(s).`;
+
+              slots.forEach((slot) => {
+                const option = document.createElement("option");
+                option.value = String(slot.appointmentId);
+                option.textContent = slot.timeDisplay;
+                rescheduleSlot.appendChild(option);
+              });
+            } catch {
+              rescheduleSlot.innerHTML = '<option value="">Choose a time</option>';
+              if (rescheduleHint) rescheduleHint.textContent = "Unable to load times. Please try another date.";
+              window.showNotification?.("Error loading available times.", "error");
+            }
+          }
+
+          async function dateHasAvailability(dateValue) {
+            if (!dateValue || !rescheduleContext.patientId || !rescheduleContext.doctorId) return false;
+
+            const selected = new Date(dateValue + "T00:00:00");
+            const month = selected.getMonth() + 1;
+            const year = selected.getFullYear();
+
+            try {
+              let url = `/PatientAppointments/GetAvailableDates?patientId=${rescheduleContext.patientId}&doctorId=${rescheduleContext.doctorId}&year=${year}&month=${month}`;
+              if (rescheduleContext.clinicId) {
+                url += `&clinicId=${rescheduleContext.clinicId}`;
+              }
+
+              const response = await fetch(url);
+              const dates = await response.json();
+              return Array.isArray(dates) && dates.includes(dateValue);
+            } catch {
+              return false;
+            }
+          }
+
+          document.querySelectorAll(".reschedule-btn").forEach((btn) => {
+            btn.addEventListener("click", async function () {
+              rescheduleContext.patientId = parseInt(this.dataset.patientId);
+              rescheduleContext.currentAppointmentId = parseInt(this.dataset.appointmentId);
+              rescheduleContext.doctorId = parseInt(this.dataset.doctorId);
+              rescheduleContext.clinicId = parseInt(this.dataset.clinicId);
+
+              if (rescheduleCurrentInfo) {
+                rescheduleCurrentInfo.textContent = `Current slot: ${this.dataset.date} at ${this.dataset.time}`;
+              }
+
+              const today = new Date().toISOString().split("T")[0];
+              if (rescheduleDate) {
+                rescheduleDate.min = today;
+                rescheduleDate.value = this.dataset.date || today;
+              }
+
+              if (rescheduleSlot) {
+                rescheduleSlot.innerHTML = '<option value="">Choose a time</option>';
+              }
+
+              openRescheduleModal();
+              const hasAvailability = await dateHasAvailability(rescheduleDate?.value || "");
+              if (hasAvailability) {
+                await loadRescheduleSlots();
+              } else {
+                if (rescheduleHint) rescheduleHint.textContent = "No available times on this date.";
+                window.showNotification?.("No available slots on this date. Please choose another date.", "info");
+              }
+            });
+          });
+
+          rescheduleDate?.addEventListener("change", async function () {
+            if (!rescheduleDate?.value) return;
+            const hasAvailability = await dateHasAvailability(rescheduleDate.value);
+            if (!hasAvailability) {
+              if (rescheduleSlot) {
+                rescheduleSlot.innerHTML = '<option value="">Choose a time</option>';
+              }
+              if (rescheduleHint) rescheduleHint.textContent = "No available times on this date.";
+              window.showNotification?.("No available slots on this date. Please choose another date.", "info");
+              return;
+            }
+
+            await loadRescheduleSlots();
+          });
+          closeRescheduleModalBtn?.addEventListener("click", closeRescheduleModal);
+          cancelRescheduleBtn?.addEventListener("click", closeRescheduleModal);
+          rescheduleModal?.addEventListener("click", function (e) {
+            if (e.target === rescheduleModal) closeRescheduleModal();
+          });
+
+          confirmRescheduleBtn?.addEventListener("click", async function () {
+            const newAppointmentId = parseInt(rescheduleSlot?.value || "0");
+            if (!newAppointmentId) {
+              window.showNotification?.("Please select a new time.", "error");
+              return;
+            }
+
+            confirmRescheduleBtn.disabled = true;
+            confirmRescheduleBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            try {
+              const response = await fetch("/PatientAppointments/RescheduleAppointment", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: new URLSearchParams({
+                  __RequestVerificationToken: antiForgeryToken,
+                  patientId: String(rescheduleContext.patientId),
+                  currentAppointmentId: String(rescheduleContext.currentAppointmentId),
+                  newAppointmentId: String(newAppointmentId),
+                }),
+              });
+
+              const result = await response.json();
+              if (result.success) {
+                window.showNotification?.("Appointment rescheduled.", "success");
+                closeRescheduleModal();
+                setTimeout(() => window.location.reload(), 700);
+              } else {
+                window.showNotification?.(result.message || "Failed to reschedule.", "error");
+              }
+            } catch {
+              window.showNotification?.("Error while rescheduling.", "error");
+            } finally {
+              confirmRescheduleBtn.disabled = false;
+              confirmRescheduleBtn.innerHTML = '<i class="fas fa-check"></i> Save';
+            }
+          });
 
           document.querySelectorAll(".cancel-btn").forEach(function (btn) {
             btn.addEventListener("click", async function () {
@@ -306,6 +841,59 @@
                   "Error cancelling appointment.",
                   "error"
                 );
+              }
+            });
+          });
+
+          // ================================
+          // Set Primary Doctor
+          // ================================
+          document.querySelectorAll(".set-primary-btn").forEach(function (btn) {
+            btn.addEventListener("click", async function () {
+              const doctorId = parseInt(this.dataset.doctorId);
+              const patientId = parseInt(this.dataset.patientId);
+
+              try {
+                const response = await fetch("/PatientAppointments/SetPrimaryDoctor", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                  },
+                  body: new URLSearchParams({
+                    __RequestVerificationToken: antiForgeryToken,
+                    patientId: patientId,
+                    doctorId: doctorId,
+                  }),
+                });
+
+                const result = await response.json();
+                if (!result.success) {
+                  window.showNotification?.(result.message || "Failed to set primary doctor.", "error");
+                  return;
+                }
+
+                document.querySelectorAll(".doctor-mini-card").forEach((card) => {
+                  card.querySelector(".primary-tag")?.remove();
+                });
+
+                document.querySelectorAll(".set-primary-btn").forEach((b) => {
+                  b.style.display = "inline-flex";
+                });
+
+                const selectedCard = document.querySelector(`.doctor-mini-card[data-doctor-id='${doctorId}']`);
+                if (selectedCard) {
+                  const nameEl = selectedCard.querySelector(".doctor-mini-info h5");
+                  if (nameEl && !nameEl.querySelector(".primary-tag")) {
+                    nameEl.insertAdjacentHTML("beforeend", ' <span class="primary-tag">Primary</span>');
+                  }
+
+                  const selectedBtn = selectedCard.querySelector(".set-primary-btn");
+                  if (selectedBtn) selectedBtn.style.display = "none";
+                }
+
+                window.showNotification?.("Primary doctor updated.", "success");
+              } catch {
+                window.showNotification?.("Error updating primary doctor.", "error");
               }
             });
           });

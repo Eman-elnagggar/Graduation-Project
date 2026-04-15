@@ -418,10 +418,36 @@ function initTopbarNotifications() {
   });
 }
 
+async function initAssistantTopbarBadge() {
+  const notificationBadge = document.getElementById("notificationBadge");
+  if (!notificationBadge) return;
+
+  const assistantId = Number(document.body?.dataset?.assistantId || 0);
+
+  try {
+    const response = await fetch(`/Assistant/GetUnreadAlertsCount?id=${assistantId}`);
+    if (!response.ok) return;
+
+    const data = await response.json();
+    const count = Number(data?.unreadCount || 0);
+
+    if (count > 0) {
+      notificationBadge.textContent = count > 99 ? "99+" : String(count);
+      notificationBadge.style.display = "inline-flex";
+    } else {
+      notificationBadge.textContent = "0";
+      notificationBadge.style.display = "none";
+    }
+  } catch {
+    // no-op
+  }
+}
+
 // ================================
 // Initialize on DOM Ready
 // ================================
 document.addEventListener("DOMContentLoaded", function () {
   initSharedSidebar();
   initTopbarNotifications();
+  initAssistantTopbarBadge();
 });

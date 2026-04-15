@@ -40,12 +40,34 @@ namespace Graduation_Project.Controllers
             if (failure != null) return failure;
 
             var allAppointments = _appointment.GetByPatientId(id).ToList();
+            var today = DateTime.Today;
+
+            var completedAppointments = allAppointments
+                .Where(a => a.isBooked
+                         && string.Equals(a.Booking?.Status, "Completed", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
             var upcoming = allAppointments
-                .Where(a => a.Date.Date >= DateTime.Today && a.isBooked)
+                .Where(a => a.Date.Date >= today
+                         && a.isBooked
+                         && !string.Equals(a.Booking?.Status, "Completed", StringComparison.OrdinalIgnoreCase))
                 .OrderBy(a => a.Date)
                 .ThenBy(a => a.Time)
                 .ToList();
+
             var past = _appointment.GetPastByPatientId(id).ToList();
+
+            var pastIds = past.Select(a => a.AppointmentID).ToHashSet();
+            foreach (var completed in completedAppointments)
+            {
+                if (!pastIds.Contains(completed.AppointmentID))
+                    past.Add(completed);
+            }
+
+            past = past
+                .OrderByDescending(a => a.Date)
+                .ThenByDescending(a => a.Time)
+                .ToList();
 
             var myDoctors = _patientDoctorRepository.GetByPatientId(id)
                 .Where(pd => pd.Status == "Approved")
@@ -125,6 +147,12 @@ namespace Graduation_Project.Controllers
                 ? _appointment.GetAvailableByDoctorClinicAndDate(doctorId, clinicId.Value, parsedDate)
                 : _appointment.GetAvailableByDoctorAndDate(doctorId, parsedDate);
 
+            if (parsedDate.Date == DateTime.Today)
+            {
+                var nowTime = DateTime.Now.TimeOfDay;
+                slots = slots.Where(a => a.Time > nowTime).ToList();
+            }
+
             return Json(slots.Select(a => new
             {
                 appointmentId = a.AppointmentID,
@@ -146,6 +174,20 @@ namespace Graduation_Project.Controllers
                 ? _appointment.GetAvailableDatesByDoctorAndClinic(doctorId, clinicId.Value, year, month)
                 : _appointment.GetAvailableDatesByDoctor(doctorId, year, month);
 
+            var today = DateTime.Today;
+            dates = dates.Where(d => d.Date >= today).ToList();
+
+            if (dates.Any(d => d.Date == today))
+            {
+                var nowTime = DateTime.Now.TimeOfDay;
+                var todaySlots = clinicId.HasValue
+                    ? _appointment.GetAvailableByDoctorClinicAndDate(doctorId, clinicId.Value, today)
+                    : _appointment.GetAvailableByDoctorAndDate(doctorId, today);
+
+                if (!todaySlots.Any(a => a.Time > nowTime))
+                    dates = dates.Where(d => d.Date != today).ToList();
+            }
+
             return Json(dates.Select(d => d.ToString("yyyy-MM-dd")));
         }
 
@@ -160,6 +202,13 @@ namespace Graduation_Project.Controllers
             var appointment = _appointment.GetByIdWithBooking(appointmentId);
             if (appointment == null || appointment.isBooked)
                 return Json(new { success = false, message = "This slot is no longer available." });
+
+            var now = DateTime.Now;
+            if (appointment.Date.Date < now.Date
+                || (appointment.Date.Date == now.Date && appointment.Time <= now.TimeOfDay))
+            {
+                return Json(new { success = false, message = "This slot time has already passed. Please choose a future time." });
+            }
 
             if (_appointment.HasDoctorConflict(appointment.DoctorID, appointment.Date, appointment.Time, appointmentId))
                 return Json(new { success = false, message = "This doctor is already booked at this time at another clinic. Please choose a different slot." });
@@ -236,6 +285,13 @@ namespace Graduation_Project.Controllers
             if (appointment == null || appointment.PatientID != patientId)
                 return Json(new { success = false, message = "Appointment not found." });
 
+            var bookingStatus = appointment.Booking?.Status ?? "Confirmed";
+            var isCancellableStatus = string.Equals(bookingStatus, "Confirmed", StringComparison.OrdinalIgnoreCase)
+                                   || string.Equals(bookingStatus, "Modified", StringComparison.OrdinalIgnoreCase);
+
+            if (!isCancellableStatus)
+                return Json(new { success = false, message = "Only confirmed or modified appointments can be cancelled." });
+
             appointment.isBooked = false;
             appointment.PatientID = null;
             _appointment.Update(appointment);
@@ -258,6 +314,107 @@ namespace Graduation_Project.Controllers
                 date = appointment.Date.ToString("yyyy-MM-dd"),
                 time = appointment.Time.ToString(@"hh\:mm"),
                 status = appointment.Booking?.Status ?? "Cancelled"
+            });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult RescheduleAppointment(int patientId, int currentAppointmentId, int newAppointmentId)
+        {
+            var (_, failure) = AuthorizePatientAccess(patientId, true);
+            if (failure != null)
+                return failure;
+
+            var current = _appointment.GetByIdWithBooking(currentAppointmentId);
+            if (current == null || !current.isBooked || current.PatientID != patientId)
+                return Json(new { success = false, message = "Appointment not found." });
+
+            var currentStatus = current.Booking?.Status ?? "Confirmed";
+            var canReschedule = string.Equals(currentStatus, "Modified", StringComparison.OrdinalIgnoreCase)
+                             || string.Equals(currentStatus, "Confirmed", StringComparison.OrdinalIgnoreCase);
+            if (!canReschedule)
+                return Json(new { success = false, message = "Only confirmed or modified appointments can be rescheduled." });
+
+            var newSlot = _appointment.GetAvailableSlotById(newAppointmentId, current.DoctorID, current.ClinicID);
+            if (newSlot == null)
+                return Json(new { success = false, message = "Selected time is no longer available." });
+
+            var now = DateTime.Now;
+            if (newSlot.Date.Date < now.Date || (newSlot.Date.Date == now.Date && newSlot.Time <= now.TimeOfDay))
+                return Json(new { success = false, message = "Please choose a future time slot." });
+
+            if (current.Booking == null)
+                return Json(new { success = false, message = "Booking data is missing for this appointment." });
+
+            var booking = current.Booking;
+
+            current.isBooked = false;
+            current.PatientID = null;
+            _appointment.Update(current);
+
+            newSlot.PatientID = patientId;
+            newSlot.isBooked = true;
+            _appointment.Update(newSlot);
+
+            booking.AppointmentID = newSlot.AppointmentID;
+            booking.ClinicID = newSlot.ClinicID;
+            booking.DoctorID = newSlot.DoctorID;
+            booking.PatientID = patientId;
+            booking.Status = "Confirmed";
+            _bookingRepository.Update(booking);
+
+            try
+            {
+                _bookingRepository.Save();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return Json(new { success = false, message = "This slot was just taken. Please choose another one." });
+            }
+
+            return Json(new { success = true, message = "Appointment rescheduled successfully." });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult SetPrimaryDoctor(int patientId, int doctorId)
+        {
+            var (_, failure) = AuthorizePatientAccess(patientId, true);
+            if (failure != null)
+                return failure;
+
+            var approvedLinks = _patientDoctorRepository
+                .GetByPatientId(patientId)
+                .Where(pd => string.Equals(pd.Status, "Approved", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (!approvedLinks.Any())
+                return Json(new { success = false, message = "No approved doctors found for this patient." });
+
+            var targetLink = approvedLinks.FirstOrDefault(pd => pd.DoctorID == doctorId);
+            if (targetLink == null)
+                return Json(new { success = false, message = "Doctor is not in your approved doctors list." });
+
+            if (targetLink.IsPrimary)
+                return Json(new { success = true, message = "This doctor is already your primary doctor.", doctorId });
+
+            foreach (var link in approvedLinks)
+            {
+                var shouldBePrimary = link.DoctorID == doctorId;
+                if (link.IsPrimary == shouldBePrimary)
+                    continue;
+
+                link.IsPrimary = shouldBePrimary;
+                _patientDoctorRepository.Update(link);
+            }
+
+            _patientDoctorRepository.Save();
+
+            return Json(new
+            {
+                success = true,
+                message = "Primary doctor updated successfully.",
+                doctorId
             });
         }
 

@@ -98,19 +98,20 @@ namespace Graduation_Project.Repository
                 .ToDictionary(x => x.PatientID, x => x.LastDate);
 
         public IEnumerable<Appointment> GetByClinicDoctorsStatusAndDate(int clinicId, IEnumerable<int> doctorIds, string status, DateTime date) =>
-            _context.Appointments
-                .AsNoTracking()
-                .Include(a => a.Patient).ThenInclude(p => p.User)
-                .Include(a => a.Doctor).ThenInclude(d => d.User)
-                .Include(a => a.Booking)
-                .Where(a => a.ClinicID == clinicId
-                         && doctorIds.Contains(a.DoctorID)
-                         && a.Booking != null
-                         && a.Booking.Status == status
-                         && a.Date.Date == date.Date)
-                .OrderBy(a => a.Time)
-                .AsSplitQuery()
-                .ToList();
+            HydrateMissingPatientsFromBooking(
+                _context.Appointments
+                    .AsNoTracking()
+                    .Include(a => a.Patient).ThenInclude(p => p.User)
+                    .Include(a => a.Doctor).ThenInclude(d => d.User)
+                    .Include(a => a.Booking)
+                    .Where(a => a.ClinicID == clinicId
+                             && doctorIds.Contains(a.DoctorID)
+                             && a.Booking != null
+                             && a.Booking.Status == status
+                             && a.Date.Date == date.Date)
+                    .OrderBy(a => a.Time)
+                    .AsSplitQuery()
+                    .ToList());
 
         public Dictionary<string, int> GetStatusCountsByClinicDoctorsAndDate(int clinicId, IEnumerable<int> doctorIds, DateTime date, IEnumerable<string> statuses)
         {
@@ -165,12 +166,14 @@ namespace Graduation_Project.Repository
             var safePage = Math.Max(1, page);
             var safePageSize = Math.Clamp(pageSize, 5, 100);
 
-            return query
+            var items = query
                 .OrderBy(a => a.Time)
                 .Skip((safePage - 1) * safePageSize)
                 .Take(safePageSize)
                 .AsSplitQuery()
                 .ToList();
+
+            return HydrateMissingPatientsFromBooking(items);
         }
 
         public int CountByClinicDoctorsStatusAndDate(int clinicId, IEnumerable<int> doctorIds, string status, DateTime date, string? search)
@@ -198,12 +201,49 @@ namespace Graduation_Project.Repository
         }
 
         public Appointment GetByIdWithBooking(int id) =>
-            _context.Appointments
+            HydrateMissingPatientsFromBooking(new List<Appointment>
+            {
+                _context.Appointments
                 .Include(a => a.Booking)
                 .Include(a => a.Patient).ThenInclude(p => p.User)
                 .Include(a => a.Doctor).ThenInclude(d => d.User)
                 .Include(a => a.Clinic)
-                .FirstOrDefault(a => a.AppointmentID == id);
+                .FirstOrDefault(a => a.AppointmentID == id)
+            })
+            .FirstOrDefault();
+
+        private List<Appointment> HydrateMissingPatientsFromBooking(List<Appointment> appointments)
+        {
+            var list = appointments.Where(a => a != null).ToList();
+            if (list.Count == 0)
+                return list;
+
+            var missingPatientIds = list
+                .Where(a => a.Patient == null && a.Booking != null && a.Booking.PatientID > 0)
+                .Select(a => a.Booking!.PatientID)
+                .Distinct()
+                .ToList();
+
+            if (missingPatientIds.Count == 0)
+                return list;
+
+            var patientMap = _context.Patients
+                .AsNoTracking()
+                .Include(p => p.User)
+                .Where(p => missingPatientIds.Contains(p.PatientID))
+                .ToDictionary(p => p.PatientID, p => p);
+
+            foreach (var appointment in list)
+            {
+                if (appointment.Patient != null || appointment.Booking == null)
+                    continue;
+
+                if (patientMap.TryGetValue(appointment.Booking.PatientID, out var patient))
+                    appointment.Patient = patient;
+            }
+
+            return list;
+        }
 
         public void AddRange(IEnumerable<Appointment> appointments) =>
             _context.Appointments.AddRange(appointments);
@@ -357,5 +397,20 @@ namespace Graduation_Project.Repository
                          && a.Date.Date <= endDate.Date)
                 .OrderBy(a => a.Date).ThenBy(a => a.Time)
                 .ToList();
+
+        public Appointment? GetAvailableSlotById(int appointmentId, int doctorId, int? clinicId = null)
+        {
+            var query = _context.Appointments
+                .Include(a => a.Doctor).ThenInclude(d => d.User)
+                .Include(a => a.Clinic)
+                .Where(a => a.AppointmentID == appointmentId
+                         && a.DoctorID == doctorId
+                         && !a.isBooked);
+
+            if (clinicId.HasValue)
+                query = query.Where(a => a.ClinicID == clinicId.Value);
+
+            return query.FirstOrDefault();
+        }
     }
 }

@@ -75,9 +75,7 @@ namespace Graduation_Project.Controllers
             var viewModel = new AssistantDashboardViewModel
             {
                 Assistant = assistant,
-                AssistantName = assistant.User != null
-                    ? $"{assistant.User.FirstName} {assistant.User.LastName}".Trim()
-                    : "Assistant",
+                AssistantName = BuildAssistantDisplayName(assistant.User),
                 Clinic = clinic,
                 ClinicName = clinic.Name ?? "Clinic",
                 SelectedDate = selectedDate,
@@ -187,9 +185,7 @@ namespace Graduation_Project.Controllers
             var vm = new AssistantMessagesViewModel
             {
                 Assistant = assistant,
-                AssistantName = assistant.User != null
-                    ? $"{assistant.User.FirstName} {assistant.User.LastName}".Trim()
-                    : "Assistant",
+                AssistantName = BuildAssistantDisplayName(assistant.User),
                 Conversations = conversations
             };
 
@@ -313,8 +309,11 @@ namespace Graduation_Project.Controllers
             var uniquePatientIds = filteredPatientDoctors
                 .Select(pd => pd.PatientID).Distinct().ToList();
 
-            var pendingAlertsCount = _alertRepository
-                .GetUnreadByPatientIds(uniquePatientIds, 5).Count();
+            var pendingAlertsCount = uniquePatientIds.Any()
+                ? _context.Alerts
+                    .AsNoTracking()
+                    .Count(a => uniquePatientIds.Contains(a.PatientID) && !a.IsRead)
+                : 0;
 
             var testsThisWeek = isFiltered
                 ? _labTestRepository.CountByDoctorSince(doctorId!.Value, weekStart)
@@ -335,6 +334,31 @@ namespace Graduation_Project.Controllers
                     totalPatients = patientCountsByDoctor.GetValueOrDefault(dId)
                 }).ToList()
             });
+        }
+
+        [HttpGet]
+        public IActionResult GetUnreadAlertsCount(int id)
+        {
+            var accessResult = TryResolveAssistant(id, out var assistant, true);
+            if (accessResult != null) return accessResult;
+
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            if (clinic == null) return NotFound();
+
+            var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
+            var patientIds = _patientDoctorRepository
+                .GetApprovedByDoctors(relevantDoctorIds)
+                .Select(pd => pd.PatientID)
+                .Distinct()
+                .ToList();
+
+            var unreadCount = patientIds.Any()
+                ? _context.Alerts
+                    .AsNoTracking()
+                    .Count(a => patientIds.Contains(a.PatientID) && !a.IsRead)
+                : 0;
+
+            return Json(new { unreadCount });
         }
 
         [HttpGet]
@@ -391,6 +415,45 @@ namespace Graduation_Project.Controllers
                 return parsed.Date;
 
             return DateTime.Today;
+        }
+
+        private static string BuildAssistantDisplayName(ApplicationUser? user)
+        {
+            if (user == null)
+                return "Assistant";
+
+            var firstName = user.FirstName?.Trim();
+            var lastName = user.LastName?.Trim();
+
+            var fullName = string.Join(" ", new[] { firstName, lastName }
+                .Where(s => !string.IsNullOrWhiteSpace(s))).Trim();
+
+            if (!string.IsNullOrWhiteSpace(fullName))
+                return fullName;
+
+            var fallback = user.UserName?.Trim();
+            if (string.IsNullOrWhiteSpace(fallback))
+                fallback = user.Email?.Trim();
+
+            return NormalizeDisplayName(fallback, "Assistant");
+        }
+
+        private static string NormalizeDisplayName(string? input, string defaultName)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+                return defaultName;
+
+            var value = input.Trim();
+            if (value.Contains('@'))
+            {
+                value = value.Split('@', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? defaultName;
+            }
+
+            value = value.Replace('.', ' ').Replace('_', ' ').Replace('-', ' ').Trim();
+            if (string.IsNullOrWhiteSpace(value))
+                return defaultName;
+
+            return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(value.ToLowerInvariant());
         }
 
         private static string NormalizeScheduleStatus(string? status)
@@ -461,9 +524,7 @@ namespace Graduation_Project.Controllers
             var viewModel = new AssistantAppointmentsViewModel
             {
                 Assistant = assistant,
-                AssistantName = assistant.User != null
-                    ? $"{assistant.User.FirstName} {assistant.User.LastName}".Trim()
-                    : "Assistant",
+                AssistantName = BuildAssistantDisplayName(assistant.User),
                 Clinic = clinic,
                 ClinicName = clinic.Name ?? "Clinic",
                 SelectedDate = selectedDate,
@@ -618,7 +679,6 @@ namespace Graduation_Project.Controllers
                 return Json(new { success = false, message = "Access denied." });
 
             appointment.isBooked = false;
-            appointment.PatientID = null;
             _appointmentRepository.Update(appointment);
 
             if (appointment.Booking != null)
@@ -634,7 +694,6 @@ namespace Graduation_Project.Controllers
             return Json(new { success = true, message = "Appointment cancelled successfully." });
         }
 
-        // ── Availability ────────────────────────────────────────────────────
 
         public IActionResult Availability(int id, int? doctorId)
         {
@@ -651,9 +710,7 @@ namespace Graduation_Project.Controllers
             var viewModel = new AssistantAvailabilityViewModel
             {
                 Assistant = assistant,
-                AssistantName = assistant.User != null
-                    ? $"{assistant.User.FirstName} {assistant.User.LastName}".Trim()
-                    : "Assistant",
+                AssistantName = BuildAssistantDisplayName(assistant.User),
                 Clinic = clinic,
                 ClinicName = clinic.Name ?? "Clinic",
                 Doctors = doctorSummaries,
@@ -921,7 +978,8 @@ namespace Graduation_Project.Controllers
             var newSlots = new List<Appointment>();
             for (var d = today; d <= endDate; d = d.AddDays(1))
             {
-                if (!request.WorkingDays.Contains((int)d.DayOfWeek)) continue;
+                var isTodayDate = d.Date == today;
+                if (!isTodayDate && !request.WorkingDays.Contains((int)d.DayOfWeek)) continue;
 
                 var current = start;
                 while (current < end)

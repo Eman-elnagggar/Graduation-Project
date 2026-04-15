@@ -277,9 +277,52 @@ namespace Graduation_Project.Controllers
             }
 
             var autoMissedIds = new List<int>();
+            var addedToMyDoctors = false;
             if (string.Equals(normalizedStatus, "Completed", StringComparison.OrdinalIgnoreCase))
             {
+                var patientId = appointment.PatientID.Value;
                 var now = DateTime.Now;
+
+                var existingDoctorLink = _patientDoctorRepository.GetById(doctor.DoctorID, patientId);
+                if (existingDoctorLink == null)
+                {
+                    var patientHasPrimaryDoctor = _context.PatientDoctors
+                        .AsNoTracking()
+                        .Any(pd => pd.PatientID == patientId
+                                && pd.Status == "Approved"
+                                && pd.IsPrimary);
+
+                    _patientDoctorRepository.Add(new PatientDoctor
+                    {
+                        DoctorID = doctor.DoctorID,
+                        PatientID = patientId,
+                        Status = "Approved",
+                        RequestDate = now,
+                        ResponseDate = now,
+                        IsPrimary = !patientHasPrimaryDoctor
+                    });
+
+                    addedToMyDoctors = true;
+                }
+                else if (!string.Equals(existingDoctorLink.Status, "Approved", StringComparison.OrdinalIgnoreCase))
+                {
+                    existingDoctorLink.Status = "Approved";
+                    existingDoctorLink.ResponseDate ??= now;
+
+                    var patientHasDifferentPrimaryDoctor = _context.PatientDoctors
+                        .AsNoTracking()
+                        .Any(pd => pd.PatientID == patientId
+                                && pd.Status == "Approved"
+                                && pd.IsPrimary
+                                && !(pd.DoctorID == doctor.DoctorID && pd.PatientID == patientId));
+
+                    if (!patientHasDifferentPrimaryDoctor)
+                        existingDoctorLink.IsPrimary = true;
+
+                    _patientDoctorRepository.Update(existingDoctorLink);
+                    addedToMyDoctors = true;
+                }
+
                 var autoMissedCandidates = _context.Appointments
                     .Include(a => a.Booking)
                     .Where(a => a.DoctorID == doctor.DoctorID
@@ -308,6 +351,7 @@ namespace Graduation_Project.Controllers
                 success = true,
                 appointmentId = appointment.AppointmentID,
                 status = normalizedStatus.ToLowerInvariant(),
+                addedToMyDoctors,
                 autoMissedIds,
                 message = autoMissedIds.Count > 0
                     ? "Status updated. Past unfinished appointments were marked as missed."

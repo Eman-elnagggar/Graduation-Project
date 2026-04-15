@@ -2,7 +2,7 @@
 
 @if (Model.Any())
 {
-    <div class="request-list">
+    <div class="request-list request-list--modern">
         @foreach (var appt in Model)
         {
             var patientName = appt.Patient?.User != null
@@ -21,36 +21,48 @@
                 })
                 : (appt.isBooked ? "confirmed" : "pending");
             var statusText = appt.Booking?.Status ?? (appt.isBooked ? "Booked" : "Available");
+            var appointmentTime = DateTime.Today.Add(appt.Time);
 
-            <div class="request-card">
+            <article class="request-card request-card--modern request-card--@statusClass">
+                <div class="request-time">
+                    <span class="request-time-main">@appointmentTime.ToString("h:mm")</span>
+                    <span class="request-time-sub">@appointmentTime.ToString("tt")</span>
+                </div>
+                <div class="request-line request-line--@statusClass"></div>
                 <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(patientName)&background=1baebe&color=fff&size=60"
                      alt="@patientName" class="patient-avatar" />
                 <div class="request-info">
                     <h4>@patientName</h4>
                     <div class="meta">
-                        @ViewBag.ClinicName &mdash;
-                        <strong>@doctorName</strong>
+                        <span class="meta-chip">
+                            <i class="fas fa-hospital"></i>
+                            @ViewBag.ClinicName
+                        </span>
+                        <span class="meta-chip">
+                            <i class="fas fa-user-md"></i>
+                            @doctorName
+                        </span>
                     </div>
                     <div class="request-details">
-                        <span><i class="fas fa-clock"></i> @appt.Time.ToString(@"hh\:mm")</span>
-                        <span><i class="fas fa-calendar"></i> @appt.Date.ToString("MMM dd, yyyy")</span>
+                        <span class="detail-pill"><i class="fas fa-clock"></i> @appt.Time.ToString(@"hh\:mm")</span>
+                        <span class="detail-pill"><i class="fas fa-calendar"></i> @appt.Date.ToString("MMM dd, yyyy")</span>
                         @if (appt.Booking != null && !string.IsNullOrEmpty(appt.Booking.Reason))
                         {
-                            <span><i class="fas fa-notes-medical"></i> @appt.Booking.Reason</span>
+                            <span class="detail-pill"><i class="fas fa-notes-medical"></i> @appt.Booking.Reason</span>
                         }
                     </div>
                 </div>
                 <div class="request-actions">
                     <span class="appointment-status @statusClass">@statusText</span>
                 </div>
-            </div>
+            </article>
         }
     </div>
 }
 else
 {
-    <div class="privacy-notice" style="border-left-color: var(--info);">
-        <i class="fas fa-info-circle" style="color: var(--info);"></i>
+    <div class="privacy-notice privacy-notice-info">
+        <i class="fas fa-info-circle text-info"></i>
         <p>
             @if (ViewBag.SelectedDoctorID != null)
             {

@@ -19,7 +19,14 @@
 @section Head {
     <meta name="assistant-id" content="@Model.Assistant.AssistantID" />
     <meta name="selected-date" content="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
+    <meta name="selected-doctor-id" content="@(Model.SelectedDoctorID?.ToString() ?? string.Empty)" />
+    <meta name="selected-schedule-status" content="@Model.SelectedScheduleStatus" />
+    <meta name="assistant-stats-url" content="@Url.Action("GetDashboardStats", "Assistant")" />
+    <meta name="assistant-schedule-url" content="@Url.Action("GetScheduleByDate", "Assistant")" />
+    <meta name="assistant-index-url" content="@Url.Action("Index", "Assistant")" />
 }
+
+<div class="ad-wrap">
 
 <!-- Header -->
 <header class="header">
@@ -27,28 +34,7 @@
         <h1>Welcome, @Model.AssistantName! 👋</h1>
         <p>Here's your assistant dashboard overview</p>
     </div>
-    <div class="header-right">
-        <div class="notification">
-            <i class="fas fa-bell"></i>
-            <span class="badge" id="alert-badge" style="display: none;"></span>
-        </div>
-        <div class="profile">
-            <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(Model.AssistantName)&background=7c3aed&color=fff&size=80"
-                 alt="Profile" />
-            <span>@Model.AssistantName</span>
-        </div>
-    </div>
 </header>
-
-<!-- Privacy Notice -->
-<div class="privacy-notice">
-    <i class="fas fa-shield-alt"></i>
-    <p>
-        <strong>Privacy Protected:</strong> As an assistant, you can manage
-        appointments and schedules. Patient medical records, chat history,
-        and clinical data are only accessible to doctors.
-    </p>
-</div>
 
 <!-- Assistant Hero Section -->
 <section class="pregnancy-progress">
@@ -70,15 +56,15 @@
     </div>
 </section>
 
-<section class="card" style="margin-bottom: 1.5rem;">
+<section class="card section-spacing">
     <div class="card-header">
         <h3><i class="fas fa-calendar-day"></i> Schedule Date</h3>
     </div>
-    <div style="display:flex; gap:.6rem; align-items:center; flex-wrap:wrap; padding:1rem;">
+    <div class="toolbar-row">
         <button type="button" class="btn btn-outline btn-sm" id="prevDateBtn">
             <i class="fas fa-chevron-left"></i> Previous
         </button>
-        <input type="date" id="dashboardDatePicker" class="form-input" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" style="max-width: 200px;" />
+        <input type="date" id="dashboardDatePicker" class="form-input date-input" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
         <button type="button" class="btn btn-outline btn-sm" id="nextDateBtn">
             Next <i class="fas fa-chevron-right"></i>
         </button>
@@ -91,22 +77,17 @@
 <!-- Doctor Filter Tabs -->
 @if (Model.Doctors.Count > 1)
 {
-    <section class="card" style="margin-bottom: 1.5rem;">
+    <section class="card section-spacing">
         <div class="card-header">
             <h3><i class="fas fa-filter"></i> Filter by Doctor</h3>
         </div>
-        <div class="doctor-filter-tabs" style="display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 1rem;">
+        <div class="doctor-filter-tabs">
             <a href="@Url.Action("Index", new { id = Model.Assistant.AssistantID, date = Model.SelectedDate.ToString("yyyy-MM-dd"), status = Model.SelectedScheduleStatus })"
-               class="doctor-filter-tab @(Model.SelectedDoctorID == null ? "active" : "")"
+               class="doctor-filter-tab doctor-filter-tab--all @(Model.SelectedDoctorID == null ? "active" : "")"
                data-doctor-id=""
-               style="padding: 0.5rem 1rem; border-radius: 20px; text-decoration: none;
-                       background: @(Model.SelectedDoctorID == null ? "#7c3aed" : "#f3f4f6");
-                       color: @(Model.SelectedDoctorID == null ? "#fff" : "#374151");
-                       font-weight: 500; font-size: 0.9rem; transition: all 0.2s; cursor: pointer;">
+               data-doctor-name="All Doctors">
                 <i class="fas fa-users"></i> All Doctors
-                <span id="all-doctors-tab-count"
-                      style="background: @(Model.SelectedDoctorID == null ? "rgba(255,255,255,0.2)" : "#e5e7eb");
-                             padding: 0.1rem 0.5rem; border-radius: 10px; margin-left: 0.3rem; font-size: 0.8rem;">
+                <span id="all-doctors-tab-count" class="doctor-filter-count">
                     --
                 </span>
             </a>
@@ -116,14 +97,9 @@
                 <a href="@Url.Action("Index", new { id = Model.Assistant.AssistantID, doctorId = doc.DoctorID, date = Model.SelectedDate.ToString("yyyy-MM-dd"), status = Model.SelectedScheduleStatus })"
                    class="doctor-filter-tab @(isSelected ? "active" : "")"
                    data-doctor-id="@doc.DoctorID"
-                   style="padding: 0.5rem 1rem; border-radius: 20px; text-decoration: none;
-                           background: @(isSelected ? "#1976d2" : "#f3f4f6");
-                           color: @(isSelected ? "#fff" : "#374151");
-                           font-weight: 500; font-size: 0.9rem; transition: all 0.2s; cursor: pointer;">
+                   data-doctor-name="@doc.FullName">
                     <i class="fas fa-user-md"></i> @doc.FullName
-                    <span id="doctor-tab-count-@doc.DoctorID"
-                          style="background: @(isSelected ? "rgba(255,255,255,0.2)" : "#e5e7eb");
-                                 padding: 0.1rem 0.5rem; border-radius: 10px; margin-left: 0.3rem; font-size: 0.8rem;">
+                    <span id="doctor-tab-count-@doc.DoctorID" class="doctor-filter-count">
                         --
                     </span>
                 </a>
@@ -136,8 +112,8 @@
 <section class="quick-stats">
     <div class="quick-stat-card">
         <div class="stat-header">
-            <div class="stat-icon" style="background: #e8f5e9">
-                <i class="fas fa-calendar-check" style="color: #388e3c"></i>
+            <div class="stat-icon stat-icon-success">
+                <i class="fas fa-calendar-check icon-success"></i>
             </div>
         </div>
         <div class="stat-value" id="stat-today-appointments">--</div>
@@ -145,8 +121,8 @@
     </div>
     <div class="quick-stat-card">
         <div class="stat-header">
-            <div class="stat-icon" style="background: #e3f2fd">
-                <i class="fas fa-user-md" style="color: #1976d2"></i>
+            <div class="stat-icon stat-icon-info">
+                <i class="fas fa-user-md icon-info"></i>
             </div>
         </div>
         <div class="stat-value">@Model.Doctors.Count</div>
@@ -154,8 +130,8 @@
     </div>
     <div class="quick-stat-card">
         <div class="stat-header">
-            <div class="stat-icon" style="background: #fff3e0">
-                <i class="fas fa-users" style="color: #f57c00"></i>
+            <div class="stat-icon stat-icon-warning">
+                <i class="fas fa-users icon-warning"></i>
             </div>
         </div>
         <div class="stat-value" id="stat-total-patients">--</div>
@@ -169,20 +145,20 @@
         <div class="card-header">
             <h3>
                 <i class="fas fa-clock"></i> Schedule
-                <span id="schedule-doctor-label" style="font-size: 0.85rem; color: #6b7280; font-weight: 400;@(Model.SelectedDoctorID == null ? " display:none;" : "")">
+                <span id="schedule-doctor-label" class="schedule-doctor-label @(Model.SelectedDoctorID == null ? "is-hidden" : "")">
                     &mdash; <span id="schedule-doctor-name">@Model.SelectedDoctorName</span>
                 </span>
             </h3>
             <a href="#">View All</a>
         </div>
-        <div style="display:flex; gap:.5rem; padding:0 1rem 1rem; flex-wrap:wrap;">
+        <div class="schedule-toolbar">
             <button type="button" class="btn btn-sm schedule-status-btn @(Model.SelectedScheduleStatus == "Booked" ? "btn-primary" : "btn-outline")" data-status="Booked">Booked</button>
             <button type="button" class="btn btn-sm schedule-status-btn @(Model.SelectedScheduleStatus == "Cancelled" ? "btn-primary" : "btn-outline")" data-status="Cancelled">Cancelled</button>
         </div>
         <div id="schedule-container">
-            <div style="text-align: center; padding: 2rem; color: #6b7280;">
-                <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem;"></i>
-                <p style="margin-top: 0.5rem;">Loading schedule...</p>
+            <div class="loading-state">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Loading schedule...</p>
             </div>
         </div>
     </div>
@@ -199,13 +175,12 @@
         <div class="team-grid">
             @foreach (var doc in Model.Doctors)
             {
-                <div class="team-card" style="cursor: pointer;"
-                     data-doctor-id="@doc.DoctorID">
+                <div class="team-card team-card--clickable" data-doctor-id="@doc.DoctorID">
                     <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(doc.FullName)&background=1976d2&color=fff&size=88"
                          alt="@doc.FullName" class="avatar" />
                     <h4>@doc.FullName</h4>
                     <div class="role">@doc.Specialization</div>
-                    <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 0.5rem; font-size: 0.8rem; color: #6b7280;">
+                    <div class="team-card-meta">
                         <span><i class="fas fa-calendar-check"></i> <span id="doctor-today-@doc.DoctorID">--</span> on date</span>
                         <span><i class="fas fa-users"></i> <span id="doctor-patients-@doc.DoctorID">--</span> patients</span>
                     </div>
@@ -216,8 +191,8 @@
     }
     else
     {
-        <div class="privacy-notice" style="border-left-color: var(--warning);">
-            <i class="fas fa-exclamation-triangle" style="color: var(--warning);"></i>
+        <div class="privacy-notice privacy-notice-warning">
+            <i class="fas fa-exclamation-triangle text-warning"></i>
             <p>No doctors are currently linked to your account. Please contact your clinic administrator.</p>
         </div>
     }
@@ -229,259 +204,14 @@
         <h3><i class="fas fa-envelope-open-text"></i> Clinic Invitations</h3>
         <a href="#">View All</a>
     </div>
-    <div class="privacy-notice" style="border-left-color: var(--info);">
-        <i class="fas fa-info-circle" style="color: var(--info);"></i>
+    <div class="privacy-notice privacy-notice-info">
+        <i class="fas fa-info-circle text-info"></i>
         <p>No pending clinic invitations.</p>
     </div>
 </section>
 
+</div>
+
 @section Scripts {
-    <script>
-        (function () {
-            // Notifications panel toggle
-            const notificationBtn = document.querySelector(".notification");
-            const notificationsPanel = document.querySelector(".notifications-panel");
-            const closeNotifications = document.querySelector(".close-notifications");
-
-            if (notificationBtn && notificationsPanel) {
-                notificationBtn.addEventListener("click", () => {
-                    notificationsPanel.classList.toggle("open");
-                });
-                if (closeNotifications) {
-                    closeNotifications.addEventListener("click", () => {
-                        notificationsPanel.classList.remove("open");
-                    });
-                }
-                document.addEventListener("click", (e) => {
-                    if (!notificationsPanel.contains(e.target) && !notificationBtn.contains(e.target)) {
-                        notificationsPanel.classList.remove("open");
-                    }
-                });
-            }
-
-            // Update today's date dynamically
-            const todayDateEl = document.getElementById("todayDate");
-            const datePicker = document.getElementById('dashboardDatePicker');
-            const prevDateBtn = document.getElementById('prevDateBtn');
-            const nextDateBtn = document.getElementById('nextDateBtn');
-            const todayBtn = document.getElementById('todayBtn');
-
-            const formatDisplayDate = (isoDate) => {
-                const [y, m, d] = isoDate.split('-').map(Number);
-                const dt = new Date(y, m - 1, d);
-                return dt.toLocaleDateString("en-US", {
-                    weekday: "long", year: "numeric", month: "long", day: "numeric"
-                });
-            };
-
-            let currentDate = document.querySelector('meta[name="selected-date"]')?.content || new Date().toISOString().slice(0, 10);
-            if (datePicker) datePicker.value = currentDate;
-            if (todayDateEl) todayDateEl.textContent = formatDisplayDate(currentDate);
-
-            const shiftDate = (isoDate, days) => {
-                const [y, m, d] = isoDate.split('-').map(Number);
-                const dt = new Date(y, m - 1, d);
-                dt.setDate(dt.getDate() + days);
-                return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-            };
-
-            // --- Dashboard AJAX setup ---
-            const assistantId = @Model.Assistant.AssistantID;
-            let currentDoctorId = @(Model.SelectedDoctorID.HasValue ? Model.SelectedDoctorID.Value.ToString() : "null");
-            let currentScheduleStatus = '@Model.SelectedScheduleStatus';
-            const baseStatsUrl = '@Url.Action("GetDashboardStats", "Assistant")';
-            const baseScheduleUrl = '@Url.Action("GetScheduleByDate", "Assistant")';
-            const baseIndexUrl = '@Url.Action("Index", "Assistant")';
-
-            // Doctor name lookup for schedule header
-            const doctorNames = {
-                @foreach (var doc in Model.Doctors)
-                {
-                    @:[@doc.DoctorID]: '@Html.Raw(doc.FullName.Replace("'", "\\'"))',
-                }
-            };
-
-            const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-
-            // --- Core: load dashboard data via AJAX ---
-            function loadDashboardData(doctorId, selectedDate, pushState, scheduleStatus) {
-                currentDoctorId = doctorId;
-                currentDate = selectedDate;
-                currentScheduleStatus = scheduleStatus || currentScheduleStatus;
-                if (datePicker) datePicker.value = currentDate;
-
-                // Update browser URL without reload
-                if (pushState !== false) {
-                    const newUrl = baseIndexUrl + '?id=' + assistantId + '&date=' + currentDate + '&status=' + encodeURIComponent(currentScheduleStatus) + (doctorId !== null ? '&doctorId=' + doctorId : '');
-                    history.pushState({ assistantId: assistantId, doctorId: doctorId, date: currentDate, status: currentScheduleStatus }, '', newUrl);
-                }
-
-                // Update filter tab active states
-                updateTabStyles(doctorId);
-                updateScheduleStatusButtons();
-
-                // Update schedule header
-                const label = document.getElementById('schedule-doctor-label');
-                const nameSpan = document.getElementById('schedule-doctor-name');
-                if (label && nameSpan) {
-                    if (doctorId !== null && doctorNames[doctorId]) {
-                        nameSpan.textContent = doctorNames[doctorId];
-                        label.style.display = '';
-                    } else {
-                        label.style.display = 'none';
-                    }
-                }
-
-                // Show loading spinner in schedule
-                document.getElementById('schedule-container').innerHTML =
-                    '<div style="text-align:center;padding:2rem;color:#6b7280;"><i class="fas fa-spinner fa-spin" style="font-size:1.5rem;"></i><p style="margin-top:0.5rem;">Loading schedule...</p></div>';
-
-                // Fire both requests in parallel
-                const qs = '?id=' + assistantId + '&date=' + encodeURIComponent(currentDate) + (doctorId !== null ? '&doctorId=' + doctorId : '');
-
-                fetch(baseStatsUrl + qs)
-                    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
-                    .then(data => {
-                        if (todayDateEl) todayDateEl.textContent = data.selectedDateLabel || formatDisplayDate(currentDate);
-                        setTxt('stat-today-appointments', data.todayAppointmentsCount);
-                        setTxt('stat-total-patients', data.totalPatients);
-                        setTxt('hero-appointment-count', data.todayAppointmentsCount);
-
-                        const badge = document.getElementById('alert-badge');
-                        if (badge) {
-                            if (data.pendingAlertsCount > 0) {
-                                badge.textContent = data.pendingAlertsCount;
-                                badge.style.display = '';
-                            } else {
-                                badge.style.display = 'none';
-                            }
-                        }
-
-                        let totalAppts = 0;
-                        if (data.doctorCounts) {
-                            data.doctorCounts.forEach(dc => {
-                                totalAppts += dc.todayAppointments;
-                                setTxt('doctor-tab-count-' + dc.doctorId, dc.todayAppointments);
-                                setTxt('doctor-today-' + dc.doctorId, dc.todayAppointments);
-                                setTxt('doctor-patients-' + dc.doctorId, dc.totalPatients);
-                            });
-                        }
-                        setTxt('all-doctors-tab-count', totalAppts);
-                    }).catch(err => {
-                        console.error('Failed to load stats:', err);
-                        ['stat-today-appointments', 'stat-total-patients', 'hero-appointment-count'].forEach(id => setTxt(id, '!'));
-                    });
-
-                fetch(baseScheduleUrl + qs + '&status=' + encodeURIComponent(currentScheduleStatus))
-                    .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
-                    .then(html => {
-                        document.getElementById('schedule-container').innerHTML = html;
-                    }).catch(err => {
-                        console.error('Failed to load schedule:', err);
-                        document.getElementById('schedule-container').innerHTML =
-                            '<div class="privacy-notice" style="border-left-color:var(--danger)"><i class="fas fa-exclamation-circle" style="color:var(--danger)"></i><p>Failed to load schedule. Please refresh the page.</p></div>';
-                    });
-            }
-
-            function updateScheduleStatusButtons() {
-                document.querySelectorAll('.schedule-status-btn').forEach(btn => {
-                    const isActive = btn.dataset.status === currentScheduleStatus;
-                    btn.classList.toggle('btn-primary', isActive);
-                    btn.classList.toggle('btn-outline', !isActive);
-                });
-            }
-
-            // --- Update filter tab visual states ---
-            function updateTabStyles(activeDoctorId) {
-                document.querySelectorAll('.doctor-filter-tab').forEach(tab => {
-                    const tabId = tab.dataset.doctorId;
-                    const isAllTab = tabId === '' || tabId === undefined;
-                    const isActive = isAllTab ? (activeDoctorId === null) : (parseInt(tabId) === activeDoctorId);
-
-                    tab.classList.toggle('active', isActive);
-                    const activeColor = isAllTab ? '#7c3aed' : '#1976d2';
-                    tab.style.background = isActive ? activeColor : '#f3f4f6';
-                    tab.style.color = isActive ? '#fff' : '#374151';
-
-                    const countSpan = tab.querySelector('span[id]');
-                    if (countSpan) {
-                        countSpan.style.background = isActive ? 'rgba(255,255,255,0.2)' : '#e5e7eb';
-                    }
-                });
-            }
-
-            // --- Click handlers: filter tabs (event delegation) ---
-            const tabContainer = document.querySelector('.doctor-filter-tabs');
-            if (tabContainer) {
-                tabContainer.addEventListener('click', e => {
-                    const tab = e.target.closest('.doctor-filter-tab');
-                    if (!tab) return;
-                    e.preventDefault();
-                    const tabId = tab.dataset.doctorId;
-                    const newDoctorId = (tabId === '' || tabId === undefined) ? null : parseInt(tabId);
-                    if (newDoctorId === currentDoctorId) return;
-                    loadDashboardData(newDoctorId, currentDate);
-                });
-
-                // Hover effects (event delegation — auto-skips active tabs)
-                tabContainer.addEventListener('mouseenter', e => {
-                    const tab = e.target.closest('.doctor-filter-tab:not(.active)');
-                    if (tab) tab.style.background = '#e5e7eb';
-                }, true);
-                tabContainer.addEventListener('mouseleave', e => {
-                    const tab = e.target.closest('.doctor-filter-tab:not(.active)');
-                    if (tab) tab.style.background = '#f3f4f6';
-                }, true);
-            }
-
-            // --- Click handlers: doctor cards ---
-            document.querySelectorAll('.team-card[data-doctor-id]').forEach(card => {
-                card.addEventListener('click', () => {
-                    const docId = parseInt(card.dataset.doctorId);
-                    if (docId !== currentDoctorId) loadDashboardData(docId, currentDate);
-                });
-            });
-
-            document.querySelectorAll('.schedule-status-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const selectedStatus = btn.dataset.status || 'Booked';
-                    if (selectedStatus === currentScheduleStatus) return;
-                    loadDashboardData(currentDoctorId, currentDate, true, selectedStatus);
-                });
-            });
-
-            // --- Browser back/forward support ---
-            window.addEventListener('popstate', e => {
-                if (e.state && e.state.assistantId) {
-                    loadDashboardData(e.state.doctorId, e.state.date || currentDate, false, e.state.status || 'Booked');
-                }
-            });
-
-            if (datePicker) {
-                datePicker.addEventListener('change', () => {
-                    if (!datePicker.value) return;
-                    loadDashboardData(currentDoctorId, datePicker.value);
-                });
-            }
-
-            prevDateBtn?.addEventListener('click', () => {
-                loadDashboardData(currentDoctorId, shiftDate(currentDate, -1));
-            });
-
-            nextDateBtn?.addEventListener('click', () => {
-                loadDashboardData(currentDoctorId, shiftDate(currentDate, 1));
-            });
-
-            todayBtn?.addEventListener('click', () => {
-                const todayIso = new Date().toISOString().slice(0, 10);
-                loadDashboardData(currentDoctorId, todayIso);
-            });
-
-            // --- Replace initial history entry (so popstate works from the start) ---
-            history.replaceState({ assistantId: assistantId, doctorId: currentDoctorId, date: currentDate, status: currentScheduleStatus }, '', location.href);
-
-            // --- Initial load ---
-            loadDashboardData(currentDoctorId, currentDate, false, currentScheduleStatus);
-        })();
-    </script>
+    <script src="~/js/assistant-dashboard.js" asp-append-version="true"></script>
 }

@@ -3,12 +3,15 @@
     Layout = "~/Views/Shared/_AssistantLayout.cshtml";
     ViewData["Title"] = "Manage Availability";
     ViewData["AssistantId"] = Model.Assistant.AssistantID;
+    ViewData["AssistantName"] = Model.AssistantName;
     ViewData["ActivePage"] = "Availability";
 }
 
-<div style="display:none;">
+<div class="is-hidden">
     @Html.AntiForgeryToken()
 </div>
+
+<div class="ad-wrap">
 
 <!-- Page Header -->
 <header class="header">
@@ -21,28 +24,13 @@
             <p>Set available time slots for @Model.ClinicName</p>
         </div>
     </div>
-    <div class="header-right">
-        <div class="header-date-chip">
-            <i class="fas fa-calendar-day"></i>
-            @DateTime.Today.ToString("MMM dd, yyyy")
-        </div>
-        <div class="notification" id="notifBell" title="Notifications">
-            <i class="fas fa-bell"></i>
-            <span class="badge" id="alert-badge" style="display: none;"></span>
-        </div>
-        <div class="profile">
-            <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(Model.AssistantName)&background=7c3aed&color=fff&size=80"
-                 alt="Profile" />
-            <span>@Model.AssistantName</span>
-        </div>
-    </div>
 </header>
 
 <!-- Hero Banner -->
 <section class="pregnancy-progress">
     <div class="progress-card assistant-hero">
         <div class="progress-info">
-            <h3><i class="fas fa-clock" style="margin-right: 8px;"></i>Availability Overview</h3>
+            <h3><i class="fas fa-clock icon-inline-gap"></i>Availability Overview</h3>
             <p>
                 <span class="week-number" id="heroDateLabel">@DateTime.Today.ToString("dddd, MMMM dd, yyyy")</span>
             </p>
@@ -70,7 +58,7 @@
 <div class="quick-stats avail-stats">
     <div class="quick-stat-card stat-confirmed">
         <div class="stat-header">
-            <div class="stat-icon" style="background: var(--status-confirmed-bg); color: var(--status-confirmed-icon);">
+            <div class="stat-icon stat-icon-confirmed">
                 <i class="fas fa-calendar-check"></i>
             </div>
         </div>
@@ -80,7 +68,7 @@
     </div>
     <div class="quick-stat-card stat-cancelled">
         <div class="stat-header">
-            <div class="stat-icon" style="background: var(--status-cancelled-bg); color: var(--status-cancelled-icon);">
+            <div class="stat-icon stat-icon-cancelled">
                 <i class="fas fa-user-check"></i>
             </div>
         </div>
@@ -90,7 +78,7 @@
     </div>
     <div class="quick-stat-card stat-total">
         <div class="stat-header">
-            <div class="stat-icon" style="background: var(--assistant-surface-mid); color: var(--text-muted);">
+            <div class="stat-icon stat-icon-muted">
                 <i class="fas fa-ban"></i>
             </div>
         </div>
@@ -103,12 +91,9 @@
 <!-- No Doctors Banner -->
 @if (!Model.Doctors.Any())
 {
-    <div class="alert-item danger" style="margin-bottom: 24px;">
+    <div class="privacy-notice privacy-notice-warning mb-24">
         <i class="fas fa-exclamation-triangle"></i>
-        <div class="alert-info">
-            <h4>No Doctors Assigned</h4>
-            <p>There are no doctors linked to your account yet.</p>
-        </div>
+        <p><strong>No Doctors Assigned:</strong> There are no doctors linked to your account yet.</p>
     </div>
 }
 
@@ -154,15 +139,15 @@
         <div class="calendar-grid" id="calendarGrid"></div>
         <div class="avail-legend">
             <div class="avail-legend-item">
-                <span class="avail-legend-dot" style="background: var(--assistant-primary);"></span>
+                <span class="avail-legend-dot avail-legend-dot-primary"></span>
                 Has available slots
             </div>
             <div class="avail-legend-item">
-                <span class="avail-legend-dot" style="background: var(--warning);"></span>
+                <span class="avail-legend-dot avail-legend-dot-warning"></span>
                 Partially booked
             </div>
             <div class="avail-legend-item">
-                <span class="avail-legend-dot" style="background: var(--danger);"></span>
+                <span class="avail-legend-dot avail-legend-dot-danger"></span>
                 Fully booked
             </div>
         </div>
@@ -173,9 +158,9 @@
         <div class="card-header">
             <h3>
                 <i class="fas fa-clock"></i> Slots &mdash;
-                <span id="selectedDateDisplay" style="color: var(--assistant-primary);">—</span>
+                <span id="selectedDateDisplay" class="selected-date-accent">—</span>
             </h3>
-            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <div class="slots-header-actions">
                 <button class="btn btn-sm btn-outline" onclick="setAllAvailable()">
                     <i class="fas fa-check-circle"></i> All Available
                 </button>
@@ -197,22 +182,24 @@
             </div>
             <div class="slot-ctrl">
                 <label><i class="fas fa-stopwatch"></i> Slot Duration</label>
-                <select id="slotDurationPicker" class="qs-select"
-                        onchange="SLOT_DURATION = parseInt(this.value); if (currentDoctorId) loadSlots();">
-                    <option value="15">15 min</option>
-                    <option value="30" selected>30 min</option>
-                    <option value="45">45 min</option>
-                    <option value="60">1 hour</option>
-                </select>
+                <input type="number"
+                       id="slotDurationPicker"
+                       class="qs-select"
+                       min="5"
+                       step="5"
+                       value="30"
+                       placeholder="Minutes"
+                       oninput="onSlotDurationPickerChange(this.value)"
+                       onchange="onSlotDurationPickerChange(this.value)" />
             </div>
         </div>
 
         <!-- Custom Slot Form -->
-        <div id="customSlotForm" style="display:none; align-items:center; gap:10px; flex-wrap:wrap; padding:12px 0 10px; border-bottom:1px solid #f1f5f9; margin-bottom:10px;">
-            <label style="font-size:0.83rem; font-weight:600; color:var(--text-secondary);">
-                <i class="fas fa-clock" style="color:var(--assistant-primary);"></i> Custom Time
+        <div id="customSlotForm" class="custom-slot-form" style="display:none;">
+            <label class="custom-slot-label">
+                <i class="fas fa-clock custom-slot-icon"></i> Custom Time
             </label>
-            <input type="time" id="customSlotTime" class="qs-select" style="width:auto; min-width:130px;" />
+            <input type="time" id="customSlotTime" class="qs-select custom-slot-time" />
             <button id="addCustomSlotBtn" class="btn btn-sm btn-primary" onclick="createCustomSlot()">
                 <i class="fas fa-plus"></i> Add Slot
             </button>
@@ -300,14 +287,13 @@
             <div class="qs-control-icon green"><i class="fas fa-hourglass-start"></i></div>
             <div class="qs-control-body">
                 <label class="qs-control-label" for="startTime">Start Time</label>
-                <select class="qs-select" id="startTime" onchange="updateQsSummary()">
-                    <option value="06:00">6:00 AM</option>
-                    <option value="07:00">7:00 AM</option>
-                    <option value="08:00">8:00 AM</option>
-                    <option value="09:00" selected>9:00 AM</option>
-                    <option value="10:00">10:00 AM</option>
-                    <option value="11:00">11:00 AM</option>
-                </select>
+                <input type="time"
+                       class="qs-select"
+                       id="startTime"
+                       value="09:00"
+                       step="900"
+                       oninput="updateQsSummary()"
+                       onchange="updateQsSummary()" />
             </div>
         </div>
         <!-- End Time -->
@@ -315,17 +301,13 @@
             <div class="qs-control-icon red"><i class="fas fa-hourglass-end"></i></div>
             <div class="qs-control-body">
                 <label class="qs-control-label" for="endTime">End Time</label>
-                <select class="qs-select" id="endTime" onchange="updateQsSummary()">
-                    <option value="12:00">12:00 PM</option>
-                    <option value="13:00">1:00 PM</option>
-                    <option value="14:00">2:00 PM</option>
-                    <option value="15:00">3:00 PM</option>
-                    <option value="16:00">4:00 PM</option>
-                    <option value="17:00" selected>5:00 PM</option>
-                    <option value="18:00">6:00 PM</option>
-                    <option value="19:00">7:00 PM</option>
-                    <option value="20:00">8:00 PM</option>
-                </select>
+                <input type="time"
+                       class="qs-select"
+                       id="endTime"
+                       value="17:00"
+                       step="900"
+                       oninput="updateQsSummary()"
+                       onchange="updateQsSummary()" />
             </div>
         </div>
         <!-- Slot Duration -->
@@ -333,12 +315,15 @@
             <div class="qs-control-icon purple"><i class="fas fa-stopwatch"></i></div>
             <div class="qs-control-body">
                 <label class="qs-control-label" for="slotDuration">Slot Duration</label>
-                <select class="qs-select" id="slotDuration" onchange="updateQsSummary()">
-                    <option value="15">15 minutes</option>
-                    <option value="30" selected>30 minutes</option>
-                    <option value="45">45 minutes</option>
-                    <option value="60">1 hour</option>
-                </select>
+                <input type="number"
+                       class="qs-select"
+                       id="slotDuration"
+                       min="5"
+                       step="5"
+                       value="30"
+                       placeholder="Minutes"
+                       oninput="updateQsSummary()"
+                       onchange="updateQsSummary()" />
             </div>
         </div>
         <!-- Weeks Ahead -->
@@ -374,874 +359,28 @@
     </div>
 </section>
 
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/assistant-availability.css" asp-append-version="true" />
+}
+
 @section Scripts {
-<script>
-    // -- Constants ------------------------------------------------------------
-    const assistantId      = @Model.Assistant.AssistantID;
-    let currentDoctorId    = @(Model.SelectedDoctorID.HasValue ? Model.SelectedDoctorID.Value.ToString() : "null");
-    const clinicName       = '@Html.Raw(Model.ClinicName?.Replace("'", "\\'") ?? "Clinic")';
-    const antiForgeryToken = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
-
-    let SLOT_START    = '08:00';
-    let SLOT_END      = '18:00';
-    let SLOT_DURATION = 30;
-
-    // -- Calendar State -------------------------------------------------------
-    let currentCalDate = new Date();
-    let selectedDate   = todayISO();
-
-    // -- Utility --------------------------------------------------------------
-    function todayISO() {
-        const d = new Date();
-        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    }
-
-    function formatDateLabel(dateStr) {
-        const [y, m, d] = dateStr.split('-').map(Number);
-        return new Date(y, m-1, d).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
-    }
-
-    function formatTime12(time24) {
-        const [h, m] = time24.split(':').map(Number);
-        const ampm = h >= 12 ? 'PM' : 'AM';
-        const h12  = h % 12 || 12;
-        return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
-    }
-
-    function generateTimeGrid(startStr, endStr, stepMin) {
-        const times = [];
-        let [h, mi] = startStr.split(':').map(Number);
-        const [eh, em] = endStr.split(':').map(Number);
-        while (h < eh || (h === eh && mi < em)) {
-            times.push(`${String(h).padStart(2,'0')}:${String(mi).padStart(2,'0')}`);
-            mi += stepMin;
-            if (mi >= 60) { h += Math.floor(mi / 60); mi = mi % 60; }
-        }
-        return times;
-    }
-
-    function escapeHtml(str) {
-        if (!str) return '';
-        const el = document.createElement('span');
-        el.textContent = str;
-        return el.innerHTML;
-    }
-
-    function setButtonLoading(btn, loading) {
-        if (!btn) return;
-        if (loading) {
-            btn.disabled = true;
-            btn.dataset.prevHtml = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Wait…';
-        } else {
-            btn.disabled = false;
-            if (btn.dataset.prevHtml) { btn.innerHTML = btn.dataset.prevHtml; delete btn.dataset.prevHtml; }
-        }
-    }
-
-    function updateStats(available, booked, blocked) {
-        ['heroAvailable','statAvailable'].forEach(id => document.getElementById(id).textContent = available);
-        ['heroBooked',   'statBooked'   ].forEach(id => document.getElementById(id).textContent = booked);
-        ['heroBlocked',  'statBlocked'  ].forEach(id => document.getElementById(id).textContent = blocked);
-    }
-
-    // -- API ------------------------------------------------------------------
-    async function api(url, options = {}) {
-        const method = (options.method || 'GET').toUpperCase();
-        const headers = new Headers(options.headers || {});
-
-        if (method !== 'GET' && method !== 'HEAD' && antiForgeryToken && !headers.has('RequestVerificationToken')) {
-            headers.set('RequestVerificationToken', antiForgeryToken);
-        }
-
-        options.headers = headers;
-
-        let resp;
-        try {
-            resp = await fetch(url, options);
-        } catch {
-            showToast('Network error — check your connection.', 'error');
-            throw new Error('network');
-        }
-        if (!resp.ok) {
-            showToast('Server error. Please try again.', 'error');
-            throw new Error(`server-${resp.status}`);
-        }
-        return resp.json();
-    }
-
-    // -- Calendar -------------------------------------------------------------
-    function renderCalendar() {
-        const grid    = document.getElementById('calendarGrid');
-        const display = document.getElementById('currentMonth');
-        const year    = currentCalDate.getFullYear();
-        const month   = currentCalDate.getMonth();
-
-        const monthNames = ['January','February','March','April','May','June',
-                            'July','August','September','October','November','December'];
-        display.textContent = `${monthNames[month]} ${year}`;
-
-        const firstDay      = new Date(year, month, 1).getDay();
-        const daysInMonth   = new Date(year, month+1, 0).getDate();
-        const daysInPrevMon = new Date(year, month, 0).getDate();
-
-        const headers = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-        let html = headers.map(d => `<div class="calendar-day-header">${d}</div>`).join('');
-
-        const today = new Date(); today.setHours(0,0,0,0);
-
-        for (let i = firstDay - 1; i >= 0; i--)
-            html += `<div class="calendar-day other-month"><span class="day-number">${daysInPrevMon - i}</span></div>`;
-
-        for (let day = 1; day <= daysInMonth; day++) {
-            const dateStr    = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-            const date       = new Date(year, month, day);
-            const isToday    = date.getTime() === today.getTime();
-            const isSelected = dateStr === selectedDate;
-            const isPast     = date < today;
-
-            html += `
-                <div class="calendar-day ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''} ${isPast ? 'past' : ''}"
-                     ${!isPast ? `onclick="selectCalendarDate('${dateStr}')"` : ''}
-                     title="${isPast ? 'Past date' : dateStr}">
-                    <span class="day-number">${day}</span>
-                </div>`;
-        }
-
-        const total     = firstDay + daysInMonth;
-        const remaining = 7 - (total % 7);
-        if (remaining < 7)
-            for (let i = 1; i <= remaining; i++)
-                html += `<div class="calendar-day other-month"><span class="day-number">${i}</span></div>`;
-
-        grid.innerHTML = html;
-    }
-
-    function selectCalendarDate(dateStr) {
-        selectedDate = dateStr;
-        renderCalendar();
-        const label = formatDateLabel(dateStr);
-        document.getElementById('selectedDateDisplay').textContent = label;
-        document.getElementById('heroDateLabel').textContent = label;
-        const dp = document.getElementById('slotDatePicker');
-        if (dp) dp.value = dateStr;
-        if (currentDoctorId !== null) loadSlots();
-        else showNoDoctorMessage();
-    }
-
-    function previousMonth() { currentCalDate.setMonth(currentCalDate.getMonth() - 1); renderCalendar(); }
-    function nextMonth()     { currentCalDate.setMonth(currentCalDate.getMonth() + 1); renderCalendar(); }
-    function goToToday() {
-        currentCalDate = new Date(); selectedDate = todayISO(); renderCalendar();
-        const label = formatDateLabel(selectedDate);
-        document.getElementById('selectedDateDisplay').textContent = label;
-        document.getElementById('heroDateLabel').textContent = label;
-        const dp = document.getElementById('slotDatePicker');
-        if (dp) dp.value = selectedDate;
-        if (currentDoctorId !== null) loadSlots(); else showNoDoctorMessage();
-    }
-
-    function onSlotDateChange(dateStr) {
-        const [y, m, d] = dateStr.split('-').map(Number);
-        currentCalDate = new Date(y, m - 1, d);
-        selectCalendarDate(dateStr);
-    }
-
-    function syncAvailabilityUrl() {
-        const url = new URL(window.location.href);
-        url.searchParams.set('id', assistantId);
-        if (currentDoctorId !== null) {
-            url.searchParams.set('doctorId', currentDoctorId);
-        } else {
-            url.searchParams.delete('doctorId');
-        }
-        history.replaceState({}, '', url);
-    }
-
-    function updateDoctorPillStyles() {
-        document.querySelectorAll('.doctor-filter-pills .doctor-pill[data-doctor-id]').forEach(link => {
-            const doctorId = parseInt(link.dataset.doctorId, 10);
-            const isActive = currentDoctorId !== null && doctorId === currentDoctorId;
-            link.classList.toggle('active-blue', isActive);
-        });
-    }
-
-    // -- Slot Rendering --------------------------------------------------------
-    function showNoDoctorMessage() {
-        document.getElementById('timeSlotsContainer').innerHTML =
-            '<div class="empty-state"><i class="fas fa-user-md"></i><p>Select a doctor above to manage slots</p></div>';
-        updateStats('—', '—', '—');
-    }
-
-    async function loadSlots() {
-        const container = document.getElementById('timeSlotsContainer');
-        container.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading slots…</p></div>';
-
-        let data = {};
-        try {
-            data = await api(`@Url.Action("GetAvailabilitySlots", "Assistant")?id=${assistantId}&doctorId=${currentDoctorId}&date=${selectedDate}`);
-        } catch {
-            container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Failed to load slots</p></div>';
-            return;
-        }
-
-        const existing = data.slots || [];
-        const otherClinic = data.otherClinicSlots || [];
-
-        const slotMap = {};
-        existing.forEach(s => { slotMap[s.time] = s; });
-
-        const otherClinicMap = {};
-        otherClinic.forEach(s => { otherClinicMap[s.time] = s; });
-
-        const grid       = generateTimeGrid(SLOT_START, SLOT_END, SLOT_DURATION);
-        const isPastDate = selectedDate < todayISO();
-        const isToday    = selectedDate === todayISO();
-        const nowTime    = (() => { const n = new Date(); return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`; })();
-
-        function isSlotPast(time) {
-            return isPastDate || (isToday && time <= nowTime);
-        }
-
-        let available = 0, booked = 0, blocked = 0;
-        const amTimes = [], pmTimes = [];
-        const gridSet = new Set(grid);
-
-        grid.forEach(time => {
-            if (isSlotPast(time)) return;
-            const h    = parseInt(time.split(':')[0]);
-            const slot = slotMap[time];
-            const other = otherClinicMap[time];
-            if (!slot) {
-                if (other)  booked++;
-                else        blocked++;
+    <script>
+        window.assistantAvailabilityConfig = {
+            assistantId: @Model.Assistant.AssistantID,
+            selectedDoctorId: @(Model.SelectedDoctorID.HasValue ? Model.SelectedDoctorID.Value.ToString() : "null"),
+            clinicName: '@Html.Raw(Model.ClinicName?.Replace("'", "\\'") ?? "Clinic")',
+            doctorsCount: @Model.Doctors.Count,
+            urls: {
+                getAvailabilitySlots: '@Url.Action("GetAvailabilitySlots", "Assistant")',
+                createAvailabilitySlot: '@Url.Action("CreateAvailabilitySlot", "Assistant")',
+                deleteAvailabilitySlot: '@Url.Action("DeleteAvailabilitySlot", "Assistant")',
+                setAllSlotsAvailable: '@Url.Action("SetAllSlotsAvailable", "Assistant")',
+                blockAllAvailabilitySlots: '@Url.Action("BlockAllAvailabilitySlots", "Assistant")',
+                applyQuickSetupSchedule: '@Url.Action("ApplyQuickSetupSchedule", "Assistant")'
             }
-            else if (slot.isBooked) booked++;
-            else                  available++;
-            (h < 12 ? amTimes : pmTimes).push(time);
-        });
-
-        // Include custom DB slots that fall outside the configured time grid
-        Object.keys(slotMap).forEach(time => {
-            if (gridSet.has(time) || isSlotPast(time)) return;
-            const h = parseInt(time.split(':')[0]);
-            if (slotMap[time].isBooked) booked++;
-            else available++;
-            (h < 12 ? amTimes : pmTimes).push(time);
-        });
-
-        amTimes.sort();
-        pmTimes.sort();
-
-        if (!amTimes.length && !pmTimes.length) {
-            container.innerHTML = '<div class="empty-state"><p>No time slots configured</p></div>';
-            updateStats(0, 0, 0);
-            return;
-        }
-
-        updateStats(available, booked, blocked);
-
-        function buildSlotCard(time) {
-            const slot  = slotMap[time];
-            const other = otherClinicMap[time];
-            const label = formatTime12(time);
-            const id    = `slot-${time.replace(':', '')}`;
-
-            if (!slot) {
-                // Time not in this clinic — check if it's taken in another clinic
-                if (other) {
-                    return `
-                        <div class="slot-item booked" id="${id}">
-                            <div class="slot-icon-col">
-                                <span class="slot-icon booked-icon"><i class="fas fa-user"></i></span>
-                            </div>
-                            <div class="slot-body">
-                                <span class="slot-time">${label}</span>
-                                <span class="slot-status booked-text">
-                                    ${other.isBooked ? 'Booked' : 'Reserved'}
-                                </span>
-                                <span class="slot-location"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(other.clinicName)}</span>
-                            </div>
-                        </div>`;
-                }
-                return `
-                    <div class="slot-item blocked" id="${id}">
-                        <div class="slot-icon-col">
-                            <span class="slot-icon blocked-icon"><i class="fas fa-minus-circle"></i></span>
-                        </div>
-                        <div class="slot-body">
-                            <span class="slot-time">${label}</span>
-                            <span class="slot-status blocked-text">Blocked</span>
-                        </div>
-                        <div class="slot-action">
-                            <button class="btn btn-sm btn-outline" onclick="createSlot('${time}')">
-                                <i class="fas fa-plus"></i> Enable
-                            </button>
-                        </div>
-                    </div>`;
-            }
-            if (slot.isBooked) {
-                return `
-                    <div class="slot-item booked" id="${id}">
-                        <div class="slot-icon-col">
-                            <span class="slot-icon booked-icon"><i class="fas fa-user"></i></span>
-                        </div>
-                        <div class="slot-body">
-                            <span class="slot-time">${label}</span>
-                            <span class="slot-status booked-text">
-                                ${slot.patientName ? escapeHtml(slot.patientName) : 'Booked'}
-                            </span>
-                            <span class="slot-location"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(clinicName)}</span>
-                        </div>
-                    </div>`;
-            }
-            return `
-                <div class="slot-item available" id="${id}">
-                    <div class="slot-icon-col">
-                        <span class="slot-icon available-icon"><i class="fas fa-check"></i></span>
-                    </div>
-                    <div class="slot-body">
-                        <span class="slot-time">${label}</span>
-                        <span class="slot-status available-text">Available</span>
-                        <span class="slot-location"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(clinicName)}</span>
-                    </div>
-                    <div class="slot-action">
-                        <button class="btn btn-sm btn-outline danger" onclick="deleteSlot(${slot.appointmentId})">
-                            <i class="fas fa-ban"></i> Block
-                        </button>
-                    </div>
-                </div>`;
-        }
-
-        function buildGroup(times, label, iconClass) {
-            if (!times.length) return '';
-            return `
-                <div class="slot-group">
-                    <div class="slot-group-header">
-                        <i class="${iconClass}"></i> ${label}
-                        <span class="slot-group-count">${times.length} slots</span>
-                    </div>
-                    <div class="slots-grid">${times.map(buildSlotCard).join('')}</div>
-                </div>`;
-        }
-
-        container.innerHTML =
-            buildGroup(amTimes, 'Morning', 'fas fa-sun') +
-            buildGroup(pmTimes, 'Afternoon', 'fas fa-moon');
-    }
-
-    // -- Slot Actions ---------------------------------------------------------
-    async function createSlot(time) {
-        const btn = event.target.closest('button');
-        setButtonLoading(btn, true);
-        try {
-            const data = await api(
-                `@Url.Action("CreateAvailabilitySlot", "Assistant")?id=${assistantId}&doctorId=${currentDoctorId}&date=${selectedDate}&time=${time}`,
-                { method: 'POST' }
-            );
-            if (data.success) { showToast('Slot enabled.', 'success'); loadSlots(); }
-            else              { showToast(data.message, 'error'); setButtonLoading(btn, false); }
-        } catch { setButtonLoading(btn, false); }
-    }
-
-    async function deleteSlot(appointmentId) {
-        const btn = event.target.closest('button');
-        setButtonLoading(btn, true);
-        try {
-            const data = await api(
-                `@Url.Action("DeleteAvailabilitySlot", "Assistant")?id=${assistantId}&appointmentId=${appointmentId}`,
-                { method: 'POST' }
-            );
-            if (data.success) { showToast('Slot blocked.', 'success'); loadSlots(); }
-            else              { showToast(data.message, 'error'); setButtonLoading(btn, false); }
-        } catch { setButtonLoading(btn, false); }
-    }
-
-    async function setAllAvailable() {
-        if (!currentDoctorId) { showToast('Select a doctor first.', 'error'); return; }
-        if (selectedDate < todayISO()) { showToast('Cannot modify past dates.', 'error'); return; }
-        const start = document.getElementById('startTime').value;
-        const end   = document.getElementById('endTime').value;
-        const dur   = document.getElementById('slotDuration').value;
-        try {
-            const data = await api(
-                `@Url.Action("SetAllSlotsAvailable", "Assistant")?id=${assistantId}&doctorId=${currentDoctorId}&date=${selectedDate}&startTime=${start}&endTime=${end}&slotDuration=${dur}`,
-                { method: 'POST' }
-            );
-            if (data.success) { showToast(data.message, 'success'); loadSlots(); }
-            else              showToast(data.message, 'error');
-        } catch {}
-    }
-
-    async function blockAllSlots() {
-        if (!currentDoctorId) { showToast('Select a doctor first.', 'error'); return; }
-        if (selectedDate < todayISO()) { showToast('Cannot modify past dates.', 'error'); return; }
-        try {
-            const data = await api(
-                `@Url.Action("BlockAllAvailabilitySlots", "Assistant")?id=${assistantId}&doctorId=${currentDoctorId}&date=${selectedDate}`,
-                { method: 'POST' }
-            );
-            if (data.success) { showToast(data.message, 'success'); loadSlots(); }
-            else              showToast(data.message, 'error');
-        } catch {}
-    }
-
-    async function applyQuickSetup() {
-        if (!currentDoctorId) { showToast('Select a doctor first.', 'error'); return; }
-        const workingDays = [];
-        for (let i = 0; i <= 6; i++) {
-            const cb = document.querySelector(`input[value="${i}"]`);
-            if (cb && cb.checked) workingDays.push(i);
-        }
-        if (!workingDays.length) { showToast('Please select at least one working day.', 'error'); return; }
-        const request = {
-            doctorId:     currentDoctorId,
-            workingDays,
-            startTime:    document.getElementById('startTime').value,
-            endTime:      document.getElementById('endTime').value,
-            slotDuration: parseInt(document.getElementById('slotDuration').value),
-            weeksAhead:   parseInt(document.getElementById('weeksAhead').value)
         };
-        const btn = document.getElementById('applySetupBtn');
-        setButtonLoading(btn, true);
-        try {
-            const data = await api(
-                `@Url.Action("ApplyQuickSetupSchedule", "Assistant")?id=${assistantId}`,
-                { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) }
-            );
-            if (data.success) { showToast(data.message, 'success'); loadSlots(); }
-            else              showToast(data.message, 'error');
-        } catch {}
-        setButtonLoading(btn, false);
-    }
-
-    // -- Custom Slot ----------------------------------------------------------
-    function toggleCustomSlotForm() {
-        if (!currentDoctorId) { showToast('Select a doctor first.', 'error'); return; }
-        if (selectedDate < todayISO()) { showToast('Cannot add slots in the past.', 'error'); return; }
-        const form = document.getElementById('customSlotForm');
-        const visible = form.style.display !== 'none';
-        form.style.display = visible ? 'none' : 'flex';
-        if (!visible) document.getElementById('customSlotTime').focus();
-    }
-
-    async function createCustomSlot() {
-        const timeInput = document.getElementById('customSlotTime');
-        const time = timeInput.value;
-        if (!time) { showToast('Please enter a valid time.', 'error'); return; }
-        const btn = document.getElementById('addCustomSlotBtn');
-        setButtonLoading(btn, true);
-        try {
-            const data = await api(
-                `@Url.Action("CreateAvailabilitySlot", "Assistant")?id=${assistantId}&doctorId=${currentDoctorId}&date=${selectedDate}&time=${time}`,
-                { method: 'POST' }
-            );
-            if (data.success) {
-                showToast('Custom slot added.', 'success');
-                timeInput.value = '';
-                document.getElementById('customSlotForm').style.display = 'none';
-                loadSlots();
-            } else {
-                showToast(data.message, 'error');
-                setButtonLoading(btn, false);
-            }
-        } catch { setButtonLoading(btn, false); }
-    }
-
-    // -- Init -----------------------------------------------------------------
-    function updateQsSummary() {
-        const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-        const selected = [];
-        for (let i = 0; i <= 6; i++) {
-            const cb = document.querySelector(`.qs-days input[value="${i}"]`);
-            if (cb && cb.checked) selected.push(dayNames[i]);
-        }
-        const badge = document.getElementById('qsDayCount');
-        if (badge) badge.textContent = selected.length + ' selected';
-
-        const start    = document.getElementById('startTime')?.value   || '09:00';
-        const end      = document.getElementById('endTime')?.value     || '17:00';
-        const dur      = parseInt(document.getElementById('slotDuration')?.value || '30');
-        const weeks    = parseInt(document.getElementById('weeksAhead')?.value   || '2');
-
-        const [sh, sm] = start.split(':').map(Number);
-        const [eh, em] = end.split(':').map(Number);
-        const minsPerDay = (eh * 60 + em) - (sh * 60 + sm);
-        const slotsPerDay = minsPerDay > 0 ? Math.floor(minsPerDay / dur) : 0;
-        const totalSlots  = slotsPerDay * selected.length * weeks;
-
-        const pill = document.getElementById('qsSummaryText');
-        if (pill) {
-            if (selected.length === 0) {
-                pill.textContent = 'No days selected';
-            } else {
-                const fmt = t => { const [h,m] = t.split(':'); const a = +h >= 12 ? 'PM' : 'AM'; const h12 = +h % 12 || 12; return `${h12}:${m.padStart(2,'0')} ${a}`; };
-                pill.textContent = `${selected.join(', ')} · ${fmt(start)}–${fmt(end)} · ${weeks}w`;
-            }
-        }
-        const est = document.getElementById('qsSlotCount');
-        if (est) est.textContent = totalSlots > 0 ? totalSlots.toLocaleString() : '—';
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        const doctorPillsContainer = document.querySelector('.doctor-filter-pills');
-        if (doctorPillsContainer) {
-            doctorPillsContainer.addEventListener('click', e => {
-                const pill = e.target.closest('.doctor-pill[data-doctor-id]');
-                if (!pill) return;
-                e.preventDefault();
-                const newDoctorId = parseInt(pill.dataset.doctorId, 10);
-                if (Number.isNaN(newDoctorId) || newDoctorId === currentDoctorId) return;
-                currentDoctorId = newDoctorId;
-                updateDoctorPillStyles();
-                syncAvailabilityUrl();
-                loadSlots();
-            });
-        }
-
-        renderCalendar();
-        const label = formatDateLabel(selectedDate);
-        document.getElementById('selectedDateDisplay').textContent = label;
-        document.getElementById('heroDateLabel').textContent = label;
-        const dp = document.getElementById('slotDatePicker');
-        if (dp) dp.value = selectedDate;
-        syncAvailabilityUrl();
-        if (currentDoctorId !== null) loadSlots();
-        else if (@Model.Doctors.Count == 0) { /* no doctors */ }
-        else showNoDoctorMessage();
-        updateQsSummary();
-    });
-</script>
-
-<style>
-    /* ?? Single-column stacked layout ?? */
-    .avail-main-grid {
-        display: flex;
-        flex-direction: column;
-        gap: 24px;
-        margin-bottom: 24px;
-    }
-    .avail-calendar-card,
-    .avail-slots-card { margin-bottom: 0; }
-
-    /* ?? Legend ?? */
-    .avail-legend {
-        display: flex;
-        gap: 20px;
-        flex-wrap: wrap;
-        margin-top: 16px;
-        padding-top: 14px;
-        border-top: 1px solid #f1f5f9;
-    }
-    .avail-slot-legend { margin-top: 20px; }
-
-    /* ?? Slot controls bar ?? */
-    .slots-controls-bar {
-        display: flex; gap: 16px; flex-wrap: wrap;
-        padding: 14px 0 18px;
-        border-bottom: 1px solid #f1f5f9;
-        margin-bottom: 16px;
-    }
-    .slot-ctrl { display: flex; flex-direction: column; gap: 5px; min-width: 160px; }
-    .slot-ctrl label {
-        font-size: 0.8rem; font-weight: 600;
-        color: var(--text-secondary);
-        display: flex; align-items: center; gap: 5px;
-    }
-    .slot-ctrl label i { color: var(--assistant-primary); }
-    .slot-ctrl .qs-select { padding: 7px 10px; }
-    .avail-legend-item {
-        display: flex;
-        align-items: center;
-        gap: 7px;
-        font-size: 0.82rem;
-        color: var(--text-secondary);
-        font-weight: 500;
-    }
-    .avail-legend-dot {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        flex-shrink: 0;
-    }
-    .avail-legend-swatch {
-        width: 28px;
-        height: 20px;
-        border-radius: 6px;
-        flex-shrink: 0;
-    }
-    .available-swatch { background: var(--bg-primary);  border: 2px solid var(--assistant-primary); }
-    .booked-swatch    { background: #fef2f2;             border: 2px solid var(--danger); }
-    .blocked-swatch   { background: var(--bg-primary);  border: 2px dashed #cbd5e1; }
-
-    /* ?? Slot groups ?? */
-    .slot-group { margin-bottom: 20px; }
-    .slot-group:last-child { margin-bottom: 0; }
-    .slot-group-header {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 0.78rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.6px;
-        color: var(--text-muted);
-        margin-bottom: 10px;
-    }
-    .slot-group-header i { color: var(--assistant-primary); }
-    .slot-group-count {
-        margin-left: auto;
-        font-weight: 600;
-        color: var(--text-secondary);
-        background: var(--bg-primary);
-        border: 1px solid var(--border-color);
-        border-radius: 20px;
-        padding: 1px 10px;
-        font-size: 0.74rem;
-    }
-
-    /* ?? Slot grid ?? */
-    .slots-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-        gap: 10px;
-    }
-
-    /* ?? Slot item ?? */
-    .slot-item {
-        display: flex;
-        align-items: center;
-        gap: 11px;
-        padding: 11px 13px;
-        border-radius: var(--radius-md);
-        border: 2px solid transparent;
-        background: var(--bg-primary);
-        transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-                    box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .slot-item:hover           { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,0,0,0.08); }
-    .slot-item.available       { border-color: var(--assistant-primary); }
-    .slot-item.available:hover { box-shadow: 0 4px 14px rgba(124,58,237,0.18); }
-    .slot-item.booked          { background: #fef2f2; border-color: var(--danger); }
-    .slot-item.booked:hover    { box-shadow: 0 4px 14px rgba(220,38,38,0.14); }
-    .slot-item.blocked         { border-style: dashed; border-color: #cbd5e1; opacity: 0.8; }
-
-    /* ?? Slot icon circle ?? */
-    .slot-icon-col { flex-shrink: 0; }
-    .slot-icon {
-        width: 34px;
-        height: 34px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.82rem;
-        transition: transform 0.2s;
-    }
-    .slot-item:hover .slot-icon { transform: scale(1.1); }
-    .available-icon { background: var(--assistant-surface-mid); color: var(--assistant-primary); }
-    .booked-icon    { background: #fee2e2; color: var(--danger); }
-    .blocked-icon   { background: #f1f5f9; color: #94a3b8; }
-
-    /* ?? Slot body ?? */
-    .slot-body      { flex: 1; min-width: 0; }
-    .slot-time      { display: block; font-weight: 700; font-size: 0.9rem; color: var(--text-primary); }
-    .slot-status    { display: block; font-size: 0.77rem; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .slot-location  { display: block; font-size: 0.72rem; color: #6b7280; margin-top: 2px; }
-    .slot-location i { margin-right: 3px; color: #9ca3af; font-size: 0.68rem; }
-    .available-text { color: var(--assistant-primary); }
-    .booked-text    { color: var(--danger); }
-    .blocked-text   { color: #94a3b8; }
-
-    /* ?? Slot action button ?? */
-    .slot-action          { flex-shrink: 0; }
-    .slot-action .btn     { white-space: nowrap; font-size: 0.78rem; padding: 4px 10px; }
-
-    /* ?? Day chip toggles ?? */
-    .day-chip-group { display: flex; gap: 8px; flex-wrap: wrap; }
-    .day-chip       { position: relative; display: inline-block; }
-    .day-chip input[type="checkbox"] {
-        position: absolute;
-        opacity: 0;
-        width: 0;
-        height: 0;
-        pointer-events: none;
-    }
-    .day-chip-label {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 8px 16px;
-        min-width: 56px;
-        border-radius: var(--radius-md);
-        border: 2px solid var(--border-color);
-        background: var(--bg-primary);
-        cursor: pointer;
-        font-weight: 600;
-        font-size: 0.875rem;
-        color: var(--text-secondary);
-        transition: all 0.18s ease;
-        user-select: none;
-    }
-    .day-chip-label:hover {
-        border-color: var(--assistant-primary);
-        color: var(--assistant-primary);
-        background: var(--assistant-surface);
-    }
-    .day-chip:has(input:checked) .day-chip-label {
-        background: var(--assistant-primary);
-        border-color: var(--assistant-primary);
-        color: white;
-        box-shadow: 0 2px 8px rgba(124,58,237,0.35);
-    }
-    .day-chip:has(input:checked) .day-chip-label:hover {
-        background: var(--assistant-primary-dark);
-        border-color: var(--assistant-primary-dark);
-    }
-
-    /* ?? Quick Setup Card ?? */
-    .quick-setup-card { padding: 0; overflow: hidden; }
-
-    .qs-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 12px;
-        padding: 22px 24px 18px;
-        background: linear-gradient(135deg, rgba(124,58,237,0.06) 0%, rgba(124,58,237,0.02) 100%);
-        border-bottom: 1px solid rgba(124,58,237,0.1);
-    }
-    .qs-header-left { display: flex; align-items: center; gap: 14px; }
-    .qs-icon-wrap {
-        width: 44px; height: 44px;
-        background: linear-gradient(135deg, var(--assistant-primary), var(--assistant-primary-dark));
-        border-radius: 12px;
-        display: flex; align-items: center; justify-content: center;
-        color: #fff; font-size: 1.1rem;
-        flex-shrink: 0;
-        box-shadow: 0 4px 12px rgba(124,58,237,0.3);
-    }
-    .qs-title { font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin: 0 0 2px; }
-    .qs-subtitle { font-size: 0.83rem; color: var(--text-secondary); margin: 0; }
-
-    .qs-summary-pill {
-        display: inline-flex; align-items: center; gap: 6px;
-        padding: 7px 14px;
-        background: rgba(124,58,237,0.08);
-        border: 1px solid rgba(124,58,237,0.2);
-        border-radius: 20px;
-        font-size: 0.82rem; font-weight: 500;
-        color: var(--assistant-primary);
-        white-space: nowrap;
-    }
-
-    .qs-divider { height: 1px; background: #f1f5f9; margin: 0; }
-
-    .qs-section { padding: 20px 24px 0; }
-    .qs-section-label {
-        display: flex; align-items: center; gap: 8px;
-        font-size: 0.85rem; font-weight: 700;
-        color: var(--text-primary);
-        margin-bottom: 12px;
-    }
-    .qs-section-label i { color: var(--assistant-primary); font-size: 0.9rem; }
-    .qs-badge {
-        padding: 2px 9px;
-        background: rgba(124,58,237,0.1);
-        color: var(--assistant-primary);
-        border-radius: 10px;
-        font-size: 0.75rem; font-weight: 600;
-    }
-    .qs-days { margin-bottom: 4px; }
-
-    .qs-controls-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 12px;
-        padding: 20px 24px 0;
-    }
-    @@media (max-width: 900px) {
-        .qs-controls-grid { grid-template-columns: repeat(2, 1fr); }
-    }
-    @@media (max-width: 540px) {
-        .qs-controls-grid { grid-template-columns: 1fr; }
-    }
-
-    .qs-control-card {
-        display: flex; align-items: flex-start; gap: 12px;
-        padding: 14px;
-        background: #fafafa;
-        border: 1.5px solid #f0f0f0;
-        border-radius: 12px;
-        transition: border-color 0.2s, box-shadow 0.2s;
-    }
-    .qs-control-card:hover {
-        border-color: rgba(124,58,237,0.25);
-        box-shadow: 0 2px 8px rgba(124,58,237,0.08);
-    }
-    .qs-control-icon {
-        width: 34px; height: 34px; border-radius: 9px;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 0.85rem; flex-shrink: 0;
-    }
-    .qs-control-icon.green  { background: rgba(16,185,129,0.12); color: #10b981; }
-    .qs-control-icon.red    { background: rgba(239,68,68,0.12);  color: #ef4444; }
-    .qs-control-icon.purple { background: rgba(124,58,237,0.12); color: var(--assistant-primary); }
-    .qs-control-icon.blue   { background: rgba(59,130,246,0.12); color: #3b82f6; }
-
-    .qs-control-body { flex: 1; min-width: 0; }
-    .qs-control-label {
-        display: block;
-        font-size: 0.78rem; font-weight: 600;
-        color: var(--text-secondary);
-        margin-bottom: 6px;
-        text-transform: uppercase; letter-spacing: 0.4px;
-    }
-    .qs-select {
-        width: 100%;
-        padding: 8px 10px;
-        border: 1.5px solid #e5e7eb;
-        border-radius: 8px;
-        font-size: 0.88rem;
-        font-family: inherit;
-        color: var(--text-primary);
-        background: #fff;
-        cursor: pointer;
-        outline: none;
-        transition: border-color 0.2s, box-shadow 0.2s;
-        appearance: auto;
-    }
-    .qs-select:focus {
-        border-color: var(--assistant-primary);
-        box-shadow: 0 0 0 3px rgba(124,58,237,0.12);
-    }
-
-    .qs-estimate {
-        display: flex; align-items: center; gap: 8px;
-        margin: 16px 24px 0;
-        padding: 10px 14px;
-        background: rgba(59,130,246,0.06);
-        border: 1px solid rgba(59,130,246,0.18);
-        border-radius: 10px;
-        font-size: 0.85rem; color: #3b82f6;
-    }
-    .qs-estimate strong { color: var(--assistant-primary); }
-
-    .qs-footer {
-        display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-        padding: 20px 24px;
-        margin-top: 8px;
-        border-top: 1px solid #f1f5f9;
-    }
-    .qs-apply-btn { padding: 10px 28px; font-size: 0.92rem; font-weight: 600; }
-    .qs-footer-note {
-        display: flex; align-items: center; gap: 6px;
-        font-size: 0.8rem; color: var(--text-secondary);
-    }
-    .qs-footer-note i { color: #94a3b8; font-size: 0.82rem; }
-
-    /* ?? Calendar past days ?? */
-    .calendar-day.past { cursor: not-allowed; opacity: 0.4; }
-</style>
+    </script>
+    <script src="~/js/assistant-availability.js" asp-append-version="true"></script>
 }
