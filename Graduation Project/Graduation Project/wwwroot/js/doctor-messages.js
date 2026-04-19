@@ -181,7 +181,7 @@ function setupEventListeners() {
   document.getElementById("viewProfileBtn")?.addEventListener("click", () => {
     if (!state.currentConversation) return;
     if (state.currentConversation.participantType !== "Patient") return;
-    window.location.href = `/Doctor/PatientDetails/${DOCTOR_ID}/${state.currentConversation.participantId}`;
+    window.location.href = `/Doctor/PatientDetails/${DOCTOR_ID}?patientId=${state.currentConversation.participantId}`;
   });
 
   document.getElementById("mobileMenuBtn")?.addEventListener("click", () => toggleSidebar(true));
