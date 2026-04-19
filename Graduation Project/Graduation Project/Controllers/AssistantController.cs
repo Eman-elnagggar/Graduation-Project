@@ -499,11 +499,8 @@ namespace Graduation_Project.Controllers
 
         public IActionResult Patients(int id, int? doctorId)
         {
-            var accessResult = TryResolveAssistant(id, out var assistant);
+            var accessResult = TryResolveAssistantClinic(id, out var assistant, out var clinic);
             if (accessResult != null) return accessResult;
-
-            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
-            if (clinic == null) return NotFound();
 
             var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
             var doctorSummaries = BuildDoctorSummaries(assistant, clinic, relevantDoctorIds);
@@ -586,11 +583,8 @@ namespace Graduation_Project.Controllers
 
         public IActionResult PatientDetails(int id, int patientId, int? doctorId)
         {
-            var accessResult = TryResolveAssistant(id, out var assistant);
+            var accessResult = TryResolveAssistantClinic(id, out var assistant, out var clinic);
             if (accessResult != null) return accessResult;
-
-            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
-            if (clinic == null) return NotFound();
 
             var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
             var activeDoctorIds = doctorId.HasValue && relevantDoctorIds.Contains(doctorId.Value)
