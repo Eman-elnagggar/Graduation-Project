@@ -1,0 +1,415 @@
+@model DoctorClinicsViewModel
+@{
+    Layout = "~/Views/Shared/_DoctorLayout.cshtml";
+    ViewData["Title"] = "Clinics";
+    ViewData["ActivePage"] = "Clinics";
+    ViewData["DoctorId"] = Model.Doctor.DoctorID;
+    ViewData["DoctorName"] = Model.DoctorName;
+    ViewData["PageTitle"] = "Clinics";
+    ViewData["PageSubtitle"] = "Create clinics and manage your linked locations";
+
+    var clinicList = Model.Clinics.ToList();
+    var totalClinics = clinicList.Count;
+    var linkedClinics = totalClinics;
+    var totalDoctorsInClinics = clinicList.Sum(c => c.ClinicDoctors?.Count ?? 0);
+    var hasError = TempData["ClinicError"] != null;
+}
+
+<section class="doctor-hero card">
+    <div class="doctor-hero-content">
+        <div class="doctor-hero-icon"><i class="fas fa-hospital-user"></i></div>
+        <div>
+            <h2>Clinic Management Hub</h2>
+            <p>Create new clinics and review all registered clinics in one place.</p>
+        </div>
+    </div>
+    <span class="doctor-hero-chip"><i class="fas fa-shield-alt"></i> Doctor Portal</span>
+</section>
+
+<section class="cl-stats-row" id="statsRow">
+    <article class="cl-stat-card">
+        <div class="cl-stat-icon blue"><i class="fas fa-hospital"></i></div>
+        <div style="flex:1">
+            <h3><span class="count-num" data-target="@totalClinics">0</span></h3>
+            <p>Your Clinics</p>
+            <div class="cl-stat-progress"><div class="cl-stat-progress-fill" data-w="100%"></div></div>
+        </div>
+    </article>
+
+    <article class="cl-stat-card">
+        <div class="cl-stat-icon green"><i class="fas fa-link"></i></div>
+        <div style="flex:1">
+            <h3><span class="count-num" data-target="@linkedClinics">0</span></h3>
+            <p>Linked to You</p>
+            <div class="cl-stat-progress"><div class="cl-stat-progress-fill is-linked" data-w="100%"></div></div>
+        </div>
+    </article>
+
+    <article class="cl-stat-card">
+        <div class="cl-stat-icon red"><i class="fas fa-user-md"></i></div>
+        <div style="flex:1">
+            <h3><span class="count-num" data-target="@totalDoctorsInClinics">0</span></h3>
+            <p>Total Doctor Links</p>
+            <div class="cl-stat-progress"><div class="cl-stat-progress-fill" data-w="80%"></div></div>
+        </div>
+    </article>
+</section>
+
+<section class="card">
+    <div class="card-header cl-create-toggle" id="createToggle" role="button" tabindex="0" aria-expanded="false" aria-controls="createBody">
+        <h3><i class="fas fa-plus-circle" id="createToggleIcon"></i> Create New Clinic</h3>
+        <span class="cl-head-sub">Click to open / collapse form</span>
+    </div>
+
+    @if (TempData["ClinicSuccess"] != null)
+    {
+        <div class="privacy-notice cl-msg cl-msg-success">
+            <i class="fas fa-check-circle"></i>
+            <p>@TempData["ClinicSuccess"]</p>
+        </div>
+    }
+
+    @if (TempData["ClinicError"] != null)
+    {
+        <div class="privacy-notice cl-msg cl-msg-error">
+            <i class="fas fa-exclamation-triangle"></i>
+            <p>@TempData["ClinicError"]</p>
+        </div>
+    }
+
+    <div class="cl-create-body" id="createBody">
+        @using (Html.BeginForm("CreateClinic", "Doctor", FormMethod.Post, new { @class = "clinic-form" }))
+        {
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="doctorId" value="@Model.Doctor.DoctorID" />
+
+            <div class="cl-form-grid">
+                <div class="form-group">
+                    <label for="clinicName"><i class="fas fa-signature"></i> Clinic Name</label>
+                    <input id="clinicName" name="clinicName" class="form-input" maxlength="120" placeholder="e.g. Care Women Clinic" required />
+                </div>
+
+                <div class="form-group">
+                    <label for="clinicLocation"><i class="fas fa-map-marker-alt"></i> Clinic Location</label>
+                    <input id="clinicLocation" name="clinicLocation" class="form-input" maxlength="200" placeholder="e.g. 22 Nasr City, Cairo" required />
+                </div>
+            </div>
+
+            <div class="cl-form-actions">
+                <button type="reset" class="btn btn-outline btn-pill"><i class="fas fa-rotate-right"></i> Reset</button>
+                <button type="submit" class="btn btn-primary btn-pill"><i class="fas fa-save"></i> Save Changes</button>
+            </div>
+        }
+    </div>
+</section>
+
+<section class="card">
+    <div class="card-header">
+        <h3><i class="fas fa-hospital"></i> My Clinics</h3>
+        <span class="cl-count-chip" id="countChip">@totalClinics total</span>
+    </div>
+
+    <div class="cl-toolbar">
+        <div class="cl-search-wrap">
+            <i class="fas fa-search"></i>
+            <input type="text" class="cl-search-input" id="searchInput" placeholder="Search clinics by name or location..." />
+        </div>
+    </div>
+
+    @if (!clinicList.Any())
+    {
+        <div class="empty-state" style="padding:2rem;">
+            <i class="fas fa-clinic-medical"></i>
+            <h3>No clinics yet</h3>
+            <p>Create your first clinic using the form above.</p>
+        </div>
+    }
+    else
+    {
+        <div class="cl-grid" id="clinicGrid">
+            @for (int i = 0; i < clinicList.Count; i++)
+            {
+                var clinic = clinicList[i];
+                var allDoctorNames = clinic.ClinicDoctors?
+                    .Where(cd => cd.Doctor?.User != null)
+                    .Select(cd => $"Dr. {cd.Doctor!.User!.FirstName} {cd.Doctor.User.LastName}".Trim())
+                    .Where(name => !string.IsNullOrWhiteSpace(name))
+                    .Distinct()
+                    .ToList() ?? new List<string>();
+                var allAssistantNames = clinic.Assistants?
+                    .Where(a => a.User != null)
+                    .Select(a => $"{a.User!.FirstName} {a.User.LastName}".Trim())
+                    .Where(name => !string.IsNullOrWhiteSpace(name))
+                    .Distinct()
+                    .ToList() ?? new List<string>();
+
+                var doctorsCount = allDoctorNames.Count;
+                var assistantsCount = allAssistantNames.Count;
+                var doctorNames = allDoctorNames.Take(2).ToList();
+                var assistantNames = allAssistantNames.Take(2).ToList();
+
+                <article class="cl-card" data-name="@clinic.Name" data-location="@clinic.Location" style="animation-delay:@(i * 0.06)s">
+                    <div class="cl-card-top">
+                        <div class="cl-icon"><i class="fas fa-clinic-medical"></i></div>
+                        <span class="cl-badge"><i class="fas fa-check-circle"></i> Linked to you</span>
+                    </div>
+
+                    <h4>@clinic.Name</h4>
+                    <p class="cl-location"><i class="fas fa-map-marker-alt"></i> @clinic.Location</p>
+
+                    @if (doctorNames.Any())
+                    {
+                        <p class="cl-doctors-preview">
+                            <i class="fas fa-user-md"></i>
+                            @string.Join(" • ", doctorNames)
+                            @if (doctorsCount > doctorNames.Count)
+                            {
+                                <span>+@(doctorsCount - doctorNames.Count) more</span>
+                            }
+                        </p>
+                    }
+
+                    @if (assistantNames.Any())
+                    {
+                        <p class="cl-doctors-preview">
+                            <i class="fas fa-user-nurse"></i>
+                            @string.Join(" • ", assistantNames)
+                            @if (assistantsCount > assistantNames.Count)
+                            {
+                                <span>+@(assistantsCount - assistantNames.Count) more</span>
+                            }
+                        </p>
+                    }
+
+                    <div class="cl-stats">
+                        <button type="button"
+                                class="cl-stat-link js-open-members"
+                                data-title="Doctors in @clinic.Name"
+                                data-empty="No doctors linked to this clinic."
+                                data-members="@string.Join(";;", allDoctorNames.Select(n => n.Replace(";", string.Empty)))">
+                            <i class="fas fa-user-md"></i> @doctorsCount doctor@(doctorsCount != 1 ? "s" : "")
+                        </button>
+
+                        <button type="button"
+                                class="cl-stat-link js-open-members"
+                                data-title="Assistants in @clinic.Name"
+                                data-empty="No assistants linked to this clinic."
+                                data-members="@string.Join(";;", allAssistantNames.Select(n => n.Replace(";", string.Empty)))">
+                            <i class="fas fa-user-nurse"></i> @assistantsCount assistant@(assistantsCount != 1 ? "s" : "")
+                        </button>
+                    </div>
+
+                    <div class="cl-form-actions" style="margin-top:.75rem;">
+                        <button type="button"
+                                class="btn btn-outline btn-pill js-open-edit-modal"
+                                data-clinic-id="@clinic.ClinicID"
+                                data-clinic-name="@clinic.Name"
+                                data-clinic-location="@clinic.Location">
+                            <i class="fas fa-pen"></i> Edit Clinic
+                        </button>
+                    </div>
+                </article>
+            }
+        </div>
+
+        <div class="cl-no-results" id="noResults" style="display:none;">
+            <i class="fas fa-search-minus"></i>
+            <p>No clinics match your search.</p>
+        </div>
+    }
+</section>
+
+<div id="membersModal" class="cl-modal" aria-hidden="true">
+    <div class="cl-modal-backdrop" data-close="membersModal"></div>
+    <div class="cl-modal-content" role="dialog" aria-modal="true" aria-labelledby="membersModalTitle">
+        <div class="cl-modal-header">
+            <h4 id="membersModalTitle">Members</h4>
+            <button type="button" class="cl-modal-close" data-close="membersModal"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="cl-modal-body">
+            <ul id="membersModalList" class="cl-members-list"></ul>
+        </div>
+    </div>
+</div>
+
+<div id="editClinicModal" class="cl-modal" aria-hidden="true">
+    <div class="cl-modal-backdrop" data-close="editClinicModal"></div>
+    <div class="cl-modal-content" role="dialog" aria-modal="true" aria-labelledby="editClinicModalTitle">
+        <div class="cl-modal-header">
+            <h4 id="editClinicModalTitle">Edit Clinic</h4>
+            <button type="button" class="cl-modal-close" data-close="editClinicModal"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="cl-modal-body">
+            @using (Html.BeginForm("UpdateClinicDetails", "Doctor", FormMethod.Post, new { @class = "clinic-form" }))
+            {
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="doctorId" value="@Model.Doctor.DoctorID" />
+                <input type="hidden" id="editClinicId" name="clinicId" />
+
+                <div class="cl-form-grid">
+                    <div class="form-group">
+                        <label for="editClinicName"><i class="fas fa-signature"></i> Clinic Name</label>
+                        <input id="editClinicName" name="clinicName" class="form-input" maxlength="120" required />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editClinicLocation"><i class="fas fa-map-marker-alt"></i> Clinic Location</label>
+                        <input id="editClinicLocation" name="clinicLocation" class="form-input" maxlength="200" required />
+                    </div>
+                </div>
+
+                <div class="cl-form-actions">
+                    <button type="button" class="btn btn-outline btn-pill" data-close="editClinicModal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-pill"><i class="fas fa-save"></i> Update Clinic</button>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const keepOpen = @hasError.ToString().ToLowerInvariant();
+            const createToggle = document.getElementById('createToggle');
+            const createBody = document.getElementById('createBody');
+            const createIcon = document.getElementById('createToggleIcon');
+
+            let open = keepOpen;
+
+            function syncCreatePanel() {
+                createToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                createIcon.className = open ? 'fas fa-minus-circle' : 'fas fa-plus-circle';
+                createBody.style.maxHeight = open ? createBody.scrollHeight + 'px' : '0px';
+                createBody.style.opacity = open ? '1' : '0';
+                createBody.style.marginTop = open ? '.4rem' : '0';
+            }
+
+            function toggleCreatePanel() {
+                open = !open;
+                syncCreatePanel();
+            }
+
+            createToggle?.addEventListener('click', toggleCreatePanel);
+            createToggle?.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleCreatePanel();
+                }
+            });
+
+            syncCreatePanel();
+
+            const counters = document.querySelectorAll('.count-num');
+            counters.forEach((el) => {
+                const target = parseInt(el.dataset.target || '0', 10);
+                let current = 0;
+                const step = Math.max(1, Math.ceil(target / 28));
+                const timer = setInterval(() => {
+                    current = Math.min(current + step, target);
+                    el.textContent = current;
+                    if (current >= target) clearInterval(timer);
+                }, 30);
+            });
+
+            document.querySelectorAll('.cl-stat-progress-fill').forEach((bar, i) => {
+                setTimeout(() => { bar.style.width = bar.dataset.w || '0%'; }, 160 + (i * 120));
+            });
+
+            const searchInput = document.getElementById('searchInput');
+            const cards = Array.from(document.querySelectorAll('.cl-card'));
+            const noResults = document.getElementById('noResults');
+
+            function applyFilters() {
+                if (!cards.length) return;
+                const q = (searchInput?.value || '').trim().toLowerCase();
+                let visibleCount = 0;
+
+                cards.forEach((card) => {
+                    const name = (card.dataset.name || '').toLowerCase();
+                    const location = (card.dataset.location || '').toLowerCase();
+
+                    const show = !q || name.includes(q) || location.includes(q);
+                    card.style.display = show ? '' : 'none';
+                    if (show) visibleCount++;
+                });
+
+                if (noResults) noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+            }
+
+            searchInput?.addEventListener('input', applyFilters);
+
+            function openModal(id) {
+                const modal = document.getElementById(id);
+                if (!modal) return;
+                modal.classList.add('is-open');
+                modal.setAttribute('aria-hidden', 'false');
+            }
+
+            function closeModal(id) {
+                const modal = document.getElementById(id);
+                if (!modal) return;
+                modal.classList.remove('is-open');
+                modal.setAttribute('aria-hidden', 'true');
+            }
+
+            document.querySelectorAll('[data-close]').forEach((el) => {
+                el.addEventListener('click', function () {
+                    closeModal(this.dataset.close);
+                });
+            });
+
+            const membersModalTitle = document.getElementById('membersModalTitle');
+            const membersModalList = document.getElementById('membersModalList');
+            document.querySelectorAll('.js-open-members').forEach((btn) => {
+                btn.addEventListener('click', function () {
+                    const title = this.dataset.title || 'Members';
+                    const empty = this.dataset.empty || 'No members found.';
+                    const membersRaw = this.dataset.members || '';
+                    const members = membersRaw.split(';;').map(m => m.trim()).filter(Boolean);
+
+                    membersModalTitle.textContent = title;
+                    membersModalList.innerHTML = '';
+
+                    if (!members.length) {
+                        const li = document.createElement('li');
+                        li.textContent = empty;
+                        li.className = 'is-empty';
+                        membersModalList.appendChild(li);
+                    } else {
+                        members.forEach(name => {
+                            const li = document.createElement('li');
+                            li.innerHTML = `<i class="fas fa-user"></i><span>${name}</span>`;
+                            membersModalList.appendChild(li);
+                        });
+                    }
+
+                    openModal('membersModal');
+                });
+            });
+
+            const editClinicId = document.getElementById('editClinicId');
+            const editClinicName = document.getElementById('editClinicName');
+            const editClinicLocation = document.getElementById('editClinicLocation');
+            document.querySelectorAll('.js-open-edit-modal').forEach((btn) => {
+                btn.addEventListener('click', function () {
+                    editClinicId.value = this.dataset.clinicId || '';
+                    editClinicName.value = this.dataset.clinicName || '';
+                    editClinicLocation.value = this.dataset.clinicLocation || '';
+                    openModal('editClinicModal');
+                });
+            });
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    closeModal('membersModal');
+                    closeModal('editClinicModal');
+                }
+            });
+        });
+    </script>
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/doctor-clinics.css" asp-append-version="true" />
+}

@@ -1,6 +1,8 @@
 @using System.Globalization
 @using System.Linq
 @using System.Security.Claims
+@using Graduation_Project.Models
+@inject Graduation_Project.Data.AppDbContext DbContext
 <!doctype html>
 <html lang="en">
 <head>
@@ -20,6 +22,29 @@
 </head>
 @{
     var layoutPatientId = ViewData["PatientId"] as int? ?? 0;
+    var userId = User?.FindFirstValue(ClaimTypes.NameIdentifier);
+    if (layoutPatientId <= 0 && !string.IsNullOrWhiteSpace(userId))
+    {
+        layoutPatientId = DbContext.Patients
+            .Where(p => p.UserID == userId)
+            .Select(p => p.PatientID)
+            .FirstOrDefault();
+    }
+
+    var pendingRiskAlerts = layoutPatientId > 0
+        ? DbContext.Alerts
+            .Where(a => a.PatientID == layoutPatientId
+                        && !a.IsRead
+                        && !string.IsNullOrWhiteSpace(a.AlertType)
+                        && (a.AlertType.ToLower() == "danger"
+                            || a.AlertType.ToLower() == "critical"
+                            || a.AlertType.ToLower() == "warning"))
+            .OrderByDescending(a => a.DateCreated)
+            .ToList()
+        : new List<Alert>();
+
+    var hasPendingRiskAlerts = pendingRiskAlerts.Count > 0;
+
     var layoutUserName = (ViewData["UserName"] as string)?.Trim()
         ?? User?.FindFirstValue(ClaimTypes.GivenName)
         ?? User?.FindFirst("FirstName")?.Value
@@ -95,6 +120,30 @@
 
 </div>
 
+@if (hasPendingRiskAlerts)
+{
+    <div class="risk-ack-overlay" id="riskAckOverlay" role="dialog" aria-modal="true" aria-labelledby="riskAckTitle">
+        <div class="risk-ack-modal">
+            <div class="risk-ack-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <h3 id="riskAckTitle">Risk Alert Detected</h3>
+            <p class="risk-ack-sub">Please review these alerts carefully. This notice will stay visible until you confirm acknowledgment.</p>
+
+            <div class="risk-ack-list">
+                @foreach (var alert in pendingRiskAlerts)
+                {
+                    <div class="risk-ack-item">
+                        <div class="risk-ack-item-title">@alert.Title</div>
+                        <div class="risk-ack-item-msg">@alert.Message</div>
+                        <div class="risk-ack-item-time">@alert.DateCreated.ToString("g")</div>
+                    </div>
+                }
+            </div>
+
+            <button type="button" class="risk-ack-btn" id="ackRiskAlertsBtn">I Acknowledge</button>
+        </div>
+    </div>
+}
+
 <div class="pp-notif-overlay" id="patientNotificationOverlay"></div>
 
 <aside class="pp-notif-panel" id="patientNotificationPanel" aria-hidden="true">
@@ -115,6 +164,239 @@
 
 <script src="~/js/shared.js" asp-append-version="true"></script>
 <script src="~/js/patient-notifications.js" asp-append-version="true"></script>
+<script>
+(() => {
+    const antiforgeryTokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+    const antiforgeryToken = antiforgeryTokenInput ? antiforgeryTokenInput.value : '';
+    const patientId = parseInt(document.body?.dataset?.patientId || '0', 10);
+    const riskOverlayId = 'riskAckOverlay';
+
+    if (!patientId) return;
+
+    function escapeHtml(text) {
+        return String(text ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function getOverlay() {
+        return document.getElementById(riskOverlayId);
+    }
+
+    function closeOverlay() {
+        getOverlay()?.remove();
+        document.body.classList.remove('risk-ack-open');
+    }
+
+    async function acknowledgeRiskAlerts() {
+        if (!antiforgeryToken) return;
+
+        const ackRiskAlertsBtn = document.getElementById('ackRiskAlertsBtn');
+        if (!ackRiskAlertsBtn) return;
+
+        ackRiskAlertsBtn.disabled = true;
+        try {
+            const fd = new FormData();
+            fd.append('patientId', patientId);
+            fd.append('__RequestVerificationToken', antiforgeryToken);
+
+            const response = await fetch('/Patient/AcknowledgeRiskAlerts', { method: 'POST', body: fd });
+            if (!response.ok) throw new Error();
+
+            const result = await response.json();
+            if (!result.success) throw new Error();
+
+            closeOverlay();
+        } catch {
+            ackRiskAlertsBtn.disabled = false;
+        }
+    }
+
+    function renderOverlay(alerts) {
+        if (!alerts || alerts.length === 0) {
+            closeOverlay();
+            return;
+        }
+
+        let overlay = getOverlay();
+        const itemsHtml = alerts
+            .map(alert => `
+                <div class="risk-ack-item">
+                    <div class="risk-ack-item-title">${escapeHtml(alert.title)}</div>
+                    <div class="risk-ack-item-msg">${escapeHtml(alert.message)}</div>
+                    <div class="risk-ack-item-time">${escapeHtml(alert.dateCreated)}</div>
+                </div>`)
+            .join('');
+
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = riskOverlayId;
+            overlay.className = 'risk-ack-overlay';
+            overlay.setAttribute('role', 'dialog');
+            overlay.setAttribute('aria-modal', 'true');
+            overlay.setAttribute('aria-labelledby', 'riskAckTitle');
+            overlay.innerHTML = `
+                <div class="risk-ack-modal">
+                    <div class="risk-ack-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                    <h3 id="riskAckTitle">Risk Alert Detected</h3>
+                    <p class="risk-ack-sub">Please review these alerts carefully. This notice will stay visible until you confirm acknowledgment.</p>
+                    <div class="risk-ack-list" id="riskAckList"></div>
+                    <button type="button" class="risk-ack-btn" id="ackRiskAlertsBtn">I Acknowledge</button>
+                </div>`;
+            document.body.appendChild(overlay);
+            document.getElementById('ackRiskAlertsBtn')?.addEventListener('click', acknowledgeRiskAlerts);
+        }
+
+        const list = document.getElementById('riskAckList') ?? overlay.querySelector('.risk-ack-list');
+        if (list) list.innerHTML = itemsHtml;
+
+        document.body.classList.add('risk-ack-open');
+    }
+
+    async function refreshPatientRiskAlerts() {
+        try {
+            const response = await fetch(`/Patient/GetPendingRiskAlerts?patientId=${patientId}`, {
+                method: 'GET',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!response.ok) return;
+
+            const result = await response.json();
+            if (!result?.success) return;
+
+            renderOverlay(result.alerts || []);
+        } catch {
+        }
+    }
+
+    window.refreshPatientRiskAlerts = refreshPatientRiskAlerts;
+
+    const existingAckBtn = document.getElementById('ackRiskAlertsBtn');
+    existingAckBtn?.addEventListener('click', acknowledgeRiskAlerts);
+
+    if (getOverlay()) {
+        const existingList = document.querySelector('#riskAckOverlay .risk-ack-list');
+        if (existingList && !existingList.id) {
+            existingList.id = 'riskAckList';
+        }
+        document.body.classList.add('risk-ack-open');
+    }
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && document.body.classList.contains('risk-ack-open')) {
+            event.preventDefault();
+        }
+    });
+
+    refreshPatientRiskAlerts();
+    setInterval(refreshPatientRiskAlerts, 15000);
+})();
+</script>
+<style>
+body.risk-ack-open {
+    overflow: hidden;
+}
+
+.risk-ack-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    background: rgba(2, 12, 27, 0.62);
+    backdrop-filter: blur(3px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.risk-ack-modal {
+    width: min(680px, 100%);
+    max-height: 88vh;
+    overflow: auto;
+    border-radius: 16px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.26);
+    padding: 24px;
+}
+
+.risk-ack-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #fef3c7;
+    color: #b45309;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    margin-bottom: 12px;
+}
+
+.risk-ack-modal h3 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 1.2rem;
+}
+
+.risk-ack-sub {
+    color: #475569;
+    margin: 8px 0 16px;
+    font-size: .92rem;
+}
+
+.risk-ack-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.risk-ack-item {
+    border-left: 4px solid #ef4444;
+    background: #fff5f5;
+    border-radius: 10px;
+    padding: 12px;
+}
+
+.risk-ack-item-title {
+    font-size: .88rem;
+    font-weight: 700;
+    color: #7f1d1d;
+}
+
+.risk-ack-item-msg {
+    margin-top: 4px;
+    font-size: .84rem;
+    color: #991b1b;
+}
+
+.risk-ack-item-time {
+    margin-top: 6px;
+    font-size: .72rem;
+    color: #64748b;
+}
+
+.risk-ack-btn {
+    width: 100%;
+    border: 0;
+    border-radius: 10px;
+    padding: 11px 14px;
+    background: linear-gradient(90deg, #1BAEBE 0%, #138fa0 100%);
+    color: #fff;
+    font-weight: 700;
+    font-size: .9rem;
+    cursor: pointer;
+}
+
+.risk-ack-btn:disabled {
+    opacity: .65;
+    cursor: not-allowed;
+}
+</style>
 @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

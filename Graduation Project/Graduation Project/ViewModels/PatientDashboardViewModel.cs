@@ -34,6 +34,11 @@ namespace Graduation_Project.ViewModels
 
         // Health alerts (critical / dangerous conditions needing attention)
         public List<Alert> HealthAlerts { get; set; } = new();
+
+        // Unacknowledged risk alerts shown in blocking acknowledgement popup
+        public List<Alert> PendingRiskAlerts { get; set; } = new();
+
+        public bool HasPendingRiskAlerts => PendingRiskAlerts.Count > 0;
     }
 
     public class PatientMessagesViewModel

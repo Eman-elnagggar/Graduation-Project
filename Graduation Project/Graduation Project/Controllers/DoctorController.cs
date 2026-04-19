@@ -554,6 +554,14 @@ namespace Graduation_Project.Controllers
             if (accessResult != null)
                 return accessResult;
 
+            var linkedClinics = _context.ClinicDoctors
+                .Where(cd => cd.DoctorID == doctor!.DoctorID)
+                .Select(cd => cd.Clinic)
+                .OrderBy(c => c.Name)
+                .ToList();
+
+            var linkedClinicIds = linkedClinics.Select(c => c.ClinicID).ToList();
+
             var assistantIds = _context.AssistantDoctors
                 .Where(ad => ad.DoctorID == doctor.DoctorID)
                 .Select(ad => ad.AssistantID)
@@ -561,8 +569,27 @@ namespace Graduation_Project.Controllers
 
             var assistants = _context.Assistants
                 .Include(a => a.User)
-                .Where(a => assistantIds.Contains(a.AssistantID))
+                .Include(a => a.Clinic)
+                .Where(a => assistantIds.Contains(a.AssistantID)
+                         && a.ClinicID.HasValue
+                         && linkedClinicIds.Contains(a.ClinicID.Value))
                 .OrderBy(a => a.User.FirstName)
+                .ToList();
+
+            var pendingInvitations = _context.ClinicInvitations
+                .Include(ci => ci.Clinic)
+                .Include(ci => ci.Assistant).ThenInclude(a => a.User)
+                .Where(ci => ci.DoctorID == doctor.DoctorID && ci.Status == "Pending")
+                .OrderByDescending(ci => ci.SentAtUtc)
+                .Select(ci => new PendingInvitationViewModel
+                {
+                    InvitationID = ci.ClinicInvitationID,
+                    Email = ci.AssistantEmail,
+                    SentAt = ci.SentAtUtc.ToLocalTime(),
+                    ClinicID = ci.ClinicID,
+                    ClinicName = ci.Clinic.Name,
+                    AssistantName = ((ci.Assistant.User.FirstName ?? string.Empty) + " " + (ci.Assistant.User.LastName ?? string.Empty)).Trim()
+                })
                 .ToList();
 
             var vm = new DoctorClinicTeamViewModel
@@ -570,10 +597,220 @@ namespace Graduation_Project.Controllers
                 Doctor = doctor,
                 DoctorName = BuildDoctorName(doctor),
                 Assistants = assistants,
-                PendingInvitations = new List<PendingInvitationViewModel>()
+                PendingInvitations = pendingInvitations,
+                LinkedClinics = linkedClinics
             };
 
             return View(vm);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult InviteAssistant(int doctorId, string assistantEmail, int clinicId)
+        {
+            var accessResult = TryResolveDoctor(doctorId, out var doctor);
+            if (accessResult != null)
+                return accessResult;
+
+            if (string.IsNullOrWhiteSpace(assistantEmail))
+            {
+                TempData["InviteError"] = "Assistant email is required.";
+                return RedirectToAction(nameof(ClinicTeam), new { id = doctor!.DoctorID });
+            }
+
+            var clinic = _context.ClinicDoctors
+                .Include(cd => cd.Clinic)
+                .Where(cd => cd.DoctorID == doctor!.DoctorID && cd.ClinicID == clinicId)
+                .Select(cd => cd.Clinic)
+                .FirstOrDefault();
+
+            if (clinic == null)
+            {
+                TempData["InviteError"] = "Please select a valid clinic linked to your account.";
+                return RedirectToAction(nameof(ClinicTeam), new { id = doctor.DoctorID });
+            }
+
+            var normalizedEmail = assistantEmail.Trim().ToLowerInvariant();
+
+            var assistant = _context.Assistants
+                .Include(a => a.User)
+                .FirstOrDefault(a => a.User.Email != null && a.User.Email.ToLower() == normalizedEmail);
+
+            if (assistant == null)
+            {
+                TempData["InviteError"] = "No assistant account found with this email.";
+                return RedirectToAction(nameof(ClinicTeam), new { id = doctor.DoctorID });
+            }
+
+            // Removed hard restriction: assistant can be invited even when not currently assigned to the selected clinic.
+
+            var exists = _context.AssistantDoctors.Any(ad =>
+                ad.DoctorID == doctor.DoctorID && ad.AssistantID == assistant.AssistantID);
+            if (exists)
+            {
+                TempData["InviteError"] = "Assistant is already linked to your clinic team.";
+                return RedirectToAction(nameof(ClinicTeam), new { id = doctor.DoctorID });
+            }
+
+            var pendingExists = _context.ClinicInvitations.Any(ci =>
+                ci.DoctorID == doctor.DoctorID
+                && ci.ClinicID == clinicId
+                && ci.AssistantID == assistant.AssistantID
+                && ci.Status == "Pending");
+
+            if (pendingExists)
+            {
+                TempData["InviteError"] = "A pending invitation already exists for this assistant in the selected clinic.";
+                return RedirectToAction(nameof(ClinicTeam), new { id = doctor.DoctorID });
+            }
+
+            _context.ClinicInvitations.Add(new ClinicInvitation
+            {
+                DoctorID = doctor.DoctorID,
+                ClinicID = clinicId,
+                AssistantID = assistant.AssistantID,
+                AssistantEmail = assistant.User.Email ?? normalizedEmail,
+                Status = "Pending",
+                SentAtUtc = DateTime.UtcNow
+            });
+            _context.SaveChanges();
+
+            TempData["InviteSuccess"] = "Invitation sent successfully. Assistant must accept it first.";
+            return RedirectToAction(nameof(ClinicTeam), new { id = doctor.DoctorID });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult RemoveAssistant(int doctorId, int assistantId)
+        {
+            var accessResult = TryResolveDoctor(doctorId, out var doctor);
+            if (accessResult != null)
+                return accessResult;
+
+            var doctorClinicIds = _context.ClinicDoctors
+                .Where(cd => cd.DoctorID == doctor!.DoctorID)
+                .Select(cd => cd.ClinicID)
+                .ToList();
+
+            var assistant = _context.Assistants.FirstOrDefault(a => a.AssistantID == assistantId);
+            if (assistant == null
+                || !assistant.ClinicID.HasValue
+                || !doctorClinicIds.Contains(assistant.ClinicID.Value))
+            {
+                TempData["InviteError"] = "Assistant not found in your linked clinics.";
+                return RedirectToAction(nameof(ClinicTeam), new { id = doctor.DoctorID });
+            }
+
+            var link = _context.AssistantDoctors
+                .FirstOrDefault(ad => ad.DoctorID == doctor.DoctorID && ad.AssistantID == assistantId);
+
+            if (link != null)
+            {
+                _context.AssistantDoctors.Remove(link);
+                _context.SaveChanges();
+                TempData["InviteSuccess"] = "Assistant removed from your clinic team.";
+            }
+
+            return RedirectToAction(nameof(ClinicTeam), new { id = doctor.DoctorID });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult CancelInvitation(int invitationId, int id)
+        {
+            var accessResult = TryResolveDoctor(id, out var doctor);
+            if (accessResult != null)
+                return accessResult;
+
+            var invitation = _context.ClinicInvitations
+                .FirstOrDefault(ci => ci.ClinicInvitationID == invitationId && ci.DoctorID == doctor!.DoctorID);
+
+            if (invitation == null)
+            {
+                TempData["InviteError"] = "Invitation not found.";
+                return RedirectToAction(nameof(ClinicTeam), new { id = doctor.DoctorID });
+            }
+
+            if (!string.Equals(invitation.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+            {
+                TempData["InviteError"] = "Only pending invitations can be cancelled.";
+                return RedirectToAction(nameof(ClinicTeam), new { id = doctor.DoctorID });
+            }
+
+            invitation.Status = "Cancelled";
+            invitation.RespondedAtUtc = DateTime.UtcNow;
+            invitation.ResponseMessage = "Cancelled by doctor";
+            _context.SaveChanges();
+
+            TempData["InviteSuccess"] = "Invitation cancelled successfully.";
+            return RedirectToAction(nameof(ClinicTeam), new { id = doctor.DoctorID });
+        }
+
+        public IActionResult Clinics(int id = 0)
+        {
+            var accessResult = TryResolveDoctor(id, out var doctor);
+            if (accessResult != null)
+                return accessResult;
+
+            var clinics = _context.Clinics
+                .Include(c => c.ClinicDoctors)
+                    .ThenInclude(cd => cd.Doctor)
+                        .ThenInclude(d => d.User)
+                .Include(c => c.Assistants)
+                    .ThenInclude(a => a.User)
+                .Where(c => c.ClinicDoctors.Any(cd => cd.DoctorID == doctor!.DoctorID))
+                .OrderBy(c => c.Name)
+                .ToList();
+
+            var linkedClinicIds = clinics
+                .Select(c => c.ClinicID)
+                .ToHashSet();
+
+            var vm = new DoctorClinicsViewModel
+            {
+                Doctor = doctor!,
+                DoctorName = BuildDoctorName(doctor!),
+                Clinics = clinics,
+                LinkedClinicIds = linkedClinicIds
+            };
+
+            return View(vm);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult UpdateClinicDetails(int doctorId, int clinicId, string clinicName, string clinicLocation)
+        {
+            var accessResult = TryResolveDoctor(doctorId, out var doctor);
+            if (accessResult != null)
+                return accessResult;
+
+            var normalizedName = (clinicName ?? string.Empty).Trim();
+            var normalizedLocation = (clinicLocation ?? string.Empty).Trim();
+
+            if (string.IsNullOrWhiteSpace(normalizedName) || string.IsNullOrWhiteSpace(normalizedLocation))
+            {
+                TempData["ClinicError"] = "Clinic name and location are required.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor!.DoctorID });
+            }
+
+            var clinic = _context.ClinicDoctors
+                .Where(cd => cd.DoctorID == doctor!.DoctorID && cd.ClinicID == clinicId)
+                .Select(cd => cd.Clinic)
+                .FirstOrDefault();
+
+            if (clinic == null)
+            {
+                TempData["ClinicError"] = "Clinic not found or not linked to your account.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor.DoctorID });
+            }
+
+            clinic.Name = normalizedName;
+            clinic.Location = normalizedLocation;
+            _context.SaveChanges();
+
+            TempData["ClinicSuccess"] = "Clinic details updated successfully.";
+            return RedirectToAction(nameof(Clinics), new { id = doctor.DoctorID });
         }
 
         public IActionResult Analytics(int id = 0)
@@ -1235,78 +1472,6 @@ namespace Graduation_Project.Controllers
             _context.SaveChanges();
 
             return RedirectToAction(nameof(PatientDetails), new { id = doctor.DoctorID, patientId });
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult InviteAssistant(int doctorId, string assistantEmail)
-        {
-            var accessResult = TryResolveDoctor(doctorId, out var doctor);
-            if (accessResult != null)
-                return accessResult;
-
-            if (string.IsNullOrWhiteSpace(assistantEmail))
-            {
-                TempData["InviteError"] = "Assistant email is required.";
-                return RedirectToAction(nameof(ClinicTeam), new { id = doctor!.DoctorID });
-            }
-
-            var assistant = _context.Assistants
-                .Include(a => a.User)
-                .FirstOrDefault(a => a.User.Email == assistantEmail.Trim());
-
-            if (assistant == null)
-            {
-                TempData["InviteError"] = "No assistant account found with this email.";
-                return RedirectToAction(nameof(ClinicTeam), new { id = doctor!.DoctorID });
-            }
-
-            var exists = _context.AssistantDoctors.Any(ad =>
-                ad.DoctorID == doctor!.DoctorID && ad.AssistantID == assistant.AssistantID);
-            if (exists)
-            {
-                TempData["InviteError"] = "Assistant is already linked to your clinic team.";
-                return RedirectToAction(nameof(ClinicTeam), new { id = doctor.DoctorID });
-            }
-
-            _context.AssistantDoctors.Add(new AssistantDoctor
-            {
-                DoctorID = doctor.DoctorID,
-                AssistantID = assistant.AssistantID
-            });
-            _context.SaveChanges();
-
-            TempData["InviteSuccess"] = "Assistant added to clinic team successfully.";
-            return RedirectToAction(nameof(ClinicTeam), new { id = doctor.DoctorID });
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult RemoveAssistant(int doctorId, int assistantId)
-        {
-            var accessResult = TryResolveDoctor(doctorId, out var doctor);
-            if (accessResult != null)
-                return accessResult;
-
-            var link = _context.AssistantDoctors
-                .FirstOrDefault(ad => ad.DoctorID == doctor!.DoctorID && ad.AssistantID == assistantId);
-
-            if (link != null)
-            {
-                _context.AssistantDoctors.Remove(link);
-                _context.SaveChanges();
-                TempData["InviteSuccess"] = "Assistant removed from your clinic team.";
-            }
-
-            return RedirectToAction(nameof(ClinicTeam), new { id = doctor!.DoctorID });
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult CancelInvitation(int invitationId, int id)
-        {
-            TempData["InviteError"] = "Invitation cancellation is not available yet.";
-            return RedirectToAction(nameof(ClinicTeam), new { id });
         }
 
         public IActionResult EditProfile(int id)
