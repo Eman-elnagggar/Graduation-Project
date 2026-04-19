@@ -755,6 +755,7 @@ namespace Graduation_Project.Controllers
                     .ThenInclude(cd => cd.Doctor)
                         .ThenInclude(d => d.User)
                 .Include(c => c.Assistants)
+                    .ThenInclude(a => a.User)
                 .Where(c => c.ClinicDoctors.Any(cd => cd.DoctorID == doctor!.DoctorID))
                 .OrderBy(c => c.Name)
                 .ToList();

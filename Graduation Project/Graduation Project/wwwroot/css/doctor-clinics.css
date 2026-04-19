@@ -1,5 +1,3 @@
-File: Graduation Project\wwwroot\css\doctor-clinics.css
-````````css
 .card {
   animation: sectionFadeUp 0.45s ease;
 }
@@ -684,4 +682,116 @@ File: Graduation Project\wwwroot\css\doctor-clinics.css
   .cl-toolbar {
     gap: 0.5rem;
   }
+}
+
+.cl-stat-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-weight: 500;
+  cursor: pointer;
+  font-size: 0.81rem;
+  transition: all 0.2s;
+}
+
+.cl-stat-link i {
+  color: var(--doctor-primary);
+}
+
+.cl-stat-link:hover {
+  border-color: rgba(20, 150, 127, 0.35);
+  background: var(--doctor-primary-light);
+  color: var(--doctor-primary);
+}
+
+.cl-modal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  z-index: 1200;
+}
+
+.cl-modal.is-open {
+  display: block;
+}
+
+.cl-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.cl-modal-content {
+  position: relative;
+  width: min(640px, calc(100% - 2rem));
+  margin: 7vh auto;
+  background: #fff;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.2);
+  max-height: 86vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.cl-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.15rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.cl-modal-header h4 {
+  margin: 0;
+  font-size: 1.02rem;
+}
+
+.cl-modal-close {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.cl-modal-body {
+  padding: 1rem 1.15rem;
+  overflow: auto;
+}
+
+.cl-members-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.cl-members-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.62rem 0.72rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.cl-members-list li i {
+  color: var(--doctor-primary);
+}
+
+.cl-members-list li.is-empty {
+  color: var(--text-secondary);
+  justify-content: center;
 }
