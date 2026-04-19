@@ -42,7 +42,7 @@ namespace Graduation_Project.Controllers
 
             var appointments = _context.Appointments
                 .Include(a => a.Patient).ThenInclude(p => p.User)
-                .Include(a => a.Booking)
+                .Include(a => a.Bookings)
                 .Where(a => a.DoctorID == doctor.DoctorID)
                 .ToList();
 
@@ -820,7 +820,7 @@ namespace Graduation_Project.Controllers
                 .ToList();
 
             var appointmentHistory = _context.Appointments
-                .Include(a => a.Booking)
+                .Include(a => a.Bookings)
                 .Where(a => a.PatientID == patientId && a.DoctorID == doctor.DoctorID)
                 .OrderByDescending(a => a.Date)
                 .ThenByDescending(a => a.Time)
