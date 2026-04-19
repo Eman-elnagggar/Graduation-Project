@@ -49,6 +49,12 @@
                 <div class="nav-icon"><i class="fas fa-calendar-alt"></i></div>
                 <span>Appointments</span>
             </a>
+            <a href="/Assistant/Patients/@assistantId"
+               class="nav-item @(activePage == "Patients" ? "active" : "")"
+               data-tooltip="Patients">
+                <div class="nav-icon"><i class="fas fa-users"></i></div>
+                <span>Patients</span>
+            </a>
             <a href="/Assistant/Messages/@assistantId"
                class="nav-item @(activePage == "Messages" ? "active" : "")"
                data-tooltip="Messages">
