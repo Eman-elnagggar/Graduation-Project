@@ -304,8 +304,10 @@
                         </div>
                     </div>
                     <div class="chart-legend">
-                        <span><span class="legend-dot sys"></span>Systolic</span>
-                        <span><span class="legend-dot dia"></span>Diastolic</span>
+                        <span><span class="legend-dot low"></span>Low</span>
+                        <span><span class="legend-dot normal"></span>Normal</span>
+                        <span><span class="legend-dot elevated"></span>Elevated</span>
+                        <span><span class="legend-dot high"></span>High</span>
                     </div>
                 </div>
                 @{
@@ -396,7 +398,10 @@
                         </div>
                     </div>
                     <div class="chart-legend">
-                        <span><span class="legend-dot bs"></span>Blood Sugar</span>
+                        <span><span class="legend-dot low"></span>Low</span>
+                        <span><span class="legend-dot normal"></span>Normal</span>
+                        <span><span class="legend-dot elevated"></span>Elevated</span>
+                        <span><span class="legend-dot high"></span>High</span>
                     </div>
                 </div>
                 @{
@@ -1469,11 +1474,13 @@ document.addEventListener('DOMContentLoaded', function () {
 .pd-wrap .book-new-appt-btn:hover { filter: brightness(.98); }
 
 /* ── WEEKLY CHART ── */
-.pd-wrap .chart-legend { display: flex; gap: 12px; font-size: .72rem; color: var(--text-3); }
-.pd-wrap .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 3px; }
-.pd-wrap .legend-dot.sys { background: var(--p); }
-.pd-wrap .legend-dot.dia { background: var(--p-lt); }
-.pd-wrap .legend-dot.bs { background: var(--pink); }
+.pd-wrap .chart-legend { display: flex; gap: 10px; font-size: .72rem; color: var(--text-3); flex-wrap: wrap; }
+.pd-wrap .chart-legend span { display: inline-flex; align-items: center; }
+.pd-wrap .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; }
+.pd-wrap .legend-dot.low { background: #3b82f6; }
+.pd-wrap .legend-dot.normal { background: #22c55e; }
+.pd-wrap .legend-dot.elevated { background: #f59e0b; }
+.pd-wrap .legend-dot.high { background: #ef4444; }
 .pd-wrap .week-chart { padding: 16px 20px 12px; display: flex; flex-direction: column; gap: 12px; }
 .pd-wrap .week-chart-bars { display: flex; align-items: flex-end; gap: 5px; height: 64px; }
 .pd-wrap .wbar {
