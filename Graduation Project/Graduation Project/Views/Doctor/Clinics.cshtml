@@ -1,0 +1,287 @@
+@model DoctorClinicsViewModel
+@{
+    Layout = "~/Views/Shared/_DoctorLayout.cshtml";
+    ViewData["Title"] = "Clinics";
+    ViewData["ActivePage"] = "Clinics";
+    ViewData["DoctorId"] = Model.Doctor.DoctorID;
+    ViewData["DoctorName"] = Model.DoctorName;
+    ViewData["PageTitle"] = "Clinics";
+    ViewData["PageSubtitle"] = "Create clinics and manage your linked locations";
+
+    var clinicList = Model.Clinics.ToList();
+    var totalClinics = clinicList.Count;
+    var linkedClinics = Model.LinkedClinicIds.Count;
+    var unlinkedClinics = totalClinics - linkedClinics;
+    var totalDoctorsInClinics = clinicList.Sum(c => c.ClinicDoctors?.Count ?? 0);
+    var hasError = TempData["ClinicError"] != null;
+}
+
+<section class="doctor-hero card">
+    <div class="doctor-hero-content">
+        <div class="doctor-hero-icon"><i class="fas fa-clinic-medical"></i></div>
+        <div>
+            <h2>Clinic Management Hub</h2>
+            <p>Create new clinics and review all registered clinics in one place.</p>
+        </div>
+    </div>
+    <span class="doctor-hero-chip"><i class="fas fa-shield-heart"></i> Doctor Portal</span>
+</section>
+
+<section class="cl-stats-row" id="statsRow">
+    <article class="cl-stat-card">
+        <div class="cl-stat-icon blue"><i class="fas fa-hospital"></i></div>
+        <div style="flex:1">
+            <h3><span class="count-num" data-target="@totalClinics">0</span></h3>
+            <p>Total Clinics</p>
+            <div class="cl-stat-progress"><div class="cl-stat-progress-fill" data-w="100%"></div></div>
+        </div>
+    </article>
+
+    <article class="cl-stat-card">
+        <div class="cl-stat-icon green"><i class="fas fa-link"></i></div>
+        <div style="flex:1">
+            <h3><span class="count-num" data-target="@linkedClinics">0</span></h3>
+            <p>Linked to You</p>
+            <div class="cl-stat-progress"><div class="cl-stat-progress-fill is-linked" data-w="@(totalClinics == 0 ? 0 : Math.Round((double)linkedClinics / totalClinics * 100))%"></div></div>
+        </div>
+    </article>
+
+    <article class="cl-stat-card">
+        <div class="cl-stat-icon amber"><i class="fas fa-map-marker-alt"></i></div>
+        <div style="flex:1">
+            <h3><span class="count-num" data-target="@unlinkedClinics">0</span></h3>
+            <p>Available Clinics</p>
+            <div class="cl-stat-progress"><div class="cl-stat-progress-fill is-muted" data-w="@(totalClinics == 0 ? 0 : Math.Round((double)unlinkedClinics / totalClinics * 100))%"></div></div>
+        </div>
+    </article>
+
+    <article class="cl-stat-card">
+        <div class="cl-stat-icon red"><i class="fas fa-user-md"></i></div>
+        <div style="flex:1">
+            <h3><span class="count-num" data-target="@totalDoctorsInClinics">0</span></h3>
+            <p>Total Doctor Links</p>
+            <div class="cl-stat-progress"><div class="cl-stat-progress-fill" data-w="80%"></div></div>
+        </div>
+    </article>
+</section>
+
+<section class="card">
+    <div class="card-header cl-create-toggle" id="createToggle" role="button" tabindex="0" aria-expanded="false" aria-controls="createBody">
+        <h3><i class="fas fa-plus-circle" id="createToggleIcon"></i> Create New Clinic</h3>
+        <span class="cl-head-sub">Click to open / collapse form</span>
+    </div>
+
+    @if (TempData["ClinicSuccess"] != null)
+    {
+        <div class="privacy-notice cl-msg cl-msg-success">
+            <i class="fas fa-check-circle"></i>
+            <p>@TempData["ClinicSuccess"]</p>
+        </div>
+    }
+
+    @if (TempData["ClinicError"] != null)
+    {
+        <div class="privacy-notice cl-msg cl-msg-error">
+            <i class="fas fa-exclamation-triangle"></i>
+            <p>@TempData["ClinicError"]</p>
+        </div>
+    }
+
+    <div class="cl-create-body" id="createBody">
+        @using (Html.BeginForm("CreateClinic", "Doctor", FormMethod.Post, new { @class = "clinic-form" }))
+        {
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="doctorId" value="@Model.Doctor.DoctorID" />
+
+            <div class="cl-form-grid">
+                <div class="form-group">
+                    <label for="clinicName"><i class="fas fa-signature"></i> Clinic Name</label>
+                    <input id="clinicName" name="clinicName" class="form-input" maxlength="120" placeholder="e.g. Care Women Clinic" required />
+                </div>
+
+                <div class="form-group">
+                    <label for="clinicLocation"><i class="fas fa-map-marker-alt"></i> Clinic Location</label>
+                    <input id="clinicLocation" name="clinicLocation" class="form-input" maxlength="200" placeholder="e.g. 22 Nasr City, Cairo" required />
+                </div>
+            </div>
+
+            <div class="cl-form-actions">
+                <button type="reset" class="btn btn-outline btn-pill"><i class="fas fa-rotate-right"></i> Reset</button>
+                <button type="submit" class="btn btn-primary btn-pill"><i class="fas fa-save"></i> Save Changes</button>
+            </div>
+        }
+    </div>
+</section>
+
+<section class="card">
+    <div class="card-header">
+        <h3><i class="fas fa-hospital"></i> Existing Clinics</h3>
+        <span class="cl-count-chip" id="countChip">@totalClinics total · @linkedClinics linked to you</span>
+    </div>
+
+    <div class="cl-toolbar">
+        <div class="cl-search-wrap">
+            <i class="fas fa-search"></i>
+            <input type="text" class="cl-search-input" id="searchInput" placeholder="Search clinics by name or location…" />
+        </div>
+        <button class="cl-filter-btn active" data-filter="all" type="button"><i class="fas fa-th-large"></i> All</button>
+        <button class="cl-filter-btn" data-filter="linked" type="button"><i class="fas fa-link"></i> Linked</button>
+        <button class="cl-filter-btn" data-filter="available" type="button"><i class="fas fa-map-marker-alt"></i> Available</button>
+    </div>
+
+    @if (!clinicList.Any())
+    {
+        <div class="empty-state" style="padding:2rem;">
+            <i class="fas fa-clinic-medical"></i>
+            <h3>No clinics yet</h3>
+            <p>Create your first clinic using the form above.</p>
+        </div>
+    }
+    else
+    {
+        <div class="cl-grid" id="clinicGrid">
+            @for (int i = 0; i < clinicList.Count; i++)
+            {
+                var clinic = clinicList[i];
+                var doctorsCount = clinic.ClinicDoctors?.Count ?? 0;
+                var assistantsCount = clinic.Assistants?.Count ?? 0;
+                var isMine = Model.LinkedClinicIds.Contains(clinic.ClinicID);
+                var doctorNames = clinic.ClinicDoctors?
+                    .Where(cd => cd.Doctor?.User != null)
+                    .Take(2)
+                    .Select(cd => $"Dr. {cd.Doctor!.User!.FirstName} {cd.Doctor.User.LastName}")
+                    .ToList() ?? new List<string>();
+
+                <article class="cl-card" data-name="@clinic.Name" data-location="@clinic.Location" data-linked="@(isMine ? "true" : "false")" style="animation-delay:@(i * 0.06)s">
+                    <div class="cl-card-top">
+                        <div class="cl-icon"><i class="fas fa-clinic-medical"></i></div>
+                        @if (isMine)
+                        {
+                            <span class="cl-badge"><i class="fas fa-check-circle"></i> Linked to you</span>
+                        }
+                    </div>
+
+                    <h4>@clinic.Name</h4>
+                    <p class="cl-location"><i class="fas fa-map-marker-alt"></i> @clinic.Location</p>
+
+                    @if (doctorNames.Any())
+                    {
+                        <p class="cl-doctors-preview">
+                            <i class="fas fa-user-md"></i>
+                            @string.Join(" • ", doctorNames)
+                            @if (doctorsCount > doctorNames.Count)
+                            {
+                                <span>+@(doctorsCount - doctorNames.Count) more</span>
+                            }
+                        </p>
+                    }
+
+                    <div class="cl-stats">
+                        <span><i class="fas fa-user-md"></i> @doctorsCount doctor@(doctorsCount != 1 ? "s" : "")</span>
+                        <span><i class="fas fa-user-nurse"></i> @assistantsCount assistant@(assistantsCount != 1 ? "s" : "")</span>
+                    </div>
+                </article>
+            }
+        </div>
+
+        <div class="cl-no-results" id="noResults" style="display:none;">
+            <i class="fas fa-search-minus"></i>
+            <p>No clinics match your search.</p>
+        </div>
+    }
+</section>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const keepOpen = @hasError.ToString().ToLowerInvariant();
+            const createToggle = document.getElementById('createToggle');
+            const createBody = document.getElementById('createBody');
+            const createIcon = document.getElementById('createToggleIcon');
+
+            let open = keepOpen;
+
+            function syncCreatePanel() {
+                createToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                createIcon.className = open ? 'fas fa-minus-circle' : 'fas fa-plus-circle';
+                createBody.style.maxHeight = open ? createBody.scrollHeight + 'px' : '0px';
+                createBody.style.opacity = open ? '1' : '0';
+                createBody.style.marginTop = open ? '.4rem' : '0';
+            }
+
+            function toggleCreatePanel() {
+                open = !open;
+                syncCreatePanel();
+            }
+
+            createToggle?.addEventListener('click', toggleCreatePanel);
+            createToggle?.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleCreatePanel();
+                }
+            });
+
+            syncCreatePanel();
+
+            const counters = document.querySelectorAll('.count-num');
+            counters.forEach((el) => {
+                const target = parseInt(el.dataset.target || '0', 10);
+                let current = 0;
+                const step = Math.max(1, Math.ceil(target / 28));
+                const timer = setInterval(() => {
+                    current = Math.min(current + step, target);
+                    el.textContent = current;
+                    if (current >= target) clearInterval(timer);
+                }, 30);
+            });
+
+            document.querySelectorAll('.cl-stat-progress-fill').forEach((bar, i) => {
+                setTimeout(() => { bar.style.width = bar.dataset.w || '0%'; }, 160 + (i * 120));
+            });
+
+            const searchInput = document.getElementById('searchInput');
+            const filterBtns = document.querySelectorAll('.cl-filter-btn');
+            const cards = Array.from(document.querySelectorAll('.cl-card'));
+            const noResults = document.getElementById('noResults');
+            let activeFilter = 'all';
+
+            function applyFilters() {
+                if (!cards.length) return;
+                const q = (searchInput?.value || '').trim().toLowerCase();
+                let visibleCount = 0;
+
+                cards.forEach((card) => {
+                    const name = (card.dataset.name || '').toLowerCase();
+                    const location = (card.dataset.location || '').toLowerCase();
+                    const linked = (card.dataset.linked || 'false') === 'true';
+
+                    const matchesSearch = !q || name.includes(q) || location.includes(q);
+                    const matchesFilter = activeFilter === 'all'
+                        || (activeFilter === 'linked' && linked)
+                        || (activeFilter === 'available' && !linked);
+
+                    const show = matchesSearch && matchesFilter;
+                    card.style.display = show ? '' : 'none';
+                    if (show) visibleCount++;
+                });
+
+                if (noResults) noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+            }
+
+            searchInput?.addEventListener('input', applyFilters);
+            filterBtns.forEach((btn) => {
+                btn.addEventListener('click', function () {
+                    activeFilter = this.dataset.filter || 'all';
+                    filterBtns.forEach((b) => b.classList.remove('active'));
+                    this.classList.add('active');
+                    applyFilters();
+                });
+            });
+        });
+    </script>
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/doctor-clinics.css" asp-append-version="true" />
+}

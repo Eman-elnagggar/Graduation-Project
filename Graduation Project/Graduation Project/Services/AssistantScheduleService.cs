@@ -21,9 +21,9 @@ namespace Graduation_Project.Services
         public AssistantScheduleScope? BuildScope(int assistantId, int? doctorId)
         {
             var assistant = _assistantRepository.GetByIdWithDoctors(assistantId);
-            if (assistant == null) return null;
+            if (assistant == null || !assistant.ClinicID.HasValue) return null;
 
-            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID.Value);
             if (clinic == null) return null;
 
             var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
