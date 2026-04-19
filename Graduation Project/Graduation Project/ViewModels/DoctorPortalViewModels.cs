@@ -221,5 +221,6 @@ namespace Graduation_Project.ViewModels
         public string? ClinicAddress { get; set; }
         public string? ClinicPhone { get; set; }
         public DateTime? FollowUpDate { get; set; }
+        public bool IsPrintedByPatient { get; set; }
     }
 }

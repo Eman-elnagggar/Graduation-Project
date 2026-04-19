@@ -214,6 +214,14 @@
                                 <span class="rx-doctor-spec">@specialization</span>
                             }
                         </div>
+                        <div class="rx-doctor-actions">
+                            <a class="rx-print-btn"
+                               href="@Url.Action("Print", "Prescription", new { id = Model.Patient.PatientID, prescriptionId = rx.PrescriptionID })"
+                               target="_blank"
+                               rel="noopener noreferrer">
+                                <i class="fas fa-print"></i> Print
+                            </a>
+                        </div>
                     </div>
 
                     <!-- Collapsible Body -->
@@ -618,6 +626,31 @@ document.addEventListener("DOMContentLoaded", function () {
 .rx-wrap .rx-kpi-glow.amber  { background: var(--amber); }
 .rx-wrap .rx-kpi-glow.blue   { background: var(--blue); }
 .rx-wrap .rx-kpi-glow.purple { background: var(--purple); }
+
+.rx-wrap .rx-doctor-actions {
+    margin-left: auto;
+}
+
+.rx-wrap .rx-print-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border-2);
+    background: var(--white);
+    color: var(--text);
+    font-size: .82rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all .2s ease;
+}
+
+.rx-wrap .rx-print-btn:hover {
+    border-color: var(--p);
+    color: var(--p-dk);
+    background: var(--p-xlt);
+}
 
 /* ?? CARD BASE ?? */
 .rx-wrap .rx-card {

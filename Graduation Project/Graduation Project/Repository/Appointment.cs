@@ -47,7 +47,7 @@ namespace Graduation_Project.Repository
                 .Where(a => a.PatientID == patientId)
                 .Include(a => a.Doctor).ThenInclude(d => d.User)
                 .Include(a => a.Clinic)
-                .Include(a => a.Booking)
+                .Include(a => a.Bookings)
                 .OrderByDescending(a => a.Date)
                 .ToList();
 
@@ -58,7 +58,7 @@ namespace Graduation_Project.Repository
                     .ThenInclude(p => p.User)
                 .Include(a => a.Doctor)
                     .ThenInclude(d => d.User)
-                .Include(a => a.Booking)
+                .Include(a => a.Bookings)
                 .Where(a => a.ClinicID == clinicId && a.Date.Date == date.Date)
                 .OrderBy(a => a.Time)
                 .AsSplitQuery()
@@ -71,7 +71,7 @@ namespace Graduation_Project.Repository
                     .ThenInclude(p => p.User)
                 .Include(a => a.Doctor)
                     .ThenInclude(d => d.User)
-                .Include(a => a.Booking)
+                .Include(a => a.Bookings)
                 .Where(a => a.ClinicID == clinicId && a.DoctorID == doctorId && a.Date.Date == date.Date)
                 .OrderBy(a => a.Time)
                 .AsSplitQuery()
@@ -103,11 +103,10 @@ namespace Graduation_Project.Repository
                     .AsNoTracking()
                     .Include(a => a.Patient).ThenInclude(p => p.User)
                     .Include(a => a.Doctor).ThenInclude(d => d.User)
-                    .Include(a => a.Booking)
+                    .Include(a => a.Bookings)
                     .Where(a => a.ClinicID == clinicId
                              && doctorIds.Contains(a.DoctorID)
-                             && a.Booking != null
-                             && a.Booking.Status == status
+                             && a.Bookings.Any(b => b.IsActive && b.Status == status)
                              && a.Date.Date == date.Date)
                     .OrderBy(a => a.Time)
                     .AsSplitQuery()
@@ -123,10 +122,12 @@ namespace Graduation_Project.Repository
                 .AsNoTracking()
                 .Where(a => a.ClinicID == clinicId
                          && doctorIds.Contains(a.DoctorID)
-                         && a.Booking != null
+                         && a.Bookings.Any(b => b.IsActive)
                          && a.Date.Date == date.Date
-                         && normalizedStatuses.Contains(a.Booking!.Status))
-                .GroupBy(a => a.Booking!.Status)
+                         && a.Bookings.Any(b => b.IsActive && normalizedStatuses.Contains(b.Status)))
+                .Select(a => a.Bookings.Where(b => b.IsActive).OrderByDescending(b => b.BookingID).FirstOrDefault())
+                .Where(b => b != null)
+                .GroupBy(b => b!.Status)
                 .Select(g => new { Status = g.Key, Count = g.Count() })
                 .ToDictionary(x => x.Status, x => x.Count);
 
@@ -145,11 +146,10 @@ namespace Graduation_Project.Repository
                 .AsNoTracking()
                 .Include(a => a.Patient).ThenInclude(p => p.User)
                 .Include(a => a.Doctor).ThenInclude(d => d.User)
-                .Include(a => a.Booking)
+                .Include(a => a.Bookings)
                 .Where(a => a.ClinicID == clinicId
                          && doctorIds.Contains(a.DoctorID)
-                         && a.Booking != null
-                         && a.Booking.Status == status
+                         && a.Bookings.Any(b => b.IsActive && b.Status == status)
                          && a.Date.Date == date.Date);
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -182,8 +182,7 @@ namespace Graduation_Project.Repository
                 .AsNoTracking()
                 .Where(a => a.ClinicID == clinicId
                          && doctorIds.Contains(a.DoctorID)
-                         && a.Booking != null
-                         && a.Booking.Status == status
+                         && a.Bookings.Any(b => b.IsActive && b.Status == status)
                          && a.Date.Date == date.Date);
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -204,7 +203,7 @@ namespace Graduation_Project.Repository
             HydrateMissingPatientsFromBooking(new List<Appointment>
             {
                 _context.Appointments
-                .Include(a => a.Booking)
+                .Include(a => a.Bookings)
                 .Include(a => a.Patient).ThenInclude(p => p.User)
                 .Include(a => a.Doctor).ThenInclude(d => d.User)
                 .Include(a => a.Clinic)
@@ -317,7 +316,7 @@ namespace Graduation_Project.Repository
                          && a.Date.Date < DateTime.Today)
                 .Include(a => a.Doctor).ThenInclude(d => d.User)
                 .Include(a => a.Clinic)
-                .Include(a => a.Booking)
+                .Include(a => a.Bookings)
                 .OrderByDescending(a => a.Date).ThenBy(a => a.Time)
                 .ToList();
 

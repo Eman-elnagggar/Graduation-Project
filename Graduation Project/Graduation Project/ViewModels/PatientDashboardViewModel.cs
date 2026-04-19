@@ -21,6 +21,7 @@ namespace Graduation_Project.ViewModels
         public double LastBloodSugarValue { get; set; }
         public LabTest LastLabTest { get; set; }
         public Appointment NextAppointment { get; set; }
+        public List<Appointment> RecentPastAppointments { get; set; } = new();
 
         // Recent readings for the trackers
         public List<PatientBloodPressure> RecentBloodPressureReadings { get; set; } = new();
@@ -33,6 +34,11 @@ namespace Graduation_Project.ViewModels
 
         // Health alerts (critical / dangerous conditions needing attention)
         public List<Alert> HealthAlerts { get; set; } = new();
+
+        // Unacknowledged risk alerts shown in blocking acknowledgement popup
+        public List<Alert> PendingRiskAlerts { get; set; } = new();
+
+        public bool HasPendingRiskAlerts => PendingRiskAlerts.Count > 0;
     }
 
     public class PatientMessagesViewModel

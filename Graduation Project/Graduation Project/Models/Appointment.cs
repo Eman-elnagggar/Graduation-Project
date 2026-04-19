@@ -32,7 +32,30 @@ namespace Graduation_Project.Models
         public virtual Doctor Doctor { get; set; }
         public virtual Patient? Patient { get; set; }
         public virtual Clinic Clinic { get; set; }
-        public virtual Booking Booking { get; set; }
+        public virtual ICollection<Booking> Bookings { get; set; } = new List<Booking>();
+
+        [NotMapped]
+        public virtual Booking? Booking
+        {
+            get => Bookings
+                .OrderByDescending(b => b.IsActive)
+                .ThenByDescending(b => b.BookingID)
+                .FirstOrDefault();
+            set
+            {
+                if (value == null)
+                    return;
+
+                foreach (var existing in Bookings.Where(b => b.IsActive))
+                    existing.IsActive = false;
+
+                value.IsActive = true;
+
+                if (!Bookings.Contains(value))
+                    Bookings.Add(value);
+            }
+        }
+
         public virtual Assistant? CreatedByAssistant { get; set; }
     }
 }

@@ -500,6 +500,7 @@ namespace Graduation_Project.Data
             modelBuilder.Entity<Booking>(entity =>
             {
                 entity.HasKey(e => e.BookingID);
+                entity.Property(e => e.IsActive).HasDefaultValue(true);
 
                 entity.HasOne<Patient>()
                     .WithMany()
@@ -524,13 +525,14 @@ namespace Graduation_Project.Data
             modelBuilder.Entity<Booking>(entity =>
             {
                 entity.HasOne(d => d.Appointment)
-                    .WithOne(a => a.Booking)
-                    .HasForeignKey<Booking>(d => d.AppointmentID)
+                    .WithMany(a => a.Bookings)
+                    .HasForeignKey(d => d.AppointmentID)
                     .OnDelete(DeleteBehavior.Restrict);
-                
-                // Enforce one booking per appointment at database level
+
+                // Enforce only one active booking per appointment at database level
                 entity.HasIndex(e => e.AppointmentID)
-                    .IsUnique();
+                    .IsUnique()
+                    .HasFilter("[IsActive] = 1");
             });
 
             // ============================================================

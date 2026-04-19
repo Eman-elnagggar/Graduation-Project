@@ -42,7 +42,7 @@ namespace Graduation_Project.Controllers
 
             var appointments = _context.Appointments
                 .Include(a => a.Patient).ThenInclude(p => p.User)
-                .Include(a => a.Booking)
+                .Include(a => a.Bookings)
                 .Where(a => a.DoctorID == doctor.DoctorID)
                 .ToList();
 
@@ -247,7 +247,7 @@ namespace Graduation_Project.Controllers
                 return accessResult;
 
             var appointment = _context.Appointments
-                .Include(a => a.Booking)
+                .Include(a => a.Bookings)
                 .FirstOrDefault(a => a.AppointmentID == appointmentId && a.DoctorID == doctor.DoctorID);
 
             if (appointment == null || !appointment.isBooked || !appointment.PatientID.HasValue)
@@ -265,6 +265,7 @@ namespace Graduation_Project.Controllers
                     PatientID = appointment.PatientID.Value,
                     DoctorID = appointment.DoctorID,
                     ClinicID = appointment.ClinicID,
+                    IsActive = true,
                     Status = normalizedStatus,
                     Reason = string.Empty,
                     Notes = string.Empty
@@ -324,12 +325,12 @@ namespace Graduation_Project.Controllers
                 }
 
                 var autoMissedCandidates = _context.Appointments
-                    .Include(a => a.Booking)
+                    .Include(a => a.Bookings)
                     .Where(a => a.DoctorID == doctor.DoctorID
                              && a.AppointmentID != appointment.AppointmentID
                              && a.isBooked
                              && a.PatientID.HasValue
-                             && a.Booking != null)
+                             && a.Bookings.Any(b => b.IsActive))
                     .ToList()
                     .Where(a => a.Date.Date.Add(a.Time).AddHours(1) < now
                              && !string.Equals(a.Booking!.Status, "Completed", StringComparison.OrdinalIgnoreCase)
@@ -488,7 +489,7 @@ namespace Graduation_Project.Controllers
 
             var now = DateTime.Now;
             var appointmentsToAutoMiss = _context.Appointments
-                .Include(a => a.Booking)
+                .Include(a => a.Bookings)
                 .Where(a => a.DoctorID == doctor.DoctorID
                          && a.isBooked
                          && a.PatientID.HasValue)
@@ -512,6 +513,7 @@ namespace Graduation_Project.Controllers
                             PatientID = appointment.PatientID.Value,
                             DoctorID = appointment.DoctorID,
                             ClinicID = appointment.ClinicID,
+                            IsActive = true,
                             Status = "Missed",
                             Reason = string.Empty,
                             Notes = string.Empty
@@ -529,7 +531,7 @@ namespace Graduation_Project.Controllers
 
             var appointments = _context.Appointments
                 .Include(a => a.Patient).ThenInclude(p => p.User)
-                .Include(a => a.Booking)
+                .Include(a => a.Bookings)
                 .Where(a => a.DoctorID == doctor.DoctorID)
                 .OrderBy(a => a.Date)
                 .ThenBy(a => a.Time)
@@ -837,7 +839,7 @@ namespace Graduation_Project.Controllers
                     .ToDictionary(x => x.PatientID, x => x.BloodPressure);
 
             var appointments = _context.Appointments
-                .Include(a => a.Booking)
+                .Include(a => a.Bookings)
                 .Where(a => a.DoctorID == doctor.DoctorID)
                 .ToList();
 
@@ -1055,7 +1057,7 @@ namespace Graduation_Project.Controllers
                 .ToList();
 
             var appointmentHistory = _context.Appointments
-                .Include(a => a.Booking)
+                .Include(a => a.Bookings)
                 .Where(a => a.PatientID == patientId && a.DoctorID == doctor.DoctorID)
                 .OrderByDescending(a => a.Date)
                 .ThenByDescending(a => a.Time)

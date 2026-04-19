@@ -656,11 +656,13 @@ namespace Graduation_Project.Controllers
                 return Json(new { success = false, message = "Access denied." });
 
             appointment.isBooked = false;
+            appointment.PatientID = null;
             _appointmentRepository.Update(appointment);
 
             if (appointment.Booking != null)
             {
                 appointment.Booking.Status = "Cancelled";
+                appointment.Booking.IsActive = false;
                 if (!string.IsNullOrWhiteSpace(reason))
                     appointment.Booking.Notes = reason;
                 _bookingRepository.Update(appointment.Booking);
