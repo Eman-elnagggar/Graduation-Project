@@ -57,7 +57,10 @@ body {
 
 /* Left decorative panel */
 .auth-panel {
-  background: linear-gradient(160deg, var(--mc-navy) 0%, var(--mc-navy-mid) 55%, #0d3d5c 100%);
+  background:
+    linear-gradient(0deg, rgba(4, 16, 30, .58), rgba(4, 16, 30, .58)),
+    url('/images/logo.png') center 56% / 74% no-repeat,
+    linear-gradient(160deg, var(--mc-navy) 0%, var(--mc-navy-mid) 55%, #0d3d5c 100%);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -81,6 +84,15 @@ body {
 }
 .panel-brand {
   display: flex; align-items: center; gap: .85rem; z-index: 1;
+}
+.panel-brand-link {
+  text-decoration: none;
+  width: fit-content;
+}
+.panel-brand-link:focus-visible {
+  outline: 2px solid rgba(255,255,255,.7);
+  outline-offset: 4px;
+  border-radius: 10px;
 }
 .panel-brand-icon {
   width: 46px; height: 46px; border-radius: 14px;

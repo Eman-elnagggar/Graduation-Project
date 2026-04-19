@@ -139,7 +139,11 @@
                             name = string.IsNullOrWhiteSpace(name) ? "Patient" : name;
                             var risk = (p.RiskLevel ?? "low").ToLowerInvariant();
                             var riskClass = risk == "high" ? "high" : risk == "medium" ? "medium" : "low";
-                            <a class="patient-row" href="/Doctor/PatientDetails/@Model.Doctor.DoctorID/@p.PatientID">
+                            <a class="patient-row"
+                               asp-controller="Doctor"
+                               asp-action="PatientDetails"
+                               asp-route-id="@Model.Doctor.DoctorID"
+                               asp-route-patientId="@p.PatientID">
                                 <div class="pat-avatar">
                                     <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(name)&background=14967f&color=fff&size=80" alt="@name" />
                                     <span class="pat-risk @riskClass"></span>
