@@ -216,32 +216,18 @@ namespace Graduation_Project.Controllers
             appointment.PatientID = patientId;
             appointment.isBooked = true;
 
-            Booking booking;
-            if (appointment.Booking != null)
+            var booking = new Booking
             {
-                booking = appointment.Booking;
-                booking.PatientID = patientId;
-                booking.DoctorID = appointment.DoctorID;
-                booking.ClinicID = appointment.ClinicID;
-                booking.Status = "Confirmed";
-                booking.Reason = reason ?? string.Empty;
-                booking.Notes = notes ?? string.Empty;
-                _bookingRepository.Update(booking);
-            }
-            else
-            {
-                booking = new Booking
-                {
-                    AppointmentID = appointmentId,
-                    PatientID = patientId,
-                    DoctorID = appointment.DoctorID,
-                    ClinicID = appointment.ClinicID,
-                    Status = "Confirmed",
-                    Reason = reason ?? string.Empty,
-                    Notes = notes ?? string.Empty
-                };
-                _bookingRepository.Add(booking);
-            }
+                AppointmentID = appointmentId,
+                PatientID = patientId,
+                DoctorID = appointment.DoctorID,
+                ClinicID = appointment.ClinicID,
+                IsActive = true,
+                Status = "Confirmed",
+                Reason = reason ?? string.Empty,
+                Notes = notes ?? string.Empty
+            };
+            _bookingRepository.Add(booking);
 
             try
             {
@@ -299,6 +285,7 @@ namespace Graduation_Project.Controllers
             if (appointment.Booking != null)
             {
                 appointment.Booking.Status = "Cancelled";
+                appointment.Booking.IsActive = false;
                 _bookingRepository.Update(appointment.Booking);
             }
 
@@ -346,7 +333,7 @@ namespace Graduation_Project.Controllers
             if (current.Booking == null)
                 return Json(new { success = false, message = "Booking data is missing for this appointment." });
 
-            var booking = current.Booking;
+            var oldBooking = current.Booking;
 
             current.isBooked = false;
             current.PatientID = null;
@@ -356,12 +343,21 @@ namespace Graduation_Project.Controllers
             newSlot.isBooked = true;
             _appointment.Update(newSlot);
 
-            booking.AppointmentID = newSlot.AppointmentID;
-            booking.ClinicID = newSlot.ClinicID;
-            booking.DoctorID = newSlot.DoctorID;
-            booking.PatientID = patientId;
-            booking.Status = "Confirmed";
-            _bookingRepository.Update(booking);
+            oldBooking.Status = "Cancelled";
+            oldBooking.IsActive = false;
+            _bookingRepository.Update(oldBooking);
+
+            _bookingRepository.Add(new Booking
+            {
+                AppointmentID = newSlot.AppointmentID,
+                ClinicID = newSlot.ClinicID,
+                DoctorID = newSlot.DoctorID,
+                PatientID = patientId,
+                IsActive = true,
+                Status = "Confirmed",
+                Reason = oldBooking.Reason,
+                Notes = oldBooking.Notes
+            });
 
             try
             {
