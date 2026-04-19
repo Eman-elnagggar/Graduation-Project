@@ -293,6 +293,182 @@
                 </div>
             </div>
 
+            <!-- ── WEEKLY CHART CARD ── -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-header-left">
+                        <div class="card-ico teal"><i class="fas fa-chart-bar"></i></div>
+                        <div>
+                            <div class="card-title">Weekly BP Trend</div>
+                            <div class="card-sub">This week's readings</div>
+                        </div>
+                    </div>
+                    <div class="chart-legend">
+                        <span><span class="legend-dot sys"></span>Systolic</span>
+                        <span><span class="legend-dot dia"></span>Diastolic</span>
+                    </div>
+                </div>
+                @{
+                    var bpWeeklyPoints = (Model.WeeklyBloodPressureReadings ?? new List<PatientBloodPressure>())
+                        .OrderByDescending(r => r.DateTime)
+                        .Take(7)
+                        .Select(r =>
+                        {
+                            var parts = (r.BloodPressure ?? string.Empty).Split('/');
+                            int systolic = 0, diastolic = 0;
+                            if (parts.Length == 2) { int.TryParse(parts[0], out systolic); int.TryParse(parts[1], out diastolic); }
+                            return new { Date = r.DateTime, Systolic = systolic, Diastolic = diastolic };
+                        })
+                        .Where(x => x.Systolic > 0 && x.Diastolic > 0)
+                        .OrderBy(x => x.Date)
+                        .ToList();
+
+                    var bpAverageSys = bpWeeklyPoints.Any() ? (int)Math.Round(bpWeeklyPoints.Average(x => x.Systolic)) : 0;
+                    var bpAverageDia = bpWeeklyPoints.Any() ? (int)Math.Round(bpWeeklyPoints.Average(x => x.Diastolic)) : 0;
+                    var bpHighest    = bpWeeklyPoints.OrderByDescending(x => x.Systolic).FirstOrDefault();
+                    var bpLowest     = bpWeeklyPoints.OrderBy(x => x.Systolic).FirstOrDefault();
+                    var weeklyMax    = bpWeeklyPoints.Any() ? Math.Max(1, bpWeeklyPoints.Max(x => x.Systolic)) : 1;
+                }
+                <div class="week-chart">
+                    <div class="week-chart-bars">
+                        @if (bpWeeklyPoints.Any())
+                        {
+                            @foreach (var point in bpWeeklyPoints)
+                            {
+                                var h = Math.Max(8, (int)Math.Round((point.Systolic / (double)weeklyMax) * 64));
+                                bool isToday = point.Date.Date == DateTime.Today;
+                                string bpRiskClass;
+                                if (point.Systolic < 90 || point.Diastolic < 60) bpRiskClass = "wbar-risk-low";
+                                else if (point.Systolic <= 120 && point.Diastolic <= 80) bpRiskClass = "wbar-risk-normal";
+                                else if (point.Systolic <= 139 || point.Diastolic <= 89) bpRiskClass = "wbar-risk-elevated";
+                                else bpRiskClass = "wbar-risk-high";
+                                <div class="wbar @bpRiskClass @(isToday ? "today" : "")"
+                                     style="height:@(h)px"
+                                     data-tip="@point.Systolic/@point.Diastolic"></div>
+                            }
+                        }
+                        else
+                        {
+                            <p class="no-data" style="margin:auto;width:100%;text-align:center;">No data yet</p>
+                        }
+                    </div>
+                    <div class="wbar-labels">
+                        @if (bpWeeklyPoints.Any())
+                        {
+                            @foreach (var point in bpWeeklyPoints)
+                            {
+                                bool isToday = point.Date.Date == DateTime.Today;
+                                <span class="wbar-label @(isToday ? "today" : "")">@point.Date.ToString("MM/dd")</span>
+                            }
+                        }
+                    </div>
+                    <div class="week-summary">
+                        <div class="wsumm">
+                            <div class="wsumm-val" id="bpSummaryAverage">
+                                @(bpWeeklyPoints.Any() ? $"{bpAverageSys}/{bpAverageDia}" : "—")
+                            </div>
+                            <div class="wsumm-lbl">Average</div>
+                        </div>
+                        <div class="wsumm">
+                            <div class="wsumm-val" id="bpSummaryHighest">
+                                @(bpHighest != null ? $"{bpHighest.Systolic}/{bpHighest.Diastolic}" : "—")
+                            </div>
+                            <div class="wsumm-lbl">Highest</div>
+                        </div>
+                        <div class="wsumm">
+                            <div class="wsumm-val" id="bpSummaryLowest">
+                                @(bpLowest != null ? $"{bpLowest.Systolic}/{bpLowest.Diastolic}" : "—")
+                            </div>
+                            <div class="wsumm-lbl">Lowest</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── WEEKLY BLOOD SUGAR CARD ── -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-header-left">
+                        <div class="card-ico pink"><i class="fas fa-chart-line"></i></div>
+                        <div>
+                            <div class="card-title">Weekly Blood Sugar Trend</div>
+                            <div class="card-sub">This week's readings</div>
+                        </div>
+                    </div>
+                    <div class="chart-legend">
+                        <span><span class="legend-dot bs"></span>Blood Sugar</span>
+                    </div>
+                </div>
+                @{
+                    var bsWeeklyPoints = (Model.WeeklyBloodSugarReadings ?? new List<PatientBloodSugar>())
+                        .OrderByDescending(r => r.DateTime)
+                        .Take(7)
+                        .Select(r => new { Date = r.DateTime, Value = r.BloodSugar })
+                        .Where(x => x.Value > 0)
+                        .OrderBy(x => x.Date)
+                        .ToList();
+
+                    var bsAverage = bsWeeklyPoints.Any() ? Math.Round(bsWeeklyPoints.Average(x => x.Value), 1) : 0;
+                    var bsHighest = bsWeeklyPoints.OrderByDescending(x => x.Value).FirstOrDefault();
+                    var bsLowest = bsWeeklyPoints.OrderBy(x => x.Value).FirstOrDefault();
+                    var bsWeeklyMax = bsWeeklyPoints.Any() ? Math.Max(1, bsWeeklyPoints.Max(x => x.Value)) : 1;
+                }
+                <div class="week-chart">
+                    <div class="week-chart-bars">
+                        @if (bsWeeklyPoints.Any())
+                        {
+                            @foreach (var point in bsWeeklyPoints)
+                            {
+                                var h = Math.Max(8, (int)Math.Round((point.Value / (double)bsWeeklyMax) * 64));
+                                bool isToday = point.Date.Date == DateTime.Today;
+                                string bsRiskClass;
+                                if (point.Value < 70) bsRiskClass = "wbar-risk-low";
+                                else if (point.Value <= 140) bsRiskClass = "wbar-risk-normal";
+                                else if (point.Value <= 180) bsRiskClass = "wbar-risk-elevated";
+                                else bsRiskClass = "wbar-risk-high";
+                                <div class="wbar bs @bsRiskClass @(isToday ? "today" : "")"
+                                     style="height:@(h)px"
+                                     data-tip="@point.Value mg/dL"></div>
+                            }
+                        }
+                        else
+                        {
+                            <p class="no-data" style="margin:auto;width:100%;text-align:center;">No data yet</p>
+                        }
+                    </div>
+                    <div class="wbar-labels">
+                        @if (bsWeeklyPoints.Any())
+                        {
+                            @foreach (var point in bsWeeklyPoints)
+                            {
+                                bool isToday = point.Date.Date == DateTime.Today;
+                                <span class="wbar-label @(isToday ? "today" : "")">@point.Date.ToString("MM/dd")</span>
+                            }
+                        }
+                    </div>
+                    <div class="week-summary">
+                        <div class="wsumm">
+                            <div class="wsumm-val" id="bsTrendSummaryAverage">
+                                @(bsWeeklyPoints.Any() ? $"{bsAverage} mg/dL" : "—")
+                            </div>
+                            <div class="wsumm-lbl">Average</div>
+                        </div>
+                        <div class="wsumm">
+                            <div class="wsumm-val" id="bsTrendSummaryHighest">
+                                @(bsHighest != null ? $"{bsHighest.Value} mg/dL" : "—")
+                            </div>
+                            <div class="wsumm-lbl">Highest</div>
+                        </div>
+                        <div class="wsumm">
+                            <div class="wsumm-val" id="bsTrendSummaryLowest">
+                                @(bsLowest != null ? $"{bsLowest.Value} mg/dL" : "—")
+                            </div>
+                            <div class="wsumm-lbl">Lowest</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
         <!-- / LEFT COLUMN -->
 
@@ -526,179 +702,55 @@
             </div>
             <!-- / Health Tracker Card -->
 
-            <!-- ── WEEKLY CHART CARD ── -->
+            <!-- ── APPOINTMENTS CARD ── -->
             <div class="card">
                 <div class="card-header">
                     <div class="card-header-left">
-                        <div class="card-ico teal"><i class="fas fa-chart-bar"></i></div>
+                        <div class="card-ico purple"><i class="fas fa-calendar-check"></i></div>
                         <div>
-                            <div class="card-title">Weekly BP Trend</div>
-                            <div class="card-sub">This week's readings</div>
+                            <div class="card-title">Last Appointments</div>
+                            <div class="card-sub">Your recent visits</div>
                         </div>
                     </div>
-                    <div class="chart-legend">
-                        <span><span class="legend-dot sys"></span>Systolic</span>
-                        <span><span class="legend-dot dia"></span>Diastolic</span>
-                    </div>
+                    <a class="card-link" href="/PatientAppointments/Appointments/@Model.Patient.PatientID">
+                        View All <i class="fas fa-arrow-right"></i>
+                    </a>
                 </div>
-                @{
-                    var bpWeeklyPoints = (Model.WeeklyBloodPressureReadings ?? new List<PatientBloodPressure>())
-                        .OrderByDescending(r => r.DateTime)
-                        .Take(7)
-                        .Select(r =>
-                        {
-                            var parts = (r.BloodPressure ?? string.Empty).Split('/');
-                            int systolic = 0, diastolic = 0;
-                            if (parts.Length == 2) { int.TryParse(parts[0], out systolic); int.TryParse(parts[1], out diastolic); }
-                            return new { Date = r.DateTime, Systolic = systolic, Diastolic = diastolic };
-                        })
-                        .Where(x => x.Systolic > 0 && x.Diastolic > 0)
-                        .OrderBy(x => x.Date)
-                        .ToList();
 
-                    var bpAverageSys = bpWeeklyPoints.Any() ? (int)Math.Round(bpWeeklyPoints.Average(x => x.Systolic)) : 0;
-                    var bpAverageDia = bpWeeklyPoints.Any() ? (int)Math.Round(bpWeeklyPoints.Average(x => x.Diastolic)) : 0;
-                    var bpHighest    = bpWeeklyPoints.OrderByDescending(x => x.Systolic).FirstOrDefault();
-                    var bpLowest     = bpWeeklyPoints.OrderBy(x => x.Systolic).FirstOrDefault();
-                    var weeklyMax    = bpWeeklyPoints.Any() ? Math.Max(1, bpWeeklyPoints.Max(x => x.Systolic)) : 1;
-                }
-                <div class="week-chart">
-                    <div class="week-chart-bars">
-                        @if (bpWeeklyPoints.Any())
+                <div class="appt-mini-list">
+                    @if (Model.RecentPastAppointments != null && Model.RecentPastAppointments.Any())
+                    {
+                        @foreach (var appointment in Model.RecentPastAppointments)
                         {
-                            @foreach (var point in bpWeeklyPoints)
-                            {
-                                var h = Math.Max(8, (int)Math.Round((point.Systolic / (double)weeklyMax) * 64));
-                                bool isToday = point.Date.Date == DateTime.Today;
-                                string bpRiskClass;
-                                if (point.Systolic < 90 || point.Diastolic < 60) bpRiskClass = "wbar-risk-low";
-                                else if (point.Systolic <= 120 && point.Diastolic <= 80) bpRiskClass = "wbar-risk-normal";
-                                else if (point.Systolic <= 139 || point.Diastolic <= 89) bpRiskClass = "wbar-risk-elevated";
-                                else bpRiskClass = "wbar-risk-high";
-                                <div class="wbar @bpRiskClass @(isToday ? "today" : "")"
-                                     style="height:@(h)px"
-                                     data-tip="@point.Systolic/@point.Diastolic"></div>
-                            }
-                        }
-                        else
-                        {
-                            <p class="no-data" style="margin:auto;width:100%;text-align:center;">No data yet</p>
-                        }
-                    </div>
-                    <div class="wbar-labels">
-                        @if (bpWeeklyPoints.Any())
-                        {
-                            @foreach (var point in bpWeeklyPoints)
-                            {
-                                bool isToday = point.Date.Date == DateTime.Today;
-                                <span class="wbar-label @(isToday ? "today" : "")">@point.Date.ToString("MM/dd")</span>
-                            }
-                        }
-                    </div>
-                    <div class="week-summary">
-                        <div class="wsumm">
-                            <div class="wsumm-val" id="bpSummaryAverage">
-                                @(bpWeeklyPoints.Any() ? $"{bpAverageSys}/{bpAverageDia}" : "—")
+                            var doctorName = appointment.Doctor?.User != null
+                                ? $"Dr. {appointment.Doctor.User.FirstName} {appointment.Doctor.User.LastName}".Trim()
+                                : "Doctor";
+
+                            <div class="appt-mini-item">
+                                <div class="appt-mini-date">
+                                    <span class="day">@appointment.Date.Day</span>
+                                    <span class="mon">@appointment.Date.ToString("MMM")</span>
+                                </div>
+                                <div class="appt-mini-body">
+                                    <div class="appt-mini-title">@doctorName</div>
+                                    <div class="appt-mini-meta">
+                                        <span><i class="fas fa-clock"></i> @DateTime.Today.Add(appointment.Time).ToString("hh:mm tt")</span>
+                                        <span><i class="fas fa-map-marker-alt"></i> @(appointment.Clinic?.Name ?? "Clinic")</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="wsumm-lbl">Average</div>
-                        </div>
-                        <div class="wsumm">
-                            <div class="wsumm-val" id="bpSummaryHighest">
-                                @(bpHighest != null ? $"{bpHighest.Systolic}/{bpHighest.Diastolic}" : "—")
-                            </div>
-                            <div class="wsumm-lbl">Highest</div>
-                        </div>
-                        <div class="wsumm">
-                            <div class="wsumm-val" id="bpSummaryLowest">
-                                @(bpLowest != null ? $"{bpLowest.Systolic}/{bpLowest.Diastolic}" : "—")
-                            </div>
-                            <div class="wsumm-lbl">Lowest</div>
-                        </div>
-                    </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="no-data" style="padding:10px 16px;">No past appointments yet.</p>
+                    }
                 </div>
-            </div>
 
-            <!-- ── WEEKLY BLOOD SUGAR CARD ── -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-header-left">
-                        <div class="card-ico pink"><i class="fas fa-chart-line"></i></div>
-                        <div>
-                            <div class="card-title">Weekly Blood Sugar Trend</div>
-                            <div class="card-sub">This week's readings</div>
-                        </div>
-                    </div>
-                    <div class="chart-legend">
-                        <span><span class="legend-dot bs"></span>Blood Sugar</span>
-                    </div>
-                </div>
-                @{
-                    var bsWeeklyPoints = (Model.WeeklyBloodSugarReadings ?? new List<PatientBloodSugar>())
-                        .OrderByDescending(r => r.DateTime)
-                        .Take(7)
-                        .Select(r => new { Date = r.DateTime, Value = r.BloodSugar })
-                        .Where(x => x.Value > 0)
-                        .OrderBy(x => x.Date)
-                        .ToList();
-
-                    var bsAverage = bsWeeklyPoints.Any() ? Math.Round(bsWeeklyPoints.Average(x => x.Value), 1) : 0;
-                    var bsHighest = bsWeeklyPoints.OrderByDescending(x => x.Value).FirstOrDefault();
-                    var bsLowest = bsWeeklyPoints.OrderBy(x => x.Value).FirstOrDefault();
-                    var bsWeeklyMax = bsWeeklyPoints.Any() ? Math.Max(1, bsWeeklyPoints.Max(x => x.Value)) : 1;
-                }
-                <div class="week-chart">
-                    <div class="week-chart-bars">
-                        @if (bsWeeklyPoints.Any())
-                        {
-                            @foreach (var point in bsWeeklyPoints)
-                            {
-                                var h = Math.Max(8, (int)Math.Round((point.Value / (double)bsWeeklyMax) * 64));
-                                bool isToday = point.Date.Date == DateTime.Today;
-                                string bsRiskClass;
-                                if (point.Value < 70) bsRiskClass = "wbar-risk-low";
-                                else if (point.Value <= 140) bsRiskClass = "wbar-risk-normal";
-                                else if (point.Value <= 180) bsRiskClass = "wbar-risk-elevated";
-                                else bsRiskClass = "wbar-risk-high";
-                                <div class="wbar bs @bsRiskClass @(isToday ? "today" : "")"
-                                     style="height:@(h)px"
-                                     data-tip="@point.Value mg/dL"></div>
-                            }
-                        }
-                        else
-                        {
-                            <p class="no-data" style="margin:auto;width:100%;text-align:center;">No data yet</p>
-                        }
-                    </div>
-                    <div class="wbar-labels">
-                        @if (bsWeeklyPoints.Any())
-                        {
-                            @foreach (var point in bsWeeklyPoints)
-                            {
-                                bool isToday = point.Date.Date == DateTime.Today;
-                                <span class="wbar-label @(isToday ? "today" : "")">@point.Date.ToString("MM/dd")</span>
-                            }
-                        }
-                    </div>
-                    <div class="week-summary">
-                        <div class="wsumm">
-                            <div class="wsumm-val" id="bsTrendSummaryAverage">
-                                @(bsWeeklyPoints.Any() ? $"{bsAverage} mg/dL" : "—")
-                            </div>
-                            <div class="wsumm-lbl">Average</div>
-                        </div>
-                        <div class="wsumm">
-                            <div class="wsumm-val" id="bsTrendSummaryHighest">
-                                @(bsHighest != null ? $"{bsHighest.Value} mg/dL" : "—")
-                            </div>
-                            <div class="wsumm-lbl">Highest</div>
-                        </div>
-                        <div class="wsumm">
-                            <div class="wsumm-val" id="bsTrendSummaryLowest">
-                                @(bsLowest != null ? $"{bsLowest.Value} mg/dL" : "—")
-                            </div>
-                            <div class="wsumm-lbl">Lowest</div>
-                        </div>
-                    </div>
+                <div class="appt-mini-actions">
+                    <a href="/PatientAppointments/BookAppointment/@Model.Patient.PatientID" class="book-new-appt-btn">
+                        <i class="fas fa-plus-circle"></i> Book New Appointment
+                    </a>
                 </div>
             </div>
 
@@ -1380,6 +1432,41 @@ document.addEventListener('DOMContentLoaded', function () {
 }
 .pd-wrap .view-all-link:hover { gap: 7px; }
 .pd-wrap .no-data { font-size: .82rem; color: var(--text-3); text-align: center; padding: 14px 0; margin: 0; }
+
+/* ── APPOINTMENTS MINI CARD ── */
+.pd-wrap .appt-mini-list { display: flex; flex-direction: column; padding: 8px 12px 0; }
+.pd-wrap .appt-mini-item {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--r); padding: 8px 10px; margin-bottom: 8px;
+}
+.pd-wrap .appt-mini-date {
+    width: 40px; min-width: 40px; border-radius: 8px;
+    background: var(--white); border: 1px solid var(--border);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 4px;
+}
+.pd-wrap .appt-mini-date .day { font-size: .95rem; font-weight: 800; color: var(--text); line-height: 1; }
+.pd-wrap .appt-mini-date .mon { font-size: .62rem; color: var(--text-3); text-transform: uppercase; }
+.pd-wrap .appt-mini-body { min-width: 0; flex: 1; }
+.pd-wrap .appt-mini-title {
+    font-size: .8rem; font-weight: 700; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pd-wrap .appt-mini-meta {
+    margin-top: 2px; display: flex; flex-wrap: wrap; gap: 8px;
+    font-size: .69rem; color: var(--text-3);
+}
+.pd-wrap .appt-mini-meta span { display: inline-flex; align-items: center; gap: 4px; }
+.pd-wrap .appt-mini-actions { padding: 8px 12px 14px; }
+.pd-wrap .book-new-appt-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    width: 100%; border-radius: var(--r); padding: 10px 12px;
+    font-size: .82rem; font-weight: 700; text-decoration: none;
+    color: #fff; background: linear-gradient(135deg, var(--p), var(--p-dk));
+    box-shadow: 0 3px 10px rgba(27,174,190,.32);
+}
+.pd-wrap .book-new-appt-btn:hover { filter: brightness(.98); }
 
 /* ── WEEKLY CHART ── */
 .pd-wrap .chart-legend { display: flex; gap: 12px; font-size: .72rem; color: var(--text-3); }

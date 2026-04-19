@@ -87,6 +87,7 @@ namespace Graduation_Project.Controllers
             var lastBS = _patientBloodSugar.GetLastBloodSugarValue(id);
             var lastLab = _labTest.GetLastLabTestByPatientId(id);
             var nextAppt = _appointment.GetNextAppointmentForPatient(id);
+            var recentPastAppointments = _appointment.GetPastByPatientId(id).Take(4).ToList();
 
             // Fetch recent readings for the tracker panels
             var recentBPReadings = _patientBloodPressure.GetRecentByPatientId(id, 10).ToList();
@@ -220,6 +221,7 @@ namespace Graduation_Project.Controllers
                 LastBloodSugarValue = lastBS?.BloodSugar ?? 0,
                 LastLabTest = lastLab,
                 NextAppointment = nextAppt,
+                RecentPastAppointments = recentPastAppointments,
                 RecentBloodPressureReadings = recentBPReadings,
                 RecentBloodSugarReadings = recentBSReadings,
                 WeeklyBloodPressureReadings = weeklyBPReadings,

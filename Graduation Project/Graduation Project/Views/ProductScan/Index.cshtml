@@ -621,7 +621,15 @@
 .ps-wrap .ps-result-wrap.danger  .ps-result-header { background: linear-gradient(135deg, #fff8f8, #fff1f2); }
 
 .ps-wrap .ps-result-info { flex: 1; }
-.ps-wrap .ps-result-info h4 { margin: 0 0 2px; font-size: .95rem; font-weight: 700; color: var(--text); }
+.ps-wrap .ps-result-kicker {
+    margin: 0 0 4px;
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--text-3);
+}
+.ps-wrap .ps-result-info h4 { margin: 0 0 2px; font-size: 1.02rem; font-weight: 800; color: var(--text); }
 .ps-wrap .ps-result-info p  { margin: 0; font-size: .78rem; color: var(--text-3); display: flex; align-items: center; gap: 5px; }
 
 .ps-wrap .ps-verdict-badge {
@@ -633,6 +641,41 @@
 .ps-wrap .ps-verdict-badge.safe    { background: var(--grn-lt); color: #1b5e20; border: 1.5px solid #a5d6a7; }
 .ps-wrap .ps-verdict-badge.warning { background: var(--amb-lt); color: #b84700; border: 1.5px solid #ffcc80; }
 .ps-wrap .ps-verdict-badge.danger  { background: #ffebee; color: #b71c1c; border: 1.5px solid #ef9a9a; }
+
+.ps-wrap .ps-result-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(248, 250, 252, .8), rgba(255, 255, 255, .8));
+}
+.ps-wrap .ps-metric {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--white);
+    padding: 8px 10px;
+    text-align: center;
+}
+.ps-wrap .ps-metric-value {
+    display: block;
+    font-size: .95rem;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1;
+}
+.ps-wrap .ps-metric-label {
+    display: block;
+    margin-top: 3px;
+    font-size: .65rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--text-3);
+}
+.ps-wrap .ps-metric.safe .ps-metric-value { color: #1b5e20; }
+.ps-wrap .ps-metric.warning .ps-metric-value { color: #b45309; }
+.ps-wrap .ps-metric.danger .ps-metric-value { color: #b91c1c; }
 
 .ps-wrap .ps-ing-body  { padding: 12px 18px; }
 .ps-wrap .ps-ing-group { margin-bottom: 12px; }
@@ -647,17 +690,60 @@
 .ps-wrap .ps-ing-group-title.danger  { color: #c62828; }
 .ps-wrap .ps-ing-list { display: flex; flex-direction: column; gap: 6px; }
 .ps-wrap .ps-ing-item {
-    display: flex; align-items: center; gap: 8px;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
     padding: 6px 12px; border-radius: 8px;
     font-size: .84rem; font-weight: 500;
 }
 .ps-wrap .ps-ing-item.safe    { background: var(--grn-lt); color: #1b5e20; }
 .ps-wrap .ps-ing-item.warning { background: var(--amb-lt); color: #7c4700; }
 .ps-wrap .ps-ing-item.danger  { background: #ffebee; color: #7f1111; }
+.ps-wrap .ps-response-text {
+    font-size: .83rem;
+    line-height: 1.5;
+}
+.ps-wrap .ps-found-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+.ps-wrap .ps-found-label {
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    opacity: .8;
+}
+.ps-wrap .ps-ing-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 700;
+    border: 1px solid transparent;
+    background: #fff;
+}
+.ps-wrap .ps-ing-chip.safe { color: #1b5e20; border-color: #86efac; }
+.ps-wrap .ps-ing-chip.warning { color: #92400e; border-color: #fcd34d; }
+.ps-wrap .ps-ing-chip.danger { color: #991b1b; border-color: #fca5a5; }
+
+.ps-wrap .ps-no-ingredients {
+    padding: .9rem 1.2rem;
+    font-size: .84rem;
+    color: var(--text-3);
+    border-top: 1px solid var(--border);
+}
 
 .ps-wrap .ps-rec-box {
     display: flex; align-items: flex-start; gap: 12px;
+    flex-direction: column;
     padding: 14px 18px; border-top: 1px solid var(--border);
+}
+.ps-wrap .ps-rec-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
 }
 .ps-wrap .ps-rec-icon {
     width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
@@ -665,6 +751,25 @@
 }
 .ps-wrap .ps-rec-body h5 { margin: 0 0 4px; font-size: .88rem; font-weight: 700; }
 .ps-wrap .ps-rec-body p  { margin: 0; font-size: .82rem; line-height: 1.55; }
+.ps-wrap .ps-next-steps {
+    list-style: none;
+    margin: 0;
+    padding: 0 0 0 52px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.ps-wrap .ps-next-steps li {
+    font-size: .78rem;
+    line-height: 1.45;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+}
+.ps-wrap .ps-next-steps li i {
+    margin-top: 2px;
+    opacity: .85;
+}
 .ps-wrap .ps-rec-box.safe    { background: #f6fff8; }
 .ps-wrap .ps-rec-box.warning { background: #fffdf5; }
 .ps-wrap .ps-rec-box.danger  { background: #fff8f8; }
@@ -674,6 +779,17 @@
 .ps-wrap .ps-rec-box.safe    .ps-rec-body { color: #1b5e20; }
 .ps-wrap .ps-rec-box.warning .ps-rec-body { color: #7c4700; }
 .ps-wrap .ps-rec-box.danger  .ps-rec-body { color: #7f1111; }
+.ps-wrap .ps-rec-box.safe    .ps-next-steps { color: #1b5e20; }
+.ps-wrap .ps-rec-box.warning .ps-next-steps { color: #7c4700; }
+.ps-wrap .ps-rec-box.danger  .ps-next-steps { color: #7f1111; }
+
+.ps-wrap .ps-result-footnote {
+    padding: 10px 18px 14px;
+    border-top: 1px dashed var(--border);
+    font-size: .72rem;
+    color: var(--text-3);
+    background: #fcfdff;
+}
 
 @@keyframes psFadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
 
@@ -735,6 +851,8 @@
     .ps-wrap .hero-right { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); }
     .ps-wrap .how-it-works { padding: 12px 16px; }
     .ps-wrap .hw-step-arrow { display: none; }
+    .ps-wrap .ps-result-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ps-wrap .ps-next-steps { padding-left: 0; }
 }
 @@media (max-width: 480px) {
     .ps-wrap .hero-right { grid-template-columns: 1fr; }
@@ -896,22 +1014,21 @@
     }
 
     function renderResult(data) {
-        const { status, safe = [], risky = [], avoid = [] } = data;
+        const source = data?.results ?? data ?? {};
+        const safe = Array.isArray(source.safe) ? source.safe.filter(Boolean) : [];
+        const risky = Array.isArray(source.risky) ? source.risky.filter(Boolean) : [];
+        const avoid = Array.isArray(source.avoid) ? source.avoid.filter(Boolean) : [];
+        const status = source.status ?? data?.status;
         const total = safe.length + risky.length + avoid.length;
-        let cls, icon, label, recIcon, recTitle, recMsg;
+        const riskyIngredients = Array.from(new Set([...avoid, ...risky].flatMap(extractIngredientsFromBrackets)));
+        let cls, icon, label, riskLevel;
 
-        if (status === 'Unsafe') {
-            cls = 'danger'; icon = 'fa-exclamation-triangle'; label = '🚫 AVOID';
-            recIcon = 'fa-user-md'; recTitle = 'Consult Your Doctor';
-            recMsg = 'This product contains ingredients flagged as unsafe during pregnancy. Please speak with your healthcare provider before use.';
-        } else if (status === 'NeedsReview') {
-            cls = 'warning'; icon = 'fa-exclamation-circle'; label = '⚠️ CAUTION';
-            recIcon = 'fa-info-circle'; recTitle = 'Use with Caution';
-            recMsg = 'Some ingredients require caution during pregnancy. Consult your doctor if you are unsure about continued use.';
+        if (status === 'Unsafe' || avoid.length > 0) {
+            cls = 'danger'; icon = 'fa-exclamation-triangle'; label = 'Avoid This Product'; riskLevel = 'High Risk';
+        } else if (status === 'NeedsReview' || risky.length > 0) {
+            cls = 'warning'; icon = 'fa-exclamation-circle'; label = 'Use With Caution'; riskLevel = 'Moderate Risk';
         } else {
-            cls = 'safe'; icon = 'fa-check-circle'; label = '✅ SAFE';
-            recIcon = 'fa-thumbs-up'; recTitle = 'Safe to Use';
-            recMsg = 'All analyzed ingredients are considered safe during pregnancy. No harmful chemicals were detected.';
+            cls = 'safe'; icon = 'fa-check-circle'; label = 'Generally Safe'; riskLevel = 'Low Risk';
         }
 
         function buildGroup(items, itemCls, itemIcon, groupTitle, groupCls) {
@@ -922,7 +1039,16 @@
                     <span style="font-weight:500;margin-left:.3rem;opacity:.7">(${items.length})</span>
                 </div>
                 <div class="ps-ing-list">
-                    ${items.map(n => `<div class="ps-ing-item ${itemCls}"><i class="fas ${itemIcon}"></i><span>${escHtml(n)}</span></div>`).join('')}
+                    ${items.map(n => {
+                        const foundIngredients = extractIngredientsFromBrackets(n);
+                        return `<div class="ps-ing-item ${itemCls}">
+                            <div class="ps-response-text"><i class="fas ${itemIcon}"></i> ${escHtml(n)}</div>
+                            ${foundIngredients.length ? `<div class="ps-found-row">
+                                <span class="ps-found-label">Found:</span>
+                                ${foundIngredients.map(x => `<span class="ps-ing-chip ${itemCls}">${escHtml(x)}</span>`).join('')}
+                            </div>` : ''}
+                        </div>`;
+                    }).join('')}
                 </div>
             </div>`;
         }
@@ -931,20 +1057,18 @@
             <div class="ps-result-wrap ${cls}">
                 <div class="ps-result-header">
                     <div class="ps-result-info">
-                        <h4>Ingredient Analysis Result</h4>
-                        <p><i class="fas fa-tag"></i> ${total} ingredient${total !== 1 ? 's' : ''} analyzed</p>
+                        <div class="ps-result-kicker">Risk Level</div>
+                        <h4>${label}</h4>
+                        <p><i class="fas fa-tag"></i> ${riskyIngredients.length} risky ingredient${riskyIngredients.length !== 1 ? 's' : ''} found</p>
                     </div>
-                    <div class="ps-verdict-badge ${cls}"><i class="fas ${icon}"></i> ${label}</div>
+                    <div class="ps-verdict-badge ${cls}"><i class="fas ${icon}"></i> ${riskLevel}</div>
                 </div>
                 ${total > 0 ? `<div class="ps-ing-body">
                     ${buildGroup(avoid, 'danger',  'fa-times-circle',       'Avoid',            'danger')}
                     ${buildGroup(risky, 'warning', 'fa-exclamation-circle', 'Use with Caution', 'warning')}
-                    ${buildGroup(safe,  'safe',    'fa-check-circle',       'Safe Ingredients', 'safe')}
-                </div>` : `<div style="padding:.85rem 1.2rem;font-size:.85rem;color:var(--text-3);">No individual ingredients were identified in the image.</div>`}
-                <div class="ps-rec-box ${cls}">
-                    <div class="ps-rec-icon"><i class="fas ${recIcon}"></i></div>
-                    <div class="ps-rec-body"><h5>${recTitle}</h5><p>${recMsg}</p></div>
-                </div>
+                    ${buildGroup(safe,  'safe',    'fa-check-circle',       'Safe',             'safe')}
+                    ${(!avoid.length && !risky.length) ? `<div class="ps-no-ingredients">No risky ingredients found.</div>` : ''}
+                </div>` : `<div class="ps-no-ingredients">No ingredients were identified in the image.</div>`}
             </div>`;
 
         resultsPlaceholder.style.display = 'none';
@@ -983,6 +1107,19 @@
             .replace(/</g,'&lt;')
             .replace(/>/g,'&gt;')
             .replace(/"/g,'&quot;');
+    }
+
+    function extractIngredientsFromBrackets(text) {
+        const matches = [...String(text ?? '').matchAll(/\[([^\]]+)\]/g)];
+        if (!matches.length) return [];
+
+        const tokens = matches
+            .flatMap(m => m[1].split(','))
+            .map(t => t.trim())
+            .filter(Boolean)
+            .filter(t => /[a-zA-Z]/.test(t));
+
+        return Array.from(new Set(tokens));
     }
 }());
 </script>
