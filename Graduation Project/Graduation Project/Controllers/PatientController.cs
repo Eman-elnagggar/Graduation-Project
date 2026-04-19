@@ -103,10 +103,17 @@ namespace Graduation_Project.Controllers
             _alertService.EvaluateAndSaveAlerts(id, patient, recentBPReadings, recentBSReadings, lastLab, nextAppt);
 
             // Load unread alerts for the dashboard (most recent 5)
-            var healthAlerts = _alertRepository
+            var unreadAlerts = _alertRepository
                 .GetByPatientId(id)
                 .Where(a => !a.IsRead)
+                .ToList();
+
+            var healthAlerts = unreadAlerts
                 .Take(5)
+                .ToList();
+
+            var pendingRiskAlerts = unreadAlerts
+                .Where(a => IsRiskAlertType(a.AlertType))
                 .ToList();
 
             // Build recent activity feed
@@ -227,7 +234,8 @@ namespace Graduation_Project.Controllers
                 WeeklyBloodPressureReadings = weeklyBPReadings,
                 WeeklyBloodSugarReadings = weeklyBSReadings,
                 RecentActivities = activities,
-                HealthAlerts = healthAlerts
+                HealthAlerts = healthAlerts,
+                PendingRiskAlerts = pendingRiskAlerts
             };
 
             return View(viewModel);
@@ -556,6 +564,63 @@ namespace Graduation_Project.Controllers
                 time = reading.DateTime.ToString("h:mm tt"),
                 measurementTime = reading.MeasurementTime
             });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult AcknowledgeRiskAlerts(int patientId)
+        {
+            var (_, failure) = AuthorizePatientAccess(patientId, true);
+            if (failure != null)
+                return failure;
+
+            var pendingRiskAlerts = _alertRepository
+                .GetByPatientId(patientId)
+                .Where(a => !a.IsRead && IsRiskAlertType(a.AlertType))
+                .ToList();
+
+            foreach (var alert in pendingRiskAlerts)
+            {
+                alert.IsRead = true;
+                _alertRepository.Update(alert);
+            }
+
+            _alertRepository.Save();
+
+            return Json(new { success = true, count = pendingRiskAlerts.Count });
+        }
+
+        [HttpGet]
+        public IActionResult GetPendingRiskAlerts(int patientId)
+        {
+            var (_, failure) = AuthorizePatientAccess(patientId, true);
+            if (failure != null)
+                return failure;
+
+            var pendingRiskAlerts = _alertRepository
+                .GetByPatientId(patientId)
+                .Where(a => !a.IsRead && IsRiskAlertType(a.AlertType))
+                .OrderByDescending(a => a.DateCreated)
+                .Select(a => new
+                {
+                    alertId = a.AlertID,
+                    title = a.Title,
+                    message = a.Message,
+                    dateCreated = a.DateCreated.ToString("g")
+                })
+                .ToList();
+
+            return Json(new { success = true, alerts = pendingRiskAlerts });
+        }
+
+        private static bool IsRiskAlertType(string? alertType)
+        {
+            if (string.IsNullOrWhiteSpace(alertType))
+                return false;
+
+            return alertType.Equals("danger", StringComparison.OrdinalIgnoreCase)
+                || alertType.Equals("critical", StringComparison.OrdinalIgnoreCase)
+                || alertType.Equals("warning", StringComparison.OrdinalIgnoreCase);
         }
 
         private (Patient? patient, IActionResult? failure) AuthorizePatientAccess(int patientId, bool returnJsonOnFailure = false)

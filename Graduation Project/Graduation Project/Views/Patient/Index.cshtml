@@ -859,6 +859,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const d = await r.json();
             if (d.success) {
                 addBPRow(sys, dia, d.day, d.month, d.time, meas, a);
+                window.refreshPatientRiskAlerts?.();
                 window.showNotification('Blood pressure saved!', 'success');
             }
         } catch { window.showNotification('Could not save. Please try again.', 'error'); }
@@ -930,6 +931,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const d = await r.json();
             if (d.success) {
                 addBSRow(val, meal, d.day, d.month, d.time, a);
+                window.refreshPatientRiskAlerts?.();
                 window.showNotification('Blood sugar saved!', 'success');
             }
         } catch { window.showNotification('Could not save. Please try again.', 'error'); }
