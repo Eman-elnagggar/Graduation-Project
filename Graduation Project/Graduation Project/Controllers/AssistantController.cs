@@ -508,6 +508,174 @@ namespace Graduation_Project.Controllers
             return summaries;
         }
 
+        public IActionResult Patients(int id, int? doctorId)
+        {
+            var accessResult = TryResolveAssistant(id, out var assistant);
+            if (accessResult != null) return accessResult;
+
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            if (clinic == null) return NotFound();
+
+            var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
+            var doctorSummaries = BuildDoctorSummaries(assistant, clinic, relevantDoctorIds);
+
+            bool isFiltered = doctorId.HasValue && relevantDoctorIds.Contains(doctorId.Value);
+            var activeDoctorIds = isFiltered
+                ? new List<int> { doctorId!.Value }
+                : relevantDoctorIds;
+
+            var approvedLinks = _patientDoctorRepository
+                .GetApprovedByDoctors(activeDoctorIds)
+                .Where(pd => pd.Patient != null)
+                .GroupBy(pd => new { pd.DoctorID, pd.PatientID })
+                .Select(g => g.First())
+                .ToList();
+
+            var approvedPatientIds = approvedLinks
+                .Select(pd => pd.PatientID)
+                .Distinct()
+                .ToHashSet();
+
+            var appointments = _appointmentRepository
+                .GetBookedByClinicAndDoctors(clinic.ClinicID, activeDoctorIds)
+                .Where(a => a.PatientID.HasValue && approvedPatientIds.Contains(a.PatientID.Value))
+                .ToList();
+
+            var patientRows = approvedLinks
+                .Select(link =>
+                {
+                    var patient = link.Patient!;
+                    var patientAppointments = appointments
+                        .Where(a => a.DoctorID == link.DoctorID && a.PatientID == link.PatientID)
+                        .OrderByDescending(a => a.Date)
+                        .ThenByDescending(a => a.Time)
+                        .ToList();
+
+                    var firstName = patient.User?.FirstName?.Trim();
+                    var lastName = patient.User?.LastName?.Trim();
+                    var fullName = string.Join(" ", new[] { firstName, lastName }
+                        .Where(x => !string.IsNullOrWhiteSpace(x))).Trim();
+
+                    var doctor = link.Doctor;
+                    var doctorFullName = doctor?.User != null
+                        ? $"Dr. {doctor.User.FirstName} {doctor.User.LastName}".Trim()
+                        : "Doctor";
+
+                    return new AssistantPatientAppointmentsSummary
+                    {
+                        PatientID = patient.PatientID,
+                        FullName = string.IsNullOrWhiteSpace(fullName) ? "Patient" : fullName,
+                        PhoneNumber = patient.User?.PhoneNumber,
+                        DoctorID = link.DoctorID,
+                        DoctorName = doctorFullName,
+                        DoctorSpecialization = doctor?.Specialization ?? string.Empty,
+                        Appointments = patientAppointments
+                    };
+                })
+                .OrderBy(row => row.DoctorName)
+                .ThenBy(row => row.FullName)
+                .ToList();
+
+            var selectedDoctorName = isFiltered
+                ? doctorSummaries.FirstOrDefault(d => d.DoctorID == doctorId!.Value)?.FullName ?? "Doctor"
+                : "All Doctors";
+
+            var viewModel = new AssistantPatientsViewModel
+            {
+                Assistant = assistant,
+                AssistantName = BuildAssistantDisplayName(assistant.User),
+                Clinic = clinic,
+                ClinicName = clinic.Name ?? "Clinic",
+                Doctors = doctorSummaries,
+                SelectedDoctorID = isFiltered ? doctorId : null,
+                SelectedDoctorName = selectedDoctorName,
+                Patients = patientRows
+            };
+
+            return View(viewModel);
+        }
+
+        public IActionResult PatientDetails(int id, int patientId, int? doctorId)
+        {
+            var accessResult = TryResolveAssistant(id, out var assistant);
+            if (accessResult != null) return accessResult;
+
+            var clinic = _clinicRepository.GetByIdWithDoctor(assistant.ClinicID);
+            if (clinic == null) return NotFound();
+
+            var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
+            var activeDoctorIds = doctorId.HasValue && relevantDoctorIds.Contains(doctorId.Value)
+                ? new List<int> { doctorId.Value }
+                : relevantDoctorIds;
+
+            var approvedLinks = _patientDoctorRepository
+                .GetApprovedByDoctors(activeDoctorIds)
+                .Where(pd => pd.PatientID == patientId)
+                .ToList();
+
+            if (!approvedLinks.Any())
+                return Forbid();
+
+            var patient = approvedLinks
+                .Select(pd => pd.Patient)
+                .FirstOrDefault(p => p != null);
+
+            if (patient == null)
+                return NotFound();
+
+            var assignedDoctorIds = approvedLinks
+                .Select(pd => pd.DoctorID)
+                .Distinct()
+                .ToList();
+
+            var appointments = _appointmentRepository
+                .GetBookedByClinicAndDoctors(clinic.ClinicID, assignedDoctorIds)
+                .Where(a => a.PatientID == patientId)
+                .OrderByDescending(a => a.Date)
+                .ThenByDescending(a => a.Time)
+                .ToList();
+
+            var medications = _context.PatientDrugs
+                .AsNoTracking()
+                .Where(d => d.PatientID == patientId)
+                .OrderByDescending(d => d.DrugID)
+                .ToList();
+
+            var pregnancyRecords = _context.PregnancyRecords
+                .AsNoTracking()
+                .Where(r => r.PatientID == patientId)
+                .OrderByDescending(r => r.StartDate)
+                .ToList();
+
+            var assignedDoctors = approvedLinks
+                .Select(pd => pd.Doctor)
+                .Where(d => d != null)
+                .GroupBy(d => d!.DoctorID)
+                .Select(g => g.First()!)
+                .ToList();
+
+            var patientName = patient.User != null
+                ? string.Join(" ", new[] { patient.User.FirstName, patient.User.LastName }
+                    .Where(s => !string.IsNullOrWhiteSpace(s))).Trim()
+                : "Patient";
+
+            var vm = new AssistantPatientDetailsViewModel
+            {
+                Assistant = assistant,
+                AssistantName = BuildAssistantDisplayName(assistant.User),
+                Clinic = clinic,
+                ClinicName = clinic.Name ?? "Clinic",
+                Patient = patient,
+                PatientName = string.IsNullOrWhiteSpace(patientName) ? "Patient" : patientName,
+                AssignedDoctors = assignedDoctors,
+                Appointments = appointments,
+                Medications = medications,
+                PregnancyRecords = pregnancyRecords
+            };
+
+            return View(vm);
+        }
+
         public IActionResult Appointments(int id, int? doctorId, DateTime? date)
         {
             var accessResult = TryResolveAssistant(id, out var assistant);
