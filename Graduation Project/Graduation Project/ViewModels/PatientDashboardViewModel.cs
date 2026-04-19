@@ -21,6 +21,7 @@ namespace Graduation_Project.ViewModels
         public double LastBloodSugarValue { get; set; }
         public LabTest LastLabTest { get; set; }
         public Appointment NextAppointment { get; set; }
+        public List<Appointment> RecentPastAppointments { get; set; } = new();
 
         // Recent readings for the trackers
         public List<PatientBloodPressure> RecentBloodPressureReadings { get; set; } = new();
