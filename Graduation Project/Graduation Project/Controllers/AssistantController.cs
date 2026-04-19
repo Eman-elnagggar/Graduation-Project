@@ -1251,41 +1251,7 @@ namespace Graduation_Project.Controllers
             return null;
         }
 
-        private IActionResult? TryResolveAssistantClinic(
-            int id,
-            out Assistant assistant,
-            out Clinic clinic,
-            bool returnJsonOnFailure = false)
-        {
-            assistant = null!;
-            clinic = null!;
-
-            var assistantResult = TryResolveAssistant(id, out var resolvedAssistant, returnJsonOnFailure);
-            if (assistantResult != null)
-                return assistantResult;
-
-            assistant = resolvedAssistant!;
-
-            if (assistant.ClinicID is not int clinicId)
-            {
-                if (returnJsonOnFailure)
-                    return NotFound(new { success = false, message = "Assistant is not assigned to a clinic." });
-
-                return NotFound();
-            }
-
-            var resolvedClinic = _clinicRepository.GetByIdWithDoctor(clinicId);
-            if (resolvedClinic == null)
-            {
-                if (returnJsonOnFailure)
-                    return NotFound(new { success = false, message = "Clinic not found." });
-
-                return NotFound();
-            }
-
-            clinic = resolvedClinic;
-            return null;
-        }
+        
 
         public IActionResult ClinicInvitations(int id)
         {
