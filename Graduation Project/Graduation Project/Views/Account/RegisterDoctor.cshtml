@@ -1,0 +1,251 @@
+@{
+    Layout = null;
+    ViewData["Title"] = "Register as Doctor — NABD - نبض";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>@ViewData["Title"]</title>
+  <link rel="icon" type="image/png" href="~/images/logo.png" asp-append-version="true" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="~/css/auth.css" />
+</head>
+<body>
+
+<div class="auth-shell">
+  <aside class="auth-panel">
+    <a class="panel-brand panel-brand-link" href="@Url.Action("Index", "Home")">
+      <div class="panel-brand-icon"><img src="~/images/logo.png" alt="NABD Logo" asp-append-version="true" /></div>
+      <div>
+        <div class="panel-brand-name">NABD - نبض</div>
+        <div class="panel-brand-badge">Doctor Portal</div>
+      </div>
+    </a>
+
+    <div class="panel-content">
+      <h2 class="panel-headline">Join our<br><span>care network</span></h2>
+      <p class="panel-desc">Connect with patients who need your expertise. Manage appointments, review test results, and deliver personalised care — all in one place.</p>
+    </div>
+
+    <div class="panel-features">
+      <div class="panel-feature">
+        <div class="panel-feature-ico"><i class="fas fa-users"></i></div>
+        <div class="panel-feature-text">Manage your patient panel efficiently</div>
+      </div>
+      <div class="panel-feature">
+        <div class="panel-feature-ico"><i class="fas fa-file-medical"></i></div>
+        <div class="panel-feature-text">AI-assisted lab result review</div>
+      </div>
+      <div class="panel-feature">
+        <div class="panel-feature-ico"><i class="fas fa-bell"></i></div>
+        <div class="panel-feature-text">Real-time alerts for critical values</div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="auth-form-area" style="align-items: flex-start; padding-top: 2.5rem;">
+    <div class="auth-form-wrap" style="max-width: 680px;">
+
+      <div class="mobile-brand">
+        <div class="mobile-brand-icon"><img src="~/images/logo.png" alt="NABD Logo" asp-append-version="true" /></div>
+        <div class="mobile-brand-name">NABD - نبض</div>
+      </div>
+
+      <div class="auth-card">
+        <div class="auth-card-header">
+          <div style="display:flex; align-items:center; gap:.65rem;">
+            <div style="width:38px;height:38px;border-radius:10px;background:rgba(27,174,190,.12);color:var(--mc-primary);display:flex;align-items:center;justify-content:center;">
+              <i class="fas fa-user-md"></i>
+            </div>
+            <div>
+              <div class="auth-card-title">Doctor Registration</div>
+              <div class="auth-card-sub">Create your physician account on NABD - نبض</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="auth-card-body">
+          @if (TempData["AuthError"] is string authError)
+          {
+            <div class="mc-warning-box" style="display:flex; margin-bottom:.9rem;">
+              <i class="fas fa-exclamation-circle"></i>
+              <p>@authError</p>
+            </div>
+          }
+
+          @using (Html.BeginForm("RegisterDoctor", "Account", FormMethod.Post,
+                  new { id = "doctorForm", novalidate = "novalidate", enctype = "multipart/form-data" }))
+          {
+            @Html.AntiForgeryToken()
+
+            <div class="mc-row">
+              <div class="mc-form-group">
+                <label class="mc-label" for="FirstName">
+                  <i class="fas fa-user"></i> First Name <span class="req">*</span>
+                </label>
+                <input type="text" id="FirstName" name="FirstName" class="mc-input"
+                       placeholder="Dr. Fatima" required autocomplete="given-name" />
+              </div>
+              <div class="mc-form-group">
+                <label class="mc-label" for="LastName">
+                  <i class="fas fa-user"></i> Last Name <span class="req">*</span>
+                </label>
+                <input type="text" id="LastName" name="LastName" class="mc-input"
+                       placeholder="Hassan" required autocomplete="family-name" />
+              </div>
+            </div>
+
+            <div class="mc-form-group">
+              <label class="mc-label" for="Email">
+                <i class="fas fa-envelope"></i> Email Address <span class="req">*</span>
+              </label>
+              <div class="mc-input-wrap">
+                <input type="email" id="Email" name="Email" class="mc-input has-icon"
+                       placeholder="doctor@hospital.com" required autocomplete="email" />
+                <i class="mc-input-icon fas fa-envelope"></i>
+              </div>
+            </div>
+
+            <div class="mc-row">
+              <div class="mc-form-group">
+                <label class="mc-label" for="Password">
+                  <i class="fas fa-lock"></i> Password <span class="req">*</span>
+                </label>
+                <div class="mc-input-wrap">
+                  <input type="password" id="Password" name="Password" class="mc-input has-eye"
+                         placeholder="Min. 8 characters" required data-min-length="8"
+                         autocomplete="new-password" />
+                  <button type="button" class="mc-input-eye"><i class="fas fa-eye"></i></button>
+                </div>
+                <div class="mc-pwd-strength">
+                  <div class="mc-pwd-strength-bar"><div class="mc-pwd-strength-fill" id="pwdBar"></div></div>
+                  <div class="mc-pwd-strength-label" id="pwdLabel"></div>
+                </div>
+              </div>
+              <div class="mc-form-group">
+                <label class="mc-label" for="ConfirmPassword">
+                  <i class="fas fa-lock"></i> Confirm Password <span class="req">*</span>
+                </label>
+                <div class="mc-input-wrap">
+                  <input type="password" id="ConfirmPassword" name="ConfirmPassword" class="mc-input has-eye"
+                         placeholder="Repeat password" required data-match="Password"
+                         autocomplete="new-password" />
+                  <button type="button" class="mc-input-eye"><i class="fas fa-eye"></i></button>
+                </div>
+              </div>
+            </div>
+
+            <div class="mc-row">
+              <div class="mc-form-group">
+                <label class="mc-label" for="PhoneNumber">
+                  <i class="fas fa-phone"></i> Phone Number <span class="req">*</span>
+                </label>
+                <div class="mc-input-wrap">
+                  <input type="tel" id="PhoneNumber" name="PhoneNumber" class="mc-input has-icon"
+                         placeholder="+20 xxx xxx xxxx" required autocomplete="tel" />
+                  <i class="mc-input-icon fas fa-phone"></i>
+                </div>
+              </div>
+              <div class="mc-form-group">
+                <label class="mc-label" for="MedicalSpecialty">
+                  <i class="fas fa-stethoscope"></i> Medical Specialty <span class="req">*</span>
+                </label>
+                <select id="MedicalSpecialty" name="MedicalSpecialty" class="mc-select" required>
+                  <option value="">— Select specialty —</option>
+                  <option value="Obstetrics">Obstetrics &amp; Gynaecology</option>
+                  <option value="MaternalFetal">Maternal-Fetal Medicine</option>
+                  <option value="InternalMedicine">Internal Medicine</option>
+                  <option value="GeneralPractice">General Practice</option>
+                  <option value="Endocrinology">Endocrinology</option>
+                  <option value="Cardiology">Cardiology</option>
+                  <option value="Nutrition">Clinical Nutrition</option>
+                  <option value="Psychiatry">Psychiatry</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="mc-form-group">
+              <label class="mc-label">
+                <i class="fas fa-id-card"></i> Proof of Medical License <span class="req">*</span>
+              </label>
+              <div class="mc-file-zone" id="licenseZone">
+                <input type="file" id="LicenseFile" name="LicenseFile"
+                       accept=".pdf,.jpg,.jpeg,.png" required />
+                <i class="fas fa-cloud-upload-alt"></i>
+                <div class="mc-file-title">Upload your medical license</div>
+                <div class="mc-file-sub">PDF, JPG, or PNG &nbsp;·&nbsp; Max 5 MB</div>
+                <div class="mc-file-name" id="licenseFileName"></div>
+              </div>
+              <div class="mc-feedback hint">
+                <i class="fas fa-shield-alt"></i>
+                Your document is encrypted and only visible to NABD - نبض administrators for verification.
+              </div>
+            </div>
+
+            <div style="display:flex; align-items:flex-start; gap:.65rem; padding:.8rem 1rem;
+                        background:#f0fdf4; border:1px solid #bbf7d0; border-radius:var(--mc-radius-sm);
+                        margin-bottom:1.1rem; font-size:.8rem; color:#166534;">
+              <i class="fas fa-info-circle" style="color:#22c55e; margin-top:.1rem; flex-shrink:0;"></i>
+              <span>Your account will be reviewed within <strong>1–2 business days</strong>. You'll receive an email once verified.</span>
+            </div>
+
+            <button type="submit" class="mc-btn mc-btn-primary">
+              <i class="fas fa-paper-plane"></i> Submit Registration
+            </button>
+          }
+        </div>
+
+        <div class="auth-card-footer">
+          Already registered?
+          <a href="@Url.Action("Login", "Account")" class="mc-link">Sign in</a>
+          &nbsp;·&nbsp;
+          Register as
+          <a href="@Url.Action("RegisterPatient", "Account")" class="mc-link">Patient</a> or
+          <a href="@Url.Action("RegisterAssistant", "Account")" class="mc-link">Assistant</a>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="~/js/auth.js"></script>
+<script>
+(function () {
+  'use strict';
+  initLiveValidation('doctorForm');
+  initPasswordStrength('Password', 'pwdBar', 'pwdLabel');
+
+  document.getElementById('doctorForm').addEventListener('submit', function (e) {
+    if (!validateForm('doctorForm')) {
+      e.preventDefault();
+      showToast('Please fix the errors before submitting.', 'error');
+      return;
+    }
+
+    const file = document.getElementById('LicenseFile');
+    if (!file.files.length) {
+      e.preventDefault();
+      setFieldState(file, 'Please upload your medical license.');
+      showToast('Medical license upload is required.', 'error');
+      return;
+    }
+
+    if (file.files[0].size > 5 * 1024 * 1024) {
+      e.preventDefault();
+      setFieldState(file, 'File must be under 5 MB.');
+      showToast('File size exceeds 5 MB.', 'error');
+    }
+  });
+
+  document.getElementById('LicenseFile').addEventListener('change', function () {
+    const el = document.getElementById('licenseFileName');
+    if (this.files.length) el.textContent = '✓ ' + this.files[0].name;
+  });
+}());
+</script>
+</body>
+</html>

@@ -1,0 +1,922 @@
+@{
+    Layout = "~/Views/Shared/_PatientLayout.cshtml";
+    ViewData["Title"] = "NABD - ??? Assistant";
+    ViewData["ActivePage"] = "Chatbot";
+    var patientId = ViewData["PatientId"] as int? ?? 0;
+}
+
+<!-- ???????????????????????????????????????????????????????
+     CHATBOT PAGE
+??????????????????????????????????????????????????????? -->
+<div class="cb-page">
+
+    <!-- ???????????????? LEFT · CHAT WINDOW ???????????????? -->
+    <div class="cb-window">
+
+        <!-- ?? Window Header ?? -->
+        <div class="cb-win-header">
+            <div class="cb-win-header-left">
+                <div class="cb-win-avatar">
+                    <i class="fas fa-robot"></i>
+                    <span class="cb-win-dot"></span>
+                </div>
+                <div class="cb-win-meta">
+                    <h2 class="cb-win-name">NABD - ??? AI</h2>
+                    <p class="cb-win-status">
+                        <span class="cb-blink"></span>
+                        Online &ndash; responds instantly
+                    </p>
+                </div>
+            </div>
+            <div class="cb-win-header-right">
+                <button class="cb-hdr-btn" id="clearChatBtn" title="Clear conversation">
+                    <i class="fas fa-broom"></i>
+                </button>
+                <div class="cb-hdr-divider"></div>
+                <div class="cb-hdr-badge">
+                    <i class="fas fa-lock"></i> Private
+                </div>
+            </div>
+        </div>
+
+        <!-- ?? Date Stamp ?? -->
+        <div class="cb-day-bar">
+            <span id="todayLabel"></span>
+        </div>
+
+        <!-- ?? Messages ?? -->
+        <div class="cb-messages" id="chatMessages">
+
+            <div class="cb-msg cb-msg-bot" id="welcomeMsg">
+                <div class="cb-avatar cb-avatar-bot">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="cb-msg-body">
+                    <div class="cb-bubble cb-bubble-bot">
+                        <p><i class="fa-regular fa-hand-spock"></i> Hello! I'm your <strong>NABD - ??? AI Assistant</strong>, here to support you every step of your pregnancy journey.</p>
+                        <p>I can answer questions about:</p>
+                        <div class="cb-caps-grid">
+                            <span class="cb-cap"><i class="fas fa-baby"></i> Pregnancy stages</span>
+                            <span class="cb-cap"><i class="fas fa-apple-alt"></i> Nutrition &amp; diet</span>
+                            <span class="cb-cap"><i class="fas fa-pills"></i> Medication safety</span>
+                            <span class="cb-cap"><i class="fas fa-running"></i> Safe exercises</span>
+                            <span class="cb-cap"><i class="fas fa-calendar-check"></i> Appointments</span>
+                            <span class="cb-cap"><i class="fas fa-stethoscope"></i> Symptom info</span>
+                        </div>
+                        <p class="cb-bubble-hint"><i class="fas fa-arrow-down cb-hint-arrow"></i> Type your question below or pick a suggestion</p>
+                    </div>
+                    <time class="cb-msg-time" id="welcomeTime"></time>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ?? Suggestions ?? -->
+        <div class="cb-sugg-bar">
+            <div class="cb-sugg-scroll">
+                <button class="cb-sugg" type="button" data-msg="Tips for week 24 of pregnancy">
+                    <i class="fas fa-baby-carriage"></i> Week 24 tips
+                </button>
+                <button class="cb-sugg" type="button" data-msg="What are healthy snacks during pregnancy?">
+                    <i class="fas fa-apple-alt"></i> Healthy snacks
+                </button>
+                <button class="cb-sugg" type="button" data-msg="What are the best sleep positions during pregnancy?">
+                    <i class="fas fa-moon"></i> Sleep positions
+                </button>
+                <button class="cb-sugg" type="button" data-msg="What exercises are safe during pregnancy?">
+                    <i class="fas fa-running"></i> Safe exercises
+                </button>
+                <button class="cb-sugg" type="button" data-msg="Is paracetamol safe during pregnancy?">
+                    <i class="fas fa-pills"></i> Is paracetamol safe?
+                </button>
+                <button class="cb-sugg" type="button" data-msg="What foods should I avoid during pregnancy?">
+                    <i class="fas fa-ban"></i> Foods to avoid
+                </button>
+                <button class="cb-sugg" type="button" data-msg="How can I stay hydrated during pregnancy?">
+                    <i class="fas fa-tint"></i> Staying hydrated
+                </button>
+            </div>
+        </div>
+
+        <!-- ?? Input Bar ?? -->
+        <div class="cb-input-area">
+            <div class="cb-input-row">
+                <div class="cb-input-box">
+                    <textarea class="cb-textarea" id="chatInput"
+                              placeholder="Ask me anything about your pregnancy…"
+                              rows="1" maxlength="500" autocomplete="off"></textarea>
+                    <span class="cb-counter" id="charCount"></span>
+                </div>
+                <button class="cb-send" id="sendBtn" type="button" title="Send">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+            <p class="cb-disclaimer">
+                <i class="fas fa-shield-alt"></i>
+                AI responses are for informational purposes only &mdash; always consult your doctor.
+            </p>
+        </div>
+
+    </div>
+
+    <!-- ???????????????? RIGHT · CONTEXT PANEL ???????????????? -->
+    <aside class="cb-context">
+
+        <!-- About -->
+        <div class="cb-ctx-card">
+            <div class="cb-ctx-card-header">
+                <div class="cb-ctx-icon cb-ctx-icon-teal">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div>
+                    <h4 class="cb-ctx-title">About NABD - ??? AI</h4>
+                    <p class="cb-ctx-sub">Your pregnancy expert</p>
+                </div>
+            </div>
+            <div class="cb-ctx-features">
+                <div class="cb-ctx-feat">
+                    <div class="cb-ctx-feat-icon"><i class="fas fa-bolt"></i></div>
+                    <div>
+                        <strong>Instant answers</strong>
+                        <span>Responds in seconds, any time of day</span>
+                    </div>
+                </div>
+                <div class="cb-ctx-feat">
+                    <div class="cb-ctx-feat-icon"><i class="fas fa-baby-carriage"></i></div>
+                    <div>
+                        <strong>Pregnancy-focused</strong>
+                        <span>Trained on maternal health knowledge</span>
+                    </div>
+                </div>
+                <div class="cb-ctx-feat">
+                    <div class="cb-ctx-feat-icon"><i class="fas fa-lock"></i></div>
+                    <div>
+                        <strong>Private &amp; secure</strong>
+                        <span>Your conversations stay confidential</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Daily Tips -->
+        <div class="cb-ctx-card">
+            <div class="cb-ctx-card-header">
+                <div class="cb-ctx-icon cb-ctx-icon-amber">
+                    <i class="fas fa-lightbulb"></i>
+                </div>
+                <div>
+                    <h4 class="cb-ctx-title">Today's Tips</h4>
+                    <p class="cb-ctx-sub">Healthy habits for mom &amp; baby</p>
+                </div>
+            </div>
+            <ul class="cb-tip-list">
+                <li><i class="fas fa-tint"></i><span>Drink 8–10 glasses of water</span></li>
+                <li><i class="fas fa-capsules"></i><span>Take your prenatal vitamins</span></li>
+                <li><i class="fas fa-moon"></i><span>Sleep 7–9 hours per night</span></li>
+                <li><i class="fas fa-walking"></i><span>30 min gentle movement daily</span></li>
+                <li><i class="fas fa-leaf"></i><span>Include folate-rich greens</span></li>
+            </ul>
+        </div>
+
+        <!-- Popular topics -->
+        <div class="cb-ctx-card">
+            <div class="cb-ctx-card-header">
+                <div class="cb-ctx-icon cb-ctx-icon-purple">
+                    <i class="fas fa-fire"></i>
+                </div>
+                <div>
+                    <h4 class="cb-ctx-title">Popular Topics</h4>
+                    <p class="cb-ctx-sub">Tap to ask instantly</p>
+                </div>
+            </div>
+            <div class="cb-topic-list">
+                <button class="cb-topic" type="button" data-msg="What are the signs of preeclampsia?">
+                    <i class="fas fa-heartbeat"></i><span>Preeclampsia signs</span><i class="fas fa-chevron-right cb-topic-arrow"></i>
+                </button>
+                <button class="cb-topic" type="button" data-msg="What vitamins should I take during pregnancy?">
+                    <i class="fas fa-capsules"></i><span>Prenatal vitamins</span><i class="fas fa-chevron-right cb-topic-arrow"></i>
+                </button>
+                <button class="cb-topic" type="button" data-msg="What are the stages of labor?">
+                    <i class="fas fa-baby-carriage"></i><span>Stages of labor</span><i class="fas fa-chevron-right cb-topic-arrow"></i>
+                </button>
+                <button class="cb-topic" type="button" data-msg="How can I manage morning sickness?">
+                    <i class="fas fa-thermometer-half"></i><span>Morning sickness</span><i class="fas fa-chevron-right cb-topic-arrow"></i>
+                </button>
+                <button class="cb-topic" type="button" data-msg="Is it safe to travel during pregnancy?">
+                    <i class="fas fa-plane"></i><span>Travel safety</span><i class="fas fa-chevron-right cb-topic-arrow"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Emergency -->
+        <div class="cb-ctx-card cb-ctx-emergency">
+            <div class="cb-ctx-emg-row">
+                <div class="cb-ctx-icon cb-ctx-icon-red">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div>
+                    <h4 class="cb-ctx-title" style="color:#b91c1c">Need urgent help?</h4>
+                    <p class="cb-ctx-sub" style="color:#7f1111">Don't wait &mdash; contact a doctor now</p>
+                </div>
+            </div>
+            <p class="cb-emg-text">
+                Severe pain, heavy bleeding, sudden swelling, or reduced fetal movement require immediate medical attention.
+            </p>
+            <button class="cb-emg-btn" type="button">
+                <i class="fas fa-phone-alt"></i> Emergency Contact
+            </button>
+        </div>
+
+    </aside>
+
+</div>
+
+@section Styles {
+<style>
+/* ???????????????????????????????????????????????????????????????
+   CHATBOT — Design Tokens
+??????????????????????????????????????????????????????????????? */
+:root {
+    --cb-primary:     #1BAEBE;
+    --cb-primary-dk:  #138fa0;
+    --cb-primary-lt:  #e0f7fa;
+    --cb-text:        #0f172a;
+    --cb-text-2:      #334155;
+    --cb-muted:       #64748b;
+    --cb-muted-lt:    #94a3b8;
+    --cb-surface:     #ffffff;
+    --cb-bg:          #f1f5f9;
+    --cb-border:      #e2e8f0;
+    --cb-border-dk:   #cbd5e1;
+    --cb-radius-sm:   10px;
+    --cb-radius:      16px;
+    --cb-radius-lg:   20px;
+    --cb-shadow:      0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.06);
+    --cb-shadow-md:   0 4px 24px rgba(0,0,0,.10);
+    --cb-shadow-lg:   0 8px 40px rgba(0,0,0,.14);
+}
+
+/* ???????????????????????????????????????????????????????????????
+   PAGE WRAPPER  —  chat window fills vertical space
+??????????????????????????????????????????????????????????????? */
+.cb-page {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 1.25rem;
+    /* fill the available height inside .page-content */
+    height: calc(100vh - 140px);
+    min-height: 580px;
+    align-items: stretch;
+}
+
+/* ???????????????????????????????????????????????????????????????
+   CHAT WINDOW
+??????????????????????????????????????????????????????????????? */
+.cb-window {
+    background: var(--cb-surface);
+    border-radius: var(--cb-radius-lg);
+    box-shadow: var(--cb-shadow-md);
+    border: 1px solid var(--cb-border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    height: 100%;
+}
+
+/* ?? Window Header ?? */
+.cb-win-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.4rem;
+    background: linear-gradient(135deg, var(--cb-primary) 0%, var(--cb-primary-dk) 100%);
+    flex-shrink: 0;
+}
+.cb-win-header-left { display: flex; align-items: center; gap: .85rem; }
+.cb-win-avatar {
+    position: relative;
+    width: 44px; height: 44px;
+    background: rgba(255,255,255,.18);
+    border: 2px solid rgba(255,255,255,.35);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 1.15rem;
+    flex-shrink: 0;
+}
+.cb-win-dot {
+    position: absolute; bottom: 0; right: 0;
+    width: 11px; height: 11px; border-radius: 50%;
+    background: #4ade80; border: 2.5px solid var(--cb-primary-dk);
+}
+.cb-win-name   { margin: 0; font-size: 1rem; font-weight: 700; color: #fff; line-height: 1.2; }
+.cb-win-status {
+    margin: .15rem 0 0; font-size: .75rem; color: rgba(255,255,255,.8);
+    display: flex; align-items: center; gap: .4rem;
+}
+.cb-blink {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #4ade80; flex-shrink: 0;
+    animation: cbBlink 2s ease infinite;
+}
+@@keyframes cbBlink {
+    0%,100% { opacity:1; }
+    50%      { opacity:.3; }
+}
+
+.cb-win-header-right { display: flex; align-items: center; gap: .6rem; }
+.cb-hdr-btn {
+    width: 34px; height: 34px;
+    background: rgba(255,255,255,.14);
+    border: 1px solid rgba(255,255,255,.22);
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    color: rgba(255,255,255,.9); font-size: .82rem; cursor: pointer;
+    transition: background .18s;
+}
+.cb-hdr-btn:hover { background: rgba(255,255,255,.26); }
+.cb-hdr-divider {
+    width: 1px; height: 20px;
+    background: rgba(255,255,255,.25);
+}
+.cb-hdr-badge {
+    display: inline-flex; align-items: center; gap: .35rem;
+    background: rgba(255,255,255,.14);
+    border: 1px solid rgba(255,255,255,.22);
+    border-radius: 20px;
+    padding: .28rem .7rem;
+    font-size: .73rem; font-weight: 600; color: rgba(255,255,255,.9);
+}
+
+/* ?? Day bar ?? */
+.cb-day-bar {
+    text-align: center;
+    padding: .65rem 1rem;
+    background: var(--cb-bg);
+    border-bottom: 1px solid var(--cb-border);
+    flex-shrink: 0;
+}
+.cb-day-bar span {
+    font-size: .72rem; font-weight: 600;
+    color: var(--cb-muted); letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+/* ?? Messages ?? */
+.cb-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.4rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    background: var(--cb-bg);
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+}
+.cb-messages::-webkit-scrollbar        { width: 4px; }
+.cb-messages::-webkit-scrollbar-thumb  { background: #cbd5e1; border-radius: 4px; }
+
+/* ?? Message row ?? */
+.cb-msg {
+    display: flex;
+    align-items: flex-end;
+    gap: .6rem;
+    animation: cbIn .25s ease both;
+}
+@@keyframes cbIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+.cb-msg-bot  { flex-direction: row; }
+.cb-msg-user { flex-direction: row-reverse; }
+
+/* Avatars */
+.cb-avatar {
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .85rem; font-weight: 700;
+}
+.cb-avatar-bot {
+    background: linear-gradient(135deg, var(--cb-primary), var(--cb-primary-dk));
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(27,174,190,.3);
+}
+.cb-avatar-user {
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(99,102,241,.3);
+}
+
+/* Message body */
+.cb-msg-body {
+    display: flex; flex-direction: column; gap: .3rem;
+    max-width: 72%;
+}
+.cb-msg-user .cb-msg-body { align-items: flex-end; }
+
+/* Bubbles */
+.cb-bubble {
+    padding: .85rem 1.1rem;
+    border-radius: 18px;
+    font-size: .875rem;
+    line-height: 1.65;
+    word-break: break-word;
+    position: relative;
+}
+.cb-bubble p          { margin: 0 0 .5rem; }
+.cb-bubble p:last-child { margin-bottom: 0; }
+.cb-bubble strong      { font-weight: 700; }
+
+/* Bot bubble — white with left-bottom "tail" */
+.cb-bubble-bot {
+    background: var(--cb-surface);
+    border: 1px solid var(--cb-border);
+    border-bottom-left-radius: 4px;
+    color: var(--cb-text-2);
+    box-shadow: var(--cb-shadow);
+}
+
+/* User bubble — brand gradient with right-bottom "tail" */
+.cb-bubble-user {
+    background: linear-gradient(135deg, var(--cb-primary) 0%, var(--cb-primary-dk) 100%);
+    color: #fff;
+    border-bottom-right-radius: 4px;
+    box-shadow: 0 3px 14px rgba(27,174,190,.28);
+}
+
+/* Capabilities grid inside welcome bubble */
+.cb-caps-grid {
+    display: flex; flex-wrap: wrap; gap: .4rem;
+    margin: .6rem 0 .7rem;
+}
+.cb-cap {
+    display: inline-flex; align-items: center; gap: .3rem;
+    background: rgba(27,174,190,.09);
+    border: 1px solid rgba(27,174,190,.2);
+    color: var(--cb-primary-dk);
+    border-radius: 20px;
+    padding: .25rem .7rem;
+    font-size: .77rem; font-weight: 600;
+}
+.cb-cap i { font-size: .72rem; }
+.cb-bubble-hint {
+    margin-top: .6rem !important;
+    font-size: .8rem; color: var(--cb-muted);
+    font-style: italic;
+}
+/* Wave & hint arrow icons in welcome bubble */
+.cb-wave        { color: var(--cb-primary); margin-right: .25rem; }
+.cb-hint-arrow  { color: var(--cb-primary); margin-right: .3rem; font-size: .72rem; }
+
+/* Timestamp */
+.cb-msg-time {
+    font-size: .68rem; color: var(--cb-muted-lt);
+    padding: 0 .2rem;
+    display: block;
+}
+
+/* ?? Typing indicator ?? */
+.cb-msg-typing .cb-bubble-bot {
+    display: flex; align-items: center; gap: 5px;
+}
+.cb-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--cb-muted-lt);
+    animation: cbDot 1.3s ease infinite;
+}
+.cb-dot:nth-child(2) { animation-delay: .2s; }
+.cb-dot:nth-child(3) { animation-delay: .4s; }
+@@keyframes cbDot {
+    0%,80%,100% { transform:scale(.75); opacity:.5; }
+    40%          { transform:scale(1.15); opacity:1; }
+}
+
+/* ???????????????????????????????????????????????????????????????
+   SUGGESTION CHIPS  (horizontal scroll, no wrap)
+??????????????????????????????????????????????????????????????? */
+.cb-sugg-bar {
+    padding: .65rem 1rem;
+    background: var(--cb-surface);
+    border-top: 1px solid var(--cb-border);
+    flex-shrink: 0;
+}
+.cb-sugg-scroll {
+    display: flex;
+    gap: .45rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+}
+.cb-sugg-scroll::-webkit-scrollbar { display: none; }
+.cb-sugg {
+    display: inline-flex; align-items: center;
+    white-space: nowrap;
+    padding: .34rem .8rem;
+    border-radius: 20px;
+    border: 1.5px solid var(--cb-border);
+    background: var(--cb-bg);
+    font-size: .78rem; font-weight: 600; color: var(--cb-muted);
+    cursor: pointer; font-family: inherit;
+    transition: all .18s;
+    flex-shrink: 0;
+}
+.cb-sugg:hover {
+    border-color: var(--cb-primary);
+    color: var(--cb-primary-dk);
+    background: var(--cb-primary-lt);
+}
+
+/* ???????????????????????????????????????????????????????????????
+   INPUT AREA
+??????????????????????????????????????????????????????????????? */
+.cb-input-area {
+    padding: .85rem 1.2rem .8rem;
+    background: var(--cb-surface);
+    border-top: 1px solid var(--cb-border);
+    flex-shrink: 0;
+}
+.cb-input-row {
+    display: flex; align-items: flex-end; gap: .65rem;
+}
+.cb-input-box {
+    flex: 1; position: relative;
+}
+.cb-textarea {
+    width: 100%;
+    padding: .75rem 3rem .75rem 1rem;
+    border: 1.5px solid var(--cb-border);
+    border-radius: 14px;
+    font-size: .9rem; color: var(--cb-text);
+    background: var(--cb-bg);
+    resize: none; outline: none;
+    font-family: inherit; line-height: 1.55;
+    transition: border-color .2s, box-shadow .2s, background .2s;
+    box-sizing: border-box;
+    min-height: 46px; max-height: 120px;
+    overflow-y: auto;
+    display: block;
+}
+.cb-textarea:focus {
+    border-color: var(--cb-primary);
+    box-shadow: 0 0 0 3px rgba(27,174,190,.12);
+    background: #fff;
+}
+.cb-textarea::placeholder { color: var(--cb-muted-lt); }
+.cb-counter {
+    position: absolute; bottom: .55rem; right: .75rem;
+    font-size: .66rem; color: #cbd5e1; pointer-events: none;
+    line-height: 1;
+}
+.cb-counter.cb-counter-warn  { color: #f59e0b; }
+.cb-counter.cb-counter-limit { color: #ef4444; }
+
+.cb-send {
+    width: 46px; height: 46px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--cb-primary), var(--cb-primary-dk));
+    color: #fff; border: none; border-radius: 13px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .95rem; cursor: pointer;
+    box-shadow: 0 3px 12px rgba(27,174,190,.38);
+    transition: transform .18s, box-shadow .18s;
+    align-self: flex-end;
+}
+.cb-send:hover  { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(27,174,190,.45); }
+.cb-send:active { transform: translateY(0); box-shadow: 0 2px 8px rgba(27,174,190,.3); }
+.cb-send:disabled { opacity: .45; pointer-events: none; }
+
+.cb-disclaimer {
+    margin: .55rem 0 0;
+    font-size: .72rem; color: var(--cb-muted-lt);
+    display: flex; align-items: center; justify-content: center; gap: .35rem;
+}
+.cb-disclaimer i { font-size: .68rem; }
+
+/* ???????????????????????????????????????????????????????????????
+   CONTEXT SIDEBAR
+??????????????????????????????????????????????????????????????? */
+.cb-context {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #e2e8f0 transparent;
+    padding-right: 2px;
+}
+.cb-context::-webkit-scrollbar       { width: 4px; }
+.cb-context::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+
+/* ?? Context card ?? */
+.cb-ctx-card {
+    background: var(--cb-surface);
+    border-radius: var(--cb-radius);
+    border: 1px solid var(--cb-border);
+    box-shadow: var(--cb-shadow);
+    padding: 1.1rem 1.2rem;
+    transition: box-shadow .2s;
+}
+.cb-ctx-card:hover { box-shadow: var(--cb-shadow-md); }
+
+.cb-ctx-card-header {
+    display: flex; align-items: center; gap: .75rem;
+    margin-bottom: 1rem;
+    padding-bottom: .85rem;
+    border-bottom: 1px solid var(--cb-border);
+}
+.cb-ctx-icon {
+    width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .88rem;
+}
+.cb-ctx-icon-teal   { background: rgba(27,174,190,.12);  color: var(--cb-primary-dk); }
+.cb-ctx-icon-amber  { background: rgba(245,158,11,.12);  color: #b45309; }
+.cb-ctx-icon-purple { background: rgba(99,102,241,.12);  color: #4338ca; }
+.cb-ctx-icon-red    { background: rgba(239,68,68,.12);   color: #b91c1c; }
+
+.cb-ctx-title { margin: 0; font-size: .88rem; font-weight: 700; color: var(--cb-text); }
+.cb-ctx-sub   { margin: .1rem 0 0; font-size: .74rem; color: var(--cb-muted); }
+
+/* Features list (About card) */
+.cb-ctx-features { display: flex; flex-direction: column; gap: .7rem; }
+.cb-ctx-feat {
+    display: flex; align-items: flex-start; gap: .65rem;
+}
+.cb-ctx-feat-icon {
+    width: 28px; height: 28px; border-radius: 7px; flex-shrink: 0;
+    background: var(--cb-primary-lt);
+    display: flex; align-items: center; justify-content: center;
+    font-size: .75rem; color: var(--cb-primary-dk);
+    margin-top: .05rem;
+}
+.cb-ctx-feat strong { display: block; font-size: .81rem; font-weight: 700; color: var(--cb-text-2); }
+.cb-ctx-feat span   { font-size: .76rem; color: var(--cb-muted); line-height: 1.4; }
+
+/* Tip list */
+.cb-tip-list {
+    list-style: none; margin: 0; padding: 0;
+    display: flex; flex-direction: column; gap: .5rem;
+}
+.cb-tip-list li {
+    display: flex; align-items: center; gap: .55rem;
+    font-size: .8rem; color: var(--cb-text-2); line-height: 1.4;
+}
+.cb-tip-list li i {
+    width: 18px; text-align: center;
+    color: var(--cb-primary); font-size: .75rem; flex-shrink: 0;
+}
+
+/* Topic buttons */
+.cb-topic-list { display: flex; flex-direction: column; gap: .35rem; }
+.cb-topic {
+    display: flex; align-items: center; gap: .6rem;
+    width: 100%; padding: .55rem .75rem;
+    background: var(--cb-bg);
+    border: 1px solid var(--cb-border);
+    border-radius: var(--cb-radius-sm);
+    font-size: .8rem; font-weight: 500; color: var(--cb-text-2);
+    cursor: pointer; font-family: inherit; text-align: left;
+    transition: all .15s;
+}
+.cb-topic > i:first-child { color: var(--cb-primary); font-size: .78rem; flex-shrink: 0; }
+.cb-topic span { flex: 1; }
+.cb-topic-arrow { font-size: .65rem; color: var(--cb-border-dk); transition: transform .15s; }
+.cb-topic:hover {
+    background: var(--cb-primary-lt);
+    border-color: rgba(27,174,190,.35);
+    color: var(--cb-primary-dk);
+}
+
+/* Emergency card */
+.cb-ctx-emergency {
+    border-color: #fca5a5;
+    background: linear-gradient(160deg, #fff8f8 0%, #fff1f2 100%);
+}
+.cb-ctx-emg-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .85rem; }
+.cb-emg-text {
+    font-size: .79rem; color: #7f1111;
+    line-height: 1.6; margin: 0 0 .85rem;
+}
+.cb-emg-btn {
+    width: 100%;
+    display: flex; align-items: center; justify-content: center; gap: .5rem;
+    padding: .65rem 1rem;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: #fff; border: none; border-radius: 10px;
+    font-size: .82rem; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+    box-shadow: 0 3px 12px rgba(239,68,68,.32);
+    transition: transform .18s, box-shadow .18s;
+}
+.cb-emg-btn:hover { transform: translateY(-1px); box-shadow: 0 5px 18px rgba(239,68,68,.4); }
+
+/* ???????????????????????????????????????????????????????????????
+   TOAST
+??????????????????????????????????????????????????????????????? */
+.cb-toast {
+    position: fixed; bottom: 1.75rem; right: 1.75rem;
+    padding: .85rem 1.15rem;
+    border-radius: 14px;
+    display: flex; align-items: center; gap: .7rem;
+    font-size: .86rem; font-weight: 500; z-index: 9999;
+    box-shadow: 0 8px 28px rgba(0,0,0,.13);
+    animation: cbToastIn .28s ease;
+    max-width: 320px;
+}
+.cb-toast-info    { background:#e0f2fe; color:#0369a1; border:1px solid #7dd3fc; }
+.cb-toast-success { background:#dcfce7; color:#15803d; border:1px solid #86efac; }
+.cb-toast-error   { background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; }
+.cb-toast-close {
+    background:none; border:none; cursor:pointer;
+    color:inherit; opacity:.6; margin-left:auto; padding:2px 5px; font-size:.85rem;
+}
+.cb-toast-close:hover { opacity:1; }
+@@keyframes cbToastIn { from { opacity:0; transform:translateY(12px); } to { opacity:1, transform:translateY(0); } }
+
+/* ???????????????????????????????????????????????????????????????
+   RESPONSIVE
+??????????????????????????????????????????????????????????????? */
+@@media (max-width: 960px) {
+    .cb-page {
+        grid-template-columns: 1fr;
+        height: auto;
+    }
+    .cb-window { height: 80vh; min-height: 520px; }
+    .cb-context { display: grid; grid-template-columns: 1fr 1fr; overflow: visible; }
+}
+@@media (max-width: 600px) {
+    .cb-page    { gap: 1rem; }
+    .cb-window  { height: 78vh; border-radius: var(--cb-radius); }
+    .cb-context { grid-template-columns: 1fr; }
+    .cb-msg-body { max-width: 87%; }
+    .cb-win-header { padding: .8rem 1rem; }
+    .cb-messages   { padding: 1rem; }
+    .cb-input-area { padding: .75rem .9rem .7rem; }
+    .cb-hdr-badge  { display: none; }
+}
+</style>
+}
+
+@section Scripts {
+<script>
+(function () {
+    'use strict';
+
+    /* ?? Refs ??????????????????????????????????????? */
+    const messagesEl  = document.getElementById('chatMessages');
+    const inputEl     = document.getElementById('chatInput');
+    const sendBtn     = document.getElementById('sendBtn');
+    const counterEl   = document.getElementById('charCount');
+    const clearBtn    = document.getElementById('clearChatBtn');
+    const welcomeTime = document.getElementById('welcomeTime');
+    const todayLabel  = document.getElementById('todayLabel');
+
+    /* ?? Init ??????????????????????????????????????? */
+    const now = new Date();
+    if (welcomeTime) welcomeTime.textContent = fmtTime(now);
+    if (todayLabel)  todayLabel.textContent  = fmtDate(now);
+
+    /* Auto-grow textarea */
+    inputEl?.addEventListener('input', function () {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        updateCounter(this.value.length);
+    });
+
+    /* ?? Send triggers ?????????????????????????????? */
+    sendBtn?.addEventListener('click', trySend);
+    inputEl?.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); trySend(); }
+    });
+
+    /* Suggestion chips */
+    document.querySelectorAll('.cb-sugg').forEach(el =>
+        el.addEventListener('click', function () {
+            const msg = this.dataset.msg || this.textContent.trim();
+            fireInput(msg);
+        })
+    );
+
+    /* Sidebar topic buttons */
+    document.querySelectorAll('.cb-topic').forEach(el =>
+        el.addEventListener('click', function () {
+            const m = this.dataset.msg;
+            if (m) fireInput(m);
+        })
+    );
+
+    /* Clear button */
+    clearBtn?.addEventListener('click', function () {
+        if (!messagesEl) return;
+        while (messagesEl.children.length > 1) messagesEl.removeChild(messagesEl.lastChild);
+        toast('Conversation cleared', 'info');
+    });
+
+    /* ?? Core ??????????????????????????????????????? */
+    function fireInput(text) {
+        if (!inputEl) return;
+        inputEl.value = text;
+        inputEl.dispatchEvent(new Event('input'));
+        trySend();
+    }
+
+    function trySend() {
+        const text = inputEl?.value?.trim();
+        if (!text) return;
+        addMsg(text, 'user');
+        resetInput();
+        const tid = showTyping();
+        /* TODO: replace with real API call */
+        setTimeout(() => {
+            removeTyping(tid);
+            /* TODO: addMsg(apiReply, 'bot'); */
+        }, 1500);
+    }
+
+    function resetInput() {
+        if (!inputEl) return;
+        inputEl.value = '';
+        inputEl.style.height = 'auto';
+        updateCounter(0);
+    }
+
+    function updateCounter(len) {
+        if (!counterEl) return;
+        counterEl.textContent = len > 0 ? `${len}/500` : '';
+        counterEl.className = 'cb-counter' +
+            (len > 450 ? ' cb-counter-limit' : len > 350 ? ' cb-counter-warn' : '');
+    }
+
+    /* ?? Message helpers ???????????????????????????? */
+    function addMsg(content, type) {
+        if (!messagesEl) return;
+        const row  = document.createElement('div');
+        row.className = `cb-msg cb-msg-${type}`;
+        const t = fmtTime(new Date());
+        if (type === 'bot') {
+            row.innerHTML =
+                `<div class="cb-avatar cb-avatar-bot"><i class="fas fa-robot"></i></div>
+                 <div class="cb-msg-body">
+                   <div class="cb-bubble cb-bubble-bot"><p>${escHtml(content)}</p></div>
+                   <time class="cb-msg-time">${t}</time>
+                 </div>`;
+        } else {
+            row.innerHTML =
+                `<div class="cb-msg-body">
+                   <div class="cb-bubble cb-bubble-user"><p>${escHtml(content)}</p></div>
+                   <time class="cb-msg-time">${t}</time>
+                 </div>
+                 <div class="cb-avatar cb-avatar-user"><i class="fas fa-user"></i></div>`;
+        }
+        messagesEl.appendChild(row);
+        scrollEnd();
+    }
+
+    function showTyping() {
+        if (!messagesEl) return null;
+        const id  = 'typing-' + Date.now();
+        const row = document.createElement('div');
+        row.id = id;
+        row.className = 'cb-msg cb-msg-bot cb-msg-typing';
+        row.innerHTML =
+            `<div class="cb-avatar cb-avatar-bot"><i class="fas fa-robot"></i></div>
+             <div class="cb-msg-body">
+               <div class="cb-bubble cb-bubble-bot">
+                 <div class="cb-dot"></div><div class="cb-dot"></div><div class="cb-dot"></div>
+               </div>
+             </div>`;
+        messagesEl.appendChild(row);
+        scrollEnd();
+        return id;
+    }
+
+    function removeTyping(id) { document.getElementById(id)?.remove(); }
+
+    function scrollEnd() {
+        if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    /* ?? Toast ?????????????????????????????????????? */
+    function toast(msg, type = 'info') {
+        document.querySelector('.cb-toast')?.remove();
+        const icons = { info:'fa-info-circle', success:'fa-check-circle', error:'fa-times-circle' };
+        const el = document.createElement('div');
+        el.className = `cb-toast cb-toast-${type}`;
+        el.innerHTML = `<i class="fas ${icons[type]??icons.info}"></i><span>${msg}</span>
+                        <button class="cb-toast-close"><i class="fas fa-times"></i></button>`;
+        document.body.appendChild(el);
+        el.querySelector('.cb-toast-close').addEventListener('click', () => el.remove());
+        setTimeout(() => el?.remove(), 3500);
+    }
+
+    /* ?? Utils ?????????????????????????????????????? */
+    function fmtTime(d) {
+        return d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+    }
+    function fmtDate(d) {
+        return d.toLocaleDateString([], { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+    }
+    function escHtml(s) {
+        return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+}());
+</script>
+}

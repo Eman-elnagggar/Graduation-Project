@@ -1,0 +1,116 @@
+@model AssistantMessagesViewModel
+@using System.Security.Claims
+@using System.Text.Json
+@{
+  Layout = "~/Views/Shared/_AssistantLayout.cshtml";
+  ViewData["Title"] = "Messages";
+  ViewData["ActivePage"] = "Messages";
+  ViewData["AssistantId"] = Model.Assistant.AssistantID;
+  ViewData["AssistantName"] = Model.AssistantName;
+  ViewData["PageTitle"] = "Messages";
+  ViewData["PageSubtitle"] = "Communicate securely with your patients";
+
+  var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+  var assistantId = Model.Assistant.AssistantID.ToString();
+  var conversations = Model.Conversations.Select(c => new
+  {
+    id = $"{c.ParticipantType}-{c.ParticipantId}",
+    participantId = c.ParticipantId.ToString(),
+    participantType = c.ParticipantType,
+    receiverUserId = c.ReceiverUserId,
+    name = string.IsNullOrWhiteSpace(c.ParticipantName) ? "User" : c.ParticipantName,
+    avatar = $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(string.IsNullOrWhiteSpace(c.ParticipantName) ? "U" : c.ParticipantName)}&background=7c3aed&color=fff&size=80",
+    status = "online",
+    lastMessage = string.IsNullOrWhiteSpace(c.LastMessagePreview) ? "Start a conversation" : c.LastMessagePreview,
+    unreadCount = c.UnreadCount,
+    isUrgent = false,
+    lastMessageTime = c.LastMessageTime
+  }).ToList();
+}
+
+<div class="doctor-messages-page theme-assistant">
+  <div class="chat-app">
+    <aside class="chat-sidebar" id="chatSidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title">
+          <div class="sidebar-icon">
+            <i class="fas fa-comments"></i>
+          </div>
+          <div>
+            <h2>Messages</h2>
+            <p>Assistant Portal</p>
+          </div>
+        </div>
+        <button class="sidebar-close" id="sidebarClose"><i class="fas fa-times"></i></button>
+      </div>
+
+      <div class="sidebar-search">
+        <i class="fas fa-search"></i>
+        <input type="text" id="conversationSearch" placeholder="Search conversations..." />
+        <button class="search-clear" id="searchClear" style="display:none;"><i class="fas fa-times"></i></button>
+      </div>
+
+      <div class="sidebar-filters">
+        <button class="filter-btn active" data-filter="all">All <span class="filter-count" id="countAll">0</span></button>
+        <button class="filter-btn" data-filter="unread">Unread <span class="filter-count" id="countUnread">0</span></button>
+        <button class="filter-btn" data-filter="urgent">Urgent <span class="filter-count" id="countUrgent">0</span></button>
+      </div>
+
+      <div class="conversations-list" id="conversationsList"></div>
+    </aside>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <main class="chat-main">
+      <div class="chat-empty" id="chatEmpty">
+        <div class="empty-content">
+          <div class="empty-icon"><i class="fas fa-comments"></i></div>
+          <h3>Select a conversation</h3>
+          <p>Choose a patient from the list to start messaging</p>
+        </div>
+      </div>
+
+      <div class="dm-chat-container" id="chatContainer" style="display:none;">
+        <header class="dm-chat-header">
+          <div class="chat-user" id="chatUserInfo">
+            <div class="user-avatar">
+              <img src="" alt="" id="chatUserAvatar" />
+              <span class="status-dot online" id="chatUserStatus"></span>
+            </div>
+            <div class="user-details">
+              <h3 id="chatUserName">Patient Name</h3>
+              <p class="chat-user-role" id="chatUserRole">Patient</p>
+            </div>
+          </div>
+        </header>
+
+        <div class="dm-chat-messages" id="chatMessages"></div>
+
+        <div class="dm-chat-input-area">
+          <div class="input-wrapper">
+            <textarea id="messageInput" placeholder="Type a message..." rows="1" maxlength="2000"></textarea>
+          </div>
+          <button class="dm-send-btn" id="sendBtn" disabled><i class="fas fa-paper-plane"></i></button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+</div>
+
+@section Styles {
+  <link rel="stylesheet" href="~/css/doctor-messages.css" asp-append-version="true" />
+}
+
+@section Scripts {
+  <script>
+    window.__assistantMessagesConfig = {
+      assistantId: @Html.Raw(JsonSerializer.Serialize(assistantId)),
+      currentUserId: @Html.Raw(JsonSerializer.Serialize(currentUserId)),
+      conversationMessagesEndpointTemplate: @Html.Raw(JsonSerializer.Serialize(Url.Action("ConversationMessages", "Assistant", new { id = "__ASSISTANT_ID__", userId = "__USER_ID__" }))),
+      conversations: @Html.Raw(JsonSerializer.Serialize(conversations))
+    };
+  </script>
+  <script src="~/js/assistant-messages.js" asp-append-version="true"></script>
+}

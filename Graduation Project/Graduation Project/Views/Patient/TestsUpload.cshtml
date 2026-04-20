@@ -1,0 +1,1357 @@
+@{
+    Layout = "~/Views/Shared/_PatientLayout.cshtml";
+    ViewData["Title"] = "Tests Upload";
+    ViewData["ActivePage"] = "Tests";
+}
+
+@Html.AntiForgeryToken()
+
+<!-- ══════════════════════════════════════════
+     PAGE HEADER
+══════════════════════════════════════════ -->
+<header class="tu-hero">
+    <div class="tu-hero-left">
+        <div class="tu-hero-icon">
+            <i class="fas fa-flask"></i>
+        </div>
+        <div>
+            <h1 class="tu-hero-title">Upload Lab Tests</h1>
+            <p class="tu-hero-sub">Upload test images · AI extracts values · Review &amp; get a full report</p>
+        </div>
+    </div>
+    <div class="tu-hero-right">
+        <div class="tu-hero-chip"><i class="fas fa-brain"></i><span>AI Extraction</span></div>
+        <div class="tu-hero-chip tu-chip-review"><i class="fas fa-check-double"></i><span>Review &amp; Approve</span></div>
+        <div class="tu-hero-chip tu-chip-report"><i class="fas fa-file-medical-alt"></i><span>Full Report</span></div>
+    </div>
+</header>
+
+<!-- ══════════════════════════════════════════
+     PROGRESS STEPS
+══════════════════════════════════════════ -->
+<div class="tu-progress-bar">
+    <div class="tu-progress-step active" id="step1">
+        <div class="tu-step-circle"><span class="tu-step-num">1</span></div>
+        <div class="tu-step-label">Upload Tests</div>
+    </div>
+    <div class="tu-step-connector"><span class="tu-connector-line" id="conn1"></span></div>
+    <div class="tu-progress-step" id="step2">
+        <div class="tu-step-circle"><span class="tu-step-num">2</span></div>
+        <div class="tu-step-label">Review &amp; Approve</div>
+    </div>
+    <div class="tu-step-connector"><span class="tu-connector-line" id="conn2"></span></div>
+    <div class="tu-progress-step" id="step3">
+        <div class="tu-step-circle"><span class="tu-step-num">3</span></div>
+        <div class="tu-step-label">View Report</div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     STEP 1 — UPLOAD
+══════════════════════════════════════════ -->
+<section class="tu-section" id="section-upload">
+    <div class="tu-card">
+        <div class="tu-card-header">
+            <div class="tu-card-title">
+                <div class="tu-card-icon-wrap"><i class="fas fa-cloud-upload-alt"></i></div>
+                <div>
+                    <h3>Upload Test Images</h3>
+                    <p>Select a test type, then upload one or more lab test photos</p>
+                </div>
+            </div>
+            <span class="tu-step-badge">Step 1</span>
+        </div>
+
+        <div class="tu-upload-row">
+
+            <!-- Left col: selector + queue -->
+            <div class="tu-form-group">
+                <label for="testType"><i class="fas fa-vials"></i> Test Type</label>
+                <div class="tu-select-container">
+                    <select id="testType" class="tu-select">
+                        <option value="">— Select Test Type —</option>
+                        <option value="cbc">CBC (Complete Blood Count)</option>
+                        <option value="urinalysis">Urinalysis</option>
+                        <option value="hba1c">HbA1c</option>
+                        <option value="tsh">TSH (Thyroid)</option>
+                        <option value="ferritin">Ferritin</option>
+                        <option value="hbsag">HBsAg (Hepatitis B)</option>
+                        <option value="bloodgroup">Blood Group</option>
+                    </select>
+                    <i class="fas fa-chevron-down tu-select-arrow"></i>
+                </div>
+                <p class="tu-field-hint"><i class="fas fa-info-circle"></i> Choose the test type before uploading</p>
+
+                <!-- Queued files list -->
+                <div id="queuedFilesList" style="display:none; margin-top:1rem;">
+                    <p class="tu-queue-label"><i class="fas fa-layer-group"></i> Queued for upload</p>
+                    <div id="queuedFilesInner"></div>
+                </div>
+            </div>
+
+            <!-- Right col: drop zone -->
+            <div class="tu-upload-zone" id="uploadZone">
+                <div class="tu-upload-icon-wrap"><i class="fas fa-cloud-upload-alt"></i></div>
+                <p class="tu-upload-title">Drag &amp; Drop test images here</p>
+                <p class="tu-upload-sub">or <span class="tu-upload-link">click to browse files</span></p>
+                <div class="tu-upload-hint">
+                    <i class="fas fa-info-circle"></i>
+                    JPG &nbsp;·&nbsp; PNG &nbsp;·&nbsp; PDF &nbsp;·&nbsp; Max 10 MB &nbsp;·&nbsp; Multiple files allowed
+                </div>
+                <input type="file" id="fileInput" accept="image/*,.pdf" multiple style="display:none" />
+            </div>
+        </div>
+
+        <div class="tu-card-footer">
+            <button class="tu-btn tu-btn-primary" id="sendToAIBtn" type="button" style="display:none">
+                <i class="fas fa-paper-plane"></i> Send to AI for Extraction
+                <span class="tu-file-count-badge" id="fileCountBadge">0</span>
+            </button>
+            <button class="tu-btn tu-btn-outline" id="addMoreTests" type="button">
+                <i class="fas fa-plus"></i> Add More Files
+            </button>
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     STEP 2 — REVIEW & APPROVE
+══════════════════════════════════════════ -->
+<section class="tu-section" id="uploadedTestsSection" style="display:none">
+    <div class="tu-card">
+        <div class="tu-card-header">
+            <div class="tu-card-title">
+                <div class="tu-card-icon-wrap tu-icon-review"><i class="fas fa-file-medical"></i></div>
+                <div>
+                    <h3>Review Extracted Values</h3>
+                    <p>AI has read your images — verify each value, edit if needed, then approve</p>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
+                <span class="tu-step-badge tu-badge-2">Step 2</span>
+                <button class="tu-btn tu-btn-danger-ghost" id="clearAllTests" type="button">
+                    <i class="fas fa-trash"></i> Clear All
+                </button>
+            </div>
+        </div>
+
+        <!-- Extraction progress bar (shown while AI is reading files) -->
+        <div id="extractionProgress" style="display:none">
+            <div class="tu-ext-bar-wrap">
+                <div class="tu-ext-bar-fill" id="extractionBarFill"></div>
+            </div>
+            <p class="tu-ext-status" id="extractionStatus">Extracting values…</p>
+        </div>
+
+        <!-- Test cards injected here -->
+        <div id="uploadedTestsList"></div>
+
+        <div class="tu-submit-row" id="submitRow" style="display:none">
+            <div class="tu-submit-info">
+                <i class="fas fa-info-circle"></i>
+                Approve all tests below, then submit for comprehensive AI analysis
+            </div>
+            <div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;">
+                <span class="tu-approval-counter" id="approvalCounter">0 / 0 approved</span>
+                <button class="tu-btn tu-btn-primary tu-btn-lg" id="submitAllTests" type="button" disabled>
+                    <i class="fas fa-lock"></i> Approve all tests to submit
+                </button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     STEP 3 — AI REPORT
+══════════════════════════════════════════ -->
+<section class="tu-section" id="comprehensiveResults" style="display:none">
+    <div class="tu-card tu-card-report">
+        <div class="tu-card-header">
+            <div class="tu-card-title">
+                <div class="tu-card-icon-wrap tu-icon-report"><i class="fas fa-brain"></i></div>
+                <div>
+                    <h3>Comprehensive AI Analysis Report</h3>
+                    <p id="reportSubtitle">AI-generated insights based on your submitted tests</p>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
+                <span class="tu-step-badge tu-badge-3">Step 3</span>
+                <span class="tu-confidence-badge" id="overallConfidence" style="display:none">
+                    <i class="fas fa-brain"></i> Confidence: —
+                </span>
+            </div>
+        </div>
+
+        <!-- Report loading state -->
+        <div id="reportLoading" class="tu-report-loading">
+            <div class="tu-report-loading-inner">
+                <div class="tu-report-spinner"><i class="fas fa-brain"></i></div>
+                <h4>Generating comprehensive report…</h4>
+                <p>AI is cross-referencing all test results against pregnancy-safe ranges</p>
+                <div class="tu-loading-steps" id="loadingSteps"></div>
+                <div class="tu-loading-bar"><div class="tu-loading-bar-fill" id="reportBarFill"></div></div>
+            </div>
+        </div>
+
+        <!-- Report content (shown after loading) -->
+        <div id="reportReady" style="display:none">
+            <div class="tu-report-verdict-row" id="reportVerdictRow"></div>
+            <div id="comprehensiveReportContent"></div>
+            <div class="tu-report-actions">
+                <button class="tu-btn tu-btn-primary" type="button">
+                    <i class="fas fa-download"></i> Download Report
+                </button>
+                <button class="tu-btn tu-btn-outline" type="button">
+                    <i class="fas fa-share-alt"></i> Share with Doctor
+                </button>
+                <button class="tu-btn tu-btn-ghost" id="uploadMoreBtn" type="button">
+                    <i class="fas fa-plus"></i> Upload More Tests
+                </button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     PREVIOUS TESTS
+══════════════════════════════════════════ -->
+<section class="tu-section">
+    <div class="tu-card">
+        <div class="tu-card-header">
+            <div class="tu-card-title">
+                <div class="tu-card-icon-wrap tu-icon-history"><i class="fas fa-history"></i></div>
+                <div>
+                    <h3>Previous Tests</h3>
+                    <p>Your recent lab test history</p>
+                </div>
+            </div>
+            <a href="#" class="tu-view-all">View All <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div class="tu-table-wrap">
+            <table class="tu-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Test Type</th>
+                        <th>Status</th>
+                        <th>Result</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="tu-date"><i class="fas fa-calendar-alt"></i> Mar 15, 2025</span></td>
+                        <td><span class="tu-test-name">CBC</span></td>
+                        <td><span class="tu-badge-status reviewed">Reviewed</span></td>
+                        <td><span class="tu-badge-status normal">Normal</span></td>
+                        <td><button class="tu-btn tu-btn-sm" type="button"><i class="fas fa-eye"></i> View</button></td>
+                    </tr>
+                    <tr>
+                        <td><span class="tu-date"><i class="fas fa-calendar-alt"></i> Mar 10, 2025</span></td>
+                        <td><span class="tu-test-name">Urinalysis</span></td>
+                        <td><span class="tu-badge-status reviewed">Reviewed</span></td>
+                        <td><span class="tu-badge-status warning">Attention</span></td>
+                        <td><button class="tu-btn tu-btn-sm" type="button"><i class="fas fa-eye"></i> View</button></td>
+                    </tr>
+                    <tr>
+                        <td><span class="tu-date"><i class="fas fa-calendar-alt"></i> Mar 01, 2025</span></td>
+                        <td><span class="tu-test-name">HbA1c</span></td>
+                        <td><span class="tu-badge-status reviewed">Reviewed</span></td>
+                        <td><span class="tu-badge-status normal">Normal</span></td>
+                        <td><button class="tu-btn tu-btn-sm" type="button"><i class="fas fa-eye"></i> View</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+@section Styles {
+<style>
+/* ════════════════════════════════════════════
+   Variables
+════════════════════════════════════════════ */
+:root {
+    --tu-primary:    #1BAEBE;
+    --tu-primary-dk: #138fa0;
+    --tu-text:       #1e293b;
+    --tu-muted:      #64748b;
+    --tu-light:      #f8fafc;
+    --tu-border:     #e2e8f0;
+    --tu-radius:     16px;
+    --tu-shadow:     0 4px 24px rgba(0,0,0,.07);
+    --tu-shadow-hov: 0 8px 32px rgba(0,0,0,.12);
+}
+
+/* ════════════════════════════════════════════
+   HERO
+════════════════════════════════════════════ */
+.tu-hero {
+    display: flex; justify-content: space-between; align-items: center;
+    background: linear-gradient(135deg, #0f2942 0%, #1a4a6e 50%, #0d3d5c 100%);
+    border-radius: 18px; padding: 1.8rem 2rem; margin-bottom: 1.5rem;
+    flex-wrap: wrap; gap: 1rem; position: relative; overflow: hidden;
+}
+.tu-hero::before {
+    content: ""; position: absolute; top: -40px; right: -40px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(27,174,190,.25) 0%, transparent 70%);
+    pointer-events: none;
+}
+.tu-hero::after {
+    content: ""; position: absolute; bottom: -60px; left: 20%;
+    width: 260px; height: 260px;
+    background: radial-gradient(circle, rgba(0,180,216,.12) 0%, transparent 70%);
+    pointer-events: none;
+}
+.tu-hero-left  { display: flex; align-items: center; gap: 1.1rem; z-index: 1; }
+.tu-hero-icon  {
+    width: 56px; height: 56px; border-radius: 16px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--tu-primary), var(--tu-primary-dk));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; color: #fff;
+    box-shadow: 0 6px 20px rgba(27,174,190,.45);
+}
+.tu-hero-title { margin: 0; font-size: 1.7rem; font-weight: 800; color: #f1f5f9; letter-spacing: -.3px; }
+.tu-hero-sub   { margin: .2rem 0 0; font-size: .88rem; color: #94a3b8; }
+.tu-hero-right { display: flex; align-items: center; gap: .65rem; flex-wrap: wrap; z-index: 1; }
+.tu-hero-chip  {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .38rem .95rem; border-radius: 22px; font-size: .8rem; font-weight: 700;
+    background: rgba(255,255,255,.1); border: 1.5px solid rgba(255,255,255,.2);
+    color: #e2f8fa; white-space: nowrap; backdrop-filter: blur(4px); transition: background .2s;
+}
+.tu-hero-chip:hover { background: rgba(255,255,255,.18); }
+.tu-chip-review { border-color: rgba(251,191,36,.45); color: #fde68a; }
+.tu-chip-report { border-color: rgba(74,222,128,.45);  color: #bbf7d0; }
+
+/* ════════════════════════════════════════════
+   PROGRESS BAR
+════════════════════════════════════════════ */
+.tu-progress-bar {
+    display: flex; align-items: center; background: #fff;
+    border: 1px solid var(--tu-border); border-radius: var(--tu-radius);
+    padding: 1.1rem 1.75rem; margin-bottom: 1.5rem; box-shadow: var(--tu-shadow);
+}
+.tu-progress-step { display: flex; align-items: center; gap: .65rem; flex: 1; min-width: 0; }
+.tu-step-circle {
+    width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+    background: var(--tu-border); color: var(--tu-muted);
+    font-size: .88rem; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .35s, color .35s, box-shadow .35s;
+}
+.tu-step-num  { display: inline; }
+.tu-step-check{ display: none;   }
+.tu-progress-step.active .tu-step-circle {
+    background: linear-gradient(135deg, var(--tu-primary), var(--tu-primary-dk));
+    color: #fff; box-shadow: 0 3px 12px rgba(27,174,190,.35);
+}
+.tu-progress-step.completed .tu-step-circle { background: #e8f5e9; color: #2e7d32; }
+.tu-progress-step.completed .tu-step-num   { display: none; }
+.tu-progress-step.completed .tu-step-check { display: inline; font-family: 'Font Awesome 6 Free'; font-weight: 900; font-size: .75rem; }
+.tu-step-label {
+    font-size: .84rem; font-weight: 600; color: var(--tu-muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color .3s;
+}
+.tu-progress-step.active .tu-step-label    { color: var(--tu-primary); }
+.tu-progress-step.completed .tu-step-label { color: #2e7d32; }
+.tu-step-connector { flex: 1; display: flex; align-items: center; padding: 0 .5rem; min-width: 20px; }
+.tu-connector-line {
+    display: block; height: 2px; width: 100%; background: var(--tu-border);
+    border-radius: 2px; transition: background .4s;
+}
+.tu-connector-line.active { background: linear-gradient(90deg, var(--tu-primary), var(--tu-primary-dk)); }
+@@media (max-width: 600px) {
+    .tu-step-label     { display: none; }
+    .tu-step-connector { min-width: 12px; }
+}
+
+/* ════════════════════════════════════════════
+   SECTIONS & CARDS
+════════════════════════════════════════════ */
+.tu-section { margin-bottom: 1.5rem; }
+.tu-card {
+    background: #fff; border-radius: var(--tu-radius);
+    box-shadow: var(--tu-shadow); border: 1px solid var(--tu-border); overflow: hidden;
+    transition: box-shadow .2s;
+}
+.tu-card-report { border-color: rgba(27,174,190,.25); box-shadow: 0 4px 24px rgba(27,174,190,.1); }
+.tu-card-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    flex-wrap: wrap; gap: .75rem;
+    padding: 1.3rem 1.5rem; border-bottom: 1.5px solid var(--tu-border); background: #fafbfc;
+}
+.tu-card-title       { display: flex; align-items: flex-start; gap: .75rem; }
+.tu-card-title h3    { margin: 0 0 .15rem; font-size: 1rem; font-weight: 700; color: var(--tu-text); }
+.tu-card-title p     { margin: 0; font-size: .8rem; color: var(--tu-muted); }
+.tu-card-icon-wrap   {
+    width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
+    background: rgba(27,174,190,.12); color: var(--tu-primary);
+    display: flex; align-items: center; justify-content: center; font-size: 1rem;
+}
+.tu-icon-review  { background: rgba(139,92,246,.12); color: #7c3aed; }
+.tu-icon-report  { background: rgba(27,174,190,.12);  color: var(--tu-primary); }
+.tu-icon-history { background: rgba(245,158,11,.12);  color: #b45309; }
+.tu-card-footer {
+    display: flex; align-items: center; gap: .75rem; flex-wrap: wrap;
+    padding: 1rem 1.5rem; border-top: 1.5px solid var(--tu-border); background: #fafbfc;
+}
+
+/* ════════════════════════════════════════════
+   STEP BADGES
+════════════════════════════════════════════ */
+.tu-step-badge {
+    display: inline-flex; align-items: center; padding: .3rem .85rem; border-radius: 20px;
+    font-size: .75rem; font-weight: 700;
+    background: rgba(27,174,190,.1); color: var(--tu-primary);
+    border: 1px solid rgba(27,174,190,.25); white-space: nowrap;
+}
+.tu-badge-2 { background: rgba(139,92,246,.1); color: #7c3aed; border-color: rgba(139,92,246,.25); }
+.tu-badge-3 { background: rgba(245,158,11,.1);  color: #b45309; border-color: rgba(245,158,11,.25); }
+
+/* ════════════════════════════════════════════
+   UPLOAD AREA
+════════════════════════════════════════════ */
+.tu-upload-row {
+    display: grid; grid-template-columns: 260px 1fr; gap: 1.25rem;
+    padding: 1.4rem 1.5rem; align-items: start;
+}
+@@media (max-width: 768px) { .tu-upload-row { grid-template-columns: 1fr; } }
+
+.tu-form-group { display: flex; flex-direction: column; gap: .4rem; }
+.tu-form-group label {
+    display: flex; align-items: center; gap: .45rem;
+    font-size: .85rem; font-weight: 700; color: var(--tu-text);
+}
+.tu-form-group label i { color: var(--tu-primary); font-size: .8rem; }
+.tu-field-hint { display: flex; align-items: center; gap: .35rem; font-size: .75rem; color: var(--tu-muted); margin-top: .15rem; }
+.tu-field-hint i { color: var(--tu-primary); flex-shrink: 0; }
+
+.tu-select-container { position: relative; }
+.tu-select {
+    width: 100%; padding: .62rem 2.2rem .62rem .95rem;
+    border: 1.5px solid var(--tu-border); border-radius: 10px;
+    font-size: .9rem; color: var(--tu-text); background: var(--tu-light);
+    appearance: none; outline: none; font-family: inherit; cursor: pointer;
+    transition: border-color .2s, box-shadow .2s;
+}
+.tu-select:focus { border-color: var(--tu-primary); box-shadow: 0 0 0 3px rgba(27,174,190,.12); background: #fff; }
+.tu-select-arrow { position: absolute; right: .85rem; top: 50%; transform: translateY(-50%); color: var(--tu-muted); font-size: .75rem; pointer-events: none; }
+
+/* Queue list */
+.tu-queue-label {
+    font-size: .77rem; font-weight: 700; color: var(--tu-muted);
+    display: flex; align-items: center; gap: .35rem; margin-bottom: .45rem;
+}
+.tu-queue-label i { color: var(--tu-primary); }
+.tu-queue-item {
+    display: flex; align-items: center; gap: .55rem;
+    padding: .35rem .65rem; background: var(--tu-light);
+    border: 1px solid var(--tu-border); border-radius: 8px; margin-bottom: .35rem;
+    font-size: .79rem; color: var(--tu-text); animation: tuFadeIn .2s ease;
+}
+.tu-queue-item-name { display: flex; align-items: center; gap: .38rem; flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.tu-queue-item-name i { color: var(--tu-primary); flex-shrink: 0; }
+.tu-queue-type { font-size: .7rem; font-weight: 700; color: var(--tu-primary); white-space: nowrap; flex-shrink: 0; }
+.tu-queue-remove { background: none; border: none; cursor: pointer; color: var(--tu-muted); font-size: .74rem; padding: .18rem .3rem; border-radius: 4px; transition: color .2s; flex-shrink: 0; }
+.tu-queue-remove:hover { color: #c62828; }
+.tu-file-count-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 20px; height: 20px; border-radius: 10px; padding: 0 .35rem;
+    background: rgba(255,255,255,.22); font-size: .71rem; font-weight: 800; margin-left: .1rem;
+}
+
+/* Drop zone */
+.tu-upload-zone {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem;
+    padding: 2.5rem 1.5rem; border: 2px dashed #c8d8e4; border-radius: 14px;
+    background: #f8fafc; cursor: pointer; text-align: center; min-height: 215px;
+    transition: border-color .2s, background .2s, box-shadow .2s;
+}
+.tu-upload-zone:hover, .tu-upload-zone.drag-over {
+    border-color: var(--tu-primary); background: rgba(27,174,190,.04);
+    box-shadow: 0 0 0 4px rgba(27,174,190,.08);
+}
+.tu-upload-icon-wrap {
+    width: 64px; height: 64px; border-radius: 16px;
+    background: rgba(27,174,190,.12); color: var(--tu-primary);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.7rem; transition: transform .2s;
+}
+.tu-upload-zone:hover .tu-upload-icon-wrap { transform: scale(1.08); }
+.tu-upload-title { margin: 0; font-size: 1rem; font-weight: 700; color: var(--tu-text); }
+.tu-upload-sub   { margin: 0; font-size: .85rem; color: var(--tu-muted); }
+.tu-upload-link  { color: var(--tu-primary); font-weight: 600; text-decoration: underline; text-decoration-style: dotted; }
+.tu-upload-hint  {
+    display: inline-flex; align-items: center; gap: .4rem;
+    background: var(--tu-light); border: 1px solid var(--tu-border);
+    border-radius: 20px; padding: .3rem .85rem; font-size: .74rem; color: var(--tu-muted); margin-top: .1rem;
+}
+
+/* ════════════════════════════════════════════
+   EXTRACTION PROGRESS
+════════════════════════════════════════════ */
+.tu-ext-bar-wrap { height: 4px; background: #e2e8f0; margin: 0 1.5rem; border-radius: 4px; overflow: hidden; }
+.tu-ext-bar-fill {
+    height: 100%; width: 0%; background: linear-gradient(90deg, var(--tu-primary), var(--tu-primary-dk));
+    border-radius: 4px; transition: width .35s ease;
+}
+.tu-ext-status {
+    padding: .6rem 1.5rem .85rem; font-size: .82rem; color: var(--tu-primary);
+    font-weight: 600; display: flex; align-items: center; gap: .5rem; margin: 0;
+}
+.tu-ext-status::before {
+    content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--tu-primary); animation: tuPulse 1s infinite; flex-shrink: 0;
+}
+
+/* ════════════════════════════════════════════
+   TEST REVIEW CARDS
+════════════════════════════════════════════ */
+.tu-test-card {
+    border-top: 1px solid var(--tu-border);
+    animation: tuFadeIn .35s ease; transition: background .2s;
+}
+.tu-test-card:first-child { border-top: none; }
+.tu-test-card.approved    { background: rgba(27,174,190,.025); }
+
+.tu-test-card-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    flex-wrap: wrap; gap: .75rem;
+    padding: .95rem 1.5rem; background: #fafbfc; border-bottom: 1px solid var(--tu-border);
+}
+.tu-test-card-header h4 {
+    margin: 0 0 .2rem; font-size: .9rem; font-weight: 700; color: var(--tu-text);
+    display: flex; align-items: center; gap: .45rem;
+}
+.tu-test-card-header h4 i { color: var(--tu-primary); }
+.tu-test-meta { display: flex; align-items: center; gap: .85rem; flex-wrap: wrap; }
+.tu-test-meta span { font-size: .75rem; color: var(--tu-muted); display: flex; align-items: center; gap: .3rem; }
+.tu-test-meta span i { color: var(--tu-primary); }
+.tu-confidence-pill {
+    display: inline-flex; align-items: center; gap: .3rem; padding: .22rem .7rem;
+    border-radius: 14px; background: rgba(27,174,190,.1); color: var(--tu-primary);
+    font-size: .73rem; font-weight: 700; border: 1px solid rgba(27,174,190,.2);
+}
+.tu-test-actions { display: flex; align-items: center; gap: .55rem; flex-wrap: wrap; }
+
+.tu-values-table-wrap { padding: .85rem 1.5rem; overflow-x: auto; }
+.tu-values-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+.tu-values-table thead th {
+    padding: .52rem .85rem; text-align: left; font-size: .74rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .05em; color: var(--tu-muted);
+    border-bottom: 1.5px solid var(--tu-border); white-space: nowrap;
+}
+.tu-values-table tbody tr { border-bottom: 1px solid var(--tu-border); transition: background .15s; }
+.tu-values-table tbody tr:last-child { border-bottom: none; }
+.tu-values-table tbody tr:hover { background: #f8fafc; }
+.tu-values-table tbody td { padding: .58rem .85rem; color: var(--tu-text); vertical-align: middle; }
+
+.tu-value-input {
+    padding: .36rem .65rem; border: 1.5px solid var(--tu-border); border-radius: 8px;
+    font-size: .84rem; color: var(--tu-text); background: var(--tu-light);
+    outline: none; font-family: inherit; width: 110px;
+    transition: border-color .2s, box-shadow .2s;
+}
+.tu-value-input:focus { border-color: var(--tu-primary); box-shadow: 0 0 0 3px rgba(27,174,190,.1); background: #fff; }
+.tu-value-input:disabled { background: #f1f5f9; color: var(--tu-muted); cursor: default; }
+.tu-value-unit { font-size: .76rem; color: var(--tu-muted); margin-left: .3rem; }
+
+.tu-test-card-footer {
+    padding: .8rem 1.5rem; border-top: 1px solid var(--tu-border);
+    background: #fafbfc; display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+}
+
+/* ════════════════════════════════════════════
+   SUBMIT ROW
+════════════════════════════════════════════ */
+.tu-submit-row {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 1rem; padding: 1.1rem 1.5rem;
+    border-top: 1.5px solid var(--tu-border); background: #fafbfc;
+}
+.tu-submit-info { display: flex; align-items: center; gap: .5rem; font-size: .82rem; color: var(--tu-muted); }
+.tu-submit-info i { color: var(--tu-primary); flex-shrink: 0; }
+.tu-approval-counter {
+    font-size: .79rem; font-weight: 700; color: var(--tu-muted);
+    padding: .28rem .72rem; background: var(--tu-light); border: 1px solid var(--tu-border); border-radius: 20px;
+}
+
+/* ════════════════════════════════════════════
+   REPORT — LOADING STATE
+════════════════════════════════════════════ */
+.tu-report-loading { padding: 3rem 1.5rem; display: flex; justify-content: center; }
+.tu-report-loading-inner { text-align: center; max-width: 400px; width: 100%; }
+.tu-report-spinner {
+    width: 72px; height: 72px; border-radius: 50%; margin: 0 auto 1rem;
+    background: rgba(27,174,190,.1); color: var(--tu-primary);
+    display: flex; align-items: center; justify-content: center; font-size: 1.8rem;
+    animation: tuSpinPulse 2s ease-in-out infinite;
+}
+.tu-report-loading-inner h4 { margin: 0 0 .35rem; font-size: 1rem; font-weight: 700; color: var(--tu-text); }
+.tu-report-loading-inner p  { margin: 0 0 1.25rem; font-size: .84rem; color: var(--tu-muted); }
+.tu-loading-steps { display: flex; flex-direction: column; gap: .38rem; margin-bottom: 1.1rem; text-align: left; }
+.tu-loading-step {
+    display: flex; align-items: center; gap: .5rem; font-size: .8rem; color: var(--tu-muted);
+    padding: .33rem .65rem; border-radius: 8px; transition: background .3s, color .3s;
+}
+.tu-loading-step i     { font-size: .74rem; width: 15px; text-align: center; flex-shrink: 0; }
+.tu-loading-step.active{ color: var(--tu-primary); background: rgba(27,174,190,.07); font-weight: 600; }
+.tu-loading-step.done  { color: #2e7d32; background: #f0fdf4; }
+.tu-loading-bar { height: 5px; background: #e2e8f0; border-radius: 5px; overflow: hidden; }
+.tu-loading-bar-fill {
+    height: 100%; width: 0; border-radius: 5px;
+    background: linear-gradient(90deg, var(--tu-primary), var(--tu-primary-dk));
+    transition: width .5s ease;
+}
+
+/* ════════════════════════════════════════════
+   REPORT — CONTENT
+════════════════════════════════════════════ */
+.tu-confidence-badge {
+    display: inline-flex; align-items: center; gap: .4rem; padding: .32rem .85rem;
+    border-radius: 20px; font-size: .75rem; font-weight: 700;
+    background: rgba(27,174,190,.1); color: var(--tu-primary);
+    border: 1px solid rgba(27,174,190,.2); white-space: nowrap;
+}
+.tu-report-verdict-row {
+    display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+    padding: 1rem 1.5rem; border-bottom: 1px solid var(--tu-border);
+}
+.tu-verdict-badge {
+    display: inline-flex; align-items: center; gap: .45rem; padding: .45rem 1.05rem;
+    border-radius: 22px; font-size: .82rem; font-weight: 800; white-space: nowrap;
+}
+.tu-verdict-badge.safe    { background: #e8f5e9; color: #1b5e20; border: 1.5px solid #a5d6a7; }
+.tu-verdict-badge.warning { background: #fff3e0; color: #b84700; border: 1.5px solid #ffcc80; }
+.tu-verdict-badge.danger  { background: #ffebee; color: #b71c1c; border: 1.5px solid #ef9a9a; }
+.tu-verdict-summary { margin: 0; font-size: .84rem; color: var(--tu-muted); }
+
+.tu-report-summary {
+    padding: 1.1rem 1.5rem; background: rgba(27,174,190,.04); border-bottom: 1px solid var(--tu-border);
+}
+.tu-report-summary h4 {
+    margin: 0 0 .4rem; font-size: .92rem; font-weight: 700; color: var(--tu-text);
+    display: flex; align-items: center; gap: .45rem;
+}
+.tu-report-summary h4 i { color: var(--tu-primary); }
+.tu-report-summary p  { margin: 0; font-size: .84rem; color: var(--tu-muted); }
+
+.tu-report-section { padding: 1.1rem 1.5rem; border-bottom: 1px solid var(--tu-border); }
+.tu-report-section:last-of-type { border-bottom: none; }
+.tu-report-section h5 {
+    margin: 0 0 .85rem; font-size: .9rem; font-weight: 700; color: var(--tu-text);
+    display: flex; align-items: center; gap: .45rem;
+}
+.tu-report-section h5 i { color: var(--tu-primary); }
+
+/* Insight value cards */
+.tu-insight-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: .8rem; }
+.tu-insight-card {
+    padding: .8rem 1rem; border-radius: 12px; border: 1.5px solid var(--tu-border);
+    transition: box-shadow .2s, transform .2s;
+}
+.tu-insight-card:hover { box-shadow: var(--tu-shadow-hov); transform: translateY(-2px); }
+.tu-insight-card.normal  { border-color: #a5d6a7; background: #f6fff8; }
+.tu-insight-card.warning { border-color: #fde68a; background: #fffdf5; }
+.tu-insight-card.high    { border-color: #ef9a9a; background: #fff8f8; }
+.tu-insight-card.low     { border-color: #90caf9; background: #f0f8ff; }
+.tu-insight-label { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--tu-muted); margin-bottom: .28rem; }
+.tu-insight-value { font-size: 1.18rem; font-weight: 800; line-height: 1; margin-bottom: .2rem; }
+.tu-insight-value .tu-insight-unit { font-size: .68em; font-weight: 600; margin-left: .18rem; }
+.tu-insight-card.normal  .tu-insight-value { color: #1b5e20; }
+.tu-insight-card.warning .tu-insight-value { color: #b84700; }
+.tu-insight-card.high    .tu-insight-value { color: #b71c1c; }
+.tu-insight-card.low     .tu-insight-value { color: #1565c0; }
+.tu-insight-range { font-size: .7rem; color: var(--tu-muted); }
+.tu-insight-dot {
+    display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: .3rem; vertical-align: middle;
+}
+.tu-insight-card.normal  .tu-insight-dot { background: #4caf50; }
+.tu-insight-card.warning .tu-insight-dot { background: #ff9800; }
+.tu-insight-card.high    .tu-insight-dot { background: #f44336; }
+.tu-insight-card.low     .tu-insight-dot { background: #2196f3; }
+
+.tu-recommendations {
+    padding: 1.1rem 1.5rem; background: #f6fff8; border-top: 1px solid var(--tu-border);
+}
+.tu-recommendations h4 {
+    margin: 0 0 .65rem; font-size: .92rem; font-weight: 700; color: #1b5e20;
+    display: flex; align-items: center; gap: .45rem;
+}
+.tu-rec-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .42rem; }
+.tu-rec-list li { display: flex; align-items: flex-start; gap: .55rem; font-size: .84rem; color: #2e7d32; line-height: 1.55; }
+.tu-rec-list li i { color: #4caf50; margin-top: .18rem; flex-shrink: 0; }
+
+.tu-report-actions {
+    display: flex; align-items: center; gap: .75rem; flex-wrap: wrap;
+    padding: 1.1rem 1.5rem; border-top: 1.5px solid var(--tu-border); background: #fafbfc;
+}
+
+/* ════════════════════════════════════════════
+   STATUS BADGES
+════════════════════════════════════════════ */
+.tu-badge-status {
+    display: inline-flex; align-items: center; gap: .3rem;
+    padding: .28rem .75rem; border-radius: 20px; font-size: .75rem; font-weight: 700;
+}
+.tu-badge-status.reviewed { background: rgba(27,174,190,.1); color: var(--tu-primary); border: 1px solid rgba(27,174,190,.25); }
+.tu-badge-status.normal   { background: #e8f5e9; color: #2e7d32;  border: 1px solid #a5d6a7; }
+.tu-badge-status.warning  { background: #fff3e0; color: #e65100;  border: 1px solid #ffcc80; }
+.tu-badge-status.low      { background: #e3f2fd; color: #1565c0;  border: 1px solid #90caf9; }
+.tu-badge-status.high     { background: #ffebee; color: #c62828;  border: 1px solid #ef9a9a; }
+.tu-badge-status.success  { background: #e8f5e9; color: #2e7d32;  border: 1px solid #a5d6a7; }
+.tu-badge-status.pending  { background: #fff3e0; color: #e65100;  border: 1px solid #ffcc80; }
+
+/* ════════════════════════════════════════════
+   PREVIOUS TESTS TABLE
+════════════════════════════════════════════ */
+.tu-table-wrap { overflow-x: auto; }
+.tu-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.tu-table thead th {
+    padding: .75rem 1.2rem; text-align: left; font-size: .75rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .05em; color: var(--tu-muted);
+    border-bottom: 1.5px solid var(--tu-border); background: #fafbfc; white-space: nowrap;
+}
+.tu-table tbody tr { border-bottom: 1px solid var(--tu-border); transition: background .15s; }
+.tu-table tbody tr:last-child { border-bottom: none; }
+.tu-table tbody tr:hover { background: #f8fafc; }
+.tu-table tbody td { padding: .75rem 1.2rem; color: var(--tu-text); vertical-align: middle; }
+.tu-date { display: inline-flex; align-items: center; gap: .45rem; font-size: .83rem; color: var(--tu-muted); }
+.tu-date i { color: var(--tu-primary); }
+.tu-test-name { font-weight: 600; color: var(--tu-text); }
+.tu-view-all {
+    display: inline-flex; align-items: center; gap: .4rem; font-size: .8rem; font-weight: 700;
+    color: var(--tu-primary); text-decoration: none; transition: gap .2s; white-space: nowrap;
+}
+.tu-view-all:hover { gap: .65rem; }
+
+/* ════════════════════════════════════════════
+   BUTTONS
+════════════════════════════════════════════ */
+.tu-btn {
+    display: inline-flex; align-items: center; gap: .5rem;
+    padding: .6rem 1.3rem; border-radius: 10px;
+    font-size: .85rem; font-weight: 700; cursor: pointer; border: none;
+    font-family: inherit; transition: all .2s;
+}
+.tu-btn:hover:not(:disabled) { transform: translateY(-1px); }
+.tu-btn:disabled { opacity: .55; cursor: not-allowed; transform: none !important; }
+.tu-btn-primary {
+    background: linear-gradient(135deg, var(--tu-primary), var(--tu-primary-dk));
+    color: #fff; box-shadow: 0 3px 10px rgba(27,174,190,.3);
+}
+.tu-btn-primary:hover:not(:disabled) { box-shadow: 0 5px 18px rgba(27,174,190,.45); }
+.tu-btn-outline { background: transparent; color: var(--tu-primary); border: 1.5px solid var(--tu-primary); }
+.tu-btn-outline:hover:not(:disabled) { background: rgba(27,174,190,.06); }
+.tu-btn-ghost { background: var(--tu-light); color: var(--tu-muted); border: 1.5px solid var(--tu-border); }
+.tu-btn-ghost:hover:not(:disabled) { background: #f1f5f9; border-color: #cbd5e1; }
+.tu-btn-danger-ghost { background: transparent; color: #c62828; border: 1.5px solid #ef9a9a; font-size: .8rem; padding: .42rem 1rem; }
+.tu-btn-danger-ghost:hover:not(:disabled) { background: #ffebee; }
+.tu-btn-sm {
+    padding: .38rem .9rem; font-size: .8rem; border-radius: 8px;
+    background: var(--tu-light); color: var(--tu-text); border: 1.5px solid var(--tu-border);
+}
+.tu-btn-sm:hover:not(:disabled) { background: #f1f5f9; border-color: #cbd5e1; }
+.tu-btn-sm.approve {
+    background: linear-gradient(135deg, var(--tu-primary), var(--tu-primary-dk));
+    color: #fff; border-color: transparent; box-shadow: 0 2px 8px rgba(27,174,190,.25);
+}
+.tu-btn-sm.approve:hover:not(:disabled) { box-shadow: 0 4px 12px rgba(27,174,190,.4); }
+.tu-btn-lg { padding: .72rem 1.6rem; font-size: .9rem; }
+
+/* ════════════════════════════════════════════
+   ANIMATIONS
+════════════════════════════════════════════ */
+@@keyframes tuFadeIn    { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@@keyframes tuPulse     { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.45; transform:scale(.75); } }
+@@keyframes tuSpinPulse { 0%,100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.07); opacity:.65; } }
+</style>
+}
+
+@section Scripts {
+<script>
+(function () {
+    'use strict';
+
+    const TOKEN = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+
+    /* ══════════════════════════════════════════════════════
+       TEST CONFIGURATIONS
+    ══════════════════════════════════════════════════════ */
+    const testConfigurations = {
+        cbc: {
+            name: 'CBC (Complete Blood Count)',
+            parameters: [
+                { key: 'hemoglobin',  name: 'Hemoglobin (HB)', unit: 'g/dL',         normalRange: '12–16'           },
+                { key: 'wbc',         name: 'WBC Count',        unit: '/µL',           normalRange: '4000–11000'      },
+                { key: 'rbc',         name: 'RBC Count',        unit: 'million/µL',    normalRange: '4.2–5.4'         },
+                { key: 'platelets',   name: 'Platelets',        unit: '/µL',           normalRange: '150000–400000'   },
+                { key: 'hematocrit',  name: 'Hematocrit',       unit: '%',             normalRange: '36–44'           }
+            ]
+        },
+        urinalysis: {
+            name: 'Urinalysis',
+            parameters: [
+                { key: 'ph',      name: 'pH',      unit: '',       normalRange: '4.5–8.0'  },
+                { key: 'protein', name: 'Protein', unit: 'mg/dL',  normalRange: '0–14'     },
+                { key: 'glucose', name: 'Glucose', unit: 'mg/dL',  normalRange: 'Negative' },
+                { key: 'ketones', name: 'Ketones', unit: '',        normalRange: 'Negative' },
+                { key: 'blood',   name: 'Blood',   unit: '',        normalRange: 'Negative' }
+            ]
+        },
+        hba1c:     { name: 'HbA1c',               parameters: [{ key: 'hba1c',    name: 'HbA1c',      unit: '%',     normalRange: '4.0–5.6'  }] },
+        tsh:       { name: 'TSH (Thyroid)',         parameters: [
+            { key: 'tsh', name: 'TSH', unit: 'mIU/L', normalRange: '0.4–4.0' },
+            { key: 't3',  name: 'T3',  unit: 'ng/dL',  normalRange: '80–200'  },
+            { key: 't4',  name: 'T4',  unit: 'µg/dL',  normalRange: '5–12'    }
+        ]},
+        ferritin:  { name: 'Ferritin',              parameters: [{ key: 'ferritin',  name: 'Ferritin',   unit: 'ng/mL', normalRange: '12–150'   }] },
+        hbsag:     { name: 'HBsAg (Hepatitis B)',   parameters: [{ key: 'hbsag',    name: 'HBsAg',      unit: '',      normalRange: 'Negative' }] },
+        bloodgroup:{ name: 'Blood Group',            parameters: [
+            { key: 'bloodtype', name: 'Blood Type', unit: '', normalRange: 'A/B/AB/O' },
+            { key: 'rh',        name: 'Rh Factor',  unit: '', normalRange: '+/–'       }
+        ]}
+    };
+
+    /* ══════════════════════════════════════════════════════
+       SIMULATED OCR EXTRACTION API
+       → Replace apiExtractValues() body with a real fetch() when the API is ready.
+    ══════════════════════════════════════════════════════ */
+    async function apiExtractValues(testType, file) {
+        // Simulate network latency 1.2 – 2.2 s
+        await delay(1200 + Math.random() * 1000);
+
+        const r = (lo, hi, dec = 1) => +((Math.random() * (hi - lo) + lo).toFixed(dec));
+        const p = arr => arr[Math.floor(Math.random() * arr.length)];
+
+        const fakeValues = {
+            cbc:       { hemoglobin: r(9.5, 17.5), wbc: r(3200, 13500, 0), rbc: r(3.5, 5.9), platelets: r(100000, 480000, 0), hematocrit: r(30, 48) },
+            urinalysis:{ ph: r(4.5, 8.5), protein: r(0, 40, 0), glucose: p(['Negative', 'Trace']), ketones: p(['Negative', 'Trace']), blood: p(['Negative', 'Trace']) },
+            hba1c:     { hba1c: r(4.0, 8.5) },
+            tsh:       { tsh: r(0.2, 6.0), t3: r(65, 230, 0), t4: r(4.0, 14.0) },
+            ferritin:  { ferritin: r(5, 200, 0) },
+            hbsag:     { hbsag: p(['Negative', 'Negative', 'Negative', 'Positive']) },
+            bloodgroup:{ bloodtype: p(['A+', 'A−', 'B+', 'B−', 'AB+', 'AB−', 'O+', 'O−']), rh: p(['+', '−']) }
+        };
+
+        return {
+            testType,
+            testTypeName: testConfigurations[testType].name,
+            fileName:     file.name,
+            confidence:   r(87, 99, 1),
+            extractedValues: fakeValues[testType] || {}
+        };
+    }
+
+    /* ══════════════════════════════════════════════════════
+       SIMULATED ANALYSIS API
+       → Replace apiAnalyzeTests() body with a real fetch() when the API is ready.
+    ══════════════════════════════════════════════════════ */
+    async function apiAnalyzeTests(tests) {
+        // Actual analysis delay is driven by the loading-steps animation in the caller.
+        // This function just returns the result object.
+        let hasHigh = false, hasLow = false;
+        tests.forEach(t => {
+            testConfigurations[t.testType].parameters.forEach(p => {
+                const s = getParamStatus(t.extractedValues[p.key], p.normalRange);
+                if (s === 'high') hasHigh = true;
+                if (s === 'low')  hasLow  = true;
+            });
+        });
+
+        const verdict = hasHigh ? 'danger' : hasLow ? 'warning' : 'safe';
+        const overall = hasHigh ? 'Abnormal Values Detected'
+                      : hasLow  ? 'Some Values Below Normal'
+                      :           'All Values Normal';
+
+        const recs = [
+            hasHigh ? 'One or more values are above the normal range — please consult your healthcare provider promptly.'
+          : hasLow  ? 'Some values are slightly below normal — discuss dietary or supplemental adjustments with your doctor.'
+          :           'All critical pregnancy markers are within safe ranges.',
+            'Schedule a follow-up with your OB/GYN to review these results in full.',
+            'Maintain a balanced pregnancy diet rich in iron, folic acid, and calcium.',
+            'Stay hydrated — at least 8 glasses of water per day is recommended.',
+            'Continue all scheduled prenatal checkups without interruption.',
+            'Do not adjust any medications or supplements without consulting your doctor.'
+        ];
+
+        return {
+            verdict,
+            overall,
+            confidence: (Math.random() * 4 + 93).toFixed(1),
+            recommendations: recs
+        };
+    }
+
+    /* ══════════════════════════════════════════════════════
+       STATE
+    ══════════════════════════════════════════════════════ */
+    let queuedFiles  = [];   // { file, testType }
+    let uploadedTests = [];  // extracted + { id, approved }
+    let nextId = 1;
+
+    /* ══════════════════════════════════════════════════════
+       DOM REFS
+    ══════════════════════════════════════════════════════ */
+    const uploadZone           = document.getElementById('uploadZone');
+    const fileInput            = document.getElementById('fileInput');
+    const testTypeSelect       = document.getElementById('testType');
+    const sendToAIBtn          = document.getElementById('sendToAIBtn');
+    const addMoreBtn           = document.getElementById('addMoreTests');
+    const fileCountBadge       = document.getElementById('fileCountBadge');
+    const queuedFilesList      = document.getElementById('queuedFilesList');
+    const queuedFilesInner     = document.getElementById('queuedFilesInner');
+
+    const uploadedTestsSection = document.getElementById('uploadedTestsSection');
+    const uploadedTestsList    = document.getElementById('uploadedTestsList');
+    const extractionProgress   = document.getElementById('extractionProgress');
+    const extractionBarFill    = document.getElementById('extractionBarFill');
+    const extractionStatus     = document.getElementById('extractionStatus');
+    const submitRow            = document.getElementById('submitRow');
+    const submitAllBtn         = document.getElementById('submitAllTests');
+    const approvalCounter      = document.getElementById('approvalCounter');
+    const clearAllBtn          = document.getElementById('clearAllTests');
+
+    const comprehensiveResults = document.getElementById('comprehensiveResults');
+    const reportLoading        = document.getElementById('reportLoading');
+    const reportReady          = document.getElementById('reportReady');
+    const loadingStepsEl       = document.getElementById('loadingSteps');
+    const reportBarFill        = document.getElementById('reportBarFill');
+    const overallConfidence    = document.getElementById('overallConfidence');
+    const reportVerdictRow     = document.getElementById('reportVerdictRow');
+    const reportContent        = document.getElementById('comprehensiveReportContent');
+    const uploadMoreBtn        = document.getElementById('uploadMoreBtn');
+
+    /* ══════════════════════════════════════════════════════
+       PROGRESS STEPPER
+    ══════════════════════════════════════════════════════ */
+    function setStep(n) {
+        [1, 2, 3].forEach(i => {
+            const el = document.getElementById('step' + i);
+            if (!el) return;
+            el.classList.remove('active', 'completed');
+            if (i < n)  el.classList.add('completed');
+            if (i === n) el.classList.add('active');
+            // Show checkmark vs number
+            const num   = el.querySelector('.tu-step-num');
+            const check = el.querySelector('.tu-step-check');
+            if (num)   num.style.display   = i < n ? 'none' : '';
+            if (check) check.style.display = i < n ? 'inline' : 'none';
+        });
+        const c1 = document.getElementById('conn1');
+        const c2 = document.getElementById('conn2');
+        if (c1) c1.classList.toggle('active', n >= 2);
+        if (c2) c2.classList.toggle('active', n >= 3);
+    }
+
+    /* ══════════════════════════════════════════════════════
+       UPLOAD ZONE
+    ══════════════════════════════════════════════════════ */
+    uploadZone.addEventListener('click', () => fileInput.click());
+    uploadZone.addEventListener('dragover',  e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+    uploadZone.addEventListener('drop', e => {
+        e.preventDefault(); uploadZone.classList.remove('drag-over');
+        if (e.dataTransfer.files.length) enqueueFiles(e.dataTransfer.files);
+    });
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length) enqueueFiles(fileInput.files);
+        fileInput.value = '';
+    });
+    addMoreBtn.addEventListener('click', () => fileInput.click());
+
+    function enqueueFiles(files) {
+        const type = testTypeSelect.value;
+        if (!type) { notify('Please select a test type first.', 'warning'); return; }
+        Array.from(files).forEach(f => {
+            if (f.size > 10 * 1024 * 1024) { notify('"' + f.name + '" exceeds 10 MB.', 'error'); return; }
+            queuedFiles.push({ file: f, testType: type });
+        });
+        renderQueue();
+    }
+
+    function renderQueue() {
+        if (!queuedFiles.length) {
+            queuedFilesList.style.display = 'none';
+            sendToAIBtn.style.display     = 'none';
+            return;
+        }
+        queuedFilesList.style.display = 'block';
+        sendToAIBtn.style.display     = 'inline-flex';
+        fileCountBadge.textContent    = queuedFiles.length;
+
+        queuedFilesInner.innerHTML = '';
+        queuedFiles.forEach((item, idx) => {
+            const div = document.createElement('div');
+            div.className = 'tu-queue-item';
+            div.innerHTML =
+                '<span class="tu-queue-item-name"><i class="fas fa-file-image"></i>'
+                + '<span>' + escHtml(item.file.name) + '</span>'
+                + '<span style="font-size:.7rem;color:var(--tu-muted);margin-left:.2rem">' + Math.round(item.file.size / 1024) + ' KB</span>'
+                + '</span>'
+                + '<span class="tu-queue-type">' + escHtml(testConfigurations[item.testType].name) + '</span>'
+                + '<button class="tu-queue-remove" type="button" data-idx="' + idx + '" title="Remove"><i class="fas fa-times"></i></button>';
+
+            div.querySelector('.tu-queue-remove').addEventListener('click', function () {
+                queuedFiles.splice(parseInt(this.dataset.idx), 1);
+                renderQueue();
+            });
+            queuedFilesInner.appendChild(div);
+        });
+    }
+
+    /* ══════════════════════════════════════════════════════
+       STEP 1 → 2  :  SEND TO AI (OCR EXTRACTION)
+    ══════════════════════════════════════════════════════ */
+    sendToAIBtn.addEventListener('click', async () => {
+        if (!queuedFiles.length) return;
+        const batch = [...queuedFiles];
+        queuedFiles = [];
+        renderQueue();
+
+        // Show step 2 section
+        uploadedTestsSection.style.display = 'block';
+        uploadedTestsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setStep(2);
+        extractionProgress.style.display = 'block';
+        submitRow.style.display = 'none';
+
+        sendToAIBtn.disabled = true;
+        sendToAIBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Extracting…';
+
+        for (let i = 0; i < batch.length; i++) {
+            const pct = Math.round((i / batch.length) * 90);
+            extractionBarFill.style.width = pct + '%';
+            extractionStatus.textContent  = 'Reading "' + batch[i].file.name + '" (' + (i + 1) + ' of ' + batch.length + ')…';
+
+            // ↓ Replace this call with a real API request when ready ↓
+            const result = await apiExtractValues(batch[i].testType, batch[i].file);
+
+            result.id       = nextId++;
+            result.approved = false;
+            uploadedTests.push(result);
+            renderTestCard(result);
+        }
+
+        extractionBarFill.style.width = '100%';
+        extractionStatus.textContent  = 'Extraction complete — please review the values below.';
+        await delay(700);
+        extractionProgress.style.display = 'none';
+        submitRow.style.display          = 'flex';
+        updateApprovalCounter();
+
+        sendToAIBtn.disabled = false;
+        sendToAIBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send to AI for Extraction <span class="tu-file-count-badge" id="fileCountBadge">0</span>';
+    });
+
+    /* ══════════════════════════════════════════════════════
+       RENDER REVIEW CARD
+    ══════════════════════════════════════════════════════ */
+    function renderTestCard(testData) {
+        document.getElementById('test-' + testData.id)?.remove();
+        const cfg  = testConfigurations[testData.testType];
+        const card = document.createElement('div');
+        card.className = 'tu-test-card' + (testData.approved ? ' approved' : '');
+        card.id = 'test-' + testData.id;
+
+        let rows = '';
+        cfg.parameters.forEach(param => {
+            const val    = testData.extractedValues[param.key] ?? '';
+            const status = getParamStatus(val, param.normalRange);
+            rows += '<tr>'
+                + '<td style="font-weight:600">' + escHtml(param.name) + '</td>'
+                + '<td><input class="tu-value-input" type="text" data-param="' + escHtml(param.key) + '"'
+                + ' value="' + escHtml(String(val)) + '"'
+                + (testData.approved ? ' disabled' : '') + '>'
+                + '<span class="tu-value-unit">' + escHtml(param.unit) + '</span></td>'
+                + '<td style="font-size:.82rem;color:var(--tu-muted)">' + escHtml(param.normalRange) + (param.unit ? ' ' + param.unit : '') + '</td>'
+                + '<td><span class="tu-badge-status ' + status + '">' + status + '</span></td>'
+                + '</tr>';
+        });
+
+        const approvedBadge = testData.approved
+            ? '<span class="tu-badge-status success"><i class="fas fa-check-circle"></i> Approved</span>'
+            : '<span class="tu-badge-status pending"><i class="fas fa-clock"></i> Pending Review</span>';
+
+        const footerBtns = testData.approved
+            ? '<button class="tu-btn tu-btn-sm" data-action="unapprove" type="button"><i class="fas fa-undo"></i> Edit Again</button>'
+            : '<button class="tu-btn tu-btn-sm" data-action="edit" type="button"><i class="fas fa-edit"></i> Edit Values</button>'
+              + '<button class="tu-btn tu-btn-sm approve" data-action="approve" type="button"><i class="fas fa-check"></i> Approve &amp; Confirm</button>';
+
+        card.innerHTML =
+            '<div class="tu-test-card-header">'
+            + '<div><h4><i class="fas fa-file-medical"></i> ' + escHtml(testData.testTypeName) + '</h4>'
+            + '<div class="tu-test-meta">'
+            + '<span><i class="fas fa-image"></i> ' + escHtml(testData.fileName) + '</span>'
+            + '<span class="tu-confidence-pill"><i class="fas fa-brain"></i> AI Confidence: ' + testData.confidence + '%</span>'
+            + '</div></div>'
+            + '<div class="tu-test-actions">' + approvedBadge
+            + '<button class="tu-btn tu-btn-sm" data-action="remove" title="Remove" type="button" style="color:#c62828;border-color:#ef9a9a"><i class="fas fa-trash"></i></button>'
+            + '</div></div>'
+            + '<div class="tu-values-table-wrap"><table class="tu-values-table">'
+            + '<thead><tr><th>Parameter</th><th>Extracted Value</th><th>Normal Range</th><th>Status</th></tr></thead>'
+            + '<tbody>' + rows + '</tbody></table></div>'
+            + '<div class="tu-test-card-footer">' + footerBtns + '</div>';
+
+        card.querySelectorAll('[data-action]').forEach(btn =>
+            btn.addEventListener('click', () => handleCardAction(btn.dataset.action, testData.id))
+        );
+
+        uploadedTestsList.appendChild(card);
+    }
+
+    function handleCardAction(action, testId) {
+        const test = uploadedTests.find(t => t.id === testId);
+        if (!test) return;
+
+        if (action === 'edit') {
+            document.querySelectorAll('#test-' + testId + ' .tu-value-input').forEach(i => i.disabled = false);
+            notify('Values unlocked — edit then click "Approve & Confirm".', 'info');
+            return;
+        }
+        if (action === 'approve') {
+            document.querySelectorAll('#test-' + testId + ' .tu-value-input').forEach(input => {
+                test.extractedValues[input.dataset.param] = input.value;
+            });
+            test.approved = true;
+            renderTestCard(test);
+            updateApprovalCounter();
+            return;
+        }
+        if (action === 'unapprove') {
+            test.approved = false;
+            renderTestCard(test);
+            updateApprovalCounter();
+            return;
+        }
+        if (action === 'remove') {
+            if (!confirm('Remove this test?')) return;
+            uploadedTests = uploadedTests.filter(t => t.id !== testId);
+            document.getElementById('test-' + testId)?.remove();
+            updateApprovalCounter();
+            if (!uploadedTests.length) {
+                submitRow.style.display            = 'none';
+                uploadedTestsSection.style.display = 'none';
+            }
+        }
+    }
+
+    function updateApprovalCounter() {
+        const total    = uploadedTests.length;
+        const approved = uploadedTests.filter(t => t.approved).length;
+        if (approvalCounter) approvalCounter.textContent = approved + ' / ' + total + ' approved';
+        const allReady = total > 0 && approved === total;
+        submitAllBtn.disabled  = !allReady;
+        submitAllBtn.innerHTML = allReady
+            ? '<i class="fas fa-paper-plane"></i> Submit All Tests for Comprehensive Analysis'
+            : '<i class="fas fa-lock"></i> Approve all tests to submit';
+    }
+
+    /* ══════════════════════════════════════════════════════
+       CLEAR ALL
+    ══════════════════════════════════════════════════════ */
+    clearAllBtn.addEventListener('click', () => {
+        if (!confirm('Remove all uploaded tests?')) return;
+        uploadedTests = [];
+        uploadedTestsList.innerHTML = '';
+        submitRow.style.display             = 'none';
+        uploadedTestsSection.style.display  = 'none';
+        comprehensiveResults.style.display  = 'none';
+        setStep(1);
+    });
+
+    /* ══════════════════════════════════════════════════════
+       STEP 2 → 3  :  SUBMIT FOR ANALYSIS
+    ══════════════════════════════════════════════════════ */
+    submitAllBtn.addEventListener('click', async () => {
+        if (!uploadedTests.every(t => t.approved)) return;
+
+        comprehensiveResults.style.display = 'block';
+        reportLoading.style.display        = 'flex';
+        reportReady.style.display          = 'none';
+        overallConfidence.style.display    = 'none';
+        comprehensiveResults.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setStep(3);
+        submitAllBtn.disabled  = true;
+        submitAllBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing…';
+
+        const steps = [
+            'Uploading approved test values to analysis engine…',
+            'Cross-referencing against pregnancy-safe reference ranges…',
+            'Evaluating blood count and metabolic markers…',
+            'Scanning for critical flags requiring immediate attention…',
+            'Generating personalised clinical recommendations…',
+            'Compiling final comprehensive report…'
+        ];
+
+        loadingStepsEl.innerHTML = steps.map((s, i) =>
+            '<div class="tu-loading-step" id="ls' + i + '"><i class="fas fa-circle"></i> ' + s + '</div>'
+        ).join('');
+
+        for (let i = 0; i < steps.length; i++) {
+            if (i > 0) {
+                const prev = document.getElementById('ls' + (i - 1));
+                if (prev) { prev.classList.remove('active'); prev.classList.add('done'); prev.querySelector('i').className = 'fas fa-check-circle'; }
+            }
+            const cur = document.getElementById('ls' + i);
+            if (cur) { cur.classList.add('active'); cur.querySelector('i').className = 'fas fa-spinner fa-spin'; }
+            reportBarFill.style.width = Math.round(((i + 1) / steps.length) * 95) + '%';
+            await delay(550 + Math.random() * 550);
+        }
+        const last = document.getElementById('ls' + (steps.length - 1));
+        if (last) { last.classList.remove('active'); last.classList.add('done'); last.querySelector('i').className = 'fas fa-check-circle'; }
+        reportBarFill.style.width = '100%';
+        await delay(500);
+
+        // ↓ Replace this call with a real API request when ready ↓
+        const analysis = await apiAnalyzeTests(uploadedTests);
+
+        generateComprehensiveReport(analysis);
+        reportLoading.style.display     = 'none';
+        reportReady.style.display       = 'block';
+        overallConfidence.style.display = 'inline-flex';
+        overallConfidence.innerHTML     = '<i class="fas fa-brain"></i> Confidence: ' + analysis.confidence + '%';
+
+        document.getElementById('reportSubtitle').textContent =
+            uploadedTests.length + ' test(s) · ' + new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+    });
+
+    /* ══════════════════════════════════════════════════════
+       GENERATE REPORT HTML
+    ══════════════════════════════════════════════════════ */
+    function generateComprehensiveReport(analysis) {
+        const iconMap  = { safe: 'fa-check-circle', warning: 'fa-exclamation-circle', danger: 'fa-exclamation-triangle' };
+
+        // Verdict row
+        reportVerdictRow.innerHTML =
+            '<span class="tu-verdict-badge ' + analysis.verdict + '">'
+            + '<i class="fas ' + iconMap[analysis.verdict] + '"></i> ' + escHtml(analysis.overall)
+            + '</span>'
+            + '<p class="tu-verdict-summary">' + uploadedTests.length + ' test(s) analyzed &mdash; see detailed breakdown below</p>';
+
+        // Report body
+        let html =
+            '<div class="tu-report-summary">'
+            + '<h4><i class="fas fa-chart-line"></i> Analysis Summary</h4>'
+            + '<p>Based on <strong>' + uploadedTests.length + '</strong> approved test(s). Review each section below for individual parameter findings.</p>'
+            + '</div>';
+
+        uploadedTests.forEach(test => {
+            const cfg = testConfigurations[test.testType];
+            let cards = '';
+            cfg.parameters.forEach(p => {
+                const val    = test.extractedValues[p.key] ?? '—';
+                const status = getParamStatus(val, p.normalRange);
+                cards +=
+                    '<div class="tu-insight-card ' + status + '">'
+                    + '<div class="tu-insight-label">' + escHtml(p.name) + '</div>'
+                    + '<div class="tu-insight-value"><span class="tu-insight-dot"></span>'
+                    + escHtml(String(val))
+                    + (p.unit ? '<span class="tu-insight-unit">' + escHtml(p.unit) + '</span>' : '')
+                    + '</div>'
+                    + '<div class="tu-insight-range">Normal: ' + escHtml(p.normalRange) + (p.unit ? ' ' + p.unit : '') + '</div>'
+                    + '</div>';
+            });
+            html +=
+                '<div class="tu-report-section">'
+                + '<h5><i class="fas fa-vial"></i> ' + escHtml(test.testTypeName) + '</h5>'
+                + '<div class="tu-insight-grid">' + cards + '</div>'
+                + '</div>';
+        });
+
+        html +=
+            '<div class="tu-recommendations">'
+            + '<h4><i class="fas fa-lightbulb"></i> Clinical Recommendations</h4>'
+            + '<ul class="tu-rec-list">'
+            + analysis.recommendations.map(r =>
+                '<li><i class="fas fa-check-circle"></i> ' + escHtml(r) + '</li>'
+            ).join('')
+            + '</ul></div>';
+
+        reportContent.innerHTML = html;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       UPLOAD MORE (reset to step 1)
+    ══════════════════════════════════════════════════════ */
+    uploadMoreBtn.addEventListener('click', () => {
+        uploadedTests = [];
+        uploadedTestsList.innerHTML = '';
+        uploadedTestsSection.style.display = 'none';
+        comprehensiveResults.style.display = 'none';
+        submitRow.style.display            = 'none';
+        setStep(1);
+        document.getElementById('section-upload').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    /* ══════════════════════════════════════════════════════
+       HELPERS
+    ══════════════════════════════════════════════════════ */
+    function getParamStatus(value, normalRange) {
+        const s = String(value ?? '').trim().toLowerCase();
+        if (!s || s === 'negative' || s === '—') return 'normal';
+        if (s === 'positive') return 'high';
+        const num = parseFloat(s.replace(/,/g, ''));
+        const m   = normalRange.replace(/,/g, '').match(/([\d.]+)[–\-]([\d.]+)/);
+        if (!isNaN(num) && m) {
+            const lo = parseFloat(m[1]), hi = parseFloat(m[2]);
+            if (num < lo) return 'low';
+            if (num > hi) return 'high';
+            return 'normal';
+        }
+        return 'normal';
+    }
+
+    function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    function notify(msg, type) {
+        if (typeof window.showNotification === 'function') window.showNotification(msg, type);
+        else console.warn('[notify]', msg);
+    }
+
+    function escHtml(str) {
+        return String(str ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    /* ══════════════════════════════════════════════════════
+       PUBLIC HOOKS  (called by your ASP.NET controller callbacks)
+       
+       Usage from Razor/JS after a real API responds:
+         window.tuRenderUploadedTest(testDataObject)  — adds one extracted test card
+         window.tuHideProcessingIndicator()            — hides the extraction bar
+         window.tuGenerateReport(analysisObject)       — renders the final report
+    ══════════════════════════════════════════════════════ */
+    window.tuHideProcessingIndicator = function () {
+        extractionProgress.style.display = 'none';
+        setTimeout(() => {
+            if (uploadedTestsSection.style.display !== 'none')
+                uploadedTestsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 300);
+    };
+
+    window.tuRenderUploadedTest = function (testData) {
+        testData.id       = nextId++;
+        testData.approved = false;
+        uploadedTests.push(testData);
+        renderTestCard(testData);
+        updateApprovalCounter();
+        submitRow.style.display = 'flex';
+    };
+
+    window.tuGenerateReport = function (analysisData) {
+        generateComprehensiveReport(analysisData);
+        reportLoading.style.display     = 'none';
+        reportReady.style.display       = 'block';
+        overallConfidence.style.display = 'inline-flex';
+        overallConfidence.innerHTML     = '<i class="fas fa-brain"></i> Confidence: ' + analysisData.confidence + '%';
+    };
+
+}());
+</script>
+}

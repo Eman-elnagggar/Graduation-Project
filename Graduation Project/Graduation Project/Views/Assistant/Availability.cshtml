@@ -1,0 +1,386 @@
+@model Graduation_Project.ViewModels.AssistantAvailabilityViewModel
+@{
+    Layout = "~/Views/Shared/_AssistantLayout.cshtml";
+    ViewData["Title"] = "Manage Availability";
+    ViewData["AssistantId"] = Model.Assistant.AssistantID;
+    ViewData["AssistantName"] = Model.AssistantName;
+    ViewData["ActivePage"] = "Availability";
+}
+
+<div class="is-hidden">
+    @Html.AntiForgeryToken()
+</div>
+
+<div class="ad-wrap">
+
+<!-- Page Header -->
+<header class="header">
+    <div class="header-left">
+        <div class="header-page-icon">
+            <i class="fas fa-clock"></i>
+        </div>
+        <div class="header-title-group">
+            <h1>Manage Availability</h1>
+            <p>Set available time slots for @Model.ClinicName</p>
+        </div>
+    </div>
+</header>
+
+<!-- Hero Banner -->
+<section class="pregnancy-progress">
+    <div class="progress-card assistant-hero">
+        <div class="progress-info">
+            <h3><i class="fas fa-clock icon-inline-gap"></i>Availability Overview</h3>
+            <p>
+                <span class="week-number" id="heroDateLabel">@DateTime.Today.ToString("dddd, MMMM dd, yyyy")</span>
+            </p>
+        </div>
+        <div class="progress-details">
+            <div class="hero-stat-pill">
+                <i class="fas fa-check-circle"></i>
+                <span class="hero-stat-value" id="heroAvailable">--</span> Available
+            </div>
+            <div class="hero-divider"></div>
+            <div class="hero-stat-pill">
+                <i class="fas fa-user-check"></i>
+                <span class="hero-stat-value" id="heroBooked">--</span> Booked
+            </div>
+            <div class="hero-divider"></div>
+            <div class="hero-stat-pill">
+                <i class="fas fa-ban"></i>
+                <span class="hero-stat-value" id="heroBlocked">--</span> Blocked
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Quick Stats -->
+<div class="quick-stats avail-stats">
+    <div class="quick-stat-card stat-confirmed">
+        <div class="stat-header">
+            <div class="stat-icon stat-icon-confirmed">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+        </div>
+        <div class="stat-value" id="statAvailable">--</div>
+        <div class="stat-label">Available</div>
+        <div class="stat-bg-icon"><i class="fas fa-calendar-check"></i></div>
+    </div>
+    <div class="quick-stat-card stat-cancelled">
+        <div class="stat-header">
+            <div class="stat-icon stat-icon-cancelled">
+                <i class="fas fa-user-check"></i>
+            </div>
+        </div>
+        <div class="stat-value" id="statBooked">--</div>
+        <div class="stat-label">Booked</div>
+        <div class="stat-bg-icon"><i class="fas fa-user-check"></i></div>
+    </div>
+    <div class="quick-stat-card stat-total">
+        <div class="stat-header">
+            <div class="stat-icon stat-icon-muted">
+                <i class="fas fa-ban"></i>
+            </div>
+        </div>
+        <div class="stat-value" id="statBlocked">--</div>
+        <div class="stat-label">Blocked</div>
+        <div class="stat-bg-icon"><i class="fas fa-ban"></i></div>
+    </div>
+</div>
+
+<!-- No Doctors Banner -->
+@if (!Model.Doctors.Any())
+{
+    <div class="privacy-notice privacy-notice-warning mb-24">
+        <i class="fas fa-exclamation-triangle"></i>
+        <p><strong>No Doctors Assigned:</strong> There are no doctors linked to your account yet.</p>
+    </div>
+}
+
+<!-- Doctor Selector -->
+@if (Model.Doctors.Count > 1)
+{
+    <section class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-user-md"></i> Select Doctor</h3>
+        </div>
+        <div class="doctor-filter-pills">
+            @foreach (var doc in Model.Doctors)
+            {
+                var isSelected = Model.SelectedDoctorID == doc.DoctorID;
+                <a href="@Url.Action("Availability", new { id = Model.Assistant.AssistantID, doctorId = doc.DoctorID })"
+                   data-doctor-id="@doc.DoctorID"
+                   class="doctor-pill @(isSelected ? "active-blue" : "")">
+                    <i class="fas fa-user-md"></i> @doc.FullName
+                </a>
+            }
+        </div>
+    </section>
+}
+
+<!-- Calendar + Time Slots (side-by-side) -->
+<div class="avail-main-grid">
+
+    <!-- Calendar -->
+    <section class="card avail-calendar-card">
+        <div class="card-header">
+            <h3><i class="fas fa-calendar-alt"></i> Select Date</h3>
+        </div>
+        <div class="calendar-header">
+            <div class="calendar-nav">
+                <button onclick="previousMonth()"><i class="fas fa-chevron-left"></i></button>
+                <span class="current-month" id="currentMonth"></span>
+                <button onclick="nextMonth()"><i class="fas fa-chevron-right"></i></button>
+            </div>
+            <button class="btn btn-sm btn-outline" onclick="goToToday()">
+                <i class="fas fa-calendar-day"></i> Today
+            </button>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+        <div class="avail-legend">
+            <div class="avail-legend-item">
+                <span class="avail-legend-dot avail-legend-dot-primary"></span>
+                Has available slots
+            </div>
+            <div class="avail-legend-item">
+                <span class="avail-legend-dot avail-legend-dot-warning"></span>
+                Partially booked
+            </div>
+            <div class="avail-legend-item">
+                <span class="avail-legend-dot avail-legend-dot-danger"></span>
+                Fully booked
+            </div>
+        </div>
+    </section>
+
+    <!-- Time Slots -->
+    <section class="card avail-slots-card">
+        <div class="card-header">
+            <h3>
+                <i class="fas fa-clock"></i> Slots &mdash;
+                <span id="selectedDateDisplay" class="selected-date-accent">—</span>
+            </h3>
+            <div class="slots-header-actions">
+                <button class="btn btn-sm btn-outline" onclick="setAllAvailable()">
+                    <i class="fas fa-check-circle"></i> All Available
+                </button>
+                <button class="btn btn-sm btn-outline danger" onclick="blockAllSlots()">
+                    <i class="fas fa-ban"></i> Block All
+                </button>
+                <button class="btn btn-sm btn-primary" onclick="toggleCustomSlotForm()">
+                    <i class="fas fa-plus"></i> Add Slot
+                </button>
+            </div>
+        </div>
+
+        <!-- Slot date + duration controls -->
+        <div class="slots-controls-bar">
+            <div class="slot-ctrl">
+                <label><i class="fas fa-calendar-day"></i> Date</label>
+                <input type="date" id="slotDatePicker" class="qs-select"
+                       onchange="onSlotDateChange(this.value)" />
+            </div>
+            <div class="slot-ctrl">
+                <label><i class="fas fa-stopwatch"></i> Slot Duration</label>
+                <input type="number"
+                       id="slotDurationPicker"
+                       class="qs-select"
+                       min="5"
+                       step="5"
+                       value="30"
+                       placeholder="Minutes"
+                       oninput="onSlotDurationPickerChange(this.value)"
+                       onchange="onSlotDurationPickerChange(this.value)" />
+            </div>
+        </div>
+
+        <!-- Custom Slot Form -->
+        <div id="customSlotForm" class="custom-slot-form" style="display:none;">
+            <label class="custom-slot-label">
+                <i class="fas fa-clock custom-slot-icon"></i> Custom Time
+            </label>
+            <input type="time" id="customSlotTime" class="qs-select custom-slot-time" />
+            <button id="addCustomSlotBtn" class="btn btn-sm btn-primary" onclick="createCustomSlot()">
+                <i class="fas fa-plus"></i> Add Slot
+            </button>
+            <button class="btn btn-sm btn-outline" onclick="toggleCustomSlotForm()">
+                <i class="fas fa-times"></i> Cancel
+            </button>
+        </div>
+
+        <div id="timeSlotsContainer">
+            <div class="empty-state">
+                <i class="fas fa-calendar-day"></i>
+                <p>Select a date to manage time slots</p>
+            </div>
+        </div>
+
+        <div class="avail-legend avail-slot-legend">
+            <div class="avail-legend-item">
+                <span class="avail-legend-swatch available-swatch"></span>
+                Available
+            </div>
+            <div class="avail-legend-item">
+                <span class="avail-legend-swatch booked-swatch"></span>
+                Booked
+            </div>
+            <div class="avail-legend-item">
+                <span class="avail-legend-swatch booked-swatch"></span>
+                Other Clinic
+            </div>
+            <div class="avail-legend-item">
+                <span class="avail-legend-swatch blocked-swatch"></span>
+                Blocked
+            </div>
+        </div>
+    </section>
+
+</div>
+
+<!-- Quick Setup Section -->
+<section class="card quick-setup-card">
+
+    <!-- ?? Header ?? -->
+    <div class="qs-header">
+        <div class="qs-header-left">
+            <div class="qs-icon-wrap"><i class="fas fa-magic"></i></div>
+            <div>
+                <h3 class="qs-title">Quick Setup</h3>
+                <p class="qs-subtitle">Configure recurring availability across multiple weeks in one click.</p>
+            </div>
+        </div>
+        <div class="qs-summary-pill" id="qsSummaryPill">
+            <i class="fas fa-info-circle"></i>
+            <span id="qsSummaryText">Select options below</span>
+        </div>
+    </div>
+
+    <div class="qs-divider"></div>
+
+    <!-- ?? Working Days ?? -->
+    <div class="qs-section">
+        <div class="qs-section-label">
+            <i class="fas fa-calendar-week"></i>
+            <span>Working Days</span>
+            <span class="qs-badge" id="qsDayCount">4 selected</span>
+        </div>
+        <div class="day-chip-group qs-days">
+            @{
+                var days = new[] { ("Sun", 0), ("Mon", 1), ("Tue", 2), ("Wed", 3), ("Thu", 4), ("Fri", 5), ("Sat", 6) };
+                var defaultChecked = new[] { 1, 2, 3, 4 };
+            }
+            @foreach (var (dayLabel, val) in days)
+            {
+                <label class="day-chip">
+                    <input type="checkbox" value="@val" onchange="updateQsSummary()"
+                           @(defaultChecked.Contains(val) ? "checked" : "") />
+                    <span class="day-chip-label">@dayLabel</span>
+                </label>
+            }
+        </div>
+    </div>
+
+    <!-- ?? Time & Duration Row ?? -->
+    <div class="qs-controls-grid">
+        <!-- Start Time -->
+        <div class="qs-control-card">
+            <div class="qs-control-icon green"><i class="fas fa-hourglass-start"></i></div>
+            <div class="qs-control-body">
+                <label class="qs-control-label" for="startTime">Start Time</label>
+                <input type="time"
+                       class="qs-select"
+                       id="startTime"
+                       value="09:00"
+                       step="900"
+                       oninput="updateQsSummary()"
+                       onchange="updateQsSummary()" />
+            </div>
+        </div>
+        <!-- End Time -->
+        <div class="qs-control-card">
+            <div class="qs-control-icon red"><i class="fas fa-hourglass-end"></i></div>
+            <div class="qs-control-body">
+                <label class="qs-control-label" for="endTime">End Time</label>
+                <input type="time"
+                       class="qs-select"
+                       id="endTime"
+                       value="17:00"
+                       step="900"
+                       oninput="updateQsSummary()"
+                       onchange="updateQsSummary()" />
+            </div>
+        </div>
+        <!-- Slot Duration -->
+        <div class="qs-control-card">
+            <div class="qs-control-icon purple"><i class="fas fa-stopwatch"></i></div>
+            <div class="qs-control-body">
+                <label class="qs-control-label" for="slotDuration">Slot Duration</label>
+                <input type="number"
+                       class="qs-select"
+                       id="slotDuration"
+                       min="5"
+                       step="5"
+                       value="30"
+                       placeholder="Minutes"
+                       oninput="updateQsSummary()"
+                       onchange="updateQsSummary()" />
+            </div>
+        </div>
+        <!-- Weeks Ahead -->
+        <div class="qs-control-card">
+            <div class="qs-control-icon blue"><i class="fas fa-calendar-plus"></i></div>
+            <div class="qs-control-body">
+                <label class="qs-control-label" for="weeksAhead">Apply for Next</label>
+                <select class="qs-select" id="weeksAhead" onchange="updateQsSummary()">
+                    <option value="1">1 week</option>
+                    <option value="2" selected>2 weeks</option>
+                    <option value="4">4 weeks</option>
+                    <option value="8">8 weeks</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- ?? Slot count estimate ?? -->
+    <div class="qs-estimate" id="qsEstimate">
+        <i class="fas fa-layer-group"></i>
+        <span>Estimated <strong id="qsSlotCount">—</strong> slots will be created</span>
+    </div>
+
+    <!-- ?? Action ?? -->
+    <div class="qs-footer">
+        <button class="btn btn-primary qs-apply-btn" id="applySetupBtn" onclick="applyQuickSetup()">
+            <i class="fas fa-magic"></i> Apply Schedule
+        </button>
+        <span class="qs-footer-note">
+            <i class="fas fa-info-circle"></i>
+            Existing booked slots will not be overwritten.
+        </span>
+    </div>
+</section>
+
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/assistant-availability.css" asp-append-version="true" />
+}
+
+@section Scripts {
+    <script>
+        window.assistantAvailabilityConfig = {
+            assistantId: @Model.Assistant.AssistantID,
+            selectedDoctorId: @(Model.SelectedDoctorID.HasValue ? Model.SelectedDoctorID.Value.ToString() : "null"),
+            clinicName: '@Html.Raw(Model.ClinicName?.Replace("'", "\\'") ?? "Clinic")',
+            doctorsCount: @Model.Doctors.Count,
+            urls: {
+                getAvailabilitySlots: '@Url.Action("GetAvailabilitySlots", "Assistant")',
+                createAvailabilitySlot: '@Url.Action("CreateAvailabilitySlot", "Assistant")',
+                deleteAvailabilitySlot: '@Url.Action("DeleteAvailabilitySlot", "Assistant")',
+                setAllSlotsAvailable: '@Url.Action("SetAllSlotsAvailable", "Assistant")',
+                blockAllAvailabilitySlots: '@Url.Action("BlockAllAvailabilitySlots", "Assistant")',
+                applyQuickSetupSchedule: '@Url.Action("ApplyQuickSetupSchedule", "Assistant")'
+            }
+        };
+    </script>
+    <script src="~/js/assistant-availability.js" asp-append-version="true"></script>
+}

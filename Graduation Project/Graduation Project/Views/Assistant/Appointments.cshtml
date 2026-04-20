@@ -1,0 +1,255 @@
+﻿@model Graduation_Project.ViewModels.AssistantAppointmentsViewModel
+@{
+    Layout = "~/Views/Shared/_AssistantLayout.cshtml";
+    ViewData["Title"] = "Appointments";
+    ViewData["AssistantId"] = Model.Assistant.AssistantID;
+    ViewData["AssistantName"] = Model.AssistantName;
+    ViewData["ActivePage"] = "Appointments";
+}
+
+<div class="is-hidden">
+    @Html.AntiForgeryToken()
+</div>
+
+<div class="ad-wrap">
+
+<!-- Page Header -->
+<header class="header">
+    <div class="header-left">
+        <div class="header-page-icon">
+            <i class="fas fa-calendar-alt"></i>
+        </div>
+        <div class="header-title-group">
+            <h1>Appointments</h1>
+            <p>Manage patient appointments for @Model.ClinicName</p>
+        </div>
+    </div>
+</header>
+
+<!-- Hero Banner -->
+<section class="pregnancy-progress">
+    <div class="progress-card assistant-hero">
+        <div class="progress-info">
+            <h3><i class="fas fa-calendar-check icon-inline-gap"></i>Appointments Overview</h3>
+            <p>
+                <span class="week-number" id="appointmentsHeroDate">@Model.SelectedDate.ToString("dddd, MMMM dd, yyyy")</span>
+            </p>
+        </div>
+        <div class="progress-details">
+            <div class="hero-stat-pill">
+                <i class="fas fa-check-circle"></i>
+                <span class="hero-stat-value" id="heroConfirmedCount">--</span> Confirmed
+            </div>
+            <div class="hero-divider"></div>
+            <div class="hero-stat-pill">
+                <i class="fas fa-edit"></i>
+                <span class="hero-stat-value" id="heroModifiedCount">--</span> Modified
+            </div>
+            <div class="hero-divider"></div>
+            <div class="hero-stat-pill">
+                <i class="fas fa-times-circle"></i>
+                <span class="hero-stat-value" id="heroCancelledCount">--</span> Cancelled
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="card section-spacing">
+    <div class="card-header">
+        <h3><i class="fas fa-calendar-day"></i> Appointments Date</h3>
+    </div>
+    <div class="toolbar-row">
+        <button type="button" class="btn btn-outline btn-sm" id="prevAppointmentsDateBtn">
+            <i class="fas fa-chevron-left"></i> Previous
+        </button>
+        <input type="date" id="appointmentsDatePicker" class="form-input date-input" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
+        <button type="button" class="btn btn-outline btn-sm" id="nextAppointmentsDateBtn">
+            Next <i class="fas fa-chevron-right"></i>
+        </button>
+        <button type="button" class="btn btn-outline btn-sm" id="todayAppointmentsDateBtn">
+            <i class="fas fa-calendar-day"></i> Today
+        </button>
+    </div>
+</section>
+
+<!-- Quick Stats -->
+<div class="quick-stats appt-stats">
+    <div class="quick-stat-card stat-confirmed">
+        <div class="stat-header">
+            <div class="stat-icon stat-icon-confirmed">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+        </div>
+        <div class="stat-value" id="statConfirmed">--</div>
+        <div class="stat-label">Confirmed</div>
+        <div class="stat-bg-icon"><i class="fas fa-calendar-check"></i></div>
+    </div>
+    <div class="quick-stat-card stat-modified">
+        <div class="stat-header">
+            <div class="stat-icon stat-icon-modified">
+                <i class="fas fa-pen-square"></i>
+            </div>
+        </div>
+        <div class="stat-value" id="statModified">--</div>
+        <div class="stat-label">Modified</div>
+        <div class="stat-bg-icon"><i class="fas fa-pen-square"></i></div>
+    </div>
+    <div class="quick-stat-card stat-cancelled">
+        <div class="stat-header">
+            <div class="stat-icon stat-icon-cancelled">
+                <i class="fas fa-times-circle"></i>
+            </div>
+        </div>
+        <div class="stat-value" id="statCancelled">--</div>
+        <div class="stat-label">Cancelled</div>
+        <div class="stat-bg-icon"><i class="fas fa-times-circle"></i></div>
+    </div>
+    <div class="quick-stat-card stat-total">
+        <div class="stat-header">
+            <div class="stat-icon stat-icon-total">
+                <i class="fas fa-clipboard-list"></i>
+            </div>
+        </div>
+        <div class="stat-value" id="statTotal">--</div>
+        <div class="stat-label">Total</div>
+        <div class="stat-bg-icon"><i class="fas fa-clipboard-list"></i></div>
+    </div>
+</div>
+
+
+
+<!-- Doctor Selector (only shown when managing multiple doctors) -->
+@if (Model.Doctors.Count > 1)
+{
+    <section class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-user-md"></i> Filter by Doctor</h3>
+        </div>
+        <div class="doctor-filter-pills">
+            <a href="@Url.Action("Appointments", new { id = Model.Assistant.AssistantID, date = Model.SelectedDate.ToString("yyyy-MM-dd") })"
+               data-doctor-id=""
+               class="doctor-pill @(Model.SelectedDoctorID == null ? "active" : "")">
+                <i class="fas fa-users"></i> All Doctors
+            </a>
+            @foreach (var doc in Model.Doctors)
+            {
+                var isSelected = Model.SelectedDoctorID == doc.DoctorID;
+                <a href="@Url.Action("Appointments", new { id = Model.Assistant.AssistantID, doctorId = doc.DoctorID, date = Model.SelectedDate.ToString("yyyy-MM-dd") })"
+                   data-doctor-id="@doc.DoctorID"
+                   class="doctor-pill @(isSelected ? "active-blue" : "")">
+                    <i class="fas fa-user-md"></i> @doc.FullName
+                </a>
+            }
+        </div>
+    </section>
+}
+
+<!-- Status Tabs -->
+<div class="card card-no-padding card-overflow-hidden">
+    <div class="appt-search-bar">
+        <div class="appt-search-wrap">
+            <i class="fas fa-search"></i>
+            <input type="text" id="appointmentSearch" placeholder="Search by patient name, doctor, or phone…"
+                   oninput="handleSearchInput(this.value)" />
+        </div>
+    </div>
+    <div class="tabs-bar">
+        <button class="tab-btn active" data-tab="Confirmed" onclick="switchTab('Confirmed')">
+            <i class="fas fa-calendar-check"></i> Confirmed
+            <span class="status-badge confirmed" id="confirmedTabCount">–</span>
+        </button>
+        <button class="tab-btn" data-tab="Modified" onclick="switchTab('Modified')">
+            <i class="fas fa-edit"></i> Modified
+            <span class="status-badge reviewed" id="modifiedTabCount">–</span>
+        </button>
+        <button class="tab-btn" data-tab="Cancelled" onclick="switchTab('Cancelled')">
+            <i class="fas fa-times-circle"></i> Cancelled
+            <span class="status-badge danger" id="cancelledTabCount">–</span>
+        </button>
+    </div>
+    <div class="appt-body-wrap">
+        <div class="tab-content active" id="Confirmed-tab">
+            <div class="request-list" id="ConfirmedAppointmentsList">
+                <div class="empty-state">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading appointments…</p>
+                </div>
+            </div>
+        </div>
+        <div class="tab-content is-hidden" id="Modified-tab">
+            <div class="request-list" id="ModifiedAppointmentsList"></div>
+        </div>
+        <div class="tab-content is-hidden" id="Cancelled-tab">
+            <div class="request-list" id="CancelledAppointmentsList"></div>
+        </div>
+
+        <div id="appointmentsPager" class="appointments-pager"></div>
+    </div>
+</div>
+
+<!-- Modify Appointment Modal -->
+<div class="modal-overlay is-hidden" id="modifyModal">
+    <div class="modal modal-medium">
+        <div class="modal-header">
+            <h3><i class="fas fa-edit"></i> Modify Appointment</h3>
+            <button class="btn-close" onclick="closeModifyModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Patient</label>
+                <p id="modifyPatientName" class="appointment-primary-text">–</p>
+            </div>
+            <div class="form-group">
+                <label>Current Date &amp; Time</label>
+                <p id="modifyCurrentDateTime" class="appointment-secondary-text">–</p>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="newDate">New Date</label>
+                    <input type="date" class="form-input" id="newDate" />
+                </div>
+                <div class="form-group">
+                    <label for="newTime">New Time</label>
+                    <input type="time" class="form-input" id="newTime" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="modifyReason">Reason for Change (optional)</label>
+                <textarea class="form-textarea" id="modifyReason"
+                          placeholder="Enter reason for rescheduling…"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModifyModal()">Cancel</button>
+            <button class="btn btn-danger" id="modalCancelBtn" onclick="handleCancelAppointment()">
+                <i class="fas fa-times"></i> Cancel Appointment
+            </button>
+            <button class="btn btn-primary" id="modalSaveBtn" onclick="handleSaveModification()">
+                <i class="fas fa-check"></i> Save Changes
+            </button>
+        </div>
+    </div>
+</div>
+
+</div>
+
+@section Scripts {
+    <script>
+        window.assistantAppointmentsConfig = {
+            assistantId: @Model.Assistant.AssistantID,
+            selectedDoctorId: @(Model.SelectedDoctorID.HasValue ? Model.SelectedDoctorID.Value.ToString() : "null"),
+            selectedDate: '@Model.SelectedDate.ToString("yyyy-MM-dd")',
+            urls: {
+                getAppointments: '@Url.Action("GetAppointments", "Assistant")',
+                getAppointmentCounts: '@Url.Action("GetAppointmentCounts", "Assistant")',
+                getAppointmentDetail: '@Url.Action("GetAppointmentDetail", "Assistant")',
+                modifyAppointment: '@Url.Action("ModifyAppointment", "Assistant")',
+                cancelAppointment: '@Url.Action("CancelAppointment", "Assistant")',
+                exportAppointmentsCsv: '@Url.Action("ExportAppointmentsCsv", "Assistant")'
+            }
+        };
+    </script>
+    <script src="~/js/assistant-appointments.js" asp-append-version="true"></script>
+}
