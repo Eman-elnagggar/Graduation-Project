@@ -1,0 +1,141 @@
+@model Graduation_Project.ViewModels.AssistantPatientsViewModel
+@{
+    Layout = "~/Views/Shared/_AssistantLayout.cshtml";
+    ViewData["Title"] = "Patients";
+    ViewData["AssistantId"] = Model.Assistant.AssistantID;
+    ViewData["AssistantName"] = Model.AssistantName;
+    ViewData["ActivePage"] = "Patients";
+}
+
+<div class="ad-wrap">
+    <header class="header">
+        <div class="header-left">
+            <div class="header-page-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="header-title-group">
+                <h1>Doctor Patients</h1>
+                <p>View clinic patients and all appointments per patient.</p>
+            </div>
+        </div>
+    </header>
+
+    <section class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-user-md"></i> Filter by Doctor</h3>
+        </div>
+        <div class="doctor-filter-pills">
+            <a href="@Url.Action("Patients", new { id = Model.Assistant.AssistantID })"
+               class="doctor-pill @(Model.SelectedDoctorID == null ? "active" : "")">
+                <i class="fas fa-users"></i> All Doctors
+            </a>
+            @foreach (var doctor in Model.Doctors)
+            {
+                var isSelected = Model.SelectedDoctorID == doctor.DoctorID;
+                <a href="@Url.Action("Patients", new { id = Model.Assistant.AssistantID, doctorId = doctor.DoctorID })"
+                   class="doctor-pill @(isSelected ? "active-blue" : "")">
+                    <i class="fas fa-user-md"></i> @doctor.FullName
+                </a>
+            }
+        </div>
+    </section>
+
+    @if (!Model.Patients.Any())
+    {
+        <section class="card">
+            <div class="empty-state">
+                <i class="fas fa-folder-open"></i>
+                <p>No approved patients found for the selected doctor scope.</p>
+            </div>
+        </section>
+    }
+    else
+    {
+        var groupedPatients = Model.Patients
+            .GroupBy(p => new { p.DoctorID, p.DoctorName, p.DoctorSpecialization })
+            .OrderBy(g => g.Key.DoctorName)
+            .ToList();
+
+        foreach (var doctorGroup in groupedPatients)
+        {
+            <section class="card section-spacing">
+                <div class="card-header">
+                    <h3><i class="fas fa-user-md"></i> @doctorGroup.Key.DoctorName</h3>
+                    <small>@(string.IsNullOrWhiteSpace(doctorGroup.Key.DoctorSpecialization) ? "General" : doctorGroup.Key.DoctorSpecialization)</small>
+                </div>
+
+                @foreach (var patient in doctorGroup)
+                {
+                    <details class="card section-spacing-sm">
+                        <summary class="appointment-row-main" style="cursor:pointer;">
+                            <div>
+                                <strong>@patient.FullName</strong>
+                                @if (!string.IsNullOrWhiteSpace(patient.PhoneNumber))
+                                {
+                                    <span class="appointment-doctor-meta"> · @patient.PhoneNumber</span>
+                                }
+                            </div>
+                            <span class="status-badge confirmed">@patient.Appointments.Count appointment(s)</span>
+                        </summary>
+
+                        <div class="request-list" style="margin-top:12px;">
+                            <div class="mb-12">
+                                <a class="btn btn-outline btn-sm"
+                                   href="@Url.Action("PatientDetails", "Assistant", new { id = Model.Assistant.AssistantID, patientId = patient.PatientID, doctorId = patient.DoctorID })">
+                                    <i class="fas fa-id-card"></i> View Full Profile & Details
+                                </a>
+                            </div>
+                            @if (!patient.Appointments.Any())
+                            {
+                                <div class="empty-state">
+                                    <i class="fas fa-calendar-times"></i>
+                                    <p>No appointments found for this patient.</p>
+                                </div>
+                            }
+                            else
+                            {
+                                foreach (var appointment in patient.Appointments)
+                                {
+                                    var booking = appointment.Booking;
+                                    var status = booking?.Status ?? "Confirmed";
+                                    var statusClass = status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase)
+                                        ? "danger"
+                                        : status.Equals("Modified", StringComparison.OrdinalIgnoreCase)
+                                            ? "reviewed"
+                                            : status.Equals("Completed", StringComparison.OrdinalIgnoreCase)
+                                                ? "confirmed"
+                                                : status.Equals("Missed", StringComparison.OrdinalIgnoreCase)
+                                                    ? "danger"
+                                                    : "confirmed";
+
+                                    <article class="request-card appointment-card status-@status.ToLowerInvariant()">
+                                        <div class="request-info">
+                                            <div class="request-header-line">
+                                                <h4>@appointment.Date.ToString("ddd, MMM dd, yyyy") at @DateTime.Today.Add(appointment.Time).ToString("hh:mm tt")</h4>
+                                                <span class="status-badge @statusClass">@status</span>
+                                            </div>
+                                            @if (!string.IsNullOrWhiteSpace(booking?.Reason))
+                                            {
+                                                <p><strong>Reason:</strong> @booking.Reason</p>
+                                            }
+                                            @if (!string.IsNullOrWhiteSpace(booking?.Notes))
+                                            {
+                                                <p><strong>Notes:</strong> @booking.Notes</p>
+                                            }
+                                            <p>
+                                                <a class="btn btn-outline btn-sm"
+                                                   href="@Url.Action("PatientDetails", "Assistant", new { id = Model.Assistant.AssistantID, patientId = patient.PatientID, doctorId = patient.DoctorID })">
+                                                    <i class="fas fa-external-link-alt"></i> Open Full Patient Details
+                                                </a>
+                                            </p>
+                                        </div>
+                                    </article>
+                                }
+                            }
+                        </div>
+                    </details>
+                }
+            </section>
+        }
+    }
+</div>

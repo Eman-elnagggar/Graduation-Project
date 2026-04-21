@@ -1,0 +1,1713 @@
+﻿@model Graduation_Project.ViewModels.PatientProfileViewModel
+@{
+    Layout = "~/Views/Shared/_PatientLayout.cshtml";
+    ViewData["Title"] = "My Profile";
+    ViewData["PatientId"]  = Model.Patient.PatientID;
+    ViewData["ActivePage"] = "Profile";
+}
+
+@section Head {
+    <meta name="patient-id" content="@Model.Patient.PatientID" />
+    @Html.AntiForgeryToken()
+}
+
+<!-- ══════════════════ HERO HEADER ══════════════════ -->
+<header class="pf-hero">
+    <div class="pf-hero-left">
+        <div class="pf-hero-avatar">
+          <i class="fas fa-user-circle"></i>
+        </div>
+        <div class="pf-hero-info">
+      <h1 class="pf-hero-name">@Model.FullName</h1>
+      <p class="pf-hero-sub"><i class="fas fa-envelope"></i> @Model.Email</p>
+    <div class="pf-hero-badges">
+        <span class="pf-hbadge pf-hbadge-week"><i class="fas fa-baby"></i> Week @Model.PregnancyWeek</span>
+                <span class="pf-hbadge pf-hbadge-trim"><i class="fas fa-calendar"></i> @Model.Trimester</span>
+     @if (Model.DueDate != "N/A")
+     {
+        <span class="pf-hbadge pf-hbadge-due"><i class="fas fa-clock"></i> Due @Model.DueDate</span>
+     }
+   </div>
+      </div>
+    </div>
+</header>
+
+@if (TempData["PregnancyStatusMessage"] is string pregnancyStatusMessage && !string.IsNullOrWhiteSpace(pregnancyStatusMessage))
+{
+    <div class="alert alert-info" style="margin-bottom:1rem; border-radius:10px;">
+        @pregnancyStatusMessage
+    </div>
+}
+
+<!-- ══════════════════ STATS BAR ══════════════════ -->
+<div class="pf-stats-bar">
+    <div class="pf-stat">
+  <div class="pf-stat-icon pf-stat-week"><i class="fas fa-baby-carriage"></i></div>
+        <div class="pf-stat-body">
+            <span class="pf-stat-num">@Model.PregnancyWeek</span>
+            <span class="pf-stat-lbl">Week</span>
+      </div>
+    </div>
+    <div class="pf-stat">
+        <div class="pf-stat-icon pf-stat-days"><i class="fas fa-clock"></i></div>
+    <div class="pf-stat-body">
+          <span class="pf-stat-num">@Model.DaysRemaining</span>
+            <span class="pf-stat-lbl">Days Left</span>
+     </div>
+    </div>
+    <div class="pf-stat">
+        <div class="pf-stat-icon pf-stat-bmi"><i class="fas fa-weight"></i></div>
+        <div class="pf-stat-body">
+            <span class="pf-stat-num">@(Model.Bmi > 0 ? Model.Bmi.ToString("F1") : "—")</span>
+            <span class="pf-stat-lbl">BMI</span>
+        </div>
+    </div>
+    <div class="pf-stat">
+        <div class="pf-stat-icon pf-stat-age"><i class="fas fa-birthday-cake"></i></div>
+        <div class="pf-stat-body">
+            <span class="pf-stat-num">@Model.Age</span>
+            <span class="pf-stat-lbl">Age</span>
+        </div>
+    </div>
+    <div class="pf-stat">
+        <div class="pf-stat-icon pf-stat-meds"><i class="fas fa-pills"></i></div>
+        <div class="pf-stat-body">
+            <span class="pf-stat-num">@(Model.Medications?.Count ?? 0)</span>
+      <span class="pf-stat-lbl">Medications</span>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════ TABS ══════════════════ -->
+<div class="pf-tabs-wrap">
+    <button class="pf-tab active" data-tab="personal"><i class="fas fa-user"></i> Personal</button>
+    <button class="pf-tab" data-tab="pregnancy"><i class="fas fa-baby-carriage"></i> Pregnancy</button>
+    <button class="pf-tab" data-tab="medical"><i class="fas fa-notes-medical"></i> Medical</button>
+    <button class="pf-tab" data-tab="lifestyle"><i class="fas fa-heart"></i> Lifestyle</button>
+    <button class="pf-tab" data-tab="security"><i class="fas fa-lock"></i> Security</button>
+</div>
+
+<!-- ══════════════════ TAB: PERSONAL ══════════════════ -->
+<div class="pf-tab-content active" id="personal-tab">
+
+    <!-- Personal Information -->
+    <div class="pf-card">
+        <div class="pf-card-header">
+          <div class="pf-card-title">
+           <div class="pf-card-icon pf-icon-teal"><i class="fas fa-user"></i></div>
+         <div>
+   <h3>Personal Information</h3>
+<p>Your basic contact and identity details</p>
+       </div>
+            </div>
+   <button class="pf-edit-btn" id="editPersonalBtn"><i class="fas fa-pen"></i> Edit</button>
+        </div>
+        <form class="pf-form" id="personalForm">
+            <div class="pf-form-row">
+                <div class="pf-form-group">
+       <label>First Name</label>
+            <input type="text" id="firstName" class="pf-input" value="@Model.User?.FirstName" disabled />
+           </div>
+     <div class="pf-form-group">
+<label>Last Name</label>
+         <input type="text" id="lastName" class="pf-input" value="@Model.User?.LastName" disabled />
+    </div>
+       </div>
+            <div class="pf-form-row">
+        <div class="pf-form-group">
+       <label>Email Address</label>
+     <input type="email" id="email" class="pf-input" value="@Model.Email" disabled readonly />
+        </div>
+     <div class="pf-form-group">
+    <label>Phone Number</label>
+        <input type="tel" id="phone" class="pf-input" value="@Model.Phone" disabled />
+    </div>
+            </div>
+      <div class="pf-form-row">
+          <div class="pf-form-group">
+        <label>Date of Birth</label>
+   <input type="date" id="dateOfBirth" class="pf-input" value="@(Model.User?.DateOfBirth.ToString("yyyy-MM-dd"))" disabled />
+     </div>
+          <div class="pf-form-group">
+ <label>Age (calculated)</label>
+                 <input type="text" id="ageDisplay" class="pf-input" value="@Model.Age years" disabled readonly />
+       </div>
+   </div>
+            <div class="pf-form-row">
+       <div class="pf-form-group pf-col-full">
+    <label>Address</label>
+<input type="text" id="address" class="pf-input" value="@Model.Patient.Address" disabled />
+             </div>
+            </div>
+         <div class="pf-form-actions" id="personalActions" style="display:none">
+ <button type="button" class="pf-btn-ghost" id="cancelPersonal"><i class="fas fa-times"></i> Cancel</button>
+  <button type="submit" class="pf-btn-primary"><i class="fas fa-save"></i> Save Changes</button>
+        </div>
+        </form>
+    </div>
+
+    <!-- Body Measurements -->
+    <div class="pf-card">
+ <div class="pf-card-header">
+          <div class="pf-card-title">
+    <div class="pf-card-icon pf-icon-purple"><i class="fas fa-ruler-combined"></i></div>
+          <div>
+ <h3>Body Measurements</h3>
+          <p>Weight, height and BMI tracking</p>
+         </div>
+            </div>
+       <button class="pf-edit-btn" id="editMeasurementsBtn"><i class="fas fa-pen"></i> Edit</button>
+        </div>
+        <form class="pf-form" id="measurementsForm">
+            <div class="pf-form-row pf-three-col">
+            <div class="pf-form-group">
+      <label>Weight</label>
+            <div class="pf-input-unit">
+      <input type="number" id="weightKg" class="pf-input" step="0.1" value="@Model.Patient.WeightKg" disabled />
+               <span class="pf-unit-badge">kg</span>
+  </div>
+    </div>
+   <div class="pf-form-group">
+     <label>Height</label>
+ <div class="pf-input-unit">
+              <input type="number" id="heightCm" class="pf-input" value="@Model.Patient.HeightCm" disabled />
+   <span class="pf-unit-badge">cm</span>
+              </div>
+      </div>
+        <div class="pf-form-group">
+       <label>BMI (calculated)</label>
+         <div class="pf-input-unit">
+      <input type="text" id="bmiDisplay" class="pf-input" value="@Model.Bmi" disabled readonly />
+      <span class="pf-unit-badge pf-bmi-badge @Model.BmiStatus.ToLower()" id="bmiStatus">@Model.BmiStatus</span>
+     </div>
+         </div>
+  </div>
+            <div class="pf-form-actions" id="measurementsActions" style="display:none">
+      <button type="button" class="pf-btn-ghost" id="cancelMeasurements"><i class="fas fa-times"></i> Cancel</button>
+       <button type="submit" class="pf-btn-primary"><i class="fas fa-save"></i> Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ══════════════════ TAB: PREGNANCY ══════════════════ -->
+<div class="pf-tab-content" id="pregnancy-tab">
+
+    <!-- Pregnancy progress visual -->
+    <div class="pf-card pf-preg-progress-card">
+ <div class="pf-preg-bar-wrap">
+            <div class="pf-preg-labels">
+                <span>1st Trimester</span><span>2nd Trimester</span><span>3rd Trimester</span>
+            </div>
+            <div class="pf-preg-track">
+  <div class="pf-preg-fill" style="width:@Model.PregnancyProgressPercent%"></div>
+        <div class="pf-preg-thumb" style="left:calc(@Model.PregnancyProgressPercent% - 10px)">
+      <i class="fas fa-baby"></i>
+      </div>
+        </div>
+       <div class="pf-preg-info-row">
+     <span class="pf-preg-pill"><i class="fas fa-baby-carriage"></i> Week @Model.PregnancyWeek + @Model.PregnancyDays days</span>
+   <span class="pf-preg-pill pf-preg-pill-trim">@Model.Trimester</span>
+  @if (Model.DaysRemaining > 0)
+     {
+           <span class="pf-preg-pill pf-preg-pill-due"><i class="fas fa-clock"></i> @Model.DaysRemaining days remaining</span>
+    }
+     </div>
+        </div>
+    </div>
+
+    <!-- Current Pregnancy -->
+    <div class="pf-card">
+  <div class="pf-card-header">
+  <div class="pf-card-title">
+   <div class="pf-card-icon pf-icon-pink"><i class="fas fa-baby-carriage"></i></div>
+      <div>
+<h3>Current Pregnancy</h3>
+    <p>Gestational age and estimated due date</p>
+     </div>
+            </div>
+            <div style="display:flex; gap:.5rem; align-items:center;">
+                @if (Model.HasActivePregnancy)
+                {
+                    <form asp-action="EndCurrentPregnancy" asp-controller="Patient" method="post" onsubmit="return confirm('Are you sure you want to end the current pregnancy? This will reset active pregnancy progress.');">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Patient.PatientID" />
+                        <input type="hidden" name="returnUrl" value="@($"/PatientProfile/Index/{Model.Patient.PatientID}")" />
+                        <button type="submit" class="pf-btn-danger-outline" style="padding:.55rem .9rem;">
+                            <i class="fas fa-stop-circle"></i> End Pregnancy
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <button type="button" class="pf-btn-primary" id="startPregnancyBtn" style="padding:.55rem .9rem;">
+                        <i class="fas fa-play-circle"></i> Start New Pregnancy
+                    </button>
+                }
+                <button class="pf-edit-btn" id="editPregnancyBtn"><i class="fas fa-pen"></i> Edit</button>
+            </div>
+        </div>
+        @if (!Model.HasActivePregnancy)
+        {
+            <div class="pf-tip pf-tip-info" style="margin-bottom:1rem;">
+                <div class="pf-tip-icon"><i class="fas fa-info-circle"></i></div>
+                <div>
+                    <h4>No active pregnancy</h4>
+                    <p>Set a pregnancy date and save to start tracking a new pregnancy journey.</p>
+                </div>
+            </div>
+        }
+        <form class="pf-form" id="pregnancyForm">
+            <div class="pf-form-row">
+                <div class="pf-form-group">
+   <label>Date of Last Menstrual Period</label>
+        <input type="date" id="pregnancyDate" class="pf-input"
+       value="@(Model.ActivePregnancyStartDate?.ToString("yyyy-MM-dd"))" disabled />
+        <span class="pf-hint"><i class="fas fa-info-circle"></i> Used to calculate gestational age</span>
+    </div>
+              <div class="pf-form-group">
+<label>Gestational Age (calculated)</label>
+     <div class="pf-calc-display">
+        <span class="pf-calc-main" id="gestWeeks">@Model.PregnancyWeek weeks</span>
+      <span class="pf-calc-sub">+ @Model.PregnancyDays days · @Model.Trimester</span>
+       </div>
+       </div>
+            </div>
+    <div class="pf-form-row">
+<div class="pf-form-group">
+          <label>Estimated Due Date</label>
+     <div class="pf-calc-display">
+               <span class="pf-calc-main">@Model.DueDate</span>
+       @if (Model.DaysRemaining > 0)
+    {
+         <span class="pf-calc-sub">@Model.DaysRemaining days remaining</span>
+                }
+          </div>
+     </div>
+   </div>
+
+        <!-- Pregnancy History (merged into same form/save) -->
+    <div class="pf-section-divider"><span>Pregnancy History</span></div>
+
+            <div class="pf-form-group" style="margin-bottom:.85rem">
+      <label>Is this your first pregnancy?</label>
+     <div class="pf-radio-row">
+              <label class="pf-radio-opt">
+         <input type="radio" name="firstPregnancy" value="yes" disabled
+      @(Model.Patient.IsFirstPregnancy ? "checked" : "") />
+        <span class="pf-radio-box"><i class="fas fa-check"></i></span>
+    <span>Yes</span>
+              </label>
+      <label class="pf-radio-opt">
+     <input type="radio" name="firstPregnancy" value="no" disabled
+    @(!Model.Patient.IsFirstPregnancy ? "checked" : "") />
+         <span class="pf-radio-box"><i class="fas fa-check"></i></span>
+      <span>No</span>
+   </label>
+     </div>
+ </div>
+
+   <div id="previousPregnancySection" class="pf-conditional"
+      style="@(Model.Patient.IsFirstPregnancy ? "display:none" : "")">
+     <div class="pf-form-row pf-three-col">
+          <div class="pf-form-group">
+       <label>Previous Pregnancies</label>
+               <input type="number" id="previousPregnancies" class="pf-input" min="0"
+                     value="@Model.Patient.PreviousPregnancies" disabled />
+           </div>
+     <div class="pf-form-group">
+    <label>Abortions / Miscarriages</label>
+    <input type="number" id="abortions" class="pf-input" min="0"
+   value="@Model.Patient.Abortions" disabled />
+         </div>
+     <div class="pf-form-group">
+         <label>Live Births</label>
+     <input type="number" id="births" class="pf-input" min="0"
+  value="@Model.Patient.Births" disabled />
+              </div>
+        </div>
+            </div>
+
+       <div class="pf-form-actions" id="pregnancyActions" style="display:none">
+            <button type="button" class="pf-btn-ghost" id="cancelPregnancy"><i class="fas fa-times"></i> Cancel</button>
+    <button type="submit" class="pf-btn-primary"><i class="fas fa-save"></i> Save Changes</button>
+ </div>
+     </form>
+    </div>
+</div>
+
+<!-- ══════════════════ TAB: MEDICAL ══════════════════ -->
+<div class="pf-tab-content" id="medical-tab">
+
+    <!-- Blood Pressure -->
+    <div class="pf-card">
+        <div class="pf-card-header">
+            <div class="pf-card-title">
+  <div class="pf-card-icon pf-icon-red"><i class="fas fa-heartbeat"></i></div>
+       <div>
+    <h3>Blood Pressure Status</h3>
+           <p>Monitor your cardiovascular health</p>
+            </div>
+            </div>
+            <button class="pf-edit-btn" id="editBPBtn"><i class="fas fa-pen"></i> Edit</button>
+     </div>
+        <form class="pf-form" id="bpForm">
+            <div class="pf-form-group">
+ <label>Do you have blood pressure issues?</label>
+                <div class="pf-radio-row">
+      <label class="pf-radio-opt">
+ <input type="radio" name="bloodPressure" value="yes" disabled
+     @(Model.Patient.BloodPressureIssue ? "checked" : "") />
+         <span class="pf-radio-box"><i class="fas fa-check"></i></span>
+           <span>Yes</span>
+      </label>
+        <label class="pf-radio-opt">
+    <input type="radio" name="bloodPressure" value="no" disabled
+      @(!Model.Patient.BloodPressureIssue ? "checked" : "") />
+     <span class="pf-radio-box"><i class="fas fa-check"></i></span>
+             <span>No</span>
+     </label>
+ </div>
+      </div>
+            <div class="pf-bp-status-chip @(Model.Patient.BloodPressureIssue ? "pf-chip-risk" : "pf-chip-ok")" id="bpStatusChip">
+       <i class="fas @(Model.Patient.BloodPressureIssue ? "fa-exclamation-circle" : "fa-check-circle")"></i>
+                <span>@(Model.Patient.BloodPressureIssue ? "Risk — blood pressure issues reported" : "Normal — no blood pressure issues")</span>
+  </div>
+   <div class="pf-form-actions" id="bpActions" style="display:none">
+     <button type="button" class="pf-btn-ghost" id="cancelBP"><i class="fas fa-times"></i> Cancel</button>
+      <button type="submit" class="pf-btn-primary"><i class="fas fa-save"></i> Save Changes</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Medications -->
+    <div class="pf-card">
+     <div class="pf-card-header">
+     <div class="pf-card-title">
+ <div class="pf-card-icon pf-icon-teal"><i class="fas fa-pills"></i></div>
+    <div>
+      <h3>Chronic &amp; Mental Health Medications</h3>
+        <p>Track your ongoing prescriptions</p>
+     </div>
+            </div>
+      <button class="pf-edit-btn" id="editMedsBtn"><i class="fas fa-pen"></i> Edit</button>
+        </div>
+
+        <div class="pf-med-list" id="medicationList">
+          @if (Model.Medications != null && Model.Medications.Any())
+   {
+     @foreach (var med in Model.Medications)
+          {
+          <div class="pf-med-row" data-drug-id="@med.DrugID">
+     <div class="pf-med-pill-icon"><i class="fas fa-capsules"></i></div>
+                 <div class="pf-med-details">
+     <span class="pf-med-name">@med.DrugName</span>
+              <div class="pf-med-chips">
+         <span class="pf-med-chip pf-chip-reason"><i class="fas fa-tag"></i> @med.Reason</span>
+        <span class="pf-med-chip pf-chip-dose"><i class="fas fa-syringe"></i> @med.DoseMgPerDay mg/day</span>
+        <span class="pf-med-chip pf-chip-dur"><i class="fas fa-calendar-alt"></i> @med.DurationMonths months</span>
+                   </div>
+              </div>
+             <button type="button" class="pf-med-remove" data-drug-id="@med.DrugID"
+   title="Remove medication" style="display:none">
+          <i class="fas fa-trash-alt"></i>
+            </button>
+          </div>
+            }
+            }
+            else
+    {
+      <div class="pf-med-empty" id="noMedsMsg">
+ <div class="pf-med-empty-icon"><i class="fas fa-pills"></i></div>
+              <p>No medications recorded yet.</p>
+     </div>
+          }
+        </div>
+
+        <button type="button" class="pf-add-med-btn" id="showAddMedBtn" style="display:none">
+         <i class="fas fa-plus"></i> Add Medication
+        </button>
+    </div>
+</div>
+
+<!-- ══════════════════ TAB: LIFESTYLE ══════════════════ -->
+<div class="pf-tab-content" id="lifestyle-tab">
+    <div class="pf-card">
+        <div class="pf-card-header">
+    <div class="pf-card-title">
+    <div class="pf-card-icon pf-icon-orange"><i class="fas fa-leaf"></i></div>
+                <div>
+       <h3>Lifestyle &amp; Habits</h3>
+ <p>Track habits that affect your pregnancy</p>
+                </div>
+</div>
+    <button class="pf-edit-btn" id="editLifestyleBtn"><i class="fas fa-pen"></i> Edit</button>
+        </div>
+        <form class="pf-form" id="lifestyleForm">
+            <!-- Smoking -->
+          <div class="pf-lifestyle-row">
+  <div class="pf-ls-icon pf-ls-smoke"><i class="fas fa-smoking"></i></div>
+           <div class="pf-ls-body">
+        <h4>Smoking</h4>
+      <p>Do you smoke cigarettes or use tobacco products?</p>
+          <div class="pf-radio-row">
+          <label class="pf-radio-opt">
+      <input type="radio" name="smoking" value="yes" disabled
+                   @(Model.Patient.Smoking ? "checked" : "") />
+              <span class="pf-radio-box"><i class="fas fa-check"></i></span>
+        <span>Yes</span>
+             </label>
+          <label class="pf-radio-opt">
+         <input type="radio" name="smoking" value="no" disabled
+  @(!Model.Patient.Smoking ? "checked" : "") />
+       <span class="pf-radio-box"><i class="fas fa-check"></i></span>
+            <span>No</span>
+         </label>
+    </div>
+                </div>
+     <div class="pf-ls-status @(Model.Patient.Smoking ? "pf-ls-risk" : "pf-ls-safe")" id="smokingStatus">
+     <i class="fas @(Model.Patient.Smoking ? "fa-times-circle" : "fa-check-circle")"></i>
+          <span>@(Model.Patient.Smoking ? "Risk" : "Safe")</span>
+      </div>
+          </div>
+
+            <!-- Alcohol -->
+       <div class="pf-lifestyle-row">
+        <div class="pf-ls-icon pf-ls-alcohol"><i class="fas fa-wine-glass-alt"></i></div>
+    <div class="pf-ls-body">
+  <h4>Alcohol Consumption</h4>
+          <p>Do you consume alcoholic beverages?</p>
+        <div class="pf-radio-row">
+      <label class="pf-radio-opt">
+         <input type="radio" name="alcohol" value="yes" disabled
+       @(Model.Patient.AlcoholUse ? "checked" : "") />
+     <span class="pf-radio-box"><i class="fas fa-check"></i></span>
+            <span>Yes</span>
+      </label>
+            <label class="pf-radio-opt">
+                   <input type="radio" name="alcohol" value="no" disabled
+  @(!Model.Patient.AlcoholUse ? "checked" : "") />
+<span class="pf-radio-box"><i class="fas fa-check"></i></span>
+     <span>No</span>
+  </label>
+           </div>
+      </div>
+       <div class="pf-ls-status @(Model.Patient.AlcoholUse ? "pf-ls-risk" : "pf-ls-safe")" id="alcoholStatus">
+             <i class="fas @(Model.Patient.AlcoholUse ? "fa-times-circle" : "fa-check-circle")"></i>
+          <span>@(Model.Patient.AlcoholUse ? "Risk" : "Safe")</span>
+              </div>
+    </div>
+
+ <div class="pf-form-actions" id="lifestyleActions" style="display:none">
+           <button type="button" class="pf-btn-ghost" id="cancelLifestyle"><i class="fas fa-times"></i> Cancel</button>
+         <button type="submit" class="pf-btn-primary"><i class="fas fa-save"></i> Save Changes</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Health Tips -->
+    <div class="pf-card">
+        <div class="pf-card-header">
+            <div class="pf-card-title">
+        <div class="pf-card-icon pf-icon-green"><i class="fas fa-lightbulb"></i></div>
+     <div>
+           <h3>Personalized Health Tips</h3>
+        <p>Recommendations based on your profile</p>
+         </div>
+   </div>
+        </div>
+        <div class="pf-tips">
+            @if (!Model.Patient.Smoking && !Model.Patient.AlcoholUse)
+  {
+      <div class="pf-tip pf-tip-success">
+       <div class="pf-tip-icon"><i class="fas fa-check-circle"></i></div>
+    <div>
+           <h4>Great lifestyle choices!</h4>
+    <p>You're smoke-free and alcohol-free — excellent for your baby's development.</p>
+          </div>
+             </div>
+            }
+            <div class="pf-tip pf-tip-info">
+           <div class="pf-tip-icon"><i class="fas fa-apple-alt"></i></div>
+   <div>
+           <h4>Nutrition Reminder</h4>
+         <p>Take your prenatal vitamins daily and maintain a balanced diet rich in iron and folic acid.</p>
+  </div>
+   </div>
+   <div class="pf-tip pf-tip-info">
+         <div class="pf-tip-icon"><i class="fas fa-walking"></i></div>
+           <div>
+           <h4>Stay Active</h4>
+        <p>Light exercise like walking or prenatal yoga for 30 minutes daily helps maintain a healthy pregnancy.</p>
+    </div>
+   </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════ TAB: SECURITY ══════════════════ -->
+<div class="pf-tab-content" id="security-tab">
+    <!-- Change Password -->
+    <div class="pf-card">
+        <div class="pf-card-header">
+<div class="pf-card-title">
+   <div class="pf-card-icon pf-icon-red"><i class="fas fa-lock"></i></div>
+         <div>
+      <h3>Change Password</h3>
+            <p>Keep your account secure</p>
+       </div>
+ </div>
+        </div>
+        <form class="pf-form" id="passwordForm">
+  <div class="pf-form-group" style="margin-bottom:.85rem">
+         <label>Current Password</label>
+      <div class="pf-pw-wrap">
+     <input type="password" id="currentPassword" class="pf-input" placeholder="Enter current password" />
+       <button type="button" class="pf-pw-eye"><i class="fas fa-eye"></i></button>
+            </div>
+  </div>
+      <div class="pf-form-row">
+                <div class="pf-form-group">
+        <label>New Password</label>
+            <div class="pf-pw-wrap">
+                  <input type="password" id="newPassword" class="pf-input" placeholder="Enter new password" />
+    <button type="button" class="pf-pw-eye"><i class="fas fa-eye"></i></button>
+                </div>
+              <div class="pf-pw-strength">
+           <div class="pf-pw-track"><div class="pf-pw-fill" id="pwFill" style="width:0%"></div></div>
+             <span class="pf-pw-label" id="pwLabel">Password strength</span>
+     </div>
+       </div>
+           <div class="pf-form-group">
+      <label>Confirm New Password</label>
+     <div class="pf-pw-wrap">
+       <input type="password" id="confirmPassword" class="pf-input" placeholder="Confirm new password" />
+       <button type="button" class="pf-pw-eye"><i class="fas fa-eye"></i></button>
+  </div>
+     </div>
+  </div>
+         <div class="pf-pw-reqs">
+          <h4>Requirements</h4>
+     <ul>
+        <li id="req-length"><i class="fas fa-circle"></i> At least 8 characters</li>
+           <li id="req-upper"><i class="fas fa-circle"></i> One uppercase letter</li>
+      <li id="req-lower"><i class="fas fa-circle"></i> One lowercase letter</li>
+              <li id="req-number"><i class="fas fa-circle"></i> One number</li>
+        <li id="req-special"><i class="fas fa-circle"></i> One special character (!@@#$%^&amp;*)</li>
+          </ul>
+            </div>
+       <div class="pf-form-actions" style="display:flex">
+     <button type="submit" class="pf-btn-primary"><i class="fas fa-lock"></i> Update Password</button>
+     </div>
+    </form>
+    </div>
+
+    <!-- Account Settings -->
+    <div class="pf-card">
+     <div class="pf-card-header">
+            <div class="pf-card-title">
+            <div class="pf-card-icon pf-icon-teal"><i class="fas fa-sliders-h"></i></div>
+      <div>
+           <h3>Account Settings</h3>
+          <p>Notifications and privacy preferences</p>
+     </div>
+            </div>
+   </div>
+        <div class="pf-settings-list">
+       <div class="pf-setting-item">
+ <div>
+    <h4>Email Notifications</h4>
+           <p>Receive email updates about appointments and test results</p>
+   </div>
+             <label class="pf-toggle"><input type="checkbox" checked /><span class="pf-toggle-track"></span></label>
+     </div>
+     <div class="pf-setting-item">
+      <div>
+       <h4>SMS Notifications</h4>
+         <p>Receive text messages for appointment reminders</p>
+         </div>
+        <label class="pf-toggle"><input type="checkbox" checked /><span class="pf-toggle-track"></span></label>
+      </div>
+            <div class="pf-setting-item">
+           <div>
+   <h4>Two-Factor Authentication</h4>
+        <p>Add an extra layer of security to your account</p>
+        </div>
+     <label class="pf-toggle"><input type="checkbox" /><span class="pf-toggle-track"></span></label>
+   </div>
+      <div class="pf-setting-item">
+              <div>
+      <h4>Data Sharing with Doctors</h4>
+    <p>Allow approved doctors to view your medical data</p>
+ </div>
+            <label class="pf-toggle"><input type="checkbox" checked /><span class="pf-toggle-track"></span></label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Danger Zone -->
+ <div class="pf-card pf-danger-card">
+        <div class="pf-card-header">
+        <div class="pf-card-title">
+        <div class="pf-card-icon pf-icon-danger"><i class="fas fa-exclamation-triangle"></i></div>
+     <div>
+    <h3>Danger Zone</h3>
+ <p>Irreversible account actions</p>
+          </div>
+      </div>
+        </div>
+        <div class="pf-danger-list">
+     <div class="pf-danger-item">
+                <div>
+             <h4>Download My Data</h4>
+      <p>Download a copy of all your personal and medical data</p>
+   </div>
+        <button type="button" class="pf-btn-outline" id="downloadDataBtn"><i class="fas fa-download"></i> Download</button>
+            </div>
+            <div class="pf-danger-item">
+   <div>
+              <h4>Delete Account</h4>
+                    <p>Permanently delete your account and all associated data</p>
+     </div>
+  <button type="button" class="pf-btn-danger-outline" id="deleteAccountBtn"><i class="fas fa-trash"></i> Delete Account</button>
+      </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════ ADD MEDICATION MODAL ══════════════════ -->
+<div id="addMedModal" class="pf-modal-backdrop" style="display:none">
+    <div class="pf-modal">
+        <div class="pf-modal-header">
+            <div class="pf-modal-title">
+      <div class="pf-modal-icon"><i class="fas fa-pills"></i></div>
+    <span>Add New Medication</span>
+          </div>
+            <button class="pf-modal-close" id="closeMedModal"><i class="fas fa-times"></i></button>
+    </div>
+      <div class="pf-modal-body">
+    <div class="pf-form-row">
+                <div class="pf-form-group">
+   <label>Medication Name <span class="pf-required">*</span></label>
+        <input type="text" id="medName" class="pf-input" placeholder="e.g., Metformin" />
+         </div>
+           <div class="pf-form-group">
+ <label>Reason for Taking <span class="pf-required">*</span></label>
+        <input type="text" id="medReason" class="pf-input" placeholder="e.g., Type 2 Diabetes" />
+ </div>
+            </div>
+   <div class="pf-form-row">
+                <div class="pf-form-group">
+        <label>Dosage (mg/day) <span class="pf-required">*</span></label>
+      <div class="pf-input-unit">
+              <input type="number" id="medDose" class="pf-input" placeholder="500" min="0" step="0.1" />
+      <span class="pf-unit-badge">mg/day</span>
+            </div>
+            </div>
+        <div class="pf-form-group">
+    <label>Duration (months)</label>
+         <div class="pf-input-unit">
+      <input type="number" id="medDuration" class="pf-input" placeholder="6" min="0" />
+         <span class="pf-unit-badge">months</span>
+         </div>
+          </div>
+            </div>
+        </div>
+      <div class="pf-modal-footer">
+   <button class="pf-btn-ghost" id="cancelAddMed"><i class="fas fa-times"></i> Cancel</button>
+      <button class="pf-btn-primary" id="saveNewMed"><i class="fas fa-plus"></i> Add Medication</button>
+        </div>
+</div>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    const PATIENT_ID = parseInt(document.querySelector('meta[name="patient-id"]').content, 10);
+    const TOKEN      = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+    // ── Toast notification ────────────────────────────────────────────
+    function toast(msg, type = 'success') {
+        document.querySelector('.pf-toast')?.remove();
+        const icons = { success: 'fa-check-circle', error: 'fa-times-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
+  const n = document.createElement('div');
+        n.className = `pf-toast pf-toast-${type}`;
+        n.innerHTML = `<i class="fas ${icons[type] ?? icons.info}"></i><span>${msg}</span><button class="pf-toast-close"><i class="fas fa-times"></i></button>`;
+   document.body.appendChild(n);
+   n.querySelector('.pf-toast-close').addEventListener('click', () => n.remove());
+        setTimeout(() => n?.remove(), 4500);
+    }
+
+    // Keep backward-compat with any window.showNotification calls
+    window.showNotification = (msg, type) => toast(msg, type);
+
+    // ── Tab switching ─────────────────────────────────────────────────
+    document.querySelectorAll('.pf-tab').forEach(btn => {
+        btn.addEventListener('click', function () {
+  document.querySelectorAll('.pf-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.pf-tab-content').forEach(c => c.classList.remove('active'));
+       this.classList.add('active');
+            document.getElementById(this.dataset.tab + '-tab').classList.add('active');
+        });
+    });
+
+    // ── Generic edit section ──────────────────────────────────────────
+    function setupEdit(editBtnId, formId, actionsId, cancelBtnId) {
+        const editBtn   = document.getElementById(editBtnId);
+  const form      = document.getElementById(formId);
+        const actions   = document.getElementById(actionsId);
+        const cancelBtn = document.getElementById(cancelBtnId);
+   if (!editBtn) return;
+
+        editBtn.addEventListener('click', function () {
+    const inputs = form ? form.querySelectorAll('input:not([readonly]), select, textarea') : [];
+     const isDisabled = inputs[0]?.disabled ?? true;
+            if (isDisabled) {
+              inputs.forEach(i => i.disabled = false);
+         if (actions) actions.style.display = 'flex';
+       editBtn.innerHTML = '<i class="fas fa-times"></i> Cancel';
+    // show med remove + add buttons
+      document.querySelectorAll('.pf-med-remove').forEach(b => b.style.display = 'inline-flex');
+       const addBtn = document.getElementById('showAddMedBtn');
+     if (addBtn) addBtn.style.display = 'inline-flex';
+          } else {
+     cancelSection(form, actions, editBtn);
+            }
+        });
+
+        cancelBtn?.addEventListener('click', () => cancelSection(form, actions, editBtn));
+    }
+
+    function cancelSection(form, actions, editBtn) {
+  form?.querySelectorAll('input:not([readonly]), select, textarea').forEach(i => i.disabled = true);
+        if (actions) actions.style.display = 'none';
+        if (editBtn) editBtn.innerHTML = '<i class="fas fa-pen"></i> Edit';
+   document.querySelectorAll('.pf-med-remove').forEach(b => b.style.display = 'none');
+        const addBtn = document.getElementById('showAddMedBtn');
+    if (addBtn) addBtn.style.display = 'none';
+  }
+
+    setupEdit('editPersonalBtn',     'personalForm',     'personalActions',     'cancelPersonal');
+    setupEdit('editMeasurementsBtn', 'measurementsForm', 'measurementsActions', 'cancelMeasurements');
+    setupEdit('editPregnancyBtn',    'pregnancyForm',    'pregnancyActions', 'cancelPregnancy');
+    setupEdit('editBPBtn',           'bpForm',           'bpActions',           'cancelBP');
+    setupEdit('editMedsBtn',         null,         null,    null);
+    setupEdit('editLifestyleBtn',    'lifestyleForm',    'lifestyleActions',    'cancelLifestyle');
+
+    document.getElementById('startPregnancyBtn')?.addEventListener('click', function () {
+        const editBtn = document.getElementById('editPregnancyBtn');
+        if (!editBtn) return;
+
+        const pregnancyDateInput = document.getElementById('pregnancyDate');
+        if (pregnancyDateInput?.disabled) {
+            editBtn.click();
+        }
+
+        setTimeout(() => {
+            pregnancyDateInput?.focus();
+        }, 0);
+    });
+
+    // ── Save Personal ─────────────────────────────────────────────────
+    document.getElementById('personalForm')?.addEventListener('submit', async function (e) {
+ e.preventDefault();
+        const fd = new FormData();
+        fd.append('patientId',   PATIENT_ID);
+    fd.append('firstName',   document.getElementById('firstName').value);
+     fd.append('lastName',    document.getElementById('lastName').value);
+        fd.append('phone',       document.getElementById('phone').value);
+        fd.append('address',     document.getElementById('address').value);
+        fd.append('dateOfBirth', document.getElementById('dateOfBirth').value);
+        fd.append('__RequestVerificationToken', TOKEN);
+        try {
+            const d = await (await fetch('/PatientProfile/SavePersonal', { method: 'POST', body: fd })).json();
+            if (d.success) { toast('Personal information saved!'); cancelSection(this, document.getElementById('personalActions'), document.getElementById('editPersonalBtn')); }
+            else toast(d.message || 'Save failed.', 'error');
+        } catch { toast('Could not save. Please try again.', 'error'); }
+  });
+
+  // ── Save Measurements + live BMI ──────────────────────────────────
+    function calcBmi() {
+        const w = parseFloat(document.getElementById('weightKg').value);
+      const h = parseFloat(document.getElementById('heightCm').value) / 100;
+        if (w > 0 && h > 0) {
+            const bmi    = (w / (h * h)).toFixed(1);
+            const status = bmi < 18.5 ? 'Underweight' : bmi < 25 ? 'Normal' : bmi < 30 ? 'Overweight' : 'Obese';
+const disp   = document.getElementById('bmiDisplay');
+            const badge  = document.getElementById('bmiStatus');
+    if (disp)  disp.value = bmi;
+       if (badge) { badge.textContent = status; badge.className = 'pf-unit-badge pf-bmi-badge ' + status.toLowerCase(); }
+        }
+    }
+    document.getElementById('weightKg')?.addEventListener('input', calcBmi);
+    document.getElementById('heightCm')?.addEventListener('input', calcBmi);
+
+    document.getElementById('measurementsForm')?.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const fd = new FormData();
+        fd.append('patientId', PATIENT_ID);
+ fd.append('weightKg',  document.getElementById('weightKg').value);
+  fd.append('heightCm',  document.getElementById('heightCm').value);
+        fd.append('__RequestVerificationToken', TOKEN);
+    try {
+  const d = await (await fetch('/PatientProfile/SaveMeasurements', { method: 'POST', body: fd })).json();
+            if (d.success) { toast('Measurements saved!'); cancelSection(this, document.getElementById('measurementsActions'), document.getElementById('editMeasurementsBtn')); }
+            else toast(d.message || 'Save failed.', 'error');
+        } catch { toast('Could not save. Please try again.', 'error'); }
+    });
+
+  // ── Save Pregnancy ─────────────────────────────────────────────────
+    document.getElementById('pregnancyForm')?.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const fp = document.querySelector('input[name="firstPregnancy"]:checked')?.value === 'yes';
+        const fd = new FormData();
+        fd.append('patientId',           PATIENT_ID);
+  fd.append('pregnancyDate',       document.getElementById('pregnancyDate').value);
+        fd.append('isFirstPregnancy',    fp);
+        fd.append('previousPregnancies', document.getElementById('previousPregnancies')?.value || 0);
+        fd.append('abortions',           document.getElementById('abortions')?.value || 0);
+        fd.append('births',    document.getElementById('births')?.value || 0);
+        fd.append('__RequestVerificationToken', TOKEN);
+        try {
+            const d = await (await fetch('/PatientProfile/SavePregnancy', { method: 'POST', body: fd })).json();
+    if (d.success) { toast('Pregnancy info saved!'); cancelSection(this, document.getElementById('pregnancyActions'), document.getElementById('editPregnancyBtn')); }
+  else toast(d.message || 'Save failed.', 'error');
+        } catch { toast('Could not save. Please try again.', 'error'); }
+    });
+
+    // Show/hide previous pregnancy section
+    document.querySelectorAll('input[name="firstPregnancy"]').forEach(r => {
+        r.addEventListener('change', function () {
+            const sec = document.getElementById('previousPregnancySection');
+  if (sec) sec.style.display = this.value === 'no' ? '' : 'none';
+        });
+ });
+
+    // ── Save Medical (BP) ─────────────────────────────────────────────
+    async function saveMedical(successMsg, cancelForm, cancelActionsId, cancelBtnId) {
+    const bp = document.querySelector('input[name="bloodPressure"]:checked')?.value === 'yes';
+        const sm = document.querySelector('input[name="smoking"]:checked')?.value === 'yes';
+        const al = document.querySelector('input[name="alcohol"]:checked')?.value === 'yes';
+        const fd = new FormData();
+ fd.append('patientId',     PATIENT_ID);
+ fd.append('bloodPressureIssue', bp);
+        fd.append('smoking',            sm);
+        fd.append('alcoholUse',         al);
+        fd.append('__RequestVerificationToken', TOKEN);
+      try {
+            const d = await (await fetch('/PatientProfile/SaveMedical', { method: 'POST', body: fd })).json();
+         if (d.success) {
+                toast(successMsg);
+       cancelSection(cancelForm, document.getElementById(cancelActionsId), document.getElementById(cancelBtnId));
+            // update BP chip
+  const chip = document.getElementById('bpStatusChip');
+ if (chip) {
+        chip.className = 'pf-bp-status-chip ' + (bp ? 'pf-chip-risk' : 'pf-chip-ok');
+  chip.innerHTML = `<i class="fas ${bp ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i><span>${bp ? 'Risk - blood pressure issues reported' : 'Normal - no blood pressure issues'}</span>`;
+      }
+    } else toast(d.message || 'Save failed.', 'error');
+        } catch { toast('Could not save. Please try again.', 'error'); }
+    }
+
+    document.getElementById('bpForm')?.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        await saveMedical('Blood pressure status saved!', this, 'bpActions', 'editBPBtn');
+    });
+
+    document.getElementById('lifestyleForm')?.addEventListener('submit', async function (e) {
+        e.preventDefault();
+    await saveMedical('Lifestyle info saved!', this, 'lifestyleActions', 'editLifestyleBtn');
+        // update lifestyle status chips
+    ['smoking', 'alcohol'].forEach(name => {
+  const isYes = document.querySelector(`input[name="${name}"]:checked`)?.value === 'yes';
+  const statusEl = document.getElementById(name + 'Status');
+       if (!statusEl) return;
+          statusEl.className = 'pf-ls-status ' + (isYes ? 'pf-ls-risk' : 'pf-ls-safe');
+            statusEl.innerHTML = `<i class="fas ${isYes ? 'fa-times-circle' : 'fa-check-circle'}"></i><span>${isYes ? 'Risk' : 'Safe'}</span>`;
+ });
+    });
+
+    // ── Medication modal ──────────────────────────────────────────────
+    document.getElementById('showAddMedBtn')?.addEventListener('click', () => {
+    document.getElementById('addMedModal').style.display = 'flex';
+document.body.style.overflow = 'hidden';
+    });
+
+    function closeMedModal() {
+     document.getElementById('addMedModal').style.display = 'none';
+     document.body.style.overflow = '';
+        ['medName','medReason','medDose','medDuration'].forEach(id => {
+            const el = document.getElementById(id);
+     if (el) el.value = '';
+     });
+    }
+    document.getElementById('closeMedModal')?.addEventListener('click', closeMedModal);
+    document.getElementById('cancelAddMed')?.addEventListener('click', closeMedModal);
+    document.getElementById('addMedModal')?.addEventListener('click', e => { if (e.target === e.currentTarget) closeMedModal(); });
+
+    document.getElementById('saveNewMed')?.addEventListener('click', async function () {
+        const name     = document.getElementById('medName').value.trim();
+    const reason   = document.getElementById('medReason').value.trim();
+        const dose     = parseFloat(document.getElementById('medDose').value);
+      const duration = parseInt(document.getElementById('medDuration').value) || 0;
+        if (!name || !reason || !dose) { toast('Please fill in Name, Reason and Dosage.', 'warning'); return; }
+
+        const fd = new FormData();
+        fd.append('patientId',      PATIENT_ID);
+        fd.append('drugName',       name);
+        fd.append('reason',         reason);
+      fd.append('doseMgPerDay',   dose);
+        fd.append('durationMonths', duration);
+        fd.append('__RequestVerificationToken', TOKEN);
+
+    const btn = this;
+     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+        btn.disabled = true;
+        try {
+      const d = await (await fetch('/PatientProfile/AddMedication', { method: 'POST', body: fd })).json();
+            if (d.success) {
+  appendMedRow(d.id, d.name, d.reason, d.dose, d.duration);
+        closeMedModal();
+         document.getElementById('noMedsMsg')?.remove();
+   toast('Medication added!');
+            } else toast(d.message || 'Could not add medication.', 'error');
+        } catch { toast('Could not save. Please try again.', 'error'); }
+finally { btn.innerHTML = '<i class="fas fa-plus"></i> Add Medication'; btn.disabled = false; }
+    });
+
+    function appendMedRow(id, name, reason, dose, duration) {
+        const list = document.getElementById('medicationList');
+    if (!list) return;
+        const row = document.createElement('div');
+        row.className = 'pf-med-row';
+     row.dataset.drugId = id;
+        row.innerHTML = `
+            <div class="pf-med-pill-icon"><i class="fas fa-capsules"></i></div>
+    <div class="pf-med-details">
+                <span class="pf-med-name">${esc(name)}</span>
+                <div class="pf-med-chips">
+     <span class="pf-med-chip pf-chip-reason"><i class="fas fa-tag"></i> ${esc(reason)}</span>
+         <span class="pf-med-chip pf-chip-dose"><i class="fas fa-syringe"></i> ${dose} mg/day</span>
+     <span class="pf-med-chip pf-chip-dur"><i class="fas fa-calendar-alt"></i> ${duration} months</span>
+            </div>
+            </div>
+            <button type="button" class="pf-med-remove" data-drug-id="${id}" title="Remove" style="display:inline-flex">
+            <i class="fas fa-trash-alt"></i>
+ </button>`;
+    list.insertBefore(row, list.firstChild);
+      row.querySelector('.pf-med-remove').addEventListener('click', removeHandler);
+    }
+
+    // ── Remove Medication ─────────────────────────────────────────────
+ async function removeHandler() {
+ const drugId = parseInt(this.dataset.drugId, 10);
+ if (!confirm('Remove this medication?')) return;
+        const fd = new FormData();
+   fd.append('drugId', drugId);
+      fd.append('patientId', PATIENT_ID);
+        fd.append('__RequestVerificationToken', TOKEN);
+        try {
+      const d = await (await fetch('/PatientProfile/DeleteMedication', { method: 'POST', body: fd })).json();
+    if (d.success) {
+      const row = this.closest('.pf-med-row');
+             row.style.animation = 'pfFadeOut .3s ease forwards';
+    setTimeout(() => { row.remove(); toast('Medication removed.', 'info'); }, 300);
+       } else toast('Could not remove medication.', 'error');
+        } catch { toast('Could not remove. Please try again.', 'error'); }
+    }
+    document.querySelectorAll('.pf-med-remove').forEach(btn => btn.addEventListener('click', removeHandler));
+
+    // ── Password toggle ───────────────────────────────────────────────
+    document.querySelectorAll('.pf-pw-eye').forEach(btn => {
+      btn.addEventListener('click', function () {
+   const inp  = this.previousElementSibling;
+      const icon = this.querySelector('i');
+        if (inp.type === 'password') { inp.type = 'text';     icon.className = 'fas fa-eye-slash'; }
+ else          { inp.type = 'password'; icon.className = 'fas fa-eye'; }
+        });
+    });
+
+// ── Password strength ─────────────────────────────────────────────
+    document.getElementById('newPassword')?.addEventListener('input', function () {
+        const pw = this.value;
+    const checks = { length: pw.length >= 8, upper: /[A-Z]/.test(pw), lower: /[a-z]/.test(pw), number: /[0-9]/.test(pw), special: /[!@@#$%^&*]/.test(pw) };
+        let score = Object.values(checks).filter(Boolean).length;
+   Object.entries(checks).forEach(([k, v]) => {
+     const el = document.getElementById('req-' + k);
+       if (!el) return;
+            el.classList.toggle('pf-req-ok', v);
+      el.querySelector('i').className = v ? 'fas fa-check-circle' : 'fas fa-circle';
+        });
+        const map = [[0,'0%','',''],[1,'20%','Very Weak','#ef4444'],[2,'40%','Weak','#f59e0b'],[3,'60%','Fair','#f59e0b'],[4,'80%','Good','#22c55e'],[5,'100%','Strong','#16a34a']];
+        const [,w,text,color] = map[score] ?? map[0];
+ const fill = document.getElementById('pwFill'); const label = document.getElementById('pwLabel');
+      if (fill)  { fill.style.width = w; fill.style.background = color || '#e2e8f0'; }
+        if (label) label.textContent = text || 'Password strength';
+    });
+
+    document.getElementById('passwordForm')?.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const cur = document.getElementById('currentPassword').value;
+   const nw  = document.getElementById('newPassword').value;
+ const cf  = document.getElementById('confirmPassword').value;
+      if (!cur || !nw || !cf) { toast('Please fill in all password fields.', 'warning'); return; }
+        if (nw !== cf)           { toast('New passwords do not match.', 'error'); return; }
+        if (nw.length < 8)       { toast('Password must be at least 8 characters.', 'error'); return; }
+
+        const fd = new FormData();
+        fd.append('currentPassword', cur);
+        fd.append('newPassword', nw);
+        fd.append('confirmPassword', cf);
+        fd.append('__RequestVerificationToken', TOKEN);
+
+        try {
+            const d = await (await fetch('/Account/ChangePassword', { method: 'POST', body: fd })).json();
+            if (d.success) {
+                toast('Password updated successfully!');
+                this.reset();
+                const fill = document.getElementById('pwFill');
+                const label = document.getElementById('pwLabel');
+                if (fill) { fill.style.width = '0%'; fill.style.background = '#e2e8f0'; }
+                if (label) label.textContent = 'Password strength';
+            } else {
+                toast(d.message || 'Could not update password.', 'error');
+            }
+        } catch {
+            toast('Could not update password. Please try again.', 'error');
+        }
+    });
+
+    // ── Download My Data ─────────────────────────────────────────────
+    document.getElementById('downloadDataBtn')?.addEventListener('click', async function () {
+        const fd = new FormData();
+        fd.append('__RequestVerificationToken', TOKEN);
+
+        const btn = this;
+        const oldHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing...';
+
+        try {
+            const response = await fetch('/Account/DownloadMyData', { method: 'POST', body: fd });
+            if (!response.ok) {
+                toast('Could not download data. Please try again.', 'error');
+                return;
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            const cd = response.headers.get('Content-Disposition') || '';
+            const match = cd.match(/filename="?([^";]+)"?/i);
+            link.href = url;
+            link.download = match?.[1] || 'my-data.csv';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+            toast('Data downloaded successfully!');
+        } catch {
+            toast('Could not download data. Please try again.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = oldHtml;
+        }
+    });
+
+    // ── Delete Account ────────────────────────────────────────────────
+    document.getElementById('deleteAccountBtn')?.addEventListener('click', async function () {
+        const confirmed = confirm('Are you sure you want to delete your account? This action cannot be undone.');
+        if (!confirmed) return;
+
+        const fd = new FormData();
+        fd.append('__RequestVerificationToken', TOKEN);
+
+        const btn = this;
+        const oldHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+
+        try {
+            const response = await fetch('/Account/DeleteAccount', { method: 'POST', body: fd });
+            const data = await response.json();
+            if (data.success) {
+                toast('Your account has been deleted.', 'info');
+                setTimeout(() => {
+                    window.location.href = data.redirectUrl || '/Account/Login';
+                }, 700);
+                return;
+            }
+
+            toast(data.message || 'Could not delete account.', 'error');
+        } catch {
+            toast('Could not delete account. Please try again.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = oldHtml;
+        }
+    });
+
+    // ── Util ──────────────────────────────────────────────────────────
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+})();
+</script>
+
+<style>
+/* ══════════════════════════════════════════════════════════
+   PATIENT PROFILE — Modern Design (matches Places / MedicalHistory)
+══════════════════════════════════════════════════════════ */
+:root {
+--pf-primary:    #1BAEBE;
+    --pf-primary-dk: #138fa0;
+    --pf-primary-lt: #e0f7fa;
+    --pf-text:       #1e293b;
+    --pf-muted:      #64748b;
+    --pf-light:      #f8fafc;
+  --pf-border:     #e2e8f0;
+    --pf-radius:     18px;
+    --pf-radius-sm:  10px;
+    --pf-shadow:     0 2px 16px rgba(0,0,0,.06);
+    --pf-shadow-md:  0 6px 28px rgba(0,0,0,.10);
+    --pf-shadow-hov: 0 12px 40px rgba(0,0,0,.14);
+}
+
+/* ── HERO ─────────────────────────────────────────── */
+.pf-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  background: linear-gradient(135deg, #0f2942 0%, #1a4a6e 50%, #0d3d5c 100%);
+    border-radius: var(--pf-radius);
+ padding: 1.8rem 2rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+    position: relative;
+    overflow: hidden;
+}
+.pf-hero::before {
+    content: "";
+    position: absolute; top: -40px; right: -40px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(27,174,190,.25) 0%, transparent 70%);
+    pointer-events: none;
+}
+.pf-hero-left  { display: flex; align-items: center; gap: 1.25rem; z-index: 1; }
+.pf-hero-avatar {
+    width: 64px; height: 64px;
+    background: linear-gradient(135deg, var(--pf-primary), var(--pf-primary-dk));
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; color: #fff;
+ border: 3px solid rgba(255,255,255,.25);
+    box-shadow: 0 6px 20px rgba(27,174,190,.45);
+    flex-shrink: 0;
+}
+.pf-hero-info { display: flex; flex-direction: column; gap: .3rem; }
+.pf-hero-name { margin: 0; font-size: 1.55rem; font-weight: 800; color: #f1f5f9; }
+.pf-hero-sub  { margin: 0; font-size: .85rem; color: #94a3b8; display: flex; align-items: center; gap: .4rem; }
+.pf-hero-badges { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: .15rem; }
+.pf-hbadge {
+    display: inline-flex; align-items: center; gap: .35rem;
+    padding: .22rem .75rem; border-radius: 20px;
+    font-size: .75rem; font-weight: 600;
+    backdrop-filter: blur(4px);
+}
+.pf-hbadge-week { background: rgba(219,234,254,.2); color: #93c5fd; border: 1px solid rgba(147,197,253,.3); }
+.pf-hbadge-trim { background: rgba(237,233,254,.2); color: #c4b5fd; border: 1px solid rgba(196,181,253,.3); }
+.pf-hbadge-due  { background: rgba(254,243,199,.2); color: #fcd34d; border: 1px solid rgba(252,211,77,.3); }
+.pf-hero-right { display: flex; align-items: center; gap: .85rem; z-index: 1; }
+.pf-notif-btn {
+    width: 42px; height: 42px;
+    background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.15);
+    border-radius: 12px; display: flex; align-items: center; justify-content: center;
+    color: #cbd5e1; font-size: 1rem; cursor: pointer; transition: background .2s;
+}
+.pf-notif-btn:hover { background: rgba(255,255,255,.18); }
+.pf-profile-chip {
+    display: flex; align-items: center; gap: .55rem;
+background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.15);
+    border-radius: 24px; padding: .4rem .9rem .4rem .5rem;
+    font-size: .87rem; font-weight: 500; color: #e2e8f0;
+}
+.pf-chip-avatar {
+    width: 30px; height: 30px;
+    background: linear-gradient(135deg, var(--pf-primary), var(--pf-primary-dk));
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: .8rem;
+}
+
+/* ── STATS BAR ────────────────────────────────────── */
+.pf-stats-bar {
+ display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+@@media (max-width: 1100px) { .pf-stats-bar { grid-template-columns: repeat(3, 1fr); } }
+@@media (max-width: 640px)  { .pf-stats-bar { grid-template-columns: repeat(2, 1fr); } }
+.pf-stat {
+    background: #fff; border-radius: var(--pf-radius);
+    padding: 1.1rem 1.3rem; display: flex; align-items: center; gap: .9rem;
+    box-shadow: var(--pf-shadow); border: 1px solid var(--pf-border);
+    transition: transform .2s, box-shadow .2s;
+}
+.pf-stat:hover { transform: translateY(-2px); box-shadow: var(--pf-shadow-md); }
+.pf-stat-icon {
+    width: 46px; height: 46px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; flex-shrink: 0;
+}
+.pf-stat-week  { background: #e0f7fa; color: var(--pf-primary); }
+.pf-stat-days  { background: #fff8e1; color: #e65100; }
+.pf-stat-bmi   { background: #f3e5f5; color: #7b1fa2; }
+.pf-stat-age   { background: #d1fae5; color: #065f46; }
+.pf-stat-meds  { background: #fce7f3; color: #9d174d; }
+.pf-stat-body  { display: flex; flex-direction: column; }
+.pf-stat-num   { font-size: 1.7rem; font-weight: 800; color: var(--pf-text); line-height: 1; }
+.pf-stat-lbl   { font-size: .75rem; font-weight: 500; color: var(--pf-muted); margin-top: .15rem; }
+
+/* ── TABS ─────────────────────────────────────────── */
+.pf-tabs-wrap {
+  display: flex; flex-wrap: wrap; gap: .5rem;
+    margin-bottom: 1.25rem;
+}
+.pf-tab {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .5rem 1.15rem; border-radius: 22px;
+    border: 1.5px solid var(--pf-border);
+ background: var(--pf-light);
+    font-size: .83rem; font-weight: 600; color: var(--pf-muted);
+    cursor: pointer; transition: all .2s;
+}
+.pf-tab:hover  { background: #f1f5f9; color: var(--pf-text); }
+.pf-tab.active {
+    background: linear-gradient(135deg, var(--pf-primary), var(--pf-primary-dk));
+    color: #fff; border-color: transparent;
+    box-shadow: 0 3px 12px rgba(27,174,190,.35);
+}
+.pf-tab-content { display: none; }
+.pf-tab-content.active { display: block; }
+
+/* ── CARDS ────────────────────────────────────────── */
+.pf-card {
+    background: #fff; border-radius: var(--pf-radius);
+    box-shadow: var(--pf-shadow); border: 1px solid var(--pf-border);
+    overflow: hidden; margin-bottom: 1.25rem;
+}
+.pf-card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.3rem 1.6rem;
+    border-bottom: 1px solid var(--pf-border);
+background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+}
+.pf-card-title { display: flex; align-items: center; gap: .9rem; }
+.pf-card-title h3 { margin: 0; font-size: 1rem; font-weight: 700; color: var(--pf-text); }
+.pf-card-title p  { margin: .1rem 0 0; font-size: .8rem; color: var(--pf-muted); }
+.pf-card-icon {
+    width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+font-size: 1rem; color: #fff;
+}
+.pf-icon-teal { background: linear-gradient(135deg, #1BAEBE, #138fa0); }
+.pf-icon-purple { background: linear-gradient(135deg, #9c27b0, #7b1fa2); }
+.pf-icon-pink   { background: linear-gradient(135deg, #e91e63, #c2185b); }
+.pf-icon-red    { background: linear-gradient(135deg, #ef4444, #dc2626); }
+.pf-icon-orange { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.pf-icon-green  { background: linear-gradient(135deg, #22c55e, #16a34a); }
+.pf-icon-danger { background: linear-gradient(135deg, #f44336, #b71c1c); }
+
+.pf-edit-btn {
+    display: inline-flex; align-items: center; gap: .35rem;
+padding: .4rem .9rem; border-radius: 10px;
+    border: 1.5px solid var(--pf-border);
+    background: #fff; font-size: .8rem; font-weight: 600; color: var(--pf-muted);
+    cursor: pointer; transition: all .2s;
+}
+.pf-edit-btn:hover { border-color: var(--pf-primary); color: var(--pf-primary); background: var(--pf-primary-lt); }
+
+/* ── FORM ─────────────────────────────────────────── */
+.pf-form { padding: 1.4rem 1.6rem; }
+.pf-form-row {
+  display: grid; grid-template-columns: 1fr 1fr;
+    gap: 1rem; margin-bottom: 1rem;
+}
+.pf-three-col { grid-template-columns: 1fr 1fr 1fr; }
+.pf-col-full  { grid-column: 1 / -1; }
+@@media (max-width: 640px) { .pf-form-row, .pf-three-col { grid-template-columns: 1fr; } }
+.pf-form-group { display: flex; flex-direction: column; gap: .4rem; }
+.pf-form-group label { font-size: .8rem; font-weight: 600; color: var(--pf-text); }
+.pf-required { color: #ef4444; }
+.pf-input {
+    width: 100%; padding: .65rem 1rem;
+    border: 1.5px solid var(--pf-border); border-radius: var(--pf-radius-sm);
+    font-size: .9rem; font-family: inherit; color: var(--pf-text);
+    background: #fff; outline: none; transition: border-color .2s, box-shadow .2s;
+}
+.pf-input:focus   { border-color: var(--pf-primary); box-shadow: 0 0 0 4px rgba(27,174,190,.12); }
+.pf-input:disabled { background: var(--pf-light); color: var(--pf-text); opacity: 1; }
+.pf-input-unit {
+    display: flex; border: 1.5px solid var(--pf-border); border-radius: var(--pf-radius-sm);
+    overflow: hidden; background: #fff; transition: border-color .2s;
+}
+.pf-input-unit:focus-within { border-color: var(--pf-primary); box-shadow: 0 0 0 4px rgba(27,174,190,.12); }
+.pf-input-unit .pf-input { border: none; box-shadow: none; }
+.pf-unit-badge {
+    padding: .5rem .8rem; font-size: .75rem; font-weight: 600;
+  background: rgba(0,0,0,.03); color: var(--pf-muted);
+    border-left: 1px solid var(--pf-border);
+    display: flex; align-items: center; white-space: nowrap;
+}
+.pf-bmi-badge.normal      { color: #2e7d32; background: #e8f5e9; border-color: #a5d6a7; }
+.pf-bmi-badge.underweight { color: #1565c0; background: #e3f2fd; }
+.pf-bmi-badge.overweight  { color: #e65100; background: #fff3e0; }
+.pf-bmi-badge.obese       { color: #c62828; background: #ffebee; }
+
+.pf-hint { font-size: .73rem; color: #94a3b8; display: flex; align-items: center; gap: .3rem; }
+.pf-form-actions {
+    display: flex; justify-content: flex-end; gap: .65rem;
+    padding-top: .9rem; margin-top: .5rem;
+    border-top: 1px dashed var(--pf-border);
+}
+.pf-btn-primary {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .6rem 1.3rem; border-radius: var(--pf-radius-sm); border: none;
+    background: linear-gradient(135deg, var(--pf-primary), var(--pf-primary-dk));
+    color: #fff; font-size: .88rem; font-weight: 600; cursor: pointer;
+    box-shadow: 0 4px 14px rgba(27,174,190,.35); transition: all .2s;
+}
+.pf-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(27,174,190,.5); }
+.pf-btn-ghost {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .6rem 1.1rem; border-radius: var(--pf-radius-sm);
+    border: 1.5px solid var(--pf-border);
+    background: var(--pf-light); color: var(--pf-muted);
+    font-size: .88rem; font-weight: 600; cursor: pointer; transition: all .2s;
+}
+.pf-btn-ghost:hover { background: #f1f5f9; color: var(--pf-text); }
+
+/* ── RADIO ────────────────────────────────────────── */
+.pf-radio-row { display: flex; gap: .85rem; flex-wrap: wrap; }
+.pf-radio-opt {
+    display: flex; align-items: center; gap: .55rem;
+    cursor: pointer; font-size: .88rem; color: var(--pf-text);
+    padding: .5rem .9rem;
+    border: 1.5px solid var(--pf-border); border-radius: 10px;
+    background: #fff; transition: all .2s;
+}
+.pf-radio-opt:has(input:checked) { border-color: var(--pf-primary); background: var(--pf-primary-lt); color: var(--pf-primary); }
+.pf-radio-opt input { display: none; }
+.pf-radio-box {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid var(--pf-border);
+  display: flex; align-items: center; justify-content: center;
+    font-size: .6rem; color: transparent; flex-shrink: 0;
+    transition: all .2s;
+}
+.pf-radio-opt:has(input:checked) .pf-radio-box {
+    border-color: var(--pf-primary); background: var(--pf-primary); color: #fff;
+}
+
+/* ── CALC DISPLAY ─────────────────────────────────── */
+.pf-calc-display {
+    display: flex; flex-direction: column; gap: .2rem;
+    padding: .65rem 1rem;
+    border: 1.5px solid var(--pf-border); border-radius: var(--pf-radius-sm);
+    background: var(--pf-light);
+}
+.pf-calc-main { font-size: 1.05rem; font-weight: 700; color: var(--pf-text); }
+.pf-calc-sub  { font-size: .78rem; color: var(--pf-muted); }
+
+/* ── SECTION DIVIDER ──────────────────────────────── */
+.pf-section-divider {
+    display: flex; align-items: center; gap: .85rem;
+    margin: 1.1rem 0 .9rem;
+}
+.pf-section-divider::before,
+.pf-section-divider::after { content: ""; flex: 1; height: 1px; background: var(--pf-border); }
+.pf-section-divider span { font-size: .78rem; font-weight: 600; color: var(--pf-muted); white-space: nowrap; }
+.pf-conditional { }
+
+/* ── PREGNANCY PROGRESS ───────────────────────────── */
+.pf-preg-progress-card .pf-preg-bar-wrap { padding: 1.4rem 1.6rem; }
+.pf-preg-labels {
+    display: flex; justify-content: space-between;
+    font-size: .72rem; color: var(--pf-muted); margin-bottom: .55rem;
+}
+.pf-preg-track {
+    height: 14px; border-radius: 7px; background: #e2e8f0;
+    position: relative; overflow: visible; margin-bottom: 1.2rem;
+}
+.pf-preg-fill {
+    height: 100%; border-radius: 7px;
+    background: linear-gradient(90deg, var(--pf-primary), var(--pf-primary-dk));
+ transition: width .5s ease;
+}
+.pf-preg-thumb {
+    position: absolute; top: -7px;
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--pf-primary); color: #fff;
+    border: 3px solid #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .65rem;
+    box-shadow: 0 2px 8px rgba(27,174,190,.45);
+}
+.pf-preg-info-row { display: flex; flex-wrap: wrap; gap: .5rem; }
+.pf-preg-pill {
+    display: inline-flex; align-items: center; gap: .35rem;
+    padding: .3rem .85rem; border-radius: 20px;
+    font-size: .78rem; font-weight: 600;
+    background: var(--pf-primary-lt); color: var(--pf-primary);
+    border: 1px solid rgba(27,174,190,.2);
+}
+.pf-preg-pill-trim { background: #f3e5f5; color: #7b1fa2; border-color: rgba(123,31,162,.2); }
+.pf-preg-pill-due  { background: #fff8e1; color: #e65100; border-color: rgba(230,81,0,.2); }
+
+/* ── BP STATUS CHIP ───────────────────────────────── */
+.pf-bp-status-chip {
+    display: flex; align-items: center; gap: .6rem;
+    padding: .75rem 1rem; border-radius: 12px;
+    font-size: .88rem; font-weight: 500; margin-top: .75rem;
+}
+.pf-chip-ok   { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+.pf-chip-risk { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+
+/* ── MEDICATIONS ──────────────────────────────────── */
+.pf-med-list { padding: .85rem 1.6rem 1rem; display: flex; flex-direction: column; gap: .75rem; }
+.pf-med-row {
+    display: flex; align-items: flex-start; gap: 1rem;
+    padding: .9rem 1.1rem;
+    background: var(--pf-light); border: 1px solid var(--pf-border);
+    border-radius: 12px; transition: box-shadow .2s;
+}
+.pf-med-row:hover { box-shadow: 0 4px 14px rgba(0,0,0,.07); }
+.pf-med-pill-icon {
+    width: 42px; height: 42px; border-radius: 11px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--pf-primary), var(--pf-primary-dk));
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 1rem;
+}
+.pf-med-details { flex: 1; }
+.pf-med-name { display: block; font-size: .95rem; font-weight: 700; color: var(--pf-text); margin-bottom: .4rem; }
+.pf-med-chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+.pf-med-chip {
+    display: inline-flex; align-items: center; gap: .3rem;
+    padding: .22rem .65rem; border-radius: 20px; font-size: .75rem; font-weight: 500;
+}
+.pf-chip-reason { background: #e3f2fd; color: #1565c0; }
+.pf-chip-dose   { background: #fce7f3; color: #9d174d; }
+.pf-chip-dur    { background: #e8f5e9; color: #2e7d32; }
+.pf-med-remove {
+    background: none; border: 1.5px solid #fca5a5;
+    color: #ef4444; border-radius: 9px; padding: .3rem .6rem;
+    cursor: pointer; font-size: .8rem; flex-shrink: 0;
+    align-items: center; gap: .3rem; transition: background .2s;
+}
+.pf-med-remove:hover { background: #ffebee; }
+.pf-med-empty {
+    text-align: center; padding: 2rem;
+    color: #94a3b8; font-size: .88rem;
+}
+.pf-med-empty-icon { font-size: 1.8rem; margin-bottom: .5rem; opacity: .4; }
+.pf-add-med-btn {
+    display: none; align-items: center; gap: .4rem;
+    margin: 0 1.6rem 1.2rem;
+    padding: .52rem 1.1rem; border-radius: 10px;
+    border: 1.5px dashed var(--pf-primary);
+    background: var(--pf-primary-lt); color: var(--pf-primary);
+ font-size: .85rem; font-weight: 600; cursor: pointer; transition: all .2s;
+}
+.pf-add-med-btn:hover { background: #b2ebf2; }
+
+/* ── LIFESTYLE ────────────────────────────────────── */
+.pf-lifestyle-row {
+    display: flex; align-items: flex-start; gap: 1rem;
+    padding: 1rem 0; border-bottom: 1px dashed var(--pf-border);
+}
+.pf-lifestyle-row:last-of-type { border-bottom: none; }
+.pf-ls-icon {
+    width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; color: #fff;
+}
+.pf-ls-smoke   { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.pf-ls-alcohol { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+.pf-ls-body { flex: 1; }
+.pf-ls-body h4 { margin: 0 0 .2rem; font-size: .9rem; font-weight: 700; color: var(--pf-text); }
+.pf-ls-body p  { margin: 0 0 .6rem; font-size: .82rem; color: var(--pf-muted); }
+.pf-ls-status {
+    display: flex; flex-direction: column; align-items: center; gap: .18rem;
+    font-size: .72rem; font-weight: 700; flex-shrink: 0;
+    padding: .5rem .75rem; border-radius: 12px;
+}
+.pf-ls-safe { background: #e8f5e9; color: #2e7d32; }
+.pf-ls-risk { background: #ffebee; color: #c62828; }
+.pf-ls-status i { font-size: 1.1rem; }
+
+/* ── TIPS ─────────────────────────────────────────── */
+.pf-tips { padding: .85rem 1.6rem 1.3rem; display: flex; flex-direction: column; gap: .75rem; }
+.pf-tip {
+ display: flex; gap: .9rem; align-items: flex-start;
+    padding: .9rem 1rem; border-radius: 12px;
+    background: var(--pf-light); border: 1px solid var(--pf-border);
+}
+.pf-tip-icon {
+    width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; color: #fff;
+}
+.pf-tip-success .pf-tip-icon { background: linear-gradient(135deg, #22c55e, #16a34a); }
+.pf-tip-info    .pf-tip-icon { background: linear-gradient(135deg, #0ea5e9, #2563eb); }
+.pf-tip h4 { margin: 0 0 .2rem; font-size: .88rem; font-weight: 700; color: var(--pf-text); }
+.pf-tip p  { margin: 0; font-size: .82rem; color: var(--pf-muted); line-height: 1.55; }
+
+/* ── SECURITY ─────────────────────────────────────── */
+.pf-pw-wrap {
+    display: flex; border: 1.5px solid var(--pf-border);
+    border-radius: var(--pf-radius-sm); overflow: hidden; background: #fff;
+    transition: border-color .2s;
+}
+.pf-pw-wrap:focus-within { border-color: var(--pf-primary); box-shadow: 0 0 0 4px rgba(27,174,190,.12); }
+.pf-pw-wrap .pf-input { border: none; }
+.pf-pw-eye {
+    background: transparent; border: none; cursor: pointer;
+    padding: 0 .85rem; color: var(--pf-muted); font-size: .9rem; transition: color .2s;
+}
+.pf-pw-eye:hover { color: var(--pf-primary); }
+.pf-pw-strength { margin-top: .45rem; }
+.pf-pw-track { height: 5px; background: #e2e8f0; border-radius: 3px; overflow: hidden; margin-bottom: .3rem; }
+.pf-pw-fill  { height: 100%; border-radius: 3px; transition: width .3s, background .3s; }
+.pf-pw-label { font-size: .72rem; color: var(--pf-muted); }
+.pf-pw-reqs {
+    background: var(--pf-light); border: 1px solid var(--pf-border);
+    border-radius: 10px; padding: .75rem 1rem; margin: .75rem 0;
+}
+.pf-pw-reqs h4 { margin: 0 0 .5rem; font-size: .82rem; font-weight: 700; color: var(--pf-text); }
+.pf-pw-reqs ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: .3rem; }
+.pf-pw-reqs li { font-size: .8rem; color: var(--pf-muted); display: flex; align-items: center; gap: .45rem; }
+.pf-req-ok    { color: #2e7d32 !important; }
+.pf-req-ok i  { color: #22c55e; }
+
+/* Account settings */
+.pf-settings-list { padding: .85rem 1.6rem 1.3rem; display: flex; flex-direction: column; gap: .55rem; }
+.pf-setting-item {
+    display: flex; justify-content: space-between; align-items: center;
+ padding: .85rem 1rem; border-radius: 10px;
+  background: var(--pf-light); border: 1px solid var(--pf-border);
+}
+.pf-setting-item h4 { margin: 0 0 .2rem; font-size: .88rem; font-weight: 700; color: var(--pf-text); }
+.pf-setting-item p  { margin: 0; font-size: .78rem; color: var(--pf-muted); }
+.pf-toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; display: inline-block; }
+.pf-toggle input { opacity: 0; width: 0; height: 0; }
+.pf-toggle-track {
+    position: absolute; inset: 0; border-radius: 24px;
+    background: #cbd5e1; cursor: pointer; transition: .25s;
+}
+.pf-toggle input:checked + .pf-toggle-track { background: var(--pf-primary); }
+.pf-toggle-track::before {
+    content: ''; position: absolute;
+    width: 18px; height: 18px; left: 3px; bottom: 3px;
+    border-radius: 50%; background: #fff; transition: .25s;
+}
+.pf-toggle input:checked + .pf-toggle-track::before { transform: translateX(20px); }
+
+/* Danger zone */
+.pf-danger-card { border-color: #fca5a5; }
+.pf-danger-list { padding: .85rem 1.6rem 1.3rem; display: flex; flex-direction: column; gap: .75rem; }
+.pf-danger-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: .9rem 1rem; border-radius: 10px;
+    background: #fff8f8; border: 1px solid #fca5a5; gap: 1rem;
+}
+.pf-danger-item h4 { margin: 0 0 .2rem; font-size: .88rem; font-weight: 700; color: var(--pf-text); }
+.pf-danger-item p  { margin: 0; font-size: .78rem; color: var(--pf-muted); }
+.pf-btn-outline {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .5rem 1rem; border-radius: 10px;
+    border: 1.5px solid var(--pf-border); background: #fff;
+    font-size: .82rem; font-weight: 600; color: var(--pf-muted);
+    cursor: pointer; white-space: nowrap; transition: all .2s;
+}
+.pf-btn-outline:hover { border-color: var(--pf-primary); color: var(--pf-primary); }
+.pf-btn-danger-outline {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .5rem 1rem; border-radius: 10px;
+    border: 1.5px solid #fca5a5; background: #ffebee;
+    font-size: .82rem; font-weight: 600; color: #c62828;
+    cursor: pointer; white-space: nowrap; transition: all .2s;
+}
+.pf-btn-danger-outline:hover { background: #fee2e2; border-color: #ef4444; }
+
+/* ── MODAL ────────────────────────────────────────── */
+.pf-modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(15,23,42,.55); backdrop-filter: blur(6px);
+    z-index: 1000; align-items: center; justify-content: center;
+    padding: 1rem; animation: pfFadeIn .2s ease;
+}
+.pf-modal {
+    background: #fff; border-radius: 20px;
+width: 100%; max-width: 560px;
+    box-shadow: 0 24px 60px rgba(0,0,0,.2);
+    overflow: hidden; animation: pfSlideUp .3s ease;
+}
+.pf-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.3rem 1.7rem;
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    border-bottom: 1px solid var(--pf-border);
+}
+.pf-modal-title {
+    display: flex; align-items: center; gap: .75rem;
+    font-size: 1.05rem; font-weight: 700; color: var(--pf-text);
+}
+.pf-modal-icon {
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, var(--pf-primary), var(--pf-primary-dk));
+    border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: .9rem;
+}
+.pf-modal-close {
+    width: 34px; height: 34px; background: none;
+    border: 1.5px solid var(--pf-border); border-radius: 8px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    color: var(--pf-muted); font-size: .85rem; transition: all .2s;
+}
+.pf-modal-close:hover { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+.pf-modal-body   { padding: 1.5rem 1.7rem 1rem; }
+.pf-modal-footer {
+    display: flex; gap: .75rem; justify-content: flex-end;
+    padding: 1rem 1.7rem 1.5rem;
+    border-top: 1px solid var(--pf-border);
+    background: var(--pf-light);
+}
+
+/* ── TOAST ────────────────────────────────────────── */
+.pf-toast {
+    position: fixed; top: 1.5rem; right: 1.5rem;
+    padding: .9rem 1.2rem; border-radius: 14px;
+    display: flex; align-items: center; gap: .75rem;
+    font-size: .9rem; font-weight: 500;
+    z-index: 9999; box-shadow: 0 8px 28px rgba(0,0,0,.14);
+    animation: pfSlideInR .35s ease; max-width: 340px;
+}
+.pf-toast-success { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+.pf-toast-warning { background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; }
+.pf-toast-error   { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+.pf-toast-info    { background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; }
+.pf-toast-close   { background: none; border: none; cursor: pointer; color: inherit; opacity: .65; padding: 2px 5px; margin-left: auto; }
+
+/* ── ANIMATIONS ───────────────────────────────────── */
+@@keyframes pfFadeIn   { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+@@keyframes pfFadeOut  { from { opacity:1; transform:scale(1); } to { opacity:0; transform:scale(.93); } }
+@@keyframes pfSlideUp  { from { opacity:0; transform:translateY(28px); } to { opacity:1; transform:translateY(0); } }
+@@keyframes pfSlideInR { from { opacity:0; transform:translateX(60px); } to { opacity:1; transform:translateX(0); } }
+
+/* ── RESPONSIVE ───────────────────────────────────── */
+@@media (max-width: 768px) {
+    .pf-hero { padding: 1.3rem 1.2rem; }
+    .pf-hero-name { font-size: 1.25rem; }
+    .pf-card-header, .pf-form, .pf-tips, .pf-settings-list, .pf-danger-list, .pf-med-list { padding-left: 1rem; padding-right: 1rem; }
+}
+</style>
+}

@@ -1,0 +1,895 @@
+﻿@model Graduation_Project.ViewModels.AlertsViewModel
+@{
+    Layout = "~/Views/Shared/_PatientLayout.cshtml";
+    ViewData["Title"] = "Alerts & Notifications";
+    ViewData["PatientId"]  = Model.Patient.PatientID;
+    ViewData["ActivePage"] = "Alerts";
+
+    var criticalAlerts = Model.Alerts.Where(a =>
+        a.AlertType?.ToLower() == "danger" ||
+        a.AlertType?.ToLower() == "critical").ToList();
+    var warningAlerts  = Model.Alerts.Where(a => a.AlertType?.ToLower() == "warning").ToList();
+    var infoAlerts     = Model.Alerts.Where(a =>
+        a.AlertType?.ToLower() != "danger"   &&
+        a.AlertType?.ToLower() != "critical" &&
+        a.AlertType?.ToLower() != "warning").ToList();
+}
+
+@section Head {
+    @Html.AntiForgeryToken()
+}
+
+<!-- ══════════════════ HERO HEADER ══════════════════ -->
+<header class="al-hero">
+    <div class="al-hero-left">
+        <div class="al-hero-icon">
+            <i class="fas fa-bell"></i>
+            @if (Model.UnreadCount > 0)
+            {
+                <span class="al-hero-badge">@Model.UnreadCount</span>
+            }
+        </div>
+        <div>
+            <h1 class="al-hero-title">Alerts &amp; Notifications</h1>
+            <p class="al-hero-sub">Stay informed about your health and appointments</p>
+        </div>
+    </div>
+</header>
+
+<!-- ══════════════════ STAT CARDS ══════════════════ -->
+<section class="al-stats-grid">
+    <div class="al-stat-card al-stat-critical">
+        <div class="al-stat-icon"><i class="fas fa-exclamation-circle"></i></div>
+        <div class="al-stat-body">
+            <span class="al-stat-num" id="statCritical">@Model.CriticalCount</span>
+            <span class="al-stat-lbl">Critical</span>
+        </div>
+        <div class="al-stat-bg-icon"><i class="fas fa-exclamation-circle"></i></div>
+    </div>
+    <div class="al-stat-card al-stat-warning">
+        <div class="al-stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+        <div class="al-stat-body">
+            <span class="al-stat-num" id="statWarning">@Model.WarningCount</span>
+            <span class="al-stat-lbl">Warnings</span>
+        </div>
+        <div class="al-stat-bg-icon"><i class="fas fa-exclamation-triangle"></i></div>
+    </div>
+    <div class="al-stat-card al-stat-info">
+        <div class="al-stat-icon"><i class="fas fa-info-circle"></i></div>
+        <div class="al-stat-body">
+            <span class="al-stat-num" id="statInfo">@Model.InfoCount</span>
+            <span class="al-stat-lbl">Info</span>
+        </div>
+        <div class="al-stat-bg-icon"><i class="fas fa-info-circle"></i></div>
+    </div>
+    <div class="al-stat-card al-stat-unread">
+        <div class="al-stat-icon"><i class="fas fa-envelope"></i></div>
+        <div class="al-stat-body">
+            <span class="al-stat-num" id="statUnread">@Model.UnreadCount</span>
+            <span class="al-stat-lbl">Unread</span>
+        </div>
+        <div class="al-stat-bg-icon"><i class="fas fa-envelope"></i></div>
+    </div>
+</section>
+
+<!-- ══════════════════ FILTER BAR ══════════════════ -->
+<section class="al-filter-bar-wrap">
+    <div class="al-filter-bar">
+        <div class="al-filter-tabs">
+            <button class="al-tab active" data-filter="all">
+                <i class="fas fa-list"></i> All
+                <span class="al-tab-count">@Model.TotalCount</span>
+            </button>
+            <button class="al-tab al-tab-unread" data-filter="unread">
+                <i class="fas fa-envelope"></i> Unread
+                <span class="al-tab-count" id="unreadTabCount">@Model.UnreadCount</span>
+            </button>
+            <button class="al-tab al-tab-critical" data-filter="critical">
+                <i class="fas fa-exclamation-circle"></i> Critical
+                <span class="al-tab-count">@Model.CriticalCount</span>
+            </button>
+            <button class="al-tab al-tab-warning" data-filter="warning">
+                <i class="fas fa-exclamation-triangle"></i> Warnings
+                <span class="al-tab-count">@Model.WarningCount</span>
+            </button>
+            <button class="al-tab al-tab-info" data-filter="info">
+                <i class="fas fa-info-circle"></i> Info
+                <span class="al-tab-count">@Model.InfoCount</span>
+            </button>
+        </div>
+        <button class="al-btn al-btn-ghost" id="markAllRead">
+            <i class="fas fa-check-double"></i> Mark All Read
+        </button>
+    </div>
+</section>
+
+<!-- ══════════════════ ALERTS LIST ══════════════════ -->
+<section class="al-list-section" id="alertsList">
+
+    @if (!Model.Alerts.Any())
+    {
+        <div class="al-empty-state">
+            <div class="al-empty-icon"><i class="fas fa-bell-slash"></i></div>
+            <h3>You're all clear!</h3>
+            <p>No alerts right now. We'll notify you when your health data needs attention.</p>
+        </div>
+    }
+    else
+    {
+        <!-- ── Critical ── -->
+        @if (criticalAlerts.Any())
+        {
+            <div class="al-group" id="group-critical">
+                <div class="al-group-header al-group-header-critical">
+                    <div class="al-group-title">
+                        <div class="al-group-icon-wrap critical"><i class="fas fa-exclamation-circle"></i></div>
+                        <span>Critical Alerts</span>
+                    </div>
+                    <span class="al-group-count">@criticalAlerts.Count alert@(criticalAlerts.Count != 1 ? "s" : "")</span>
+                </div>
+
+                @foreach (var alert in criticalAlerts)
+                {
+                    <div class="al-card al-card-critical @(alert.IsRead ? "" : "al-unread") alert-card"
+                         data-alert-id="@alert.AlertID"
+                         data-patient-id="@Model.Patient.PatientID"
+                         data-type="critical"
+                         data-status="@(alert.IsRead ? "read" : "unread")">
+                        <div class="al-card-stripe"></div>
+                        <div class="al-card-icon-col">
+                            <div class="al-card-icon critical">
+                                <i class="fas fa-heartbeat"></i>
+                            </div>
+                            @if (!alert.IsRead)
+                            {
+                                <span class="al-pulse-dot"></span>
+                            }
+                        </div>
+                        <div class="al-card-body">
+                            <div class="al-card-top">
+                                <div class="al-card-title-row">
+                                    <span class="al-severity-pill critical"><i class="fas fa-exclamation-circle"></i> CRITICAL</span>
+                                    <h4 class="al-card-title">@alert.Title</h4>
+                                </div>
+                                <span class="al-time-chip" title="@alert.DateCreated.ToString("MMM dd, yyyy h:mm tt")">
+                                    <i class="fas fa-clock"></i> @FormatRelativeTime(alert.DateCreated)
+                                </span>
+                            </div>
+                            <p class="al-card-message">@alert.Message</p>
+                            <div class="al-card-footer">
+                                <span class="al-date-label"><i class="fas fa-calendar-alt"></i> @alert.DateCreated.ToString("MMM dd, yyyy · h:mm tt")</span>
+                                @if (!alert.IsRead)
+                                {
+                                    <button class="al-btn al-btn-mark-read mark-read-btn">
+                                        <i class="fas fa-check"></i> Mark as Read
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="al-read-badge"><i class="fas fa-check-circle"></i> Read</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- ── Warning ── -->
+        @if (warningAlerts.Any())
+        {
+            <div class="al-group" id="group-warning">
+                <div class="al-group-header al-group-header-warning">
+                    <div class="al-group-title">
+                        <div class="al-group-icon-wrap warning"><i class="fas fa-exclamation-triangle"></i></div>
+                        <span>Warnings</span>
+                    </div>
+                    <span class="al-group-count">@warningAlerts.Count alert@(warningAlerts.Count != 1 ? "s" : "")</span>
+                </div>
+
+                @foreach (var alert in warningAlerts)
+                {
+                    <div class="al-card al-card-warning @(alert.IsRead ? "" : "al-unread") alert-card"
+                         data-alert-id="@alert.AlertID"
+                         data-patient-id="@Model.Patient.PatientID"
+                         data-type="warning"
+                         data-status="@(alert.IsRead ? "read" : "unread")">
+                        <div class="al-card-stripe"></div>
+                        <div class="al-card-icon-col">
+                            <div class="al-card-icon warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            @if (!alert.IsRead)
+                            {
+                                <span class="al-pulse-dot warning"></span>
+                            }
+                        </div>
+                        <div class="al-card-body">
+                            <div class="al-card-top">
+                                <div class="al-card-title-row">
+                                    <span class="al-severity-pill warning"><i class="fas fa-exclamation-triangle"></i> WARNING</span>
+                                    <h4 class="al-card-title">@alert.Title</h4>
+                                </div>
+                                <span class="al-time-chip" title="@alert.DateCreated.ToString("MMM dd, yyyy h:mm tt")">
+                                    <i class="fas fa-clock"></i> @FormatRelativeTime(alert.DateCreated)
+                                </span>
+                            </div>
+                            <p class="al-card-message">@alert.Message</p>
+                            <div class="al-card-footer">
+                                <span class="al-date-label"><i class="fas fa-calendar-alt"></i> @alert.DateCreated.ToString("MMM dd, yyyy · h:mm tt")</span>
+                                @if (!alert.IsRead)
+                                {
+                                    <button class="al-btn al-btn-mark-read mark-read-btn">
+                                        <i class="fas fa-check"></i> Mark as Read
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="al-read-badge"><i class="fas fa-check-circle"></i> Read</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- ── Info ── -->
+        @if (infoAlerts.Any())
+        {
+            <div class="al-group" id="group-info">
+                <div class="al-group-header al-group-header-info">
+                    <div class="al-group-title">
+                        <div class="al-group-icon-wrap info"><i class="fas fa-info-circle"></i></div>
+                        <span>Information</span>
+                    </div>
+                    <span class="al-group-count">@infoAlerts.Count alert@(infoAlerts.Count != 1 ? "s" : "")</span>
+                </div>
+
+                @foreach (var alert in infoAlerts)
+                {
+                    <div class="al-card al-card-info @(alert.IsRead ? "" : "al-unread") alert-card"
+                         data-alert-id="@alert.AlertID"
+                         data-patient-id="@Model.Patient.PatientID"
+                         data-type="info"
+                         data-status="@(alert.IsRead ? "read" : "unread")">
+                        <div class="al-card-stripe"></div>
+                        <div class="al-card-icon-col">
+                            <div class="al-card-icon info">
+                                <i class="fas fa-info-circle"></i>
+                            </div>
+                            @if (!alert.IsRead)
+                            {
+                                <span class="al-pulse-dot info"></span>
+                            }
+                        </div>
+                        <div class="al-card-body">
+                            <div class="al-card-top">
+                                <div class="al-card-title-row">
+                                    <span class="al-severity-pill info"><i class="fas fa-info-circle"></i> INFO</span>
+                                    <h4 class="al-card-title">@alert.Title</h4>
+                                </div>
+                                <span class="al-time-chip" title="@alert.DateCreated.ToString("MMM dd, yyyy h:mm tt")">
+                                    <i class="fas fa-clock"></i> @FormatRelativeTime(alert.DateCreated)
+                                </span>
+                            </div>
+                            <p class="al-card-message">@alert.Message</p>
+                            <div class="al-card-footer">
+                                <span class="al-date-label"><i class="fas fa-calendar-alt"></i> @alert.DateCreated.ToString("MMM dd, yyyy · h:mm tt")</span>
+                                @if (!alert.IsRead)
+                                {
+                                    <button class="al-btn al-btn-mark-read mark-read-btn">
+                                        <i class="fas fa-check"></i> Mark as Read
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="al-read-badge"><i class="fas fa-check-circle"></i> Read</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    }
+</section>
+
+@section Scripts {
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const patientId   = @Model.Patient.PatientID;
+    const antiForgery = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? "";
+
+    // ── Filter tabs ──────────────────────────────────────────────────
+    document.querySelectorAll(".al-tab").forEach(tab => {
+        tab.addEventListener("click", function () {
+            document.querySelectorAll(".al-tab").forEach(t => t.classList.remove("active"));
+            this.classList.add("active");
+            filterAlerts(this.dataset.filter);
+        });
+    });
+
+    function filterAlerts(filter) {
+        document.querySelectorAll(".alert-card").forEach(card => {
+            const type   = card.dataset.type   ?? "";
+            const status = card.dataset.status ?? "";
+            let show = false;
+            switch (filter) {
+                case "all":      show = true; break;
+                case "unread":   show = status === "unread"; break;
+                case "critical": show = type === "critical"; break;
+                case "warning":  show = type === "warning";  break;
+                case "info":     show = type !== "critical" && type !== "warning"; break;
+                default:         show = true;
+            }
+            card.style.display = show ? "flex" : "none";
+        });
+        document.querySelectorAll(".al-group").forEach(g => {
+            const hasVisible = Array.from(g.querySelectorAll(".alert-card")).some(c => c.style.display !== "none");
+            g.style.display = hasVisible ? "block" : "none";
+        });
+    }
+
+    // ── Mark single read ─────────────────────────────────────────────
+    document.addEventListener("click", function (e) {
+        const btn = e.target.closest(".mark-read-btn");
+        if (!btn) return;
+        const card    = btn.closest(".alert-card");
+        const alertId = card?.dataset.alertId;
+        if (!alertId) return;
+
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        btn.disabled = true;
+
+        fetch("/PatientAlerts/MarkAlertRead", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: `alertId=${alertId}&patientId=${patientId}&__RequestVerificationToken=${encodeURIComponent(antiForgery)}`
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                card.classList.remove("al-unread");
+                card.dataset.status = "read";
+                card.querySelector(".al-pulse-dot")?.remove();
+                btn.replaceWith(Object.assign(document.createElement("span"), {
+                    className: "al-read-badge",
+                    innerHTML: '<i class="fas fa-check-circle"></i> Read'
+                }));
+                updateCounts();
+                showNotif("Alert marked as read", "success");
+            }
+        });
+    });
+
+    // ── Mark all read ────────────────────────────────────────────────
+    document.getElementById("markAllRead")?.addEventListener("click", function () {
+        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Marking…';
+        this.disabled = true;
+        const self = this;
+
+        fetch("/PatientAlerts/MarkAllAlertsRead", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: `patientId=${patientId}&__RequestVerificationToken=${encodeURIComponent(antiForgery)}`
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                document.querySelectorAll(".alert-card.al-unread").forEach(card => {
+                    card.classList.remove("al-unread");
+                    card.dataset.status = "read";
+                    card.querySelector(".al-pulse-dot")?.remove();
+                    const btn = card.querySelector(".mark-read-btn");
+                    if (btn) btn.replaceWith(Object.assign(document.createElement("span"), {
+                        className: "al-read-badge",
+                        innerHTML: '<i class="fas fa-check-circle"></i> Read'
+                    }));
+                });
+                updateCounts();
+                showNotif("All alerts marked as read", "success");
+            }
+            self.innerHTML = '<i class="fas fa-check-double"></i> Mark All Read';
+            self.disabled = false;
+        });
+    });
+
+    function updateCounts() {
+        const all      = document.querySelectorAll(".alert-card").length;
+        const unread   = document.querySelectorAll(".alert-card.al-unread").length;
+        const critical = document.querySelectorAll(".alert-card[data-type='critical']").length;
+        const warning  = document.querySelectorAll(".alert-card[data-type='warning']").length;
+        const info     = all - critical - warning;
+
+        setEl("statCritical",   critical);
+        setEl("statWarning",    warning);
+        setEl("statInfo",       info);
+        setEl("statUnread",     unread);
+        setEl("unreadTabCount", unread);
+
+        const badge = document.getElementById("headerBadge");
+        if (badge) { badge.textContent = unread; badge.style.display = unread > 0 ? "flex" : "none"; }
+
+        document.querySelectorAll(".al-tab").forEach(tab => {
+            const cnt = tab.querySelector(".al-tab-count");
+            if (!cnt) return;
+            switch (tab.dataset.filter) {
+                case "all":      cnt.textContent = all;      break;
+                case "unread":   cnt.textContent = unread;   break;
+                case "critical": cnt.textContent = critical; break;
+                case "warning":  cnt.textContent = warning;  break;
+                case "info":     cnt.textContent = info;     break;
+            }
+        });
+    }
+
+    function setEl(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+
+    function showNotif(msg, type = "info") {
+        document.querySelector(".al-toast")?.remove();
+        const icons = { success: "fa-check-circle", error: "fa-times-circle", warning: "fa-exclamation-triangle", info: "fa-info-circle" };
+        const n = document.createElement("div");
+        n.className = `al-toast al-toast-${type}`;
+        n.innerHTML = `<i class="fas ${icons[type] ?? icons.info}"></i><span>${msg}</span>
+                       <button class="al-toast-close"><i class="fas fa-times"></i></button>`;
+        document.body.appendChild(n);
+        n.querySelector(".al-toast-close").addEventListener("click", () => n.remove());
+        setTimeout(() => n?.remove(), 4000);
+    }
+});
+</script>
+
+<style>
+/* ─────────────────────────────────────────
+   VARIABLES
+───────────────────────────────────────── */
+:root {
+    --al-primary:     #1BAEBE;
+    --al-primary-dk:  #138fa0;
+    --al-text:        #1e293b;
+    --al-muted:       #64748b;
+    --al-light:       #f8fafc;
+    --al-border:      #e2e8f0;
+    --al-radius:      16px;
+    --al-shadow:      0 4px 24px rgba(0,0,0,.07);
+    --al-shadow-hov:  0 8px 32px rgba(0,0,0,.12);
+    /* severity */
+    --al-red:         #ef4444;
+    --al-red-lt:      #fff1f2;
+    --al-red-bd:      #fca5a5;
+    --al-amber:       #f59e0b;
+    --al-amber-lt:    #fffbeb;
+    --al-amber-bd:    #fde68a;
+    --al-blue:        #3b82f6;
+    --al-blue-lt:     #eff6ff;
+    --al-blue-bd:     #93c5fd;
+}
+
+/* ─────────────────────────────────────────
+   HERO HEADER
+───────────────────────────────────────── */
+.al-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #0f2942 0%, #1a4a6e 50%, #0d3d5c 100%);
+    border-radius: 18px;
+    padding: 1.8rem 2rem;
+    margin-bottom: 1.75rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+    position: relative;
+    overflow: hidden;
+}
+.al-hero::before {
+    content: "";
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(27,174,190,.25) 0%, transparent 70%);
+    pointer-events: none;
+}
+.al-hero::after {
+    content: "";
+    position: absolute;
+    bottom: -60px; left: 20%;
+    width: 260px; height: 260px;
+    background: radial-gradient(circle, rgba(0,180,216,.12) 0%, transparent 70%);
+    pointer-events: none;
+}
+.al-hero-left {
+    display: flex; align-items: center; gap: 1.1rem; z-index: 1;
+}
+.al-hero-icon {
+    position: relative;
+    width: 56px; height: 56px;
+    background: linear-gradient(135deg, #e91e63, #c2185b);
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; color: #fff;
+    box-shadow: 0 6px 20px rgba(233,30,99,.45);
+    flex-shrink: 0;
+}
+.al-hero-badge {
+    position: absolute; top: -5px; right: -5px;
+    background: var(--al-red); color: #fff;
+    font-size: .6rem; font-weight: 700;
+    min-width: 18px; height: 18px; border-radius: 9px;
+    padding: 0 4px; border: 2px solid #fff;
+    display: flex; align-items: center; justify-content: center;
+}
+.al-hero-title {
+    margin: 0; font-size: 1.7rem; font-weight: 800;
+    color: #f1f5f9; letter-spacing: -.3px;
+}
+.al-hero-sub {
+    margin: .2rem 0 0; font-size: .88rem; color: #94a3b8;
+}
+.al-hero-right {
+    display: flex; align-items: center; gap: .9rem; z-index: 1;
+}
+.al-notif-btn {
+    position: relative; width: 42px; height: 42px;
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    color: #cbd5e1; font-size: 1.05rem; cursor: pointer;
+    transition: background .2s;
+}
+.al-notif-btn:hover { background: rgba(255,255,255,.18); }
+.al-notif-badge {
+    position: absolute; top: -4px; right: -4px;
+    background: var(--al-red); color: #fff;
+    font-size: .65rem; font-weight: 700; min-width: 18px; height: 18px;
+    border-radius: 9px; padding: 0 4px; border: 2px solid #fff;
+    display: flex; align-items: center; justify-content: center;
+}
+.al-profile-chip {
+    display: flex; align-items: center; gap: .55rem;
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 24px;
+    padding: .4rem .9rem .4rem .5rem;
+    font-size: .87rem; font-weight: 500; color: #e2e8f0;
+}
+.al-avatar {
+    width: 30px; height: 30px;
+    background: linear-gradient(135deg, var(--al-primary), var(--al-primary-dk));
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: .8rem;
+}
+
+/* ─────────────────────────────────────────
+   STAT CARDS
+───────────────────────────────────────── */
+.al-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4,1fr);
+    gap: 1rem; margin-bottom: 1.75rem;
+}
+@@media(max-width:900px) { .al-stats-grid { grid-template-columns: repeat(2,1fr); } }
+@@media(max-width:480px) { .al-stats-grid { grid-template-columns: 1fr 1fr; } }
+
+.al-stat-card {
+    position: relative; overflow: hidden;
+    border-radius: var(--al-radius);
+    padding: 1.2rem 1.4rem;
+    display: flex; align-items: center; gap: 1rem;
+    box-shadow: var(--al-shadow);
+    transition: transform .22s, box-shadow .22s;
+    cursor: default;
+}
+.al-stat-card:hover { transform: translateY(-3px); box-shadow: var(--al-shadow-hov); }
+
+.al-stat-critical { background: linear-gradient(135deg,#fff1f2,#ffe4e6); border-top: 3px solid var(--al-red); }
+.al-stat-warning  { background: linear-gradient(135deg,#fffbeb,#fef9c3); border-top: 3px solid var(--al-amber); }
+.al-stat-info     { background: linear-gradient(135deg,#eff6ff,#dbeafe); border-top: 3px solid var(--al-blue); }
+.al-stat-unread   { background: linear-gradient(135deg,#f3e5f5,#faf0fe); border-top: 3px solid #9c27b0; }
+
+.al-stat-icon {
+    width: 46px; height: 46px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.15rem; flex-shrink: 0;
+    background: rgba(255,255,255,.65); backdrop-filter: blur(4px);
+}
+.al-stat-critical .al-stat-icon { color: #b91c1c; }
+.al-stat-warning  .al-stat-icon { color: #b45309; }
+.al-stat-info     .al-stat-icon { color: #1d4ed8; }
+.al-stat-unread   .al-stat-icon { color: #7b1fa2; }
+
+.al-stat-body { display: flex; flex-direction: column; z-index: 1; }
+.al-stat-num  { font-size: 2rem; font-weight: 800; color: var(--al-text); line-height: 1; }
+.al-stat-lbl  { font-size: .78rem; font-weight: 500; color: var(--al-muted); margin-top: .2rem; }
+
+.al-stat-bg-icon {
+    position: absolute; right: -8px; bottom: -8px;
+    font-size: 4rem; opacity: .06; color: #000; pointer-events: none;
+}
+
+/* ─────────────────────────────────────────
+   FILTER BAR
+───────────────────────────────────────── */
+.al-filter-bar-wrap { margin-bottom: 1.75rem; }
+.al-filter-bar {
+    background: #fff;
+    border-radius: var(--al-radius);
+    padding: .9rem 1.25rem;
+    box-shadow: var(--al-shadow);
+    border: 1px solid var(--al-border);
+    display: flex; align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap; gap: .75rem;
+}
+.al-filter-tabs { display: flex; flex-wrap: wrap; gap: .5rem; }
+
+.al-tab {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .42rem 1rem;
+    border-radius: 22px;
+    border: 1.5px solid var(--al-border);
+    background: var(--al-light);
+    font-size: .82rem; font-weight: 600;
+    color: var(--al-muted); cursor: pointer;
+    transition: all .2s;
+}
+.al-tab:hover { background: #f1f5f9; color: var(--al-text); }
+
+/* active state — default (all) */
+.al-tab.active { background: linear-gradient(135deg,var(--al-primary),var(--al-primary-dk)); color:#fff; border-color:transparent; box-shadow:0 3px 10px rgba(27,174,190,.3); }
+
+/* per-type active colours */
+.al-tab-critical.active { background:linear-gradient(135deg,#ef4444,#dc2626); box-shadow:0 3px 10px rgba(239,68,68,.3); }
+.al-tab-warning.active  { background:linear-gradient(135deg,#f59e0b,#d97706); box-shadow:0 3px 10px rgba(245,158,11,.3); }
+.al-tab-info.active     { background:linear-gradient(135deg,#3b82f6,#2563eb); box-shadow:0 3px 10px rgba(59,130,246,.3); }
+.al-tab-unread.active   { background:linear-gradient(135deg,#9c27b0,#7b1fa2); box-shadow:0 3px 10px rgba(156,39,176,.3); }
+
+.al-tab-count {
+    background: rgba(0,0,0,.1); border-radius: 20px;
+    padding: .05rem .45rem; font-size: .7rem;
+    min-width: 18px; text-align: center;
+}
+.al-tab.active .al-tab-count { background: rgba(255,255,255,.28); }
+
+/* ─────────────────────────────────────────
+   BUTTONS
+───────────────────────────────────────── */
+.al-btn {
+    display: inline-flex; align-items: center; gap: .4rem;
+    font-size: .83rem; font-weight: 600;
+    border-radius: 10px; border: none;
+    padding: .5rem 1rem; cursor: pointer;
+    transition: all .2s;
+}
+.al-btn-ghost {
+    background: var(--al-light);
+    color: var(--al-muted);
+    border: 1.5px solid var(--al-border);
+}
+.al-btn-ghost:hover { background: #f1f5f9; color: var(--al-text); }
+.al-btn-ghost:disabled { opacity: .6; cursor: not-allowed; }
+
+.al-btn-mark-read {
+    background: #f0fdf4;
+    color: #15803d;
+    border: 1.5px solid #86efac;
+    font-size: .78rem; padding: .3rem .75rem;
+    border-radius: 8px;
+}
+.al-btn-mark-read:hover { background: #dcfce7; }
+
+/* ─────────────────────────────────────────
+   GROUP HEADERS
+───────────────────────────────────────── */
+.al-list-section { display: flex; flex-direction: column; gap: 1.75rem; }
+.al-group        { display: flex; flex-direction: column; gap: .85rem; }
+
+.al-group-header {
+    display: flex; align-items: center;
+    justify-content: space-between;
+    padding: .75rem 1.1rem;
+    border-radius: 12px;
+    margin-bottom: .25rem;
+}
+.al-group-header-critical { background: linear-gradient(135deg,#fff1f2,#ffe4e6); border: 1px solid var(--al-red-bd); }
+.al-group-header-warning  { background: linear-gradient(135deg,#fffbeb,#fef9c3); border: 1px solid var(--al-amber-bd); }
+.al-group-header-info     { background: linear-gradient(135deg,#eff6ff,#dbeafe); border: 1px solid var(--al-blue-bd); }
+
+.al-group-title {
+    display: flex; align-items: center; gap: .65rem;
+    font-size: .95rem; font-weight: 700; color: var(--al-text);
+}
+.al-group-icon-wrap {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .9rem;
+}
+.al-group-icon-wrap.critical { background: #fee2e2; color: #b91c1c; }
+.al-group-icon-wrap.warning  { background: #fef3c7; color: #b45309; }
+.al-group-icon-wrap.info     { background: #dbeafe; color: #1d4ed8; }
+
+.al-group-count {
+    font-size: .78rem; font-weight: 600; color: var(--al-muted);
+    background: rgba(255,255,255,.7);
+    padding: .22rem .7rem; border-radius: 20px;
+    border: 1px solid rgba(0,0,0,.06);
+}
+
+/* ─────────────────────────────────────────
+   ALERT CARDS
+───────────────────────────────────────── */
+.al-card {
+    display: flex;
+    background: #fff;
+    border-radius: var(--al-radius);
+    box-shadow: var(--al-shadow);
+    border: 1px solid var(--al-border);
+    overflow: hidden;
+    transition: transform .22s, box-shadow .22s;
+    position: relative;
+}
+.al-card:hover { transform: translateY(-2px); box-shadow: var(--al-shadow-hov); }
+
+/* Unread: tinted background */
+.al-card.al-unread.al-card-critical { background: linear-gradient(135deg,#fff8f8,#fff1f2); }
+.al-card.al-unread.al-card-warning  { background: linear-gradient(135deg,#fffdf5,#fffbeb); }
+.al-card.al-unread.al-card-info     { background: linear-gradient(135deg,#f8fbff,#eff6ff); }
+
+/* Left stripe */
+.al-card-stripe { width: 5px; flex-shrink: 0; }
+.al-card-critical .al-card-stripe { background: var(--al-red); }
+.al-card-warning  .al-card-stripe { background: var(--al-amber); }
+.al-card-info     .al-card-stripe { background: var(--al-blue); }
+
+/* Icon column */
+.al-card-icon-col {
+    display: flex; flex-direction: column;
+    align-items: center; gap: .5rem;
+    padding: 1.1rem .75rem 1.1rem .9rem;
+    flex-shrink: 0;
+}
+.al-card-icon {
+    width: 44px; height: 44px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.05rem;
+}
+.al-card-icon.critical { background: #fee2e2; color: #b91c1c; }
+.al-card-icon.warning  { background: #fef3c7; color: #b45309; }
+.al-card-icon.info     { background: #dbeafe; color: #1d4ed8; }
+
+/* Pulsing dot */
+.al-pulse-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    animation: alPulse 1.8s ease-in-out infinite;
+}
+.al-pulse-dot         { background: var(--al-red);   box-shadow: 0 0 0 0 rgba(239,68,68,.4); }
+.al-pulse-dot.warning { background: var(--al-amber); box-shadow: 0 0 0 0 rgba(245,158,11,.4); }
+.al-pulse-dot.info    { background: var(--al-blue);  box-shadow: 0 0 0 0 rgba(59,130,246,.4); }
+
+@@keyframes alPulse {
+    0%   { box-shadow: 0 0 0 0   rgba(239,68,68,.5); }
+    70%  { box-shadow: 0 0 0 8px rgba(239,68,68,0);  }
+    100% { box-shadow: 0 0 0 0   rgba(239,68,68,0);  }
+}
+.al-pulse-dot.warning { animation-name: alPulseAmber; }
+@@keyframes alPulseAmber {
+    0%   { box-shadow: 0 0 0 0   rgba(245,158,11,.5); }
+    70%  { box-shadow: 0 0 0 8px rgba(245,158,11,0);  }
+    100% { box-shadow: 0 0 0 0   rgba(245,158,11,0);  }
+}
+.al-pulse-dot.info { animation-name: alPulseBlue; }
+@@keyframes alPulseBlue {
+    0%   { box-shadow: 0 0 0 0   rgba(59,130,246,.5); }
+    70%  { box-shadow: 0 0 0 8px rgba(59,130,246,0);  }
+    100% { box-shadow: 0 0 0 0   rgba(59,130,246,0);  }
+}
+
+/* Card body */
+.al-card-body { flex: 1; padding: 1rem 1.1rem 1rem .2rem; min-width: 0; }
+
+.al-card-top {
+    display: flex; justify-content: space-between;
+    align-items: flex-start; gap: .5rem; margin-bottom: .55rem;
+}
+.al-card-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.al-card-title { margin: 0; font-size: 1rem; font-weight: 700; color: var(--al-text); }
+
+/* Severity pill */
+.al-severity-pill {
+    display: inline-flex; align-items: center; gap: .3rem;
+    font-size: .65rem; font-weight: 700;
+    padding: .18rem .55rem; border-radius: 6px;
+    letter-spacing: .04em; border: 1px solid transparent;
+}
+.al-severity-pill.critical { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; }
+.al-severity-pill.warning  { background: #fef3c7; color: #b45309; border-color: #fde68a; }
+.al-severity-pill.info     { background: #dbeafe; color: #1d4ed8; border-color: #93c5fd; }
+
+/* Time chip */
+.al-time-chip {
+    display: inline-flex; align-items: center; gap: .3rem;
+    font-size: .75rem; color: var(--al-muted);
+    background: var(--al-light);
+    border: 1px solid var(--al-border);
+    border-radius: 20px; padding: .2rem .6rem;
+    white-space: nowrap; flex-shrink: 0;
+}
+
+/* Message */
+.al-card-message {
+    font-size: .88rem; color: #475569;
+    line-height: 1.6; margin: 0 0 .75rem;
+}
+
+/* Card footer */
+.al-card-footer {
+    display: flex; align-items: center;
+    justify-content: space-between; flex-wrap: wrap; gap: .5rem;
+    padding-top: .65rem;
+    border-top: 1px dashed var(--al-border);
+}
+.al-date-label {
+    display: flex; align-items: center; gap: .35rem;
+    font-size: .77rem; color: #94a3b8;
+}
+.al-read-badge {
+    display: inline-flex; align-items: center; gap: .3rem;
+    font-size: .77rem; font-weight: 600;
+    color: #15803d; background: #f0fdf4;
+    border: 1px solid #86efac; border-radius: 20px;
+    padding: .2rem .65rem;
+}
+
+/* ─────────────────────────────────────────
+   EMPTY STATE
+───────────────────────────────────────── */
+.al-empty-state {
+    text-align: center; padding: 5rem 2rem;
+    background: #fff;
+    border-radius: var(--al-radius);
+    box-shadow: var(--al-shadow);
+    border: 1px solid var(--al-border);
+}
+.al-empty-icon {
+    width: 80px; height: 80px; border-radius: 50%;
+    background: var(--al-light);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem; color: #cbd5e1;
+    margin: 0 auto 1.25rem;
+}
+.al-empty-state h3 { color: #64748b; margin: 0 0 .5rem; font-size: 1.15rem; }
+.al-empty-state p  { color: #94a3b8; margin: 0; font-size: .9rem; }
+
+/* ─────────────────────────────────────────
+   TOAST NOTIFICATIONS
+───────────────────────────────────────── */
+.al-toast {
+    position: fixed; top: 1.5rem; right: 1.5rem;
+    padding: .9rem 1.25rem; border-radius: 14px;
+    display: flex; align-items: center; gap: .75rem;
+    font-size: .9rem; font-weight: 500; z-index: 9999;
+    box-shadow: 0 8px 24px rgba(0,0,0,.14);
+    animation: alSlideIn .3s ease;
+}
+.al-toast-success { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+.al-toast-info    { background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; }
+.al-toast-error   { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+.al-toast-close   { background: none; border: none; cursor: pointer; color: inherit; opacity: .6; padding: 2px 6px; margin-left: .25rem; }
+
+@@keyframes alSlideIn { from { opacity:0; transform:translateX(30px); } to { opacity:1; transform:translateX(0); } }
+</style>
+}
+
+@functions {
+    string FormatRelativeTime(DateTime dt)
+    {
+        var diff = DateTime.Now - dt;
+        if (diff.TotalMinutes < 1)  return "Just now";
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}m ago";
+        if (diff.TotalHours   < 24) return $"{(int)diff.TotalHours}h ago";
+        if (diff.TotalDays    < 7)  return $"{(int)diff.TotalDays}d ago";
+        return dt.ToString("MMM dd, yyyy");
+    }
+}

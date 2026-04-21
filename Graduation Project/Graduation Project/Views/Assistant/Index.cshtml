@@ -1,0 +1,217 @@
+﻿@using System.Globalization
+@using System.Linq
+@model Graduation_Project.ViewModels.AssistantDashboardViewModel
+@{
+    Layout = "~/Views/Shared/_AssistantLayout.cshtml";
+    ViewData["Title"] = "Dashboard";
+    ViewData["AssistantId"] = Model.Assistant.AssistantID;
+    ViewData["AssistantName"] = Model.AssistantName;
+    ViewData["ActivePage"] = "Dashboard";
+
+    var now = DateTime.Now;
+    var greeting = now.Hour < 12 ? "Good morning" : now.Hour < 17 ? "Good afternoon" : "Good evening";
+    var assistantFirstName = (Model.AssistantName ?? "Assistant").Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Assistant";
+    ViewData["PageTitle"] = $"{greeting}, {assistantFirstName} 👋";
+    ViewData["PageTitleHtml"] = $"{greeting}, <span class='topbar-accent'>{assistantFirstName}</span> 👋";
+    ViewData["PageSubtitle"] = now.ToString("dddd, MMMM dd, yyyy", CultureInfo.InvariantCulture);
+}
+
+@section Head {
+    <meta name="assistant-id" content="@Model.Assistant.AssistantID" />
+    <meta name="selected-date" content="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
+    <meta name="selected-doctor-id" content="@(Model.SelectedDoctorID?.ToString() ?? string.Empty)" />
+    <meta name="selected-schedule-status" content="@Model.SelectedScheduleStatus" />
+    <meta name="assistant-stats-url" content="@Url.Action("GetDashboardStats", "Assistant")" />
+    <meta name="assistant-schedule-url" content="@Url.Action("GetScheduleByDate", "Assistant")" />
+    <meta name="assistant-index-url" content="@Url.Action("Index", "Assistant")" />
+}
+
+<div class="ad-wrap">
+
+<!-- Header -->
+<header class="header">
+    <div class="header-left">
+        <h1>Welcome, @Model.AssistantName! 👋</h1>
+        <p>Here's your assistant dashboard overview</p>
+    </div>
+</header>
+
+<!-- Assistant Hero Section -->
+<section class="pregnancy-progress">
+    <div class="progress-card assistant-hero">
+        <div class="progress-info">
+            <h3>Schedule Overview</h3>
+            <p><span class="week-number" id="todayDate">@Model.SelectedDate.ToString("dddd, MMMM dd, yyyy")</span></p>
+        </div>
+        <div class="progress-details">
+            <span>
+                <i class="fas fa-calendar-check"></i>
+                <span id="hero-appointment-count">--</span> Appointments on Selected Date
+            </span>
+            <span>
+                <i class="fas fa-user-md"></i>
+                <span>@Model.Doctors.Count</span> Linked Doctor(s)
+            </span>
+        </div>
+    </div>
+</section>
+
+<section class="card section-spacing">
+    <div class="card-header">
+        <h3><i class="fas fa-calendar-day"></i> Schedule Date</h3>
+    </div>
+    <div class="toolbar-row">
+        <button type="button" class="btn btn-outline btn-sm" id="prevDateBtn">
+            <i class="fas fa-chevron-left"></i> Previous
+        </button>
+        <input type="date" id="dashboardDatePicker" class="form-input date-input" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
+        <button type="button" class="btn btn-outline btn-sm" id="nextDateBtn">
+            Next <i class="fas fa-chevron-right"></i>
+        </button>
+        <button type="button" class="btn btn-outline btn-sm" id="todayBtn">
+            <i class="fas fa-calendar-day"></i> Today
+        </button>
+    </div>
+</section>
+
+<!-- Doctor Filter Tabs -->
+@if (Model.Doctors.Count > 1)
+{
+    <section class="card section-spacing">
+        <div class="card-header">
+            <h3><i class="fas fa-filter"></i> Filter by Doctor</h3>
+        </div>
+        <div class="doctor-filter-tabs">
+            <a href="@Url.Action("Index", new { id = Model.Assistant.AssistantID, date = Model.SelectedDate.ToString("yyyy-MM-dd"), status = Model.SelectedScheduleStatus })"
+               class="doctor-filter-tab doctor-filter-tab--all @(Model.SelectedDoctorID == null ? "active" : "")"
+               data-doctor-id=""
+               data-doctor-name="All Doctors">
+                <i class="fas fa-users"></i> All Doctors
+                <span id="all-doctors-tab-count" class="doctor-filter-count">
+                    --
+                </span>
+            </a>
+            @foreach (var doc in Model.Doctors)
+            {
+                var isSelected = Model.SelectedDoctorID == doc.DoctorID;
+                <a href="@Url.Action("Index", new { id = Model.Assistant.AssistantID, doctorId = doc.DoctorID, date = Model.SelectedDate.ToString("yyyy-MM-dd"), status = Model.SelectedScheduleStatus })"
+                   class="doctor-filter-tab @(isSelected ? "active" : "")"
+                   data-doctor-id="@doc.DoctorID"
+                   data-doctor-name="@doc.FullName">
+                    <i class="fas fa-user-md"></i> @doc.FullName
+                    <span id="doctor-tab-count-@doc.DoctorID" class="doctor-filter-count">
+                        --
+                    </span>
+                </a>
+            }
+        </div>
+    </section>
+}
+
+<!-- Quick Stats -->
+<section class="quick-stats">
+    <div class="quick-stat-card">
+        <div class="stat-header">
+            <div class="stat-icon stat-icon-success">
+                <i class="fas fa-calendar-check icon-success"></i>
+            </div>
+        </div>
+        <div class="stat-value" id="stat-today-appointments">--</div>
+        <div class="stat-label">Selected Date Appointments</div>
+    </div>
+    <div class="quick-stat-card">
+        <div class="stat-header">
+            <div class="stat-icon stat-icon-info">
+                <i class="fas fa-user-md icon-info"></i>
+            </div>
+        </div>
+        <div class="stat-value">@Model.Doctors.Count</div>
+        <div class="stat-label">Linked Doctors</div>
+    </div>
+    <div class="quick-stat-card">
+        <div class="stat-header">
+            <div class="stat-icon stat-icon-warning">
+                <i class="fas fa-users icon-warning"></i>
+            </div>
+        </div>
+        <div class="stat-value" id="stat-total-patients">--</div>
+        <div class="stat-label">Clinic Patients</div>
+    </div>
+</section>
+
+<!-- Dashboard Grid - Today's Schedule -->
+<section class="dashboard-grid">
+    <div class="card">
+        <div class="card-header">
+            <h3>
+                <i class="fas fa-clock"></i> Schedule
+                <span id="schedule-doctor-label" class="schedule-doctor-label @(Model.SelectedDoctorID == null ? "is-hidden" : "")">
+                    &mdash; <span id="schedule-doctor-name">@Model.SelectedDoctorName</span>
+                </span>
+            </h3>
+            <a href="#">View All</a>
+        </div>
+        <div class="schedule-toolbar">
+            <button type="button" class="btn btn-sm schedule-status-btn @(Model.SelectedScheduleStatus == "Booked" ? "btn-primary" : "btn-outline")" data-status="Booked">Booked</button>
+            <button type="button" class="btn btn-sm schedule-status-btn @(Model.SelectedScheduleStatus == "Cancelled" ? "btn-primary" : "btn-outline")" data-status="Cancelled">Cancelled</button>
+        </div>
+        <div id="schedule-container">
+            <div class="loading-state">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Loading schedule...</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Linked Doctors -->
+<section class="card">
+    <div class="card-header">
+        <h3><i class="fas fa-user-md"></i> Linked Doctors</h3>
+        <a href="#">Manage</a>
+    </div>
+    @if (Model.Doctors.Any())
+    {
+        <div class="team-grid">
+            @foreach (var doc in Model.Doctors)
+            {
+                <div class="team-card team-card--clickable" data-doctor-id="@doc.DoctorID">
+                    <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(doc.FullName)&background=1976d2&color=fff&size=88"
+                         alt="@doc.FullName" class="avatar" />
+                    <h4>@doc.FullName</h4>
+                    <div class="role">@doc.Specialization</div>
+                    <div class="team-card-meta">
+                        <span><i class="fas fa-calendar-check"></i> <span id="doctor-today-@doc.DoctorID">--</span> on date</span>
+                        <span><i class="fas fa-users"></i> <span id="doctor-patients-@doc.DoctorID">--</span> patients</span>
+                    </div>
+                    <span class="status-dot online">Active</span>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="privacy-notice privacy-notice-warning">
+            <i class="fas fa-exclamation-triangle text-warning"></i>
+            <p>No doctors are currently linked to your account. Please contact your clinic administrator.</p>
+        </div>
+    }
+</section>
+
+<!-- Clinic Invitations -->
+<section class="card" id="clinicInvitationsSection">
+    <div class="card-header">
+        <h3><i class="fas fa-envelope-open-text"></i> Clinic Invitations</h3>
+        <a href="@Url.Action("ClinicInvitations", "Assistant", new { id = Model.Assistant.AssistantID })">Open Invitations</a>
+    </div>
+    <div class="privacy-notice privacy-notice-info">
+        <i class="fas fa-info-circle text-info"></i>
+        <p>No pending clinic invitations.</p>
+    </div>
+</section>
+
+</div>
+
+@section Scripts {
+    <script src="~/js/assistant-dashboard.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,115 @@
+@using System.Globalization
+@using System.Linq
+@using System.Security.Claims
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - NABD - نبض</title>
+    <link rel="icon" type="image/png" href="~/images/logo.png" asp-append-version="true" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/design-system.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/assistant-style.css" asp-append-version="true" />
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    @await RenderSectionAsync("Head", required: false)
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+@{
+    var layoutAssistantId = ViewData["AssistantId"] as int? ?? 0;
+    var layoutAssistantName = (ViewData["AssistantName"] as string)?.Trim()
+        ?? User?.FindFirstValue(ClaimTypes.GivenName)
+        ?? User?.FindFirst("FirstName")?.Value
+        ?? User?.Identity?.Name
+        ?? "Assistant";
+
+    var normalizedAssistantName = layoutAssistantName;
+    if (normalizedAssistantName.Contains('@'))
+    {
+        var emailLocalPart = normalizedAssistantName.Split('@', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        var firstToken = emailLocalPart?
+            .Split(new[] { '.', '_', '-' }, StringSplitOptions.RemoveEmptyEntries)
+            .FirstOrDefault();
+
+        if (!string.IsNullOrWhiteSpace(firstToken))
+        {
+            normalizedAssistantName = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(firstToken.ToLowerInvariant());
+        }
+    }
+
+    var shortAssistantName = normalizedAssistantName.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? normalizedAssistantName;
+    var now = DateTime.Now;
+    var greeting = now.Hour < 12 ? "Good morning" : now.Hour < 17 ? "Good afternoon" : "Good evening";
+    var headerDateChip = now.ToString("ddd, MMM d", new CultureInfo("en-US"));
+    var pageTitleHtml = ViewData["PageTitleHtml"] as string;
+    var fallbackPageTitleHtml = $"{greeting}, <span class='topbar-accent'>{shortAssistantName}</span> 👋";
+    var effectivePageTitleHtml = !string.IsNullOrWhiteSpace(pageTitleHtml) && !pageTitleHtml.Contains("@")
+        ? pageTitleHtml
+        : fallbackPageTitleHtml;
+    var pageSubtitle = ViewData["PageSubtitle"] as string ?? now.ToString("dddd, MMMM dd, yyyy", CultureInfo.InvariantCulture);
+}
+<body data-assistant-id="@layoutAssistantId">
+<div class="container">
+
+    @await Html.PartialAsync("_AssistantSidebar")
+
+    <!-- Sidebar Toggle Button -->
+    <button class="sidebar-toggle"><i class="fas fa-chevron-left"></i></button>
+
+    <!-- Sidebar Overlay (for mobile) -->
+    <div class="sidebar-overlay"></div>
+
+    <!-- Notifications Panel -->
+    <div class="notifications-panel" id="notificationsPanel">
+        <div class="notifications-header">
+            <h3><i class="fas fa-bell"></i> Notifications</h3>
+            <button class="close-notifications btn-sm" id="closeNotifications" type="button">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="notifications-body" id="notificationsList">
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="top-bar">
+            <div class="topbar-left">
+                <div class="topbar-greeting">
+                    <h1 class="page-title">@Html.Raw(effectivePageTitleHtml)</h1>
+                    <p class="page-subtitle">@pageSubtitle</p>
+                </div>
+            </div>
+            <div class="topbar-right">
+                <div class="date-chip">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>@headerDateChip</span>
+                </div>
+                <button class="icon-btn" id="notificationBtn" title="Notifications" type="button">
+                    <i class="fas fa-bell"></i>
+                    <span class="dot" id="notificationBadge" hidden>0</span>
+                </button>
+                <button class="icon-btn" title="Search" type="button">
+                    <i class="fas fa-search"></i>
+                </button>
+                <div class="topbar-avatar user-menu" title="@normalizedAssistantName">
+                    <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(normalizedAssistantName)&background=7c3aed&color=fff&size=80"
+                         alt="@normalizedAssistantName" />
+                    <span>@shortAssistantName</span>
+                </div>
+            </div>
+        </header>
+        <div class="page-content">
+            @RenderBody()
+        </div>
+    </main>
+
+</div>
+
+<script src="~/js/shared.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

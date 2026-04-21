@@ -1,0 +1,310 @@
+@using System.Globalization
+@using System.Linq
+@model DoctorDashboardViewModel
+@{
+    Layout = "~/Views/Shared/_DoctorLayout.cshtml";
+    ViewData["Title"] = "Dashboard";
+    ViewData["ActivePage"] = "Dashboard";
+    ViewData["DoctorId"] = Model.Doctor.DoctorID;
+    ViewData["DoctorName"] = Model.DoctorName;
+
+    var now = DateTime.Now;
+    var greeting = now.Hour < 12 ? "Good morning" : now.Hour < 17 ? "Good afternoon" : "Good evening";
+    var doctorFirstName = (Model.DoctorName ?? "Doctor").Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Doctor";
+    ViewData["PageTitle"] = $"{greeting}, Dr. {doctorFirstName} 👋";
+    ViewData["PageTitleHtml"] = $"{greeting}, <span class='topbar-accent'>Dr. {doctorFirstName}</span> 👋";
+    ViewData["PageSubtitle"] = now.ToString("dddd, MMMM dd, yyyy", CultureInfo.InvariantCulture);
+
+    var nextPatientName = Model.NextAppointment?.Patient?.User != null
+        ? $"{Model.NextAppointment.Patient.User.FirstName} {Model.NextAppointment.Patient.User.LastName}".Trim()
+        : "No upcoming appointments";
+    var nextAppointmentTime = Model.NextAppointment != null ? DateTime.Today.Add(Model.NextAppointment.Time).ToString("h:mm tt") : "—";
+    var weekly = (Model.WeeklyAppointmentCounts ?? new List<int>()).ToList();
+    while (weekly.Count < 7) { weekly.Add(0); }
+    var weekdayNames = new[] { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+    var weeklyMax = Math.Max(1, weekly.Max());
+    var weeklyTotal = weekly.Sum();
+    var weeklyAverage = weeklyTotal / 7.0;
+    var unreadAlerts = Model.UnreadAlertsCount;
+}
+
+<div class="dd-wrap" data-doctor-dashboard>
+    <div class="hero">
+        <div class="hero-left">
+            <span class="hero-eyebrow"><i class="fas fa-stethoscope"></i> Dashboard</span>
+            <h2 class="hero-title">@greeting, <span>Dr. @Model.DoctorName</span></h2>
+            <p class="hero-sub"><i class="fas fa-circle"></i> <span id="ddCurrentDate">@now.ToString("dddd, MMMM dd, yyyy", CultureInfo.InvariantCulture)</span> · Gynecology &amp; Obstetrics</p>
+        </div>
+        <div class="hero-right">
+            <div class="hero-stat">
+                <div class="hero-stat-ico"><i class="fas fa-calendar-check"></i></div>
+                <div class="hero-stat-body"><span class="hero-stat-val">@Model.TodayAppointmentsCount</span><span class="hero-stat-lbl">Today's Appointments</span></div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-ico"><i class="fas fa-user-clock"></i></div>
+                <div class="hero-stat-body"><span class="hero-stat-val hero-next">@nextAppointmentTime</span><span class="hero-stat-lbl">Next Patient</span></div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-ico"><i class="fas fa-exclamation-triangle"></i></div>
+                <div class="hero-stat-body"><span class="hero-stat-val">@unreadAlerts</span><span class="hero-stat-lbl">Pending Notifications</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="kpi-grid">
+        <div class="kpi">
+            <div class="kpi-top"><div class="kpi-ico blue"><i class="fas fa-users"></i></div><span class="kpi-trend up"><i class="fas fa-arrow-up"></i> +@Model.NewPatientsThisMonth</span></div>
+            <div class="kpi-mid"><div class="kpi-val">@Model.ActivePatientsCount</div><div class="kpi-label">Active Patients</div></div>
+            <div class="kpi-foot"><i class="fas fa-info-circle"></i> @Model.HighRiskPatientsCount high-risk require monitoring</div>
+            <div class="kpi-glow blue"></div>
+        </div>
+
+        <div class="kpi">
+            <div class="kpi-top"><div class="kpi-ico amber"><i class="fas fa-calendar-check"></i></div><span class="kpi-trend up"><i class="fas fa-arrow-up"></i> +@Model.TodayAppointmentsCount</span></div>
+            <div class="kpi-mid"><div class="kpi-val">@Model.ThisWeekAppointmentsCount</div><div class="kpi-label">Appointments This Week</div></div>
+            <div class="kpi-foot"><i class="fas fa-clock"></i> Next: @nextPatientName at @nextAppointmentTime</div>
+            <div class="kpi-glow amber"></div>
+        </div>
+
+        <div class="kpi">
+            <div class="kpi-top"><div class="kpi-ico red"><i class="fas fa-exclamation-triangle"></i></div><span class="kpi-trend neu"><i class="fas fa-minus"></i> Same</span></div>
+            <div class="kpi-mid"><div class="kpi-val">@Model.HighRiskPatientsCount</div><div class="kpi-label">High-Risk Patients</div></div>
+            <div class="kpi-foot"><i class="fas fa-eye"></i> Immediate attention required</div>
+            <div class="kpi-glow red"></div>
+        </div>
+
+        <div class="kpi">
+            <div class="kpi-top"><div class="kpi-ico green"><i class="fas fa-comments"></i></div><span class="kpi-trend down"><i class="fas fa-arrow-down"></i> @Model.UrgentMessagesCount urgent</span></div>
+            <div class="kpi-mid"><div class="kpi-val">@Model.UnreadMessagesCount</div><div class="kpi-label">Unread Messages</div></div>
+            <div class="kpi-foot"><i class="fas fa-clock"></i> Last received recently</div>
+            <div class="kpi-glow green"></div>
+        </div>
+    </div>
+
+    <div class="main-grid">
+        <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-header-left"><div class="card-ico teal"><i class="fas fa-clock"></i></div><div><div class="card-title">Today's Schedule</div><div class="card-sub">@now.ToString("dddd, MMMM dd", CultureInfo.InvariantCulture)</div></div></div>
+                    <a class="card-link" href="/Doctor/Schedule/@Model.Doctor.DoctorID">Full schedule <i class="fas fa-arrow-right"></i></a>
+                </div>
+                <div class="schedule-list">
+                    @if (Model.TodayAppointments.Any())
+                    {
+                        @foreach (var appt in Model.TodayAppointments)
+                        {
+                            var patientName = $"{appt.Patient?.User?.FirstName} {appt.Patient?.User?.LastName}".Trim();
+                            patientName = string.IsNullOrWhiteSpace(patientName) ? "Patient" : patientName;
+                            var status = (appt.Booking?.Status ?? (appt.isBooked ? "confirmed" : "pending")).ToLowerInvariant();
+                            var lineClass = status == "urgent" || status == "cancelled" ? "urgent" : status == "completed" ? "done" : status == "confirmed" ? "confirmed" : "pending";
+                            var pillClass = lineClass == "done" ? "p-done" : lineClass == "confirmed" ? "p-confirmed" : lineClass == "urgent" ? "p-urgent" : "p-pending";
+                            var weeks = appt.Patient?.GestationalWeeks ?? 0;
+                            var trimester = weeks <= 12 ? "1st" : weeks <= 26 ? "2nd" : "3rd";
+                            <div class="schedule-item">
+                                <div class="s-time"><span class="s-time-main">@DateTime.Today.Add(appt.Time).ToString("h:mm")</span><span class="s-time-sub">@DateTime.Today.Add(appt.Time).ToString("tt")</span></div>
+                                <div class="s-line @lineClass"></div>
+                                <div class="s-body">
+                                    <div class="s-name">@patientName</div>
+                                    <div class="s-type">@(appt.Booking?.Reason ?? "General consultation") · 30 min</div>
+                                    <div class="s-pills">
+                                        <span class="pill @pillClass">@status</span>
+                                        @if (appt.Patient != null)
+                                        {
+                                            <span class="pill p-teal">@trimester Tri.</span>
+                                            <span class="pill p-blue">Wk @weeks</span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="schedule-empty"><i class="fas fa-calendar-check"></i>No appointments today</div>
+                    }
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-header-left"><div class="card-ico red"><i class="fas fa-heart-pulse"></i></div><div><div class="card-title">Patients Needing Attention</div><div class="card-sub">Sorted by urgency</div></div></div>
+                    <a class="card-link" href="/Doctor/Patients/@Model.Doctor.DoctorID">All patients <i class="fas fa-arrow-right"></i></a>
+                </div>
+                <div>
+                    @if (Model.PriorityPatients.Any())
+                    {
+                        @foreach (var p in Model.PriorityPatients)
+                        {
+                            var name = $"{p.User?.FirstName} {p.User?.LastName}".Trim();
+                            name = string.IsNullOrWhiteSpace(name) ? "Patient" : name;
+                            var risk = (p.RiskLevel ?? "low").ToLowerInvariant();
+                            var riskClass = risk == "high" ? "high" : risk == "medium" ? "medium" : "low";
+                            <a class="patient-row"
+                               asp-controller="Doctor"
+                               asp-action="PatientDetails"
+                               asp-route-id="@Model.Doctor.DoctorID"
+                               asp-route-patientId="@p.PatientID">
+                                <div class="pat-avatar">
+                                    <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(name)&background=14967f&color=fff&size=80" alt="@name" />
+                                    <span class="pat-risk @riskClass"></span>
+                                </div>
+                                <div class="pat-info"><div class="pat-name">@name</div><div class="pat-meta">Week @p.GestationalAge · @risk risk</div></div>
+                                <div class="pat-right"><span class="pat-tag @riskClass">@risk risk</span></div>
+                            </a>
+                        }
+                    }
+                    else
+                    {
+                        <div class="schedule-empty"><i class="fas fa-check-circle"></i>No patients requiring immediate attention</div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="right-col">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-header-left"><div class="card-ico amber"><i class="fas fa-bell"></i></div><div><div class="card-title">Notifications</div><div class="card-sub">@(unreadAlerts == 0 ? "All read" : $"{unreadAlerts} unread")</div></div></div>
+                    <a class="card-link" href="#">View all <i class="fas fa-arrow-right"></i></a>
+                </div>
+                <div>
+                    @if (Model.RecentAlerts.Any())
+                    {
+                        @foreach (var alert in Model.RecentAlerts)
+                        {
+                            var t = (alert.AlertType ?? "info").ToLowerInvariant();
+                            var tClass = t == "danger" ? "critical" : t;
+                            var icon = tClass == "critical" ? "fa-exclamation-circle" : tClass == "warning" ? "fa-flask" : tClass == "success" ? "fa-check-circle" : "fa-calendar-check";
+                            <div class="alert-item @tClass">
+                                <div class="alert-strip"></div>
+                                <div class="alert-ico-wrap"><div class="alert-ico"><i class="fas @icon"></i></div></div>
+                                <div class="alert-body"><div class="alert-title">@alert.Title</div><div class="alert-msg">@alert.Message</div><div class="alert-time"><i class="fas fa-clock"></i>@alert.DateCreated.ToString("g")</div></div>
+                                @if (!alert.IsRead)
+                                {
+                                    <div class="alert-unread"></div>
+                                }
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="schedule-empty"><i class="fas fa-check-circle"></i>No alerts</div>
+                    }
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-header-left"><div class="card-ico teal"><i class="fas fa-comment-medical"></i></div><div><div class="card-title">Recent Messages</div><div class="card-sub" id="messagesSubLabel">@(Model.UnreadMessagesCount == 0 ? "All read" : $"{Model.UnreadMessagesCount} unread")</div></div></div>
+                    <a class="card-link" href="/Doctor/Messages/@Model.Doctor.DoctorID">Open inbox <i class="fas fa-arrow-right"></i></a>
+                </div>
+                <div id="messagesList">
+                    @if (Model.RecentMessages.Any())
+                    {
+                        @foreach (var msg in Model.RecentMessages)
+                        {
+                            var initials = string.Concat((msg.PatientName ?? "P")
+                                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                                .Take(2)
+                                .Select(s => char.ToUpperInvariant(s[0])));
+
+                            var preview = msg.LastMessagePreview ?? "";
+                            if (preview.Length > 42) preview = preview[..42] + "...";
+
+                            string timeLabel;
+                            if (!msg.LastMessageTime.HasValue)
+                            {
+                                timeLabel = "Now";
+                            }
+                            else
+                            {
+                                var diff = DateTime.Now - msg.LastMessageTime.Value;
+                                timeLabel = diff.TotalMinutes < 60
+                                    ? $"{Math.Max(1, (int)diff.TotalMinutes)} min"
+                                    : diff.TotalHours < 24
+                                        ? $"{Math.Max(1, (int)diff.TotalHours)} hrs"
+                                        : diff.TotalDays < 2
+                                            ? "Yesterday"
+                                            : msg.LastMessageTime.Value.ToString("MMM d");
+                            }
+
+                            <div class="msg-item" onclick="window.location.href='/Doctor/Messages/@Model.Doctor.DoctorID?patient=@msg.PatientId'" style="cursor:pointer;">
+                                <div class="msg-avatar">
+                                    <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(msg.PatientName)&background=14967f&color=fff&size=80" alt="@msg.PatientName" />
+                                    @if (msg.UnreadCount > 0)
+                                    {
+                                        <span class="msg-dot"></span>
+                                    }
+                                </div>
+                                <div class="msg-body">
+                                    <div class="msg-name">@msg.PatientName</div>
+                                    <div class="msg-preview">@preview</div>
+                                </div>
+                                <div class="msg-right">
+                                    <span class="msg-time">@timeLabel</span>
+                                    @if (msg.UnreadCount > 0)
+                                    {
+                                        <span class="msg-count">@msg.UnreadCount</span>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="schedule-empty"><i class="fas fa-comments"></i>No messages yet</div>
+                    }
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><div class="card-header-left"><div class="card-ico blue"><i class="fas fa-chart-bar"></i></div><div><div class="card-title">Weekly Appointments</div><div class="card-sub">This week's schedule load</div></div></div></div>
+                <div class="week-chart">
+                    <div class="week-chart-bars">
+                        @for (var i = 0; i < 7; i++)
+                        {
+                            var h = Math.Max(8, (int)Math.Round((weekly[i] / (double)weeklyMax) * 64));
+                            <div class="wbar @(DateTime.Today.DayOfWeek == (DayOfWeek)i ? "today" : string.Empty)" style="height:@(h)px" data-tip="@weekly[i] appts"></div>
+                        }
+                    </div>
+                    <div class="wbar-labels">
+                        @for (var i = 0; i < 7; i++)
+                        {
+                            <span class="wbar-label @(DateTime.Today.DayOfWeek == (DayOfWeek)i ? "today" : string.Empty)">@weekdayNames[i]</span>
+                        }
+                    </div>
+                    <div class="week-summary">
+                        <div class="wsumm"><div class="wsumm-val">@weeklyTotal</div><div class="wsumm-lbl">Total</div></div>
+                        <div class="wsumm"><div class="wsumm-val">@Model.TodayAppointmentsCount</div><div class="wsumm-lbl">Today</div></div>
+                        <div class="wsumm"><div class="wsumm-val">@weeklyAverage.ToString("0.0")</div><div class="wsumm-lbl">Daily avg</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-grid">
+        <div class="card">
+            <div class="card-header"><div class="card-header-left"><div class="card-ico red"><i class="fas fa-shield-alt"></i></div><div><div class="card-title">Patient Risk Distribution</div><div class="card-sub">Across @Model.ActivePatientsCount active patients</div></div></div></div>
+            <div class="risk-bars">
+                @{
+                    var totalRisk = Math.Max(1, Model.ActivePatientsCount);
+                    var highPct = (int)Math.Round(Model.HighRiskPatientsCount * 100d / totalRisk);
+                    var medPct = (int)Math.Round(Model.MediumRiskPatientsCount * 100d / totalRisk);
+                    var lowPct = (int)Math.Round(Model.LowRiskPatientsCount * 100d / totalRisk);
+                }
+                <div class="risk-row"><div class="risk-row-head"><span class="risk-row-label"><span class="risk-dot high"></span>High Risk</span><span class="risk-row-val">@Model.HighRiskPatientsCount patients · @highPct%</span></div><div class="risk-track"><div class="risk-fill high" style="width:@highPct%"></div></div></div>
+                <div class="risk-row"><div class="risk-row-head"><span class="risk-row-label"><span class="risk-dot medium"></span>Medium Risk</span><span class="risk-row-val">@Model.MediumRiskPatientsCount patients · @medPct%</span></div><div class="risk-track"><div class="risk-fill medium" style="width:@medPct%"></div></div></div>
+                <div class="risk-row"><div class="risk-row-head"><span class="risk-row-label"><span class="risk-dot low"></span>Low Risk</span><span class="risk-row-val">@Model.LowRiskPatientsCount patients · @lowPct%</span></div><div class="risk-track"><div class="risk-fill low" style="width:@lowPct%"></div></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/doctor-dashboard-demo.css" asp-append-version="true" />
+}
+
+@section Scripts {
+    <script src="~/js/doctor-dashboard-demo.js" asp-append-version="true"></script>
+}

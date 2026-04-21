@@ -1,0 +1,89 @@
+@using System.Globalization
+@using System.Linq
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>@ViewData["Title"] - NABD نبض · Doctor Portal</title>
+  <link rel="icon" type="image/png" href="~/images/logo.png" asp-append-version="true" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="~/css/design-system.css" asp-append-version="true" />
+  <link rel="stylesheet" href="~/css/doctor-style.css" asp-append-version="true" />
+  @await RenderSectionAsync("Head", required: false)
+  @await RenderSectionAsync("Styles", required: false)
+</head>
+@{
+  var layoutDoctorId = ViewData["DoctorId"] as int? ?? 0;
+  var layoutDoctorName = ViewData["DoctorName"] as string ?? User?.Identity?.Name ?? "Doctor";
+  var shortDoctorName = layoutDoctorName.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? layoutDoctorName;
+  var headerDateChip = DateTime.Now.ToString("ddd, MMM d", new CultureInfo("en-US"));
+  var pageTitleHtml = ViewData["PageTitleHtml"] as string;
+}
+<body data-doctor-id="@layoutDoctorId">
+<div class="container">
+
+  @await Html.PartialAsync("_DoctorSidebar")
+
+  <button class="sidebar-toggle" title="Toggle sidebar"><i class="fas fa-chevron-left"></i></button>
+
+  <div class="sidebar-overlay"></div>
+
+  <div class="notifications-panel" id="notificationsPanel">
+    <div class="notifications-header">
+      <h3><i class="fas fa-bell"></i> Notifications</h3>
+      <button class="close-notifications" id="closeNotifications"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="notifications-body" id="notificationsList"></div>
+  </div>
+
+  <main class="main-content">
+    <header class="top-bar">
+      <div class="topbar-left">
+        <div class="topbar-greeting">
+          <h1 class="page-title">@Html.Raw(!string.IsNullOrWhiteSpace(pageTitleHtml) ? pageTitleHtml : (ViewData["PageTitle"] as string ?? ViewData["Title"] as string ?? "Dashboard"))</h1>
+          @if (!string.IsNullOrWhiteSpace(ViewData["PageSubtitle"] as string))
+          {
+            <p class="page-subtitle">@(ViewData["PageSubtitle"] as string)</p>
+          }
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="date-chip">
+          <i class="fas fa-calendar-alt"></i>
+          <span>@headerDateChip</span>
+        </div>
+
+        <button class="icon-btn" id="notificationBtn" title="Notifications" type="button">
+          <i class="fas fa-bell"></i>
+          <span class="dot" id="notificationBadge" style="display:none">0</span>
+        </button>
+
+        <button class="icon-btn" title="Search" type="button">
+          <i class="fas fa-search"></i>
+        </button>
+
+        <div class="topbar-avatar user-menu">
+          <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(layoutDoctorName)&background=14967f&color=fff&size=80"
+               alt="@layoutDoctorName" />
+          <span>Dr. @shortDoctorName</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="page-content">
+      @RenderBody()
+    </div>
+  </main>
+
+</div>
+
+<div style="display:none;">@Html.AntiForgeryToken()</div>
+
+<script src="~/js/shared.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
