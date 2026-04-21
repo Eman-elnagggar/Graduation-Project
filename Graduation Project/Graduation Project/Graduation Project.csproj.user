@@ -2,6 +2,6 @@
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <ActiveDebugProfile>https</ActiveDebugProfile>
-    <NameOfLastUsedPublishProfile>D:\Graduation Project\C#\Project\Graduation Project\Graduation Project\Properties\PublishProfiles\site64387-WebDeploy.pubxml</NameOfLastUsedPublishProfile>
+    <NameOfLastUsedPublishProfile>site64387-WebDeploy</NameOfLastUsedPublishProfile>
   </PropertyGroup>
 </Project>

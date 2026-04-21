@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Graduation Project\\C#\\Project\\Graduation Project\\Graduation Project\\Graduation Project.csproj": {}
+    "D:\\Graduation Project\\C#\\project\\Graduation Project\\Graduation Project\\Graduation Project.csproj": {}
   },
   "projects": {
-    "D:\\Graduation Project\\C#\\Project\\Graduation Project\\Graduation Project\\Graduation Project.csproj": {
+    "D:\\Graduation Project\\C#\\project\\Graduation Project\\Graduation Project\\Graduation Project.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Graduation Project\\C#\\Project\\Graduation Project\\Graduation Project\\Graduation Project.csproj",
+        "projectUniqueName": "D:\\Graduation Project\\C#\\project\\Graduation Project\\Graduation Project\\Graduation Project.csproj",
         "projectName": "Graduation Project",
-        "projectPath": "D:\\Graduation Project\\C#\\Project\\Graduation Project\\Graduation Project\\Graduation Project.csproj",
+        "projectPath": "D:\\Graduation Project\\C#\\project\\Graduation Project\\Graduation Project\\Graduation Project.csproj",
         "packagesPath": "C:\\Users\\serag\\.nuget\\packages\\",
-        "outputPath": "D:\\Graduation Project\\C#\\Project\\Graduation Project\\Graduation Project\\obj\\",
+        "outputPath": "D:\\Graduation Project\\C#\\project\\Graduation Project\\Graduation Project\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -30,7 +30,6 @@
         },
         "frameworks": {
           "net8.0": {
-            "framework": "net8.0",
             "targetAlias": "net8.0",
             "projectReferences": {}
           }
@@ -49,7 +48,6 @@
       },
       "frameworks": {
         "net8.0": {
-          "framework": "net8.0",
           "targetAlias": "net8.0",
           "dependencies": {
             "Microsoft.AspNetCore.Identity.EntityFrameworkCore": {

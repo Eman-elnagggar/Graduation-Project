@@ -1995,28 +1995,33 @@
 /* ================================
    Assistant Dashboard - Modern Surface (Doctor-inspired)
 ================================ */
+.assistant-page-wrap,
 .ad-wrap {
   display: flex;
   flex-direction: column;
   gap: 0;
 }
 
+.assistant-page-wrap .card,
 .ad-wrap .card {
   border: 1px solid #e4eaf2;
   border-radius: 16px;
   box-shadow: 0 1px 4px rgba(15, 28, 46, 0.06);
 }
 
+.assistant-page-wrap .card-header,
 .ad-wrap .card-header {
   border-bottom: 1px solid #e4eaf2;
   padding-bottom: 14px;
 }
 
+.assistant-page-wrap .card-header h3,
 .ad-wrap .card-header h3 {
   font-size: 0.95rem;
   color: #0f1c2e;
 }
 
+.assistant-page-wrap .card-header a,
 .ad-wrap .card-header a {
   font-size: 0.74rem;
   font-weight: 600;
@@ -2025,48 +2030,58 @@
   gap: 4px;
 }
 
+.assistant-page-wrap .card-header a:hover,
 .ad-wrap .card-header a:hover {
   text-decoration: none;
   gap: 7px;
 }
 
+.assistant-page-wrap .quick-stat-card,
 .ad-wrap .quick-stat-card {
   border: 1px solid #e4eaf2;
   box-shadow: 0 1px 4px rgba(15, 28, 46, 0.06);
 }
 
+.assistant-page-wrap .quick-stat-card .stat-value,
 .ad-wrap .quick-stat-card .stat-value {
   font-size: 1.95rem;
 }
 
+.assistant-page-wrap .quick-stat-card .stat-label,
 .ad-wrap .quick-stat-card .stat-label {
   color: #8896ab;
 }
 
+.assistant-page-wrap .schedule-toolbar,
 .ad-wrap .schedule-toolbar {
   gap: 8px;
 }
 
+.assistant-page-wrap .schedule-status-btn,
 .ad-wrap .schedule-status-btn {
   border-radius: 999px;
   font-size: 0.78rem;
   padding: 6px 12px;
 }
 
+.assistant-page-wrap .team-card,
 .ad-wrap .team-card {
   border: 1px solid #e4eaf2;
   box-shadow: 0 1px 4px rgba(15, 28, 46, 0.06);
 }
 
+.assistant-page-wrap .team-card:hover,
 .ad-wrap .team-card:hover {
   transform: translateY(-3px);
   box-shadow: 0 8px 24px rgba(15, 28, 46, 0.12);
 }
 
+.assistant-page-wrap .team-card h4,
 .ad-wrap .team-card h4 {
   color: #0f1c2e;
 }
 
+.assistant-page-wrap .team-card .role,
 .ad-wrap .team-card .role {
   color: #8896ab;
 }

@@ -95,8 +95,16 @@ namespace Graduation_Project
             {
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-                // Ensure chat persistence table exists for real-time messaging.
-                await db.Database.ExecuteSqlRawAsync(@"
+                try
+                {
+                    if (!await db.Database.CanConnectAsync())
+                    {
+                        app.Logger.LogWarning("Database is not reachable during startup. Skipping startup SQL/seeding to prevent app crash.");
+                    }
+                    else
+                    {
+                        // Ensure chat persistence table exists for real-time messaging.
+                        await db.Database.ExecuteSqlRawAsync(@"
 IF OBJECT_ID(N'dbo.ChatMessages', N'U') IS NULL
 BEGIN
     CREATE TABLE [dbo].[ChatMessages](
@@ -118,9 +126,15 @@ BEGIN
 
     CREATE INDEX [IX_ChatMessages_ReceiverUserId_IsRead]
         ON [dbo].[ChatMessages]([ReceiverUserId], [IsRead]);
-END");
+ END");
 
-                await DataSeeder.SeedAsync(db);
+                        await DataSeeder.SeedAsync(db);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    app.Logger.LogError(ex, "Startup database initialization failed. Continuing app startup.");
+                }
             }
             // ????????????????????????????????????????????????????????????
 

@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "ntkteYBu83M=",
+  "dgSpecHash": "ZpPbKv0sXMc=",
   "success": true,
-  "projectFilePath": "D:\\Graduation Project\\C#\\Project\\Graduation Project\\Graduation Project\\Graduation Project.csproj",
+  "projectFilePath": "D:\\Graduation Project\\C#\\project\\Graduation Project\\Graduation Project\\Graduation Project.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\serag\\.nuget\\packages\\azure.core\\1.38.0\\azure.core.1.38.0.nupkg.sha512",
     "C:\\Users\\serag\\.nuget\\packages\\azure.identity\\1.11.4\\azure.identity.1.11.4.nupkg.sha512",
