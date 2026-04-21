@@ -3,51 +3,8 @@
   "WorkspaceRootPath": "D:\\Graduation Project\\C#\\Project\\Graduation Project\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\serag\\AppData\\Local\\Temp\\VisualStudio\\copilot-vs\\plan-38fd03e4-cdad-4c2b-8566-6f9bf937e9d9.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}|MarkdownSecurePreview"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|d:\\graduation project\\c#\\project\\graduation project\\graduation project\\views\\shared\\_assistantlayout.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|solutionrelative:graduation project\\views\\shared\\_assistantlayout.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|d:\\graduation project\\c#\\project\\graduation project\\graduation project\\controllers\\assistantcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|solutionrelative:graduation project\\controllers\\assistantcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|d:\\graduation project\\c#\\project\\graduation project\\graduation project\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
-      "RelativeMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|solutionrelative:graduation project\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|d:\\graduation project\\c#\\project\\graduation project\\graduation project\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|solutionrelative:graduation project\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|d:\\graduation project\\c#\\project\\graduation project\\graduation project\\views\\shared\\_assistantsidebar.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|solutionrelative:graduation project\\views\\shared\\_assistantsidebar.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|d:\\graduation project\\c#\\project\\graduation project\\graduation project\\views\\assistant\\index.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|solutionrelative:graduation project\\views\\assistant\\index.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|d:\\graduation project\\c#\\project\\graduation project\\graduation project\\views\\assistant\\appointments.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|solutionrelative:graduation project\\views\\assistant\\appointments.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|d:\\graduation project\\c#\\project\\graduation project\\graduation project\\views\\assistant\\availability.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|solutionrelative:graduation project\\views\\assistant\\availability.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|d:\\graduation project\\c#\\project\\graduation project\\graduation project\\views\\assistant\\patients.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|solutionrelative:graduation project\\views\\assistant\\patients.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|d:\\graduation project\\c#\\project\\graduation project\\graduation project\\views\\assistant\\patientdetails.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|solutionrelative:graduation project\\views\\assistant\\patientdetails.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|d:\\graduation project\\c#\\project\\graduation project\\graduation project\\wwwroot\\css\\assistant-style.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
-      "RelativeMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|solutionrelative:graduation project\\wwwroot\\css\\assistant-style.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
     }
   ],
   "DocumentGroupContainers": [
@@ -57,136 +14,8 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 0,
+          "SelectedChildIndex": 14,
           "Children": [
-            {
-              "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "plan-38fd03e4-cdad-4c2b-8566-6f9bf937e9d9.md [Preview]",
-              "DocumentMoniker": "C:\\Users\\serag\\AppData\\Local\\Temp\\VisualStudio\\copilot-vs\\plan-38fd03e4-cdad-4c2b-8566-6f9bf937e9d9.md",
-              "ToolTip": "C:\\Users\\serag\\AppData\\Local\\Temp\\VisualStudio\\copilot-vs\\plan-38fd03e4-cdad-4c2b-8566-6f9bf937e9d9.md [Preview]",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
-              "WhenOpened": "2026-04-21T15:44:42.467Z",
-              "IsPinned": true,
-              "EditorCaption": " [Preview]"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 11,
-              "Title": "assistant-style.css",
-              "DocumentMoniker": "D:\\Graduation Project\\C#\\Project\\Graduation Project\\Graduation Project\\wwwroot\\css\\assistant-style.css",
-              "RelativeDocumentMoniker": "Graduation Project\\wwwroot\\css\\assistant-style.css",
-              "ToolTip": "D:\\Graduation Project\\C#\\Project\\Graduation Project\\Graduation Project\\wwwroot\\css\\assistant-style.css",
-              "RelativeToolTip": "Graduation Project\\wwwroot\\css\\assistant-style.css",
-              "ViewState": "AgIAAM4HAAAAAAAAAABBwAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
-              "WhenOpened": "2026-04-21T16:19:31.945Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 10,
-              "Title": "PatientDetails.cshtml",
-              "DocumentMoniker": "D:\\Graduation Project\\C#\\Project\\Graduation Project\\Graduation Project\\Views\\Assistant\\PatientDetails.cshtml",
-              "RelativeDocumentMoniker": "Graduation Project\\Views\\Assistant\\PatientDetails.cshtml",
-              "ToolTip": "D:\\Graduation Project\\C#\\Project\\Graduation Project\\Graduation Project\\Views\\Assistant\\PatientDetails.cshtml",
-              "RelativeToolTip": "Graduation Project\\Views\\Assistant\\PatientDetails.cshtml",
-              "ViewState": "AgIAAAgAAAAAAAAAAIBJwAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-04-21T16:18:46.167Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 9,
-              "Title": "Patients.cshtml",
-              "DocumentMoniker": "D:\\Graduation Project\\C#\\Project\\Graduation Project\\Graduation Project\\Views\\Assistant\\Patients.cshtml",
-              "RelativeDocumentMoniker": "Graduation Project\\Views\\Assistant\\Patients.cshtml",
-              "ToolTip": "D:\\Graduation Project\\C#\\Project\\Graduation Project\\Graduation Project\\Views\\Assistant\\Patients.cshtml",
-              "RelativeToolTip": "Graduation Project\\Views\\Assistant\\Patients.cshtml",
-              "ViewState": "AgIAAAgAAAAAAAAAAIBJwAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-04-21T16:18:39.474Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 8,
-              "Title": "Availability.cshtml",
-              "DocumentMoniker": "D:\\Graduation Project\\C#\\Project\\Graduation Project\\Graduation Project\\Views\\Assistant\\Availability.cshtml",
-              "RelativeDocumentMoniker": "Graduation Project\\Views\\Assistant\\Availability.cshtml",
-              "ToolTip": "D:\\Graduation Project\\C#\\Project\\Graduation Project\\Graduation Project\\Views\\Assistant\\Availability.cshtml",
-              "RelativeToolTip": "Graduation Project\\Views\\Assistant\\Availability.cshtml",
-              "ViewState": "AgIAAAsAAAAAAAAAAABRwAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-04-21T16:18:29.993Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 7,
-              "Title": "Appointments.cshtml",
-              "DocumentMoniker": "D:\\Graduation Project\\C#\\Project\\Graduation Project\\Graduation Project\\Views\\Assistant\\Appointments.cshtml",
-              "RelativeDocumentMoniker": "Graduation Project\\Views\\Assistant\\Appointments.cshtml",
-              "ToolTip": "D:\\Graduation Project\\C#\\Project\\Graduation Project\\Graduation Project\\Views\\Assistant\\Appointments.cshtml",
-              "RelativeToolTip": "Graduation Project\\Views\\Assistant\\Appointments.cshtml",
-              "ViewState": "AgIAAAsAAAAAAAAAAABRwAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-04-21T16:18:23.478Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 6,
-              "Title": "Index.cshtml",
-              "DocumentMoniker": "D:\\Graduation Project\\C#\\Project\\Graduation Project\\Graduation Project\\Views\\Assistant\\Index.cshtml",
-              "RelativeDocumentMoniker": "Graduation Project\\Views\\Assistant\\Index.cshtml",
-              "ToolTip": "D:\\Graduation Project\\C#\\Project\\Graduation Project\\Graduation Project\\Views\\Assistant\\Index.cshtml",
-              "RelativeToolTip": "Graduation Project\\Views\\Assistant\\Index.cshtml",
-              "ViewState": "AgIAABoAAAAAAAAAAABRwAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-04-21T16:18:10.127Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "_AssistantLayout.cshtml",
-              "DocumentMoniker": "D:\\Graduation Project\\C#\\Project\\Graduation Project\\Graduation Project\\Views\\Shared\\_AssistantLayout.cshtml",
-              "RelativeDocumentMoniker": "Graduation Project\\Views\\Shared\\_AssistantLayout.cshtml",
-              "ToolTip": "D:\\Graduation Project\\C#\\Project\\Graduation Project\\Graduation Project\\Views\\Shared\\_AssistantLayout.cshtml",
-              "RelativeToolTip": "Graduation Project\\Views\\Shared\\_AssistantLayout.cshtml",
-              "ViewState": "AgIAAHIAAAAAAAAAAAAAAHIAAAAHAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-04-21T16:08:20.704Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 5,
-              "Title": "_AssistantSidebar.cshtml",
-              "DocumentMoniker": "D:\\Graduation Project\\C#\\Project\\Graduation Project\\Graduation Project\\Views\\Shared\\_AssistantSidebar.cshtml",
-              "RelativeDocumentMoniker": "Graduation Project\\Views\\Shared\\_AssistantSidebar.cshtml",
-              "ToolTip": "D:\\Graduation Project\\C#\\Project\\Graduation Project\\Graduation Project\\Views\\Shared\\_AssistantSidebar.cshtml",
-              "RelativeToolTip": "Graduation Project\\Views\\Shared\\_AssistantSidebar.cshtml",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAxwFoAAAAIAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-04-21T16:07:52.938Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "AssistantController.cs",
-              "DocumentMoniker": "D:\\Graduation Project\\C#\\Project\\Graduation Project\\Graduation Project\\Controllers\\AssistantController.cs",
-              "RelativeDocumentMoniker": "Graduation Project\\Controllers\\AssistantController.cs",
-              "ToolTip": "D:\\Graduation Project\\C#\\Project\\Graduation Project\\Graduation Project\\Controllers\\AssistantController.cs",
-              "RelativeToolTip": "Graduation Project\\Controllers\\AssistantController.cs",
-              "ViewState": "AgIAAG8FAAAAAAAAAAAAAG8FAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-04-21T16:06:47.442Z",
-              "EditorCaption": ""
-            },
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{40ea2e6b-2121-4bb8-a43e-c83c04b51041}"
@@ -245,28 +74,15 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 0,
               "Title": "Program.cs",
               "DocumentMoniker": "D:\\Graduation Project\\C#\\Project\\Graduation Project\\Graduation Project\\Program.cs",
               "RelativeDocumentMoniker": "Graduation Project\\Program.cs",
               "ToolTip": "D:\\Graduation Project\\C#\\Project\\Graduation Project\\Graduation Project\\Program.cs",
               "RelativeToolTip": "Graduation Project\\Program.cs",
-              "ViewState": "AgIAAEkAAAAAAAAAAAAkwFoAAAAmAAAAAAAAAA==",
+              "ViewState": "AgIAAHMAAAAAAAAAAAApwIIAAAA3AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-04-21T15:52:34.131Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "appsettings.json",
-              "DocumentMoniker": "D:\\Graduation Project\\C#\\Project\\Graduation Project\\Graduation Project\\appsettings.json",
-              "RelativeDocumentMoniker": "Graduation Project\\appsettings.json",
-              "ToolTip": "D:\\Graduation Project\\C#\\Project\\Graduation Project\\Graduation Project\\appsettings.json",
-              "RelativeToolTip": "Graduation Project\\appsettings.json",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAMAAAAlAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2026-04-21T15:40:16.347Z",
               "EditorCaption": ""
             }
           ]
