@@ -16,6 +16,7 @@ class TestType(str, Enum):
     Blood_Group='Blood Group'
     HBsAg='HBsAg (Hepatitis B)'
     HCV='HCV (Hepatitis C)'
+    FBG='Fasting Blood Glucose'
 
 @app.post("/analyze")
 async def get_analysis(

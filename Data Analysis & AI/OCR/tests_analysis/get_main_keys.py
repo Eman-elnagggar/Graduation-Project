@@ -31,3 +31,6 @@ def get_keys(test_name)->list:
     if test_name=='Ferritin':
         return ['Ferritin_value'],[]
     
+    if test_name=='Fasting Blood Glucose':
+        return ['FBG'],[]
+    

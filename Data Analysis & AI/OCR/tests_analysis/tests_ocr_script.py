@@ -178,33 +178,36 @@ class OCR_test:
      #Initalize model
      self.doctr_model = ocr_predictor(det_arch='db_resnet50', reco_arch='crnn_vgg16_bn', pretrained=True)
 
-  def __ocr_doctr(self,image_rgb)->str:
-    #Initalize model with detection and recognition stage
-    doctr_model = ocr_predictor(det_arch='db_resnet50', reco_arch='crnn_vgg16_bn', pretrained=True)
-    try:
-        # temp path to save numpy array and avoid type error conflict
-        temp_path = "doctr_temp_file.jpg"
-        cv2.imwrite(temp_path, cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR))
-        # Standraize and normalize images
-        doc = DocumentFile.from_images([temp_path])
-        #Inference
-        result = doctr_model(doc)
-        #Parsing the export
-        export = result.export()
-        #The reconstraction
-        full_text = []
-        for page in export['pages']:
-            for block in page['blocks']:
-                for line in block['lines']:
-                    line_text = " ".join([word['value'] for word in line['words']])
-                    full_text.append(line_text)
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
+  def __ocr_doctr(self, image_rgb):
+        try:
+            temp_path = "doctr_temp_file.jpg"
+            cv2.imwrite(temp_path, cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR))
+            doc = DocumentFile.from_images([temp_path])
+            result = self.doctr_model(doc)
+            export = result.export()
 
-        return " ".join(full_text)
-    except Exception as e:
-        print(f"DocTR Error: {e}")
-        return ""
+            full_text = []
+            all_confidences = [] 
+            for page in export['pages']:
+                for block in page['blocks']:
+                    for line in block['lines']:
+                        words_list = line['words']
+                        line_text = " ".join([word['value'] for word in words_list])
+                        full_text.append(line_text)
+                        for word in words_list:
+                            all_confidences.append(word['confidence'])
+
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+            avg_confidence = (sum(all_confidences) / len(all_confidences)) if all_confidences else 0
+            
+            return " ".join(full_text), f"{avg_confidence:0.2f}"
+
+        except Exception as e:
+            print(f"DocTR Error: {e}")
+            return "", 0
+
+
   def __normalize_text(self,text):
     self.__text=re.sub(r'(\d+):(\d+)',r'\1.\2',text)
     self.__text=re.sub(r'(\d+);(\d+)',r'\1.\2',text)
@@ -255,6 +258,11 @@ class test_parameters:
           "HbA1c":r"(?:hba1c|a1c|glycosylated).*?\b(\d{1,2}(?:\.\d{1,2})?)\b\s*(?=%|normal|high|low)"
       }
       return HBA1C_Parameters
+  def __FBG_Parameters(self)->dict:
+      FBG_Parameters={
+          "FBG": r"(?:fasting|fbs|fbg|glucose|sugar).*?\b(\d{2,3}(?:\.\d{1,2})?)\b\s*(?=mg/dl|mmol/l|normal|high|low|\s|$)"
+      }
+      return FBG_Parameters
   def __URINE_Parameters(self)->dict:
       URINE_Parameters = {
       'Color':r'(?:colour|color)\s*[:\-]?\s*(.*?yellow|.*?amber)',
@@ -274,18 +282,21 @@ class test_parameters:
               'RH_Factor':r'(?:rh\s*factor|rh)\s*[:\-]?\s*([\+\-]|pos|neg|positive|negative)'
           }
       return Blood_Group_Parameters
+  
   def __HBsAg_Parameters(self)->dict:
       HBsAg_Parameters={
           'HBsAg': r'(?:hbsag|s\.antigen|hepatitis\s*b\s*surface).*?(non\s*-?\s*reactive|reactive|negative|positive|neg\w*|pos\w*)',
           # 'HBsAg_Cutoff': r'(?:cut\s*off|c\.o|s/co)\s*[:\-]?\s*(\d+\.?\d*)'
       }
       return HBsAg_Parameters
+  
   def __HCV_Parameters(self)->dict:
       HCV_Parameters = {
     'HCV': r'(?:hcv|anti\s*-?\s*hcv|hepatitis\s*c).*?(non\s*-?\s*reactive|reactive|negative|positive|neg\w*|pos\w*)',
     # 'HCV_Cutoff': r'(?:cut\s*off|c\.o|s/co)\s*[:\-]?\s*(\d+\.?\d*)'
      }
       return HCV_Parameters
+  
   def __TSH_Parameters(self)->dict:
     TSH_NAMES = r'tsh|s\.tsh|thyrotropin|thyroid\s*stimulating\s*hormone'
 
@@ -318,6 +329,8 @@ class test_parameters:
       return self.__HBsAg_Parameters()
     elif self.__test_name=='HCV (Hepatitis C)':
       return self.__HCV_Parameters()
+    elif self.__test_name=='Fasting Blood Glucose':
+      return self.__FBG_Parameters()
 
 
 # %%
