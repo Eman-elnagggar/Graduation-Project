@@ -10,16 +10,17 @@ app = FastAPI()
 class TestType(str, Enum):
     CBC='CBC (Complete Blood Count)'
     Urine='Urinalysis'
-    HbA1c='HbA1c (Sugar Test)'
     TSH='TSH (Thyroid)'
     Ferritin='Ferritin'
+    FBG='Fasting Blood Glucose'
+    HbA1c='HbA1c (Sugar Test)'
     Blood_Group='Blood Group'
     HBsAg='HBsAg (Hepatitis B)'
     HCV='HCV (Hepatitis C)'
-    FBG='Fasting Blood Glucose'
+    
 
 @app.post("/analyze")
-async def get_analysis(
+def get_analysis(
     test_type: TestType = Form(...), 
     image: UploadFile = File(...)
 ):
@@ -29,7 +30,6 @@ async def get_analysis(
     
     try:
         print(f"Processing file: {temp_path} with test: {test_type.value}")
-        
         result = main.run_ocr(temp_path, test_type.value)
     except Exception as e:
         print(f"Error happened: {e}") 
@@ -40,16 +40,13 @@ async def get_analysis(
             
     return result
 
-class ConfirmRequest(BaseModel):
-    test_type: str
-    edited_values: dict
 
 @app.post("/confirm")
-async def confirm_results(data: ConfirmRequest):
+def confirm_results(data: dict):
     try:
-        final_data = consistancy.consistancy_data(data.test_type, data.edited_values)
+        final_data = consistancy.consistancy_data(data)
         return final_data 
     except Exception as e:
-
+        print(f"Confirmation error: {e}")
         return {"error": str(e)}
 

@@ -15,21 +15,22 @@
 # !pip install easyocr
 
 # %% [markdown]
-# #Import Libraries
+# # Import Libraries
 
 # %%
 import cv2
-import pytesseract as pyt
-import easyocr
+# import pytesseract as pyt
+# import easyocr
 from doctr.models import ocr_predictor
 from doctr.io import DocumentFile
-import matplotlib.pyplot as plt
-from PIL import Image
+# import matplotlib.pyplot as plt
+# from PIL import Image
 import os
 import numpy as np
 import re
-from difflib import get_close_matches
+# from difflib import get_close_matches
 import json
+# import pandas as pd
 
 # %% [markdown]
 # # Try Modling Process
@@ -110,14 +111,14 @@ import json
 # # %% [markdown]
 # # ##Try algorithm
 
-# # # %%
-# # folder = "/content/drive/MyDrive/Graduation/Tests Samples"
+# # %%
+# folder = "/content/drive/MyDrive/Graduation/Tests Samples"
 
-# # for file in os.listdir(folder):
-# #     if file.lower().endswith((".jpg", ".png", ".jpeg")):
-# #         path = os.path.join(folder, file)
-# #         print(f"\n{file}")
-# #         print(robust_ocr(path))
+# for file in os.listdir(folder):
+#     if file.lower().endswith((".jpg", ".png", ".jpeg")):
+#         path = os.path.join(folder, file)
+#         print(f"\n{file}")
+#         print(robust_ocr(path))
 
 
 # # %%
@@ -150,15 +151,15 @@ import json
 #       print(f"DocTR Error: {e}")
 #       return ""
 
-# # # %%
-# # folder = "/content/drive/MyDrive/Graduation/Tests Samples"
+# # %%
+# folder = "/content/drive/MyDrive/Graduation/Tests Samples"
 
-# # for file in os.listdir(folder):
-# #     if file.lower().endswith((".jpg", ".png", ".jpeg")):
-# #         path = os.path.join(folder, file)
-# #         print(f"\n{file}")
-# #         img_bgr = cv2.imread(path)
-# #         print(ocr_doctr(img_bgr))
+# for file in os.listdir(folder):
+#     if file.lower().endswith((".jpg", ".png", ".jpeg")):
+#         path = os.path.join(folder, file)
+#         print(f"\n{file}")
+#         img_bgr = cv2.imread(path)
+#         print(ocr_doctr(img_bgr))
 
 
 # # %% [markdown]
@@ -169,9 +170,8 @@ import json
 # # %% [markdown]
 # # # Analyze Text ,Solve Problems, and actual implement
 
-# # %%
-# # class OCR functions
-
+# %%
+# class OCR functions
 class OCR_test:
   def __init__(self,image_path) -> None:
      self.__image_path=image_path
@@ -206,32 +206,34 @@ class OCR_test:
         except Exception as e:
             print(f"DocTR Error: {e}")
             return "", 0
-
+        
 
   def __normalize_text(self,text):
-    self.__text=re.sub(r'(\d+):(\d+)',r'\1.\2',text)
-    self.__text=re.sub(r'(\d+);(\d+)',r'\1.\2',text)
-    self.__text=self.__text.lower()
-    index=self.__text.find("unit")
+    text=re.sub(r'(\d+):(\d+)',r'\1.\2',text)
+    text=re.sub(r'(\d+);(\d+)',r'\1.\2',text)
+    text=text.lower()
+    index=text.find("unit")
     if index!=-1:
-      self.__text=self.__text[index+4:]
-    return self.__text
+      text=text[index+4:]
+    return text
+  
   def robust_ocr(self)->str:
         img_bgr = cv2.imread(self.__image_path)
         if img_bgr is None:
-            return "Error: Image not found"
+            return "Error: Image not found",0
 
         raw_rgb = cv2.resize(cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB),
                              None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
 
-        d_text = self.__ocr_doctr(raw_rgb)
+        d_text, confidence = self.__ocr_doctr(raw_rgb)
         d_text = self.__normalize_text(d_text)
-        return d_text
+        return d_text,confidence
 
 # %%
-# ocr_object=OCR_test(".\Photos\CBC.jpg")
-# text=ocr_object.robust_ocr()
+# ocr_object=OCR_test("D:\\lenovo\\EMAN\\1.1.1 Graduation\\Graduation-Project\\Data Analysis & AI\\OCR\\tests_analysis\\Photos\\fbg.jpg")
+# text,confidence=ocr_object.robust_ocr()
 # print(text)
+# print(confidence)
 
 # %%
 # Select the most inportant values in each text which
@@ -263,6 +265,7 @@ class test_parameters:
           "FBG": r"(?:fasting|fbs|fbg|glucose|sugar).*?\b(\d{2,3}(?:\.\d{1,2})?)\b\s*(?=mg/dl|mmol/l|normal|high|low|\s|$)"
       }
       return FBG_Parameters
+  
   def __URINE_Parameters(self)->dict:
       URINE_Parameters = {
       'Color':r'(?:colour|color)\s*[:\-]?\s*(.*?yellow|.*?amber)',
@@ -282,30 +285,25 @@ class test_parameters:
               'RH_Factor':r'(?:rh\s*factor|rh)\s*[:\-]?\s*([\+\-]|pos|neg|positive|negative)'
           }
       return Blood_Group_Parameters
-  
   def __HBsAg_Parameters(self)->dict:
       HBsAg_Parameters={
           'HBsAg': r'(?:hbsag|s\.antigen|hepatitis\s*b\s*surface).*?(non\s*-?\s*reactive|reactive|negative|positive|neg\w*|pos\w*)',
           # 'HBsAg_Cutoff': r'(?:cut\s*off|c\.o|s/co)\s*[:\-]?\s*(\d+\.?\d*)'
       }
       return HBsAg_Parameters
-  
   def __HCV_Parameters(self)->dict:
       HCV_Parameters = {
     'HCV': r'(?:hcv|anti\s*-?\s*hcv|hepatitis\s*c).*?(non\s*-?\s*reactive|reactive|negative|positive|neg\w*|pos\w*)',
     # 'HCV_Cutoff': r'(?:cut\s*off|c\.o|s/co)\s*[:\-]?\s*(\d+\.?\d*)'
      }
       return HCV_Parameters
-  
   def __TSH_Parameters(self)->dict:
     TSH_NAMES = r'tsh|s\.tsh|thyrotropin|thyroid\s*stimulating\s*hormone'
 
     TSH_Parameters = {
         'TSH':fr'(?:{TSH_NAMES}).*?\b(\d{{1,2}}(?:\.\d{{1,2}})?)\b',
-        'TSH_Unit':fr'(?:{TSH_NAMES}).*?\d+(?:\.\d+)?.*?\b([mµu]I?U\/m?[lL])\b'
     }
     return TSH_Parameters
-  
   def __FERRITIN_Parameters(self)->dict:
       FERRITIN_Parameters={
           'Ferritin_value':r"(?:ferritin|s\.ferritin).*?\b(\d{1,3}(?:\.\d{1,2})?)\b\s*(?=%|ng\/ml|normal|high|low)"
@@ -331,10 +329,11 @@ class test_parameters:
       return self.__HCV_Parameters()
     elif self.__test_name=='Fasting Blood Glucose':
       return self.__FBG_Parameters()
+    
 
 
 # %%
-# parameter_object=test_parameters('CBC (Complete Blood Count)')
+# parameter_object=test_parameters('Fasting Blood Glucose')
 # parameters=parameter_object.get_test_parameters()
 # print(parameters)
 
@@ -344,12 +343,12 @@ class extract_test_values:
         self.__ocr_text=ocr_text
         self.__parameters=parameters
     
-    def __extract_microscopic_results(self,result_1):
-        self.__ocr_text = self.__ocr_text.lower()
-        start = self.__ocr_text.find("microscopic")
+    def __extract_microscopic_results(self, text, result_1):
+        text = text.lower()
+        start = text.find("microscopic")
         if start == -1:
             return result_1
-        section = self.__ocr_text[start:]
+        section = text[start:]
         TEST_PATTERNS = {
             "RBCs": r"\b(rbcs|red\s*blood\s*cells)\b",
             "Leukocytes": r"\b(leukocytes?|pus\s*cells)\b"
@@ -383,11 +382,21 @@ class extract_test_values:
                     value = match.group(1)
                     # print(f'{value}-> {type(value)}')
                     value=value.strip(".")
-                    if value.isdigit():
-                        value=float(value)
+                    # Try to convert all numerical values to float
+                    try:
+                        value = float(value)
+                    except ValueError:
+                        # Keep as string if conversion fails (non-numerical values)
+                        pass
+                    
+                    # Convert ABO_Group values to uppercase
+                    if param_name == 'ABO_Group':
+                        value = value.upper() if isinstance(value, str) else value
+                
                 results[param_name] = value
         if urine_flag:
-            results=self.__extract_microscopic_results(results)
+            results=self.__extract_microscopic_results(self.__ocr_text,results)
+        
         return results
         
     
@@ -397,10 +406,10 @@ class extract_test_values:
 # extract_obj=extract_test_values(text,parameters)
 # print(extract_obj.extract_values())
 
-# %% [markdown]
-# # Full Final Pipeline
+# # %% [markdown]
+# # # Full Final Pipeline
 
-# %%
+# # %%
 # image_path=input()
 # test_name=input()
 # ocr=OCR_test(image_path)
@@ -411,9 +420,9 @@ class extract_test_values:
 # print(extract_obj.extract_values())
 
 # # %%
-def to_json(dictionary, filename):
-  with open(filename,'w') as fp:
-    json.dump(dictionary,fp)
+# def to_json(dictionary, filename):
+#   with open(filename,'w') as fp:
+#     json.dump(dictionary,fp)
 
 # to_json(results,'results.json')
 

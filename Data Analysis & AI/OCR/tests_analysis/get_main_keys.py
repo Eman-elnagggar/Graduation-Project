@@ -26,7 +26,7 @@ def get_keys(test_name)->list:
         return [],['HCV']
     
     if test_name=='TSH (Thyroid)':
-        return ['TSH'],['TSH_Unit']
+        return ['TSH'],[]
     
     if test_name=='Ferritin':
         return ['Ferritin_value'],[]

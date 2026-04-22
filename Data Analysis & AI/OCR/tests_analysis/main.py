@@ -24,7 +24,7 @@ def run_ocr(image_path,test_name):
     # ocr.to_json(values,'results.json')
 # print(values)
 
-if __name__=="__main__":
-    image_path = input("Path: ")
-    test_name = input("Test name: ")
+# if __name__=="__main__":
+#     image_path = input("Path: ")
+#     test_name = input("Test name: ")
     # print(run_ocr(image_path,test_name))
