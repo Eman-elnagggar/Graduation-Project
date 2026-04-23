@@ -271,7 +271,7 @@ class test_parameters:
       'Color':r'(?:colour|color)\s*[:\-]?\s*(.*?yellow|.*?amber)',
       'PH':r'\bph\b\s*[:\-]?\s*(\d+(?:\.\d+)?)\b',
       'Specific_Gravity':r'(?:specific\s*gravity|gravity)\s*[:\.]?\s*(\d+(?:\.\d+)?)',
-      'Protein':r'(?:protein|albumin)\s*[:\-]?\s*(\d+\.?\d*|negative|positive|trace|neg|pos|nil|none|\++|present|small|moderate|large)',
+      'Protein':r'(?:protein|albumin)\s*[:\-]?\s*(negative|neg|nil|none|trace|small|moderate|large|[\+\d]+(?:\+)?|pos|present)',
       'Glucose': r'(?:glucose|sugar)\s*[:\-]?\s*(\d+\.?\d*|negative|positive|trace|neg|pos|nil|normal|small|moderate|large|\++)',
       'Nitrite': r'nitrite\s*[:\-]?\s*(negative|positive|neg\w*|pos\w*|nil|none|\++)',
       'Ketones':r'(?:ketones|acetone|bcta-hydroxybutyrate|kctoncs)[\s\w]*?[:\-]?\s*(\d+\.?\d*|negative|positive|trace|neg\w*|pos\w*|nil|none|small|moderate|large|\++)',
