@@ -35,19 +35,19 @@ def home():
 def predict(data: dict):
     try:
        
-        weight = data["weight"]
-        height = data["height"]
+        weight = data["weight_kg"]
+        height = data["height_cm"]
         bmi_value = calculate_bmi(weight, height)
         bmi_encoded = bmi_to_encoded(bmi_value)
         
-        systolic = data["avg_systolic"]
-        diastolic = data["avg_diastolic"]
+        systolic = data["systolic_bp"]
+        diastolic = data["diastolic_bp"]
         map_value = calculate_map(systolic, diastolic)
 
        
         input_data = {
-            "age_years": data["age"],
-            "fasting_glucose_mgdl": data["FBG"],
+            "age_years": data["age_years"],
+            "fasting_glucose_mgdl": data["fasting_glucose_mgdl"],
             "proteinuria": data["proteinuria"],
             "bmi_category_encoded": bmi_encoded,
             "MAP": map_value
