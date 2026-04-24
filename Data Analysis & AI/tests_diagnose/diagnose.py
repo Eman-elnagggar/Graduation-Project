@@ -7,8 +7,8 @@ import FBG_pipeline
 import alerts
 import requests
 class diagnose:
-    def __init__(self):
-        self.__path="./stored_data.json"
+    def __init__(self,path):
+        self.__path=path
         self.__data=self.__read_data()
         self.__GDM_API_URL="https://mennnaa-gestational-diabetes.hf.space/predict"
         self.__Risk_API_URL="https://mariamelnemrawy25-risk-api.hf.space/predict"
@@ -94,11 +94,11 @@ class diagnose:
              Risk_data['hemoglobin_gdl']=0
         
         Models_diagnose_data.append(Risk_data)
-        print("#"*50)
-        print(Risk_data)
-        print("#"*50)
-        print(GDM_data)
-        print("#"*50)
+        # print("#"*50)
+        # print(Risk_data)
+        # print("#"*50)
+        # print(GDM_data)
+        # print("#"*50)
         return Models_diagnose_data
         
     def __if_then_diagnose(self,result:dict):
@@ -149,24 +149,24 @@ class diagnose:
             model_diagnose_results.append(filtered_result)
         if Models_diagnose[1]:
             Risk_result=self.__call_Risk_model(Models_diagnose[1])
-            alerts_results.append(Risk_result['note'])
+            alerts_results.append(Risk_result['alert'])
             filtered_result = {
-            k: v for k, v in GDM_result.items()
-            if k not in ['note']
+            k: v for k, v in Risk_result.items()
+            if k not in ['alert']
             }
-            model_diagnose_results.append(Risk_result)
+            model_diagnose_results.append(filtered_result)
 
         return tests_diagnose_results,model_diagnose_results,alerts_results
 
 
         
 
-object=diagnose()
-x,y,z=object.diagnose_function()
-print(x)
-print('-'*50)
-print(y)
-print('-'*50)
-print(z)
+# object=diagnose()
+# x,y,z=object.diagnose_function()
+# print(x)
+# print('-'*50)
+# print(y)
+# print('-'*50)
+# print(z)
 
 
