@@ -189,14 +189,14 @@
               <div style="width:36px;height:36px;border-radius:10px;background:rgba(27,174,190,.12);color:var(--mc-primary);display:flex;align-items:center;justify-content:center;">
                 <i class="fas fa-notes-medical"></i>
               </div>
-              <div>
-                <div class="auth-card-title" style="font-size:1.1rem;">Complete your health profile</div>
-                <div class="auth-card-sub">Step 2 of 2 — Optional but recommended</div>
-              </div>
+                <div>
+                  <div class="auth-card-title" style="font-size:1.1rem;">Complete your health profile</div>
+                  <div class="auth-card-sub">Step 2 of 2 — Required details</div>
+                </div>
             </div>
             <div style="margin-top:.5rem;font-size:.75rem;color:var(--mc-muted);background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:.4rem .75rem;display:inline-block;">
               <i class="fas fa-info-circle" style="color:#0ea5e9;"></i>
-              You can always update this later in your profile
+              Please provide all required health details to finish registration
             </div>
           </div>
 
@@ -204,25 +204,37 @@
             <form id="step2Form" method="post" action="@Url.Action("RegisterPatient", "Account")" novalidate>
               @Html.AntiForgeryToken()
 
+              <div class="mc-form-group">
+                <label class="mc-label" for="Age">
+                  <i class="fas fa-hourglass-half"></i> Age <span class="req">*</span>
+                </label>
+                <div class="mc-input-wrap">
+                  <input type="number" id="Age" name="Age" class="mc-input has-icon"
+                         placeholder="Automatically calculated from date of birth" readonly required min="1" />
+                  <i class="mc-input-icon fas fa-hourglass-half"></i>
+                </div>
+                <div class="mc-feedback hint"><i class="fas fa-info-circle"></i> Automatically calculated from your date of birth.</div>
+              </div>
+
               <div class="mc-row">
                 <div class="mc-form-group">
                   <label class="mc-label" for="Height">
-                    <i class="fas fa-ruler-vertical"></i> Height <span class="mc-optional">optional</span>
+                    <i class="fas fa-ruler-vertical"></i> Height (cm) <span class="req">*</span>
                   </label>
                   <div class="mc-input-wrap">
                     <input type="number" id="Height" name="Height" class="mc-input has-icon"
-                           placeholder="165" min="100" max="220" />
+                           placeholder="165" min="100" max="220" required />
                     <i class="mc-input-icon fas fa-ruler-vertical"></i>
                   </div>
                   <div class="mc-feedback hint"><i class="fas fa-info-circle"></i> centimeters (cm)</div>
                 </div>
                 <div class="mc-form-group">
                   <label class="mc-label" for="Weight">
-                    <i class="fas fa-weight"></i> Weight <span class="mc-optional">optional</span>
+                    <i class="fas fa-weight"></i> Weight (kg) <span class="req">*</span>
                   </label>
                   <div class="mc-input-wrap">
                     <input type="number" id="Weight" name="Weight" class="mc-input has-icon"
-                           placeholder="65" min="30" max="250" />
+                           placeholder="65" min="30" max="250" required />
                     <i class="mc-input-icon fas fa-weight"></i>
                   </div>
                   <div class="mc-feedback hint"><i class="fas fa-info-circle"></i> kilograms (kg)</div>
@@ -240,42 +252,57 @@
               <div class="mc-row">
                 <div class="mc-form-group">
                   <label class="mc-label" for="LastMenstrualPeriod">
-                    <i class="fas fa-calendar-alt"></i> Last Menstrual Period
+                    <i class="fas fa-calendar-alt"></i> Pregnancy start date <span class="req">*</span>
                   </label>
-                  <input type="date" id="LastMenstrualPeriod" name="LastMenstrualPeriod" class="mc-input" />
+                  <input type="date" id="LastMenstrualPeriod" name="LastMenstrualPeriod" class="mc-input" required />
+                  <div class="mc-feedback hint"><i class="fas fa-info-circle"></i> Gestational weeks are calculated automatically.</div>
                 </div>
                 <div class="mc-form-group">
-                  <label class="mc-label" for="BabyGender">
-                    <i class="fas fa-venus-mars"></i> Baby Gender <span class="mc-optional">optional</span>
+                  <label class="mc-label" for="GestationalWeeks">
+                    <i class="fas fa-baby"></i> Gestational Weeks
                   </label>
-                  <select id="BabyGender" name="BabyGender" class="mc-input">
-                    <option value="">Unknown / Not sure yet</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                  </select>
+                  <input type="number" id="GestationalWeeks" name="GestationalWeeks" class="mc-input"
+                         placeholder="Automatically calculated" readonly min="0" />
                 </div>
                 <div class="mc-form-group">
                   <label class="mc-label">
-                    <i class="fas fa-question-circle"></i> First pregnancy?
+                    <i class="fas fa-question-circle"></i> Is it the first pregnancy? <span class="req">*</span>
                   </label>
                   <div class="mc-radio-group">
                     <label class="mc-radio-btn">
-                      <input type="radio" name="IsFirstPregnancy" value="true" /> Yes
+                      <input type="radio" name="IsFirstPregnancy" value="true" required /> Yes
                     </label>
                     <label class="mc-radio-btn">
-                      <input type="radio" name="IsFirstPregnancy" value="false" /> No
+                      <input type="radio" name="IsFirstPregnancy" value="false" required /> No
                     </label>
                   </div>
                 </div>
               </div>
 
-              <div class="mc-form-group" id="previousPregnanciesGroup" style="display:none;">
-                <label class="mc-label" for="PreviousPregnancies">
-                  <i class="fas fa-list-ol"></i> Number of previous pregnancies <span class="req">*</span>
-                </label>
-                <input type="number" id="PreviousPregnancies" name="PreviousPregnancies" class="mc-input"
-                       placeholder="e.g. 2" min="1" step="1" />
-                <div class="mc-feedback hint"><i class="fas fa-info-circle"></i> This will be used as your initial pregnancy count baseline.</div>
+              <div id="previousPregnanciesGroup" style="display:none;">
+                <div class="mc-row">
+                  <div class="mc-form-group">
+                    <label class="mc-label" for="PreviousPregnancies">
+                      <i class="fas fa-list-ol"></i> How many times before? <span class="req">*</span>
+                    </label>
+                    <input type="number" id="PreviousPregnancies" name="PreviousPregnancies" class="mc-input"
+                           placeholder="e.g. 2" min="1" step="1" />
+                  </div>
+                  <div class="mc-form-group">
+                    <label class="mc-label" for="Abortions">
+                      <i class="fas fa-notes-medical"></i> Abortion number <span class="req">*</span>
+                    </label>
+                    <input type="number" id="Abortions" name="Abortions" class="mc-input"
+                           placeholder="e.g. 0" min="0" step="1" />
+                  </div>
+                  <div class="mc-form-group">
+                    <label class="mc-label" for="Births">
+                      <i class="fas fa-baby-carriage"></i> Birth number <span class="req">*</span>
+                    </label>
+                    <input type="number" id="Births" name="Births" class="mc-input"
+                           placeholder="e.g. 1" min="0" step="1" />
+                  </div>
+                </div>
               </div>
 
               <div class="mc-section-header med" style="margin-top:.5rem;">
@@ -288,14 +315,14 @@
 
               <div class="mc-form-group">
                 <label class="mc-label">
-                  <i class="fas fa-tint"></i> Blood pressure issues?
+                  <i class="fas fa-tint"></i> Blood Pressure (Yes / No) <span class="req">*</span>
                 </label>
                 <div class="mc-radio-group" id="bpRadioGroup">
                   <label class="mc-radio-btn">
-                    <input type="radio" name="HasBloodPressureIssues" value="true" /> Yes
+                    <input type="radio" name="HasBloodPressureIssues" value="true" required /> Yes
                   </label>
                   <label class="mc-radio-btn">
-                    <input type="radio" name="HasBloodPressureIssues" value="false" /> No
+                    <input type="radio" name="HasBloodPressureIssues" value="false" required /> No
                   </label>
                 </div>
                 <div id="bpWarning" style="display:none;" class="mc-warning-box mt-1">
@@ -351,10 +378,7 @@
                 </div>
               </div>
 
-              <div style="display:grid; grid-template-columns:1fr 1fr; gap:.75rem; margin-top:1.25rem;">
-                <button type="button" class="mc-btn mc-btn-ghost" id="skipProfileBtn">
-                  <i class="fas fa-forward"></i> Skip for now
-                </button>
+              <div style="display:grid; grid-template-columns:1fr; gap:.75rem; margin-top:1.25rem;">
                 <button type="submit" class="mc-btn mc-btn-primary">
                   <i class="fas fa-check"></i> Finish Registration
                 </button>
@@ -374,6 +398,7 @@
   'use strict';
 
   initLiveValidation('step1Form');
+  initLiveValidation('step2Form');
   initPasswordStrength('Password', 'pwdBar', 'pwdLabel');
 
   function goStep2() {
@@ -414,25 +439,83 @@
     goStep2();
   });
 
-  document.getElementById('skipProfileBtn').addEventListener('click', function () {
-    const step2Form = document.getElementById('step2Form');
-    let skipInput = step2Form.querySelector('input[type="hidden"][name="SkipProfile"]');
-    if (!skipInput) {
-      skipInput = document.createElement('input');
-      skipInput.type = 'hidden';
-      skipInput.name = 'SkipProfile';
-      step2Form.appendChild(skipInput);
-    }
-    skipInput.value = 'true';
-    step2Form.submit();
-  });
-
   document.getElementById('step2Form').addEventListener('submit', function (e) {
-    if (!validateForm('step2Form')) {
+    if (!validateForm('step2Form') || !validateStep2Radios() || !validateConditionalPregnancyFields()) {
       e.preventDefault();
       showToast('Please fix the errors before submitting.', 'error');
     }
   });
+
+  function calculateAge(dateString) {
+    if (!dateString) return 0;
+    const birth = new Date(dateString);
+    if (Number.isNaN(birth.getTime())) return 0;
+
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+
+    return Math.max(age, 0);
+  }
+
+  function calculateGestationalWeeks(dateString) {
+    if (!dateString) return '';
+    const start = new Date(dateString);
+    if (Number.isNaN(start.getTime())) return '';
+
+    const today = new Date();
+    const diffMs = today.setHours(0, 0, 0, 0) - start.setHours(0, 0, 0, 0);
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    return Math.max(0, Math.floor(diffDays / 7));
+  }
+
+  const dateOfBirthInput = document.getElementById('DateOfBirth');
+  const ageInput = document.getElementById('Age');
+  const lmpInput = document.getElementById('LastMenstrualPeriod');
+  const gestationalWeeksInput = document.getElementById('GestationalWeeks');
+
+  function syncCalculatedValues() {
+    ageInput.value = calculateAge(dateOfBirthInput?.value);
+    gestationalWeeksInput.value = calculateGestationalWeeks(lmpInput?.value);
+  }
+
+  dateOfBirthInput?.addEventListener('change', syncCalculatedValues);
+  lmpInput?.addEventListener('change', syncCalculatedValues);
+  syncCalculatedValues();
+
+  function validateStep2Radios() {
+    let valid = true;
+    const requiredRadioGroups = ['HasBloodPressureIssues', 'IsFirstPregnancy'];
+
+    requiredRadioGroups.forEach(name => {
+      const checked = document.querySelector(`input[name="${name}"]:checked`);
+      if (!checked) {
+        valid = false;
+      }
+    });
+
+    return valid;
+  }
+
+  function validateConditionalPregnancyFields() {
+    const selected = document.querySelector('input[name="IsFirstPregnancy"]:checked')?.value;
+    if (selected !== 'false') {
+      return true;
+    }
+
+    let valid = true;
+    [previousPregnanciesInput, document.getElementById('Abortions'), document.getElementById('Births')].forEach(input => {
+      if (!input) return;
+      if (!validateField(input)) {
+        valid = false;
+      }
+    });
+
+    return valid;
+  }
 
   document.querySelectorAll('input[name="HasBloodPressureIssues"]').forEach(radio => {
     radio.addEventListener('change', function () {
@@ -447,16 +530,28 @@
   function syncPreviousPregnanciesVisibility() {
     const selected = document.querySelector('input[name="IsFirstPregnancy"]:checked')?.value;
     const isFirst = selected === 'true';
+    const abortionsInput = document.getElementById('Abortions');
+    const birthsInput = document.getElementById('Births');
 
     if (!selected || isFirst) {
       previousPregnanciesGroup.style.display = 'none';
       previousPregnanciesInput.required = false;
       previousPregnanciesInput.value = '';
+      if (abortionsInput) {
+        abortionsInput.required = false;
+        abortionsInput.value = '';
+      }
+      if (birthsInput) {
+        birthsInput.required = false;
+        birthsInput.value = '';
+      }
       return;
     }
 
     previousPregnanciesGroup.style.display = '';
     previousPregnanciesInput.required = true;
+    if (abortionsInput) abortionsInput.required = true;
+    if (birthsInput) birthsInput.required = true;
   }
 
   firstPregnancyRadios.forEach(radio => {

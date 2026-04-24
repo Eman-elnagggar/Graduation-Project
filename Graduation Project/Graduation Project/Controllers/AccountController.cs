@@ -131,12 +131,97 @@ namespace Graduation_Project.Controllers
             var email = form["Email"].ToString().Trim();
             var password = form["Password"].ToString();
             var confirmPassword = form["ConfirmPassword"].ToString();
+            var hasDateOfBirth = DateTime.TryParse(form["DateOfBirth"], out var dob);
+            var hasWeight = double.TryParse(form["Weight"], NumberStyles.Any, CultureInfo.InvariantCulture, out var weightKg)
+                            || double.TryParse(form["Weight"], NumberStyles.Any, CultureInfo.CurrentCulture, out weightKg);
+            var hasHeight = double.TryParse(form["Height"], NumberStyles.Any, CultureInfo.InvariantCulture, out var heightCm)
+                            || double.TryParse(form["Height"], NumberStyles.Any, CultureInfo.CurrentCulture, out heightCm);
+            var hasPregnancyStartDate = DateTime.TryParse(form["LastMenstrualPeriod"], out var dateOfPregnancy);
+            var hasFirstPregnancySelection = bool.TryParse(form["IsFirstPregnancy"], out var isFirstPregnancy);
+            var hasBloodPressureSelection = bool.TryParse(form["HasBloodPressureIssues"], out var bloodPressureIssue);
 
             if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName) ||
                 string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
             {
                 TempData["AuthError"] = "Please fill all required fields.";
                 return View();
+            }
+
+            if (!hasDateOfBirth)
+            {
+                TempData["AuthError"] = "Date of birth is required.";
+                return View();
+            }
+
+            var age = DateTime.Today.Year - dob.Year;
+            if (dob.Date > DateTime.Today.AddYears(-age))
+                age--;
+
+            if (age <= 0)
+            {
+                TempData["AuthError"] = "Please enter a valid date of birth.";
+                return View();
+            }
+
+            if (!hasWeight || weightKg <= 0)
+            {
+                TempData["AuthError"] = "Weight (kg) is required.";
+                return View();
+            }
+
+            if (!hasHeight || heightCm <= 0)
+            {
+                TempData["AuthError"] = "Height (cm) is required.";
+                return View();
+            }
+
+            if (!hasBloodPressureSelection)
+            {
+                TempData["AuthError"] = "Please select blood pressure (Yes/No).";
+                return View();
+            }
+
+            if (!hasPregnancyStartDate)
+            {
+                TempData["AuthError"] = "Pregnancy start date is required.";
+                return View();
+            }
+
+            if (dateOfPregnancy.Date > DateTime.Today)
+            {
+                TempData["AuthError"] = "Pregnancy start date cannot be in the future.";
+                return View();
+            }
+
+            if (!hasFirstPregnancySelection)
+            {
+                TempData["AuthError"] = "Please select if this is your first pregnancy.";
+                return View();
+            }
+
+            var previousPregnancies = 0;
+            var abortions = 0;
+            var births = 0;
+
+            if (!isFirstPregnancy)
+            {
+                if (!int.TryParse(form["PreviousPregnancies"], out previousPregnancies) || previousPregnancies <= 0)
+                {
+                    TempData["AuthError"] = "Please enter how many pregnancies you had before.";
+                    return View();
+                }
+
+                if (!int.TryParse(form["Abortions"], out abortions) || abortions < 0)
+                {
+                    TempData["AuthError"] = "Please enter a valid abortion number.";
+                    return View();
+                }
+
+                if (!int.TryParse(form["Births"], out births) || births < 0)
+                {
+                    TempData["AuthError"] = "Please enter a valid birth number.";
+                    return View();
+                }
             }
 
             if (password != confirmPassword)
@@ -158,7 +243,7 @@ namespace Graduation_Project.Controllers
                 FirstName = firstName,
                 LastName = lastName,
                 PhoneNumber = form["PhoneNumber"].ToString(),
-                DateOfBirth = DateTime.TryParse(form["DateOfBirth"], out var dob) ? dob : DateTime.UtcNow.Date,
+                DateOfBirth = dob,
                 IsActive = true,
                 CreatedDate = DateTime.UtcNow
             };
@@ -173,41 +258,25 @@ namespace Graduation_Project.Controllers
             await EnsureRoleAsync("Patient");
             await _userManager.AddToRoleAsync(user, "Patient");
 
-            var dateOfPregnancy = DateTime.TryParse(form["LastMenstrualPeriod"], out var lmp) ? lmp : (DateTime?)null;
-            var isFirstPregnancy = bool.TryParse(form["IsFirstPregnancy"], out var firstPreg) && firstPreg;
-            var previousPregnancies = int.TryParse(form["PreviousPregnancies"], out var previousCount) ? Math.Max(0, previousCount) : 0;
             var babyGender = NormalizeBabyGender(form["BabyGender"].ToString());
 
-            if (!isFirstPregnancy && previousPregnancies <= 0)
-            {
-                TempData["AuthError"] = "Please enter the number of previous pregnancies.";
-                return View();
-            }
-
-            if (isFirstPregnancy)
-            {
-                previousPregnancies = 0;
-            }
-
-            var baselinePregnancyCount = previousPregnancies + (dateOfPregnancy.HasValue ? 1 : 0);
+            var baselinePregnancyCount = previousPregnancies + 1;
 
             var patient = new Patient
             {
                 UserID = user.Id,
                 Address = form["Address"].ToString(),
                 DateOfPregnancy = dateOfPregnancy,
-                GestationalWeeks = dateOfPregnancy.HasValue
-                    ? Math.Max(0, (int)((DateTime.Today - dateOfPregnancy.Value.Date).TotalDays / 7))
-                    : 0,
+                GestationalWeeks = Math.Max(0, (int)((DateTime.Today - dateOfPregnancy.Date).TotalDays / 7)),
                 IsFirstPregnancy = isFirstPregnancy,
                 PreviousPregnancies = previousPregnancies,
                 PregnancyCount = baselinePregnancyCount,
                 LastPregnancyStartedAt = dateOfPregnancy,
-                Abortions = 0,
-                Births = 0,
-                WeightKg = double.TryParse(form["Weight"], out var w) ? w : 0,
-                HeightCm = double.TryParse(form["Height"], out var h) ? h : 0,
-                BloodPressureIssue = bool.TryParse(form["HasBloodPressureIssues"], out var bp) && bp,
+                Abortions = abortions,
+                Births = births,
+                WeightKg = weightKg,
+                HeightCm = heightCm,
+                BloodPressureIssue = bloodPressureIssue,
                 Smoking = bool.TryParse(form["Smoking"], out var smoking) && smoking,
                 AlcoholUse = bool.TryParse(form["Alcohol"], out var alcohol) && alcohol
             };
@@ -215,16 +284,13 @@ namespace Graduation_Project.Controllers
             _context.Patients.Add(patient);
             await _context.SaveChangesAsync();
 
-            if (dateOfPregnancy.HasValue)
+            _context.PregnancyRecords.Add(new PregnancyRecord
             {
-                _context.PregnancyRecords.Add(new PregnancyRecord
-                {
-                    PatientID = patient.PatientID,
-                    StartDate = dateOfPregnancy.Value,
-                    BabyGender = babyGender,
-                    CreatedAt = DateTime.Now
-                });
-            }
+                PatientID = patient.PatientID,
+                StartDate = dateOfPregnancy,
+                BabyGender = babyGender,
+                CreatedAt = DateTime.Now
+            });
 
             var medicationNameKeys = form.Keys
                 .Where(k => k.StartsWith("Medications[") && k.EndsWith("].Name"))
