@@ -1093,6 +1093,11 @@ namespace Graduation_Project.Controllers
                 .Where(r => r.PatientID == patientId)
                 .ToList();
 
+            var activePregnancyRecord = pregnancyRecords
+                .Where(r => !r.EndDate.HasValue)
+                .OrderByDescending(r => r.StartDate)
+                .FirstOrDefault();
+
             var timelineEntries = new List<MedicalHistoryEntry>();
 
             foreach (var bp in bpHistory)
@@ -1265,6 +1270,7 @@ namespace Graduation_Project.Controllers
                 DoctorName = BuildDoctorName(doctor),
                 Patient = patient,
                 RiskLevel = ComputeRiskLevel(patient, bpHistory.FirstOrDefault()?.BloodPressure),
+                BabyGender = activePregnancyRecord?.BabyGender,
                 ExpectedDeliveryDate = patient.DateOfPregnancy?.AddDays(280),
                 LastBloodPressure = bpHistory.FirstOrDefault()?.BloodPressure,
                 LastBPDate = bpHistory.FirstOrDefault()?.DateTime,
@@ -1471,6 +1477,46 @@ namespace Graduation_Project.Controllers
 
             _context.SaveChanges();
 
+            return RedirectToAction(nameof(PatientDetails), new { id = doctor.DoctorID, patientId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult SavePatientBabyGender(int id, int patientId, string? babyGender)
+        {
+            var accessResult = TryResolveDoctor(id, out var doctor);
+            if (accessResult != null)
+                return accessResult;
+
+            var isAssigned = _patientDoctorRepository
+                .GetApprovedByDoctor(doctor!.DoctorID)
+                .Any(pd => pd.PatientID == patientId);
+            if (!isAssigned)
+                return Forbid();
+
+            var activePregnancy = _context.PregnancyRecords
+                .Where(r => r.PatientID == patientId && !r.EndDate.HasValue)
+                .OrderByDescending(r => r.StartDate)
+                .FirstOrDefault();
+
+            if (activePregnancy == null)
+            {
+                TempData["PatientDetailsError"] = "Cannot update baby gender because there is no active pregnancy.";
+                return RedirectToAction(nameof(PatientDetails), new { id = doctor.DoctorID, patientId });
+            }
+
+            var normalizedGender = (babyGender ?? string.Empty).Trim() switch
+            {
+                "Male" => "Male",
+                "Female" => "Female",
+                "Unknown" => "Unknown",
+                _ => null
+            };
+
+            activePregnancy.BabyGender = normalizedGender;
+            _context.SaveChanges();
+
+            TempData["PatientDetailsSuccess"] = "Baby gender updated successfully.";
             return RedirectToAction(nameof(PatientDetails), new { id = doctor.DoctorID, patientId });
         }
 

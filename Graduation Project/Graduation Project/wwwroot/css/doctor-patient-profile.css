@@ -134,6 +134,26 @@
 .pp-info-label { font-size: .74rem; color: var(--text-3); font-weight: 600; display: flex; align-items: center; gap: 5px; }
 .pp-info-label i { color: var(--p); }
 .pp-info-value { font-size: .88rem; font-weight: 600; }
+.pp-inline-edit { display: inline-flex; align-items: center; gap: 8px; margin-top: 2px; }
+.pp-inline-edit-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--p);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+.pp-inline-edit-btn:hover {
+  border-color: var(--p-lt);
+  background: var(--p-xlt);
+  color: var(--p-dk);
+}
+.pp-inline-edit-form { margin-top: 8px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
 .pp-pregnancy-timeline { margin-bottom: 20px; }
 .pp-timeline-bar {

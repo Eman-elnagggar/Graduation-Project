@@ -33,6 +33,20 @@ namespace Graduation_Project.Controllers
             _environment = environment;
         }
 
+        private static string? NormalizeBabyGender(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            return value.Trim() switch
+            {
+                "Male" => "Male",
+                "Female" => "Female",
+                "Unknown" => "Unknown",
+                _ => null
+            };
+        }
+
         [HttpGet]
         [AllowAnonymous]
         public IActionResult Login()
@@ -162,6 +176,7 @@ namespace Graduation_Project.Controllers
             var dateOfPregnancy = DateTime.TryParse(form["LastMenstrualPeriod"], out var lmp) ? lmp : (DateTime?)null;
             var isFirstPregnancy = bool.TryParse(form["IsFirstPregnancy"], out var firstPreg) && firstPreg;
             var previousPregnancies = int.TryParse(form["PreviousPregnancies"], out var previousCount) ? Math.Max(0, previousCount) : 0;
+            var babyGender = NormalizeBabyGender(form["BabyGender"].ToString());
 
             if (!isFirstPregnancy && previousPregnancies <= 0)
             {
@@ -206,6 +221,7 @@ namespace Graduation_Project.Controllers
                 {
                     PatientID = patient.PatientID,
                     StartDate = dateOfPregnancy.Value,
+                    BabyGender = babyGender,
                     CreatedAt = DateTime.Now
                 });
             }

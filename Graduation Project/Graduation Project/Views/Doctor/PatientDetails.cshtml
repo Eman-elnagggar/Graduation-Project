@@ -50,6 +50,15 @@
 }
 
 <div class="pp-wrap" data-patient-profile>
+    @if (TempData["PatientDetailsSuccess"] is string successMessage && !string.IsNullOrWhiteSpace(successMessage))
+    {
+        <div class="alert alert-success" style="margin-bottom:1rem; border-radius:10px;">@successMessage</div>
+    }
+    @if (TempData["PatientDetailsError"] is string errorMessage && !string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger" style="margin-bottom:1rem; border-radius:10px;">@errorMessage</div>
+    }
+
     <div class="pp-header">
         <div class="pp-header-left">
             <a asp-controller="Doctor" asp-action="Patients" asp-route-id="@Model.Doctor.DoctorID" class="pp-back"><i class="fas fa-arrow-left"></i> Back to Patients</a>
@@ -161,6 +170,54 @@
                         <div class="pp-info-item"><div class="pp-info-label"><i class="fas fa-calendar-check"></i> Gestational Age</div><div class="pp-info-value">@gestationalWeeks weeks</div></div>
                         <div class="pp-info-item"><div class="pp-info-label"><i class="fas fa-calendar-star"></i> Expected Due Date</div><div class="pp-info-value">@(dueDate?.ToString("MMMM dd, yyyy") ?? "Not available")</div></div>
                         <div class="pp-info-item"><div class="pp-info-label"><i class="fas fa-calendar-plus"></i> Last Pregnancy Start</div><div class="pp-info-value">@(p.LastPregnancyStartedAt?.ToString("MMMM dd, yyyy") ?? p.DateOfPregnancy?.ToString("MMMM dd, yyyy") ?? "Not available")</div></div>
+                        <div class="pp-info-item">
+                            <div class="pp-info-label"><i class="fas fa-venus-mars"></i> Baby Gender</div>
+                            <div class="pp-inline-edit">
+                                <div class="pp-info-value" id="babyGenderValue">@(string.IsNullOrWhiteSpace(Model.BabyGender) ? "Not specified" : Model.BabyGender)</div>
+                                <button type="button" class="pp-inline-edit-btn" id="editBabyGenderBtn" title="Edit baby gender">
+                                    <i class="fas fa-pen"></i>
+                                </button>
+                            </div>
+                            <form asp-controller="Doctor" asp-action="SavePatientBabyGender" method="post" id="babyGenderForm" class="pp-inline-edit-form" style="display:none;">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@Model.Doctor.DoctorID" />
+                                <input type="hidden" name="patientId" value="@p.PatientID" />
+                                <select name="babyGender" class="pp-form-input" style="max-width:220px;">
+                                    @if (string.IsNullOrWhiteSpace(Model.BabyGender) || Model.BabyGender == "Unknown")
+                                    {
+                                        <option value="Unknown" selected>Unknown</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="Unknown">Unknown</option>
+                                    }
+
+                                    @if (Model.BabyGender == "Male")
+                                    {
+                                        <option value="Male" selected>Male</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="Male">Male</option>
+                                    }
+
+                                    @if (Model.BabyGender == "Female")
+                                    {
+                                        <option value="Female" selected>Female</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="Female">Female</option>
+                                    }
+                                </select>
+                                <button type="submit" class="pp-btn pp-btn-secondary" style="padding:.45rem .75rem;">
+                                    <i class="fas fa-save"></i> Save
+                                </button>
+                                <button type="button" class="pp-btn pp-btn-secondary" id="cancelBabyGenderEdit" style="padding:.45rem .75rem;">
+                                    <i class="fas fa-times"></i> Cancel
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -13,6 +13,8 @@ namespace Graduation_Project.Models
 
         public DateTime StartDate { get; set; }
         public DateTime? EndDate { get; set; }
+        [MaxLength(16)]
+        public string? BabyGender { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         public virtual Patient Patient { get; set; }

@@ -286,6 +286,40 @@
      </div>
    </div>
 
+    <div class="pf-form-row">
+        <div class="pf-form-group">
+            <label>Baby Gender</label>
+            <select id="babyGender" class="pf-input" disabled>
+                @if (string.IsNullOrWhiteSpace(Model.BabyGender))
+                {
+                    <option value="" selected>Unknown / Not sure yet</option>
+                }
+                else
+                {
+                    <option value="">Unknown / Not sure yet</option>
+                }
+
+                @if (Model.BabyGender == "Male")
+                {
+                    <option value="Male" selected>Male</option>
+                }
+                else
+                {
+                    <option value="Male">Male</option>
+                }
+
+                @if (Model.BabyGender == "Female")
+                {
+                    <option value="Female" selected>Female</option>
+                }
+                else
+                {
+                    <option value="Female">Female</option>
+                }
+            </select>
+        </div>
+    </div>
+
         <!-- Pregnancy History (merged into same form/save) -->
     <div class="pf-section-divider"><span>Pregnancy History</span></div>
 
@@ -866,6 +900,7 @@ const disp   = document.getElementById('bmiDisplay');
         fd.append('isFirstPregnancy',    fp);
         fd.append('previousPregnancies', document.getElementById('previousPregnancies')?.value || 0);
         fd.append('abortions',           document.getElementById('abortions')?.value || 0);
+        fd.append('babyGender',          document.getElementById('babyGender')?.value || '');
         fd.append('births',    document.getElementById('births')?.value || 0);
         fd.append('__RequestVerificationToken', TOKEN);
         try {
