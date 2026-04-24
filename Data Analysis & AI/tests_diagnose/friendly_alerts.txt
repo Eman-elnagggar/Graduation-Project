@@ -1,0 +1,7 @@
+"You may have some mild anemia, so consult your doctor and make sure you eat healthy foods with the necessary vitamins."
+"It seems that you may have a weakened immune system, so consult a doctor and eat some healthy immune-boosting foods."
+"You have a severe iron deficiency that may lead to anemia. Please see a doctor as soon as possible and also eat foods that are high in iron."
+"You have good iron levels, but they may not be ideal for you and your baby, so it's recommended to include foods with higher iron content in your diet."
+"This percentage is abnormal. Go to your doctor or the nearest hospital."
+"You have a slightly elevated blood sugar level. Try to maintain a healthy eating pattern until you see a doctor."
+"The thyroid hormone may appear to be imbalanced; urgent consultation with a doctor is advised."
