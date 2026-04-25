@@ -6,6 +6,7 @@ import Blood_Group_pipeline
 import FBG_pipeline
 import alerts
 import requests
+import copy
 class diagnose:
     def __init__(self,path):
         self.__path=path
@@ -127,9 +128,24 @@ class diagnose:
         tests_diagnose_results=[]
         model_diagnose_results=[]
         alerts_results=[]
-        for result in self.__data["results"]:
+        diagnose_data=copy.deepcopy(self.__data["results"])
+        for result in diagnose_data:
             diagnose=self.__if_then_diagnose(result)
-            result["diagnose"]=diagnose
+            i=0
+            # print(result)
+            for k,v in result.items():
+                if k in ['test_name','confidence']:
+                    pass
+                else:
+                    if not diagnose:
+                        result[k]=[v,None]
+                    else:
+                        result[k]=[v,diagnose[i]]
+                    i+=1
+            # print("-"*50)
+            # print(result)
+            # print("="*50)
+            # print(self.__data['results'])
             tests_diagnose_results.append(result)
             
             if diagnose:
