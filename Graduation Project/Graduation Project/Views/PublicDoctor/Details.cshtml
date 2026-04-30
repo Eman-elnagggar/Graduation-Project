@@ -1,0 +1,296 @@
+@model Graduation_Project.ViewModels.PublicDoctorProfileViewModel
+@{
+    Layout = "~/Views/Shared/_PatientLayout.cshtml";
+    ViewData["Title"]         = Model.FullName + " — Doctor Profile";
+    ViewData["PatientId"]     = Model.CurrentPatientId;
+    ViewData["PageTitleHtml"] = $"Doctor <span class='topbar-accent'>Profile</span>";
+    ViewData["PageSubtitle"]  = Model.FullName;
+    ViewData["ActivePage"]    = "Appointments";
+    ViewData["UserName"]      = Model.FirstName;
+}
+
+@section Head {
+    <link rel="stylesheet" href="~/css/doctor-dashboard-demo.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/public-doctor-profile.css" asp-append-version="true" />
+}
+
+<div class="dd-wrap">
+
+    @* ══ HERO ══ *@
+    <div class="hero">
+        <div class="hero-left">
+            <span class="hero-eyebrow"><i class="fas fa-user-doctor"></i> Doctor Profile</span>
+            <div style="display:flex; align-items:center; gap:18px; margin-top:4px;">
+                <img src="@Model.AvatarUrl"
+                     alt="Dr. @Model.FullName"
+                     class="dp-avatar"
+                     id="dpDoctorAvatar" />
+                <div>
+                    <h2 class="hero-title" id="dpDoctorName">@Model.FullName</h2>
+                    <p class="hero-sub" id="dpSpecialization">
+                        <i class="fas fa-stethoscope"></i>
+                        @Model.Specialization
+                    </p>
+                    <span class="dp-badge @Model.VerificationBadgeClass" id="dpVerificationBadge" style="margin-top:8px; display:inline-flex;">
+                        <i class="fas @Model.VerificationIcon"></i>
+                        @(Model.IsVerified ? "Verified Professional" : "Verification " + Model.VerificationStatus)
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="hero-right">
+            <div class="hero-stat">
+                <div class="hero-stat-ico"><i class="fas fa-calendar-check"></i></div>
+                <div class="hero-stat-body">
+                    <span class="hero-stat-val" id="dpTotalAppts">@Model.TotalAppointments</span>
+                    <span class="hero-stat-lbl">Total Slots</span>
+                </div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-ico"><i class="fas fa-check-circle"></i></div>
+                <div class="hero-stat-body">
+                    <span class="hero-stat-val" id="dpCompletedAppts">@Model.CompletedAppointments</span>
+                    <span class="hero-stat-lbl">Completed</span>
+                </div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-ico"><i class="fas fa-hospital"></i></div>
+                <div class="hero-stat-body">
+                    <span class="hero-stat-val">@Model.Clinics.Count</span>
+                    <span class="hero-stat-lbl">@(Model.Clinics.Count == 1 ? "Clinic" : "Clinics")</span>
+                </div>
+            </div>
+            <a href="@Url.Action("BookAppointment", "PatientAppointments", new { id = Model.CurrentPatientId, doctorId = Model.DoctorID })"
+               class="dp-book-btn"
+               id="dpHeroBookBtn">
+                <i class="fas fa-calendar-plus"></i>
+                Book Appointment
+            </a>
+        </div>
+    </div>
+
+    @* ══ KPI GRID ══ *@
+    <div class="kpi-grid">
+
+        <div class="kpi">
+            <div class="kpi-top">
+                <div class="kpi-ico teal"><i class="fas fa-calendar-alt"></i></div>
+                <span class="kpi-trend up"><i class="fas fa-check"></i> Active</span>
+            </div>
+            <div class="kpi-mid">
+                <div class="kpi-val" id="dpKpiTotal">@Model.TotalAppointments</div>
+                <div class="kpi-label">Total Appointment Slots</div>
+            </div>
+            <div class="kpi-foot"><i class="fas fa-info-circle"></i> All time slots</div>
+            <div class="kpi-glow teal"></div>
+        </div>
+
+        <div class="kpi">
+            <div class="kpi-top">
+                <div class="kpi-ico green"><i class="fas fa-check-circle"></i></div>
+                <span class="kpi-trend up"><i class="fas fa-arrow-up"></i> Done</span>
+            </div>
+            <div class="kpi-mid">
+                <div class="kpi-val" id="dpKpiCompleted">@Model.CompletedAppointments</div>
+                <div class="kpi-label">Completed Appointments</div>
+            </div>
+            <div class="kpi-foot"><i class="fas fa-calendar-check"></i> Successfully completed</div>
+            <div class="kpi-glow green"></div>
+        </div>
+
+        <div class="kpi">
+            <div class="kpi-top">
+                <div class="kpi-ico blue"><i class="fas fa-hospital"></i></div>
+                <span class="kpi-trend neu"><i class="fas fa-minus"></i> Linked</span>
+            </div>
+            <div class="kpi-mid">
+                <div class="kpi-val">@Model.Clinics.Count</div>
+                <div class="kpi-label">Affiliated Clinics</div>
+            </div>
+            <div class="kpi-foot"><i class="fas fa-building"></i> Practice locations</div>
+            <div class="kpi-glow blue"></div>
+        </div>
+
+        <div class="kpi">
+            <div class="kpi-top">
+                <div class="kpi-ico @(Model.IsVerified ? "green" : "amber")">
+                    <i class="fas @Model.VerificationIcon"></i>
+                </div>
+                <span class="kpi-trend @(Model.IsVerified ? "up" : "neu")">
+                    <i class="fas @(Model.IsVerified ? "fa-check" : "fa-clock")"></i>
+                    @Model.VerificationStatus
+                </span>
+            </div>
+            <div class="kpi-mid">
+                <div class="kpi-val" style="font-size:1.1rem;">@(Model.IsVerified ? "Active" : "Pending")</div>
+                <div class="kpi-label">License Status</div>
+            </div>
+            <div class="kpi-foot">
+                <i class="fas fa-certificate"></i>
+                @(Model.VerificationDate.HasValue ? "Since " + Model.VerificationDate.Value.ToString("MMM yyyy") : "Awaiting review")
+            </div>
+            <div class="kpi-glow @(Model.IsVerified ? "green" : "amber")"></div>
+        </div>
+
+    </div>
+
+    @* ══ MAIN GRID — About + Details ══ *@
+    <div class="main-grid dp-two-col-grid">
+
+        @* About / Bio *@
+        <div class="card">
+            <div class="card-header">
+                <div class="card-header-left">
+                    <div class="card-ico teal"><i class="fas fa-user-doctor"></i></div>
+                    <div>
+                        <div class="card-title">About Dr. @Model.FirstName</div>
+                        <div class="card-sub">Professional background &amp; expertise</div>
+                    </div>
+                </div>
+            </div>
+            <p class="dp-bio-text" id="dpBio" style="padding:16px 20px 20px;">@Model.Bio</p>
+        </div>
+
+        @* Professional Details *@
+        <div class="card">
+            <div class="card-header">
+                <div class="card-header-left">
+                    <div class="card-ico purple"><i class="fas fa-id-card"></i></div>
+                    <div>
+                        <div class="card-title">Professional Details</div>
+                        <div class="card-sub">Credentials &amp; practice information</div>
+                    </div>
+                </div>
+            </div>
+            <div class="dp-details-grid" style="padding:0 20px 20px;">
+
+                <div class="dp-detail-item">
+                    <div class="dp-detail-icon"><i class="fas fa-location-dot"></i></div>
+                    <div class="dp-detail-text">
+                        <div class="label">Address</div>
+                        <div class="value" id="dpAddress">
+                            @(string.IsNullOrWhiteSpace(Model.Address) ? "Not provided" : Model.Address)
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dp-detail-item">
+                    <div class="dp-detail-icon"><i class="fas fa-certificate"></i></div>
+                    <div class="dp-detail-text">
+                        <div class="label">License Status</div>
+                        <div class="value" id="dpLicenseStatus">
+                            @if (Model.IsVerified)
+                            {
+                                <span style="color:#10b981;">&#10003; Verified</span>
+                            }
+                            else
+                            {
+                                <span style="color:#f59e0b;">&#8987; @Model.VerificationStatus</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                @if (Model.VerificationDate.HasValue)
+                {
+                    <div class="dp-detail-item">
+                        <div class="dp-detail-icon"><i class="fas fa-calendar-check"></i></div>
+                        <div class="dp-detail-text">
+                            <div class="label">Verified Since</div>
+                            <div class="value" id="dpVerifiedSince">
+                                @Model.VerificationDate.Value.ToString("MMM dd, yyyy")
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <div class="dp-detail-item">
+                    <div class="dp-detail-icon"><i class="fas fa-stethoscope"></i></div>
+                    <div class="dp-detail-text">
+                        <div class="label">Specialization</div>
+                        <div class="value">@Model.Specialization</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ AFFILIATED CLINICS CARD ══ -->
+    @if (Model.Clinics.Count > 0)
+    {
+        <div class="card">
+            <div class="card-header">
+                <div class="card-header-left">
+                    <div class="card-ico teal"><i class="fas fa-hospital"></i></div>
+                    <div>
+                        <div class="card-title">Affiliated Clinics</div>
+                        <div class="card-sub">@Model.Clinics.Count practice @(Model.Clinics.Count == 1 ? "location" : "locations")</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dp-clinic-list" style="padding:0 20px 20px;" id="dpClinicList">
+                @foreach (var clinic in Model.Clinics)
+                {
+                    <div class="dp-clinic-item">
+                        <div class="dp-clinic-icon">
+                            <i class="fas fa-building-columns"></i>
+                        </div>
+                        <div>
+                            <div class="dp-clinic-name">@clinic.Name</div>
+                            @if (!string.IsNullOrWhiteSpace(clinic.Location))
+                            {
+                                <div class="dp-clinic-loc">
+                                    <i class="fas fa-map-pin" style="font-size:.75rem;color:var(--primary);margin-right:4px;"></i>
+                                    @clinic.Location
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    @* ══ BOTTOM CTA STRIP ══ *@
+    <div class="dp-cta-strip" id="dpCtaStrip">
+        <div class="dp-cta-text">
+            <h3>Ready to see @Model.FullName?</h3>
+            <p>Choose an available date and time that works best for you.</p>
+        </div>
+        <a href="@Url.Action("BookAppointment", "PatientAppointments", new { id = Model.CurrentPatientId, doctorId = Model.DoctorID })"
+           class="dp-cta-btn"
+           id="dpBottomBookBtn">
+            <i class="fas fa-calendar-plus"></i>
+            Book an Appointment
+        </a>
+    </div>
+
+</div>
+
+@section Scripts {
+<script>
+    // Staggered entrance animation matching patient dashboard pattern
+    document.addEventListener('DOMContentLoaded', () => {
+        const items = document.querySelectorAll('.kpi, .card, .dp-cta-strip');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.06 });
+
+        items.forEach((el, i) => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(12px)';
+            el.style.transition = `opacity .38s ease ${i * 0.06}s, transform .38s ease ${i * 0.06}s`;
+            observer.observe(el);
+        });
+    });
+</script>
+}
