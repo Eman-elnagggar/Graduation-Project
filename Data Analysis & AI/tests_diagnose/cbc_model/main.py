@@ -13,9 +13,9 @@ try:
     scaler = joblib.load('scaler.pkl')
     mlb = joblib.load('mlb.pkl')
     features = joblib.load('features_list.pkl')
-    print("✅ System Ready: Models loaded.")
+    print("System Ready: Models loaded.")
 except Exception as e:
-    print(f"❌ Error during loading: {e}")
+    print(f"Error during loading: {e}")
 
 # 3. Data Schema
 class PatientData(BaseModel):
@@ -43,7 +43,7 @@ def predict(patient: PatientData):
         for i, label in enumerate(mlb.classes_):
             conf = probabilities[i][0][1] * 100 if len(probabilities[i][0]) > 1 else 0.0
             
-            # 🛑 الفلاتر الصارمة: لو الرقم طبيعي، امسح الحالة دي من حساباتك خالص
+            # الفلاتر الصارمة: لو الرقم طبيعي، امسح الحالة دي من حساباتك خالص
             if label == 'Leukocytosis' and patient.WBC <= 11.0:
                 continue
             if label == 'Leukopenia' and patient.WBC >= 4.0: # الفلتر اللي كان ناقص
