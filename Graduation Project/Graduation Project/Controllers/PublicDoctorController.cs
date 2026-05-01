@@ -44,7 +44,10 @@ namespace Graduation_Project.Controllers
             if (!doctor.User.IsActive)
                 return NotFound();
 
-            var totalAppts = doctor.Appointments?.Count ?? 0;
+
+            var availableSlots = doctor.Appointments?
+                                       .Count(a => !a.isBooked) ?? 0;
+
             var completedAppts = doctor.Appointments?
                 .Count(a => a.Bookings.Any(b => b.IsActive &&
                     string.Equals(b.Status, "Completed", StringComparison.OrdinalIgnoreCase))) ?? 0;
@@ -74,7 +77,7 @@ namespace Graduation_Project.Controllers
                 Bio                 = $"Dr. {doctor.User.FirstName} {doctor.User.LastName} is a licensed medical professional " +
                                       $"specializing in {doctor.Specialization ?? "general medicine"}. " +
                                       "They are committed to delivering compassionate and evidence-based patient care.",
-                TotalAppointments   = totalAppts,
+                TotalAppointments   = availableSlots,
                 CompletedAppointments = completedAppts,
                 Clinics             = clinics,
                 CurrentPatientId    = patientId
