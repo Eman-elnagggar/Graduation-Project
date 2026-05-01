@@ -249,7 +249,7 @@ class test_parameters:
           'RBCs_Count': r'(?:rbc|red\s*blood\s*cell).*?(\d+\.?\d*)',
           'MCV': r'(?:mcv|mean\s*corpuscular\s*volume).*?(\d+\.?\d*)',
           'MCH': r'(?:mch(?!\s*c)).*?(\d+\.?\d*)',
-          'MCHC': r'(?:mchc).*?(\d+\.?\d*)',
+          'RDW': r'(?:rdw|red\s*cell\s*distribution\s*width).*?(\d+\.?\d*)',
           'WBC': r'(?:wbc|white\s*blood\s*cell|leucocytes).*?(\d+\.?\d*)',
           'lymphocytes': r'(?:lymph|lymphocytes).*?(\d+\.?\d*)',
           'platelet_count': r'(?:platelet|plt).*?(\d+[.,]?\d*)'

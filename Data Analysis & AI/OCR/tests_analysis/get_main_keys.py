@@ -11,7 +11,7 @@ def get_keys(test_name)->list:
         return [],['ABO_Group','RH_Factor']
     
     if test_name=='CBC (Complete Blood Count)':
-        return ["HB","RBCs_Count","MCV", "MCH", "MCHC", "WBC", "lymphocytes", "platelet_count"],[]
+        return ["HB","RBCs_Count","MCV", "MCH", "RDW", "WBC", "lymphocytes", "platelet_count"],[]
     
     if test_name=='HbA1c (Sugar Test)':
         return ["HbA1c"],[]
