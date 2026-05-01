@@ -45,8 +45,10 @@ namespace Graduation_Project.Controllers
                 return NotFound();
 
 
+            var now = DateTime.Now;
+
             var availableSlots = doctor.Appointments?
-                                       .Count(a => !a.isBooked) ?? 0;
+                .Count(a => a.Date.Add(a.Time) > now && !a.isBooked) ?? 0;
 
             var completedAppts = doctor.Appointments?
                 .Count(a => a.Bookings.Any(b => b.IsActive &&
