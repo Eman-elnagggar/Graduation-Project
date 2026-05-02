@@ -78,6 +78,9 @@ namespace Graduation_Project
             builder.Services.AddScoped<AlertService>();
             builder.Services.AddScoped<AssistantScheduleService>();
             builder.Services.AddSingleton<IChatMessageCrypto, ChatMessageCrypto>();
+            builder.Services.AddScoped<IAnalysisService, AnalysisService>();
+            builder.Services.AddScoped<AnalysisBackgroundJob>();
+            builder.Services.AddSingleton<IBackgroundJobScheduler, HangfireBackgroundJobScheduler>();
 
             // ?? Product OCR ????????????????????????????????????????????????
             builder.Services.AddHttpClient("ProductOcr", client =>
@@ -87,6 +90,24 @@ namespace Graduation_Project
             });
             builder.Services.AddScoped<ProductOcrClient>();
             // ??????????????????????????????????????????????????????????????
+
+            builder.Services.AddHttpClient("AnalysisOcr", client =>
+            {
+                client.BaseAddress = new Uri("https://eman123yasser-tests-ocr.hf.space/");
+                client.Timeout = TimeSpan.FromSeconds(60);
+            });
+            builder.Services.AddHttpClient("AnalysisConfirm", client =>
+            {
+                client.BaseAddress = new Uri("https://eman123yasser-tests-ocr.hf.space/");
+                client.Timeout = TimeSpan.FromSeconds(60);
+            });
+            builder.Services.AddHttpClient("AnalysisSubmit", client =>
+            {
+                client.BaseAddress = new Uri("https://eman123yasser-submit-api.hf.space/");
+                client.Timeout = TimeSpan.FromSeconds(60);
+            });
+            builder.Services.AddScoped<AnalysisOcrClient>();
+            builder.Services.AddScoped<AnalysisSubmitClient>();
 
             var app = builder.Build();
 

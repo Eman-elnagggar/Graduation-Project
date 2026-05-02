@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Graduation_Project.Models;
 
@@ -29,6 +29,7 @@ namespace Graduation_Project.Data
         public DbSet<HCV_Test> HCV_Tests { get; set; }
         public DbSet<TSH_Test> TSH_Tests { get; set; }
         public DbSet<Ferritin_Test> Ferritin_Tests { get; set; }
+        public DbSet<FBG_Test> FBG_Tests { get; set; }
         public DbSet<Clinic> Clinics { get; set; }
         public DbSet<ClinicDoctor> ClinicDoctors { get; set; }
         public DbSet<AssistantDoctor> AssistantDoctors { get; set; }
@@ -208,6 +209,16 @@ namespace Graduation_Project.Data
                 entity.HasOne(d => d.Doctor)
                     .WithMany()
                     .HasForeignKey(d => d.DoctorID)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<TestReport>(entity =>
+            {
+                entity.HasOne(d => d.Doctor)
+                    .WithMany()
+                    .HasForeignKey(d => d.DoctorID)
+                    .IsRequired(false)
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
@@ -323,6 +334,19 @@ namespace Graduation_Project.Data
                 entity.HasOne(d => d.LabTest)
                     .WithOne()
                     .HasForeignKey<Ferritin_Test>(d => d.LabTestID)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ============================================================
+            // 47. FBG_TEST -> LABTEST (One-to-One)
+            // ============================================================
+            modelBuilder.Entity<FBG_Test>(entity =>
+            {
+                entity.HasKey(e => e.LabTestID);
+
+                entity.HasOne(d => d.LabTest)
+                    .WithOne()
+                    .HasForeignKey<FBG_Test>(d => d.LabTestID)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 

@@ -4,6 +4,7 @@ using Graduation_Project.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Graduation_Project.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260427220500_testupload2")]
+    partial class testupload2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -338,29 +341,29 @@ namespace Graduation_Project.Migrations
                     b.Property<int>("LabTestID")
                         .HasColumnType("int");
 
-                    b.Property<float>("HB")
-                        .HasColumnType("real");
+                    b.Property<double>("HB")
+                        .HasColumnType("float");
 
-                    b.Property<float>("MCH")
-                        .HasColumnType("real");
+                    b.Property<double>("Lymphocytes")
+                        .HasColumnType("float");
 
-                    b.Property<float>("MCHC")
-                        .HasColumnType("real");
+                    b.Property<double>("MCH")
+                        .HasColumnType("float");
 
-                    b.Property<float>("MCV")
-                        .HasColumnType("real");
+                    b.Property<double>("MCHC")
+                        .HasColumnType("float");
 
-                    b.Property<float>("RBCs_Count")
-                        .HasColumnType("real");
+                    b.Property<double>("MCV")
+                        .HasColumnType("float");
 
-                    b.Property<float>("WBC")
-                        .HasColumnType("real");
+                    b.Property<double>("Platelet_Count")
+                        .HasColumnType("float");
 
-                    b.Property<float>("lymphocytes")
-                        .HasColumnType("real");
+                    b.Property<double>("RBC_Count")
+                        .HasColumnType("float");
 
-                    b.Property<float>("platelet_count")
-                        .HasColumnType("real");
+                    b.Property<double>("WBC_Count")
+                        .HasColumnType("float");
 
                     b.HasKey("LabTestID");
 
@@ -535,19 +538,6 @@ namespace Graduation_Project.Migrations
                         .IsUnique();
 
                     b.ToTable("Doctors");
-                });
-
-            modelBuilder.Entity("Graduation_Project.Models.FBG_Test", b =>
-                {
-                    b.Property<int>("LabTestID")
-                        .HasColumnType("int");
-
-                    b.Property<float>("FBG")
-                        .HasColumnType("real");
-
-                    b.HasKey("LabTestID");
-
-                    b.ToTable("FBG_Tests");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.Ferritin_Test", b =>
@@ -769,9 +759,6 @@ namespace Graduation_Project.Migrations
                     b.Property<DateTime?>("DateOfPregnancy")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("DgState")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<int>("GestationalWeeks")
                         .HasColumnType("int");
 
@@ -792,9 +779,6 @@ namespace Graduation_Project.Migrations
 
                     b.Property<int>("PreviousPregnancies")
                         .HasColumnType("int");
-
-                    b.Property<string>("RiskState")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("Smoking")
                         .HasColumnType("bit");
@@ -1118,9 +1102,6 @@ namespace Graduation_Project.Migrations
 
                     b.Property<int>("PatientID")
                         .HasColumnType("int");
-
-                    b.Property<string>("PersonalInfoJson")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("ReportDate")
                         .HasColumnType("datetime2");
@@ -1602,17 +1583,6 @@ namespace Graduation_Project.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Graduation_Project.Models.FBG_Test", b =>
-                {
-                    b.HasOne("Graduation_Project.Models.LabTest", "LabTest")
-                        .WithOne()
-                        .HasForeignKey("Graduation_Project.Models.FBG_Test", "LabTestID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("LabTest");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.Ferritin_Test", b =>

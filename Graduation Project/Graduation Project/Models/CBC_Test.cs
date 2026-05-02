@@ -9,14 +9,14 @@ namespace Graduation_Project.Models
         [Key, ForeignKey("LabTest")]
         public int LabTestID { get; set; }
 
-        public double HB { get; set; }
-        public double MCV { get; set; }
-        public double MCHC { get; set; }
-        public double MCH { get; set; }
-        public double RBC_Count { get; set; }
-        public double WBC_Count { get; set; }
-        public double Platelet_Count { get; set; }
-        public double Lymphocytes { get; set; }
+        public float HB { get; set; }
+        public float RBCs_Count { get; set; }
+        public float MCV { get; set; }
+        public float MCH { get; set; }
+        public float MCHC { get; set; }
+        public float WBC { get; set; }
+        public float lymphocytes { get; set; }
+        public float platelet_count { get; set; }
 
         // Navigation
         public virtual LabTest LabTest { get; set; }

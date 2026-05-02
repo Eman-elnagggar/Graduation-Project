@@ -4,6 +4,7 @@ using Graduation_Project.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Graduation_Project.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260430191808_AddPersonalInfoJsonToTestReport")]
+    partial class AddPersonalInfoJsonToTestReport
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -537,19 +540,6 @@ namespace Graduation_Project.Migrations
                     b.ToTable("Doctors");
                 });
 
-            modelBuilder.Entity("Graduation_Project.Models.FBG_Test", b =>
-                {
-                    b.Property<int>("LabTestID")
-                        .HasColumnType("int");
-
-                    b.Property<float>("FBG")
-                        .HasColumnType("real");
-
-                    b.HasKey("LabTestID");
-
-                    b.ToTable("FBG_Tests");
-                });
-
             modelBuilder.Entity("Graduation_Project.Models.Ferritin_Test", b =>
                 {
                     b.Property<int>("LabTestID")
@@ -769,9 +759,6 @@ namespace Graduation_Project.Migrations
                     b.Property<DateTime?>("DateOfPregnancy")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("DgState")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<int>("GestationalWeeks")
                         .HasColumnType("int");
 
@@ -792,9 +779,6 @@ namespace Graduation_Project.Migrations
 
                     b.Property<int>("PreviousPregnancies")
                         .HasColumnType("int");
-
-                    b.Property<string>("RiskState")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("Smoking")
                         .HasColumnType("bit");
@@ -1602,17 +1586,6 @@ namespace Graduation_Project.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Graduation_Project.Models.FBG_Test", b =>
-                {
-                    b.HasOne("Graduation_Project.Models.LabTest", "LabTest")
-                        .WithOne()
-                        .HasForeignKey("Graduation_Project.Models.FBG_Test", "LabTestID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("LabTest");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.Ferritin_Test", b =>
