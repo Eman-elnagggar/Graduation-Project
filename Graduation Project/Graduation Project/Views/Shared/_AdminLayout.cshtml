@@ -1,0 +1,94 @@
+@using System.Globalization
+@using System.Linq
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>@ViewData["Title"] - NABD نبض · Admin Portal</title>
+  <link rel="icon" type="image/png" href="~/images/logo.png" asp-append-version="true" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="~/css/design-system.css" asp-append-version="true" />
+  <link rel="stylesheet" href="~/css/admin-style.css" asp-append-version="true" />
+  @await RenderSectionAsync("Head", required: false)
+  @await RenderSectionAsync("Styles", required: false)
+</head>
+@{
+  var adminName = ViewData["AdminName"] as string ?? User?.Identity?.Name ?? "Admin";
+  var shortAdminName = adminName.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? adminName;
+  var headerDate = DateTime.Now.ToString("ddd, MMM d", new CultureInfo("en-US"));
+  var pageTitleHtml = ViewData["PageTitleHtml"] as string;
+}
+<body>
+<div class="container">
+
+  @await Html.PartialAsync("_AdminSidebar")
+
+  <button class="sidebar-toggle" title="Toggle sidebar"><i class="fas fa-chevron-left"></i></button>
+  <div class="sidebar-overlay"></div>
+
+  <main class="main-content">
+    <header class="top-bar">
+      <div class="topbar-left">
+        <div class="topbar-greeting">
+          <h1 class="page-title">@Html.Raw(!string.IsNullOrWhiteSpace(pageTitleHtml) ? pageTitleHtml : (ViewData["PageTitle"] as string ?? ViewData["Title"] as string ?? "Dashboard"))</h1>
+          @if (!string.IsNullOrWhiteSpace(ViewData["PageSubtitle"] as string))
+          {
+            <p class="page-subtitle">@(ViewData["PageSubtitle"] as string)</p>
+          }
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="date-chip">
+          <i class="fas fa-calendar-alt"></i>
+          <span>@headerDate</span>
+        </div>
+        <div class="topbar-avatar">
+          <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(adminName)&background=1d4ed8&color=fff&size=80"
+               alt="@adminName" />
+          <span>@shortAdminName</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="page-content">
+      @if (TempData["AdminSuccess"] != null)
+      {
+        <div class="admin-toast success" id="adminToast">
+          <i class="fas fa-check-circle"></i>
+          <span>@TempData["AdminSuccess"]</span>
+        </div>
+      }
+      @if (TempData["AdminError"] != null)
+      {
+        <div class="admin-toast error" id="adminToast">
+          <i class="fas fa-exclamation-circle"></i>
+          <span>@TempData["AdminError"]</span>
+        </div>
+      }
+      @RenderBody()
+    </div>
+  </main>
+
+</div>
+
+<div style="display:none;">@Html.AntiForgeryToken()</div>
+
+<script src="~/js/shared.js" asp-append-version="true"></script>
+<script>
+  // Auto-dismiss toast
+  (function() {
+    var toast = document.getElementById('adminToast');
+    if (toast) setTimeout(function() {
+      toast.style.transition = 'opacity 0.4s';
+      toast.style.opacity = '0';
+      setTimeout(function() { toast.remove(); }, 400);
+    }, 4000);
+  })();
+</script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

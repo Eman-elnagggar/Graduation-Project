@@ -1,0 +1,101 @@
+@model Graduation_Project.ViewModels.AdminClinicFormViewModel
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    var isEdit = Model.IsEdit;
+    var pageTitle = isEdit ? "Edit Clinic" : "Add Clinic";
+    var formAction = isEdit ? "/Admin/EditClinic" : "/Admin/AddClinic";
+}
+
+<div class="top-bar">
+  <div class="topbar-left">
+    <button class="sidebar-toggle" id="sidebarToggle">
+      <i class="fas fa-bars"></i>
+    </button>
+    <div>
+      <h1 class="page-title">@pageTitle</h1>
+      <p class="page-subtitle">
+        @if (isEdit) { <text>Update clinic information</text> }
+        else { <text>Register a new clinic in the system</text> }
+      </p>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <a href="/Admin/Clinics" class="btn-admin-ghost">
+      <i class="fas fa-arrow-left"></i> Back to Clinics
+    </a>
+  </div>
+</div>
+
+<div class="page-content">
+  <div class="clinic-form-wrapper">
+    <div class="admin-card clinic-form-card">
+
+      <div class="admin-card-header">
+        <div>
+          <h2 class="admin-card-title">
+            <i class="fas fa-@(isEdit ? "edit" : "hospital-alt")"></i> @pageTitle
+          </h2>
+          <p class="admin-card-subtitle">
+            @if (isEdit) { <text>Editing: @Model.Name</text> }
+            else { <text>Fill in the details below to add a new clinic</text> }
+          </p>
+        </div>
+      </div>
+
+      <form method="post" action="@formAction" class="clinic-form">
+        @Html.AntiForgeryToken()
+        @if (isEdit)
+        {
+          <input type="hidden" name="ClinicID" value="@Model.ClinicID" />
+        }
+
+        <div class="form-group-admin">
+          <label class="form-label-admin" for="Name">
+            <i class="fas fa-hospital me-1" style="color:#7c3aed;"></i> Clinic Name
+            <span class="required-star">*</span>
+          </label>
+          <input type="text"
+                 id="Name"
+                 name="Name"
+                 value="@Model.Name"
+                 class="form-control-admin @(ViewData.ModelState["Name"]?.Errors.Count > 0 ? "input-error" : "")"
+                 placeholder="e.g. Al-Nour Medical Clinic"
+                 required />
+          @if (ViewData.ModelState["Name"]?.Errors.Count > 0)
+          {
+            <span class="field-error">@ViewData.ModelState["Name"]!.Errors[0].ErrorMessage</span>
+          }
+        </div>
+
+        <div class="form-group-admin">
+          <label class="form-label-admin" for="Location">
+            <i class="fas fa-map-marker-alt me-1" style="color:#7c3aed;"></i> Location / Address
+            <span class="required-star">*</span>
+          </label>
+          <input type="text"
+                 id="Location"
+                 name="Location"
+                 value="@Model.Location"
+                 class="form-control-admin @(ViewData.ModelState["Location"]?.Errors.Count > 0 ? "input-error" : "")"
+                 placeholder="e.g. 15 Cairo Street, Alexandria"
+                 required />
+          @if (ViewData.ModelState["Location"]?.Errors.Count > 0)
+          {
+            <span class="field-error">@ViewData.ModelState["Location"]!.Errors[0].ErrorMessage</span>
+          }
+        </div>
+
+        <div class="form-actions-admin">
+          <a href="/Admin/Clinics" class="btn-admin-ghost">
+            <i class="fas fa-times"></i> Cancel
+          </a>
+          <button type="submit" class="btn-admin-primary">
+            <i class="fas fa-@(isEdit ? "save" : "plus")"></i>
+            @if (isEdit) { <text>Save Changes</text> } else { <text>Add Clinic</text> }
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</div>

@@ -36,6 +36,26 @@ namespace Graduation_Project.Controllers
             _medicationAdherenceService = medicationAdherenceService;
         }
 
+        [HttpGet]
+        public async Task<IActionResult> UnderReview()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var doctor = await _context.Doctors
+                .Include(d => d.User)
+                .FirstOrDefaultAsync(d => d.UserID == userId);
+
+            if (doctor == null) return NotFound();
+
+            if (doctor.VerificationStatus == "Approved")
+                return RedirectToAction("Index", "Doctor");
+
+            ViewData["Title"] = "Account Under Review";
+            ViewData["DoctorName"] = $"{doctor.User?.FirstName} {doctor.User?.LastName}".Trim();
+            ViewData["VerificationStatus"] = doctor.VerificationStatus ?? "Pending";
+            ViewData["RejectionNote"] = doctor.RejectionNote;
+            return View();
+        }
+
         public IActionResult Index(int id = 0)
         {
             var accessResult = TryResolveDoctor(id, out var doctor);

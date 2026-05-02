@@ -9,6 +9,8 @@ namespace Graduation_Project.Models
         public string? LastName { get; set; }
         public DateTime DateOfBirth { get; set; }
         public bool IsActive { get; set; }
+        public bool IsBanned { get; set; }
+        public string? OriginalEmail { get; set; }
         public DateTime CreatedDate { get; set; }
 
         [NotMapped]

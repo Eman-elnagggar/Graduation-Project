@@ -1,0 +1,324 @@
+@using System.Globalization
+@model Graduation_Project.ViewModels.AdminDashboardViewModel
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Dashboard";
+    ViewData["ActivePage"] = "Dashboard";
+    var now = DateTime.Now;
+    var greeting = now.Hour < 12 ? "Good morning" : now.Hour < 17 ? "Good afternoon" : "Good evening";
+    ViewData["PageTitle"] = $"{greeting}, Admin";
+    ViewData["PageTitleHtml"] = $"{greeting}, <span class='topbar-accent'>Admin</span>";
+    ViewData["PageSubtitle"] = now.ToString("dddd, MMMM dd, yyyy", CultureInfo.InvariantCulture);
+
+    var weekly = Model.WeeklyAppointments.ToList();
+    while (weekly.Count < 7) { weekly.Add(0); }
+    var weeklyMax = Math.Max(1, weekly.Max());
+    var weekdayNames = new[] { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+    var today = DateTime.Today;
+    var startDow = (int)(today.AddDays(-6).DayOfWeek);
+
+    var monthly = Model.MonthlyUserGrowth.ToList();
+    while (monthly.Count < 6) { monthly.Add(0); }
+    var monthlyMax = Math.Max(1, monthly.Max());
+}
+
+<div class="admin-hero">
+    <div class="hero-left">
+        <span class="hero-eyebrow"><i class="fas fa-shield-alt"></i> Admin Panel</span>
+        <h2 class="hero-title">@greeting, <span>Administrator</span></h2>
+        <p class="hero-sub"><i class="fas fa-circle"></i> @now.ToString("dddd, MMMM dd, yyyy", CultureInfo.InvariantCulture) · System Overview</p>
+    </div>
+    <div class="hero-stats">
+        <div class="hero-stat-card">
+            <span class="hero-stat-val">@Model.TotalPatients</span>
+            <span class="hero-stat-lbl">Total Patients</span>
+        </div>
+        <div class="hero-stat-card">
+            <span class="hero-stat-val">@Model.TotalDoctors</span>
+            <span class="hero-stat-lbl">Total Doctors</span>
+        </div>
+        <div class="hero-stat-card">
+            <span class="hero-stat-val">@Model.AppointmentsToday</span>
+            <span class="hero-stat-lbl">Today's Appts</span>
+        </div>
+        <div class="hero-stat-card">
+            <span class="hero-stat-val">@Model.PendingDoctorVerifications</span>
+            <span class="hero-stat-lbl">Pending Verif.</span>
+        </div>
+    </div>
+</div>
+
+<div class="kpi-grid">
+    <div class="kpi">
+        <div class="kpi-top">
+            <div class="kpi-ico purple"><i class="fas fa-users"></i></div>
+            <span class="kpi-badge up"><i class="fas fa-arrow-up"></i> Active</span>
+        </div>
+        <div class="kpi-mid">
+            <div class="kpi-val">@Model.TotalPatients</div>
+            <div class="kpi-label">Patients Registered</div>
+        </div>
+        <div class="kpi-foot"><i class="fas fa-info-circle"></i> @Model.ActiveUsers active users in total</div>
+        <div class="kpi-glow purple"></div>
+    </div>
+
+    <div class="kpi">
+        <div class="kpi-top">
+            <div class="kpi-ico teal"><i class="fas fa-stethoscope"></i></div>
+            <span class="kpi-badge warn"><i class="fas fa-clock"></i> @Model.PendingDoctorVerifications pending</span>
+        </div>
+        <div class="kpi-mid">
+            <div class="kpi-val">@Model.TotalDoctors</div>
+            <div class="kpi-label">Doctors Registered</div>
+        </div>
+        <div class="kpi-foot"><i class="fas fa-user-check"></i> @Model.PendingDoctorVerifications awaiting verification</div>
+        <div class="kpi-glow teal"></div>
+    </div>
+
+    <div class="kpi">
+        <div class="kpi-top">
+            <div class="kpi-ico blue"><i class="fas fa-calendar-check"></i></div>
+            <span class="kpi-badge info"><i class="fas fa-calendar"></i> Today</span>
+        </div>
+        <div class="kpi-mid">
+            <div class="kpi-val">@Model.AppointmentsToday</div>
+            <div class="kpi-label">Active Appointments</div>
+        </div>
+        <div class="kpi-foot"><i class="fas fa-clock"></i> Scheduled for today</div>
+        <div class="kpi-glow blue"></div>
+    </div>
+
+    <div class="kpi">
+        <div class="kpi-top">
+            <div class="kpi-ico amber"><i class="fas fa-envelope-open"></i></div>
+            <span class="kpi-badge warn"><i class="fas fa-hourglass"></i> Pending</span>
+        </div>
+        <div class="kpi-mid">
+            <div class="kpi-val">@Model.PendingClinicInvitations</div>
+            <div class="kpi-label">Clinic Invitations</div>
+        </div>
+        <div class="kpi-foot"><i class="fas fa-hospital"></i> Awaiting assistant response</div>
+        <div class="kpi-glow amber"></div>
+    </div>
+
+    <div class="kpi">
+        <div class="kpi-top">
+            <div class="kpi-ico red"><i class="fas fa-bell"></i></div>
+            <span class="kpi-badge warn"><i class="fas fa-exclamation"></i> Today</span>
+        </div>
+        <div class="kpi-mid">
+            <div class="kpi-val">@Model.AlertsToday</div>
+            <div class="kpi-label">Alerts Generated</div>
+        </div>
+        <div class="kpi-foot"><i class="fas fa-eye"></i> Generated in the system today</div>
+        <div class="kpi-glow red"></div>
+    </div>
+
+    <div class="kpi">
+        <div class="kpi-top">
+            <div class="kpi-ico green"><i class="fas fa-user-nurse"></i></div>
+            <span class="kpi-badge info"><i class="fas fa-hospital-user"></i> Staff</span>
+        </div>
+        <div class="kpi-mid">
+            <div class="kpi-val">@Model.TotalAssistants</div>
+            <div class="kpi-label">Assistants</div>
+        </div>
+        <div class="kpi-foot"><i class="fas fa-clinic-medical"></i> @Model.TotalClinics clinics registered</div>
+        <div class="kpi-glow green"></div>
+    </div>
+</div>
+
+<div class="admin-grid">
+    <div style="display:flex;flex-direction:column;gap:20px;">
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-header-left">
+                    <div class="card-ico amber"><i class="fas fa-bell"></i></div>
+                    <div>
+                        <div class="card-title">Recent System Alerts</div>
+                        <div class="card-sub">Latest alerts across all patients</div>
+                    </div>
+                </div>
+            </div>
+            @if (Model.RecentAlerts.Any())
+            {
+                @foreach (var alert in Model.RecentAlerts)
+                {
+                    var t = (alert.AlertType ?? "info").ToLowerInvariant();
+                    var iconClass = t == "danger" ? "fa-exclamation-circle" : t == "warning" ? "fa-exclamation-triangle" : t == "success" ? "fa-check-circle" : "fa-info-circle";
+                    var colorClass = t == "danger" ? "danger" : t == "warning" ? "warning" : t == "success" ? "success" : "info";
+                    <div class="admin-alert-item">
+                        <div class="alert-ico-wrap @colorClass"><i class="fas @iconClass"></i></div>
+                        <div class="alert-body">
+                            <div class="alert-body-title">@alert.Title</div>
+                            <div class="alert-body-meta">@alert.Message</div>
+                            <div class="alert-patient"><i class="fas fa-user"></i> @alert.PatientName &nbsp;·&nbsp; <i class="fas fa-clock"></i> @alert.DateCreated.ToString("g")</div>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="empty-state"><i class="fas fa-check-circle"></i>No alerts today</div>
+            }
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-header-left">
+                    <div class="card-ico purple"><i class="fas fa-history"></i></div>
+                    <div>
+                        <div class="card-title">System Activity Log</div>
+                        <div class="card-sub">Recent actions in the platform</div>
+                    </div>
+                </div>
+            </div>
+            @foreach (var log in Model.RecentActivity)
+            {
+                <div class="activity-item">
+                    <div class="act-ico @log.Color"><i class="fas @log.Icon"></i></div>
+                    <div class="act-body">
+                        <div class="act-action">@log.Action</div>
+                        <div class="act-user">By @log.UserName · <span style="text-transform:capitalize;">@log.Role</span></div>
+                    </div>
+                    <div class="act-time">
+                        @{
+                            var diff = DateTime.Now - log.Timestamp;
+                            var timeLabel = diff.TotalMinutes < 60
+                                ? $"{Math.Max(1, (int)diff.TotalMinutes)}m ago"
+                                : diff.TotalHours < 24
+                                    ? $"{Math.Max(1, (int)diff.TotalHours)}h ago"
+                                    : log.Timestamp.ToString("MMM d");
+                        }
+                        @timeLabel
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:20px;">
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-header-left">
+                    <div class="card-ico blue"><i class="fas fa-chart-bar"></i></div>
+                    <div>
+                        <div class="card-title">Weekly Appointments</div>
+                        <div class="card-sub">Last 7 days</div>
+                    </div>
+                </div>
+            </div>
+            <div class="week-chart">
+                <div class="week-chart-bars">
+                    @for (var i = 0; i < 7; i++)
+                    {
+                        var h = Math.Max(8, (int)Math.Round((weekly[i] / (double)weeklyMax) * 72));
+                        var dayIndex = (startDow + i) % 7;
+                        var isToday = i == 6;
+                        <div class="wbar @(isToday ? "today" : "")" style="height:@(h)px" data-tip="@weekly[i] appts"></div>
+                    }
+                </div>
+                <div class="wbar-labels">
+                    @for (var i = 0; i < 7; i++)
+                    {
+                        var dayIndex = (startDow + i) % 7;
+                        var isToday = i == 6;
+                        <span class="wbar-label @(isToday ? "today" : "")">@weekdayNames[dayIndex]</span>
+                    }
+                </div>
+                <div class="week-summary">
+                    <div class="wsumm"><div class="wsumm-val">@weekly.Sum()</div><div class="wsumm-lbl">Total</div></div>
+                    <div class="wsumm"><div class="wsumm-val">@weekly.Last()</div><div class="wsumm-lbl">Today</div></div>
+                    <div class="wsumm"><div class="wsumm-val">@((weekly.Sum() / 7.0).ToString("0.0"))</div><div class="wsumm-lbl">Daily avg</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-header-left">
+                    <div class="card-ico green"><i class="fas fa-chart-line"></i></div>
+                    <div>
+                        <div class="card-title">User Growth</div>
+                        <div class="card-sub">New registrations per month</div>
+                    </div>
+                </div>
+            </div>
+            <div class="growth-chart">
+                <div class="growth-bars">
+                    @for (var i = 0; i < 6; i++)
+                    {
+                        var h = Math.Max(8, (int)Math.Round((monthly[i] / (double)monthlyMax) * 80));
+                        <div class="gbar" style="height:@(h)px" data-tip="@monthly[i] users"></div>
+                    }
+                </div>
+                <div class="gbar-labels">
+                    @foreach (var label in Model.MonthLabels)
+                    {
+                        <span class="gbar-label">@label</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-header-left">
+                    <div class="card-ico purple"><i class="fas fa-sitemap"></i></div>
+                    <div>
+                        <div class="card-title">System Overview</div>
+                        <div class="card-sub">Platform statistics</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                @{
+                    var totalUsers = Model.TotalPatients + Model.TotalDoctors + Model.TotalAssistants;
+                    var patPct  = totalUsers > 0 ? (int)Math.Round(Model.TotalPatients  * 100d / totalUsers) : 0;
+                    var docPct  = totalUsers > 0 ? (int)Math.Round(Model.TotalDoctors   * 100d / totalUsers) : 0;
+                    var astPct  = totalUsers > 0 ? (int)Math.Round(Model.TotalAssistants* 100d / totalUsers) : 0;
+                }
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                    <div>
+                        <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:5px;">
+                            <span style="color:var(--text-secondary);"><i class="fas fa-users" style="color:#2196f3;margin-right:5px;"></i>Patients</span>
+                            <span style="font-weight:600;">@Model.TotalPatients · @patPct%</span>
+                        </div>
+                        <div style="background:#f1f5f9;border-radius:20px;height:7px;overflow:hidden;">
+                            <div style="width:@patPct%;height:100%;background:#2196f3;border-radius:20px;"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:5px;">
+                            <span style="color:var(--text-secondary);"><i class="fas fa-stethoscope" style="color:#14967f;margin-right:5px;"></i>Doctors</span>
+                            <span style="font-weight:600;">@Model.TotalDoctors · @docPct%</span>
+                        </div>
+                        <div style="background:#f1f5f9;border-radius:20px;height:7px;overflow:hidden;">
+                            <div style="width:@docPct%;height:100%;background:#14967f;border-radius:20px;"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:5px;">
+                            <span style="color:var(--text-secondary);"><i class="fas fa-user-nurse" style="color:#ff9800;margin-right:5px;"></i>Assistants</span>
+                            <span style="font-weight:600;">@Model.TotalAssistants · @astPct%</span>
+                        </div>
+                        <div style="background:#f1f5f9;border-radius:20px;height:7px;overflow:hidden;">
+                            <div style="width:@astPct%;height:100%;background:#ff9800;border-radius:20px;"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:5px;">
+                            <span style="color:var(--text-secondary);"><i class="fas fa-clinic-medical" style="color:#7c3aed;margin-right:5px;"></i>Clinics</span>
+                            <span style="font-weight:600;">@Model.TotalClinics</span>
+                        </div>
+                        <div style="background:#f1f5f9;border-radius:20px;height:7px;overflow:hidden;">
+                            <div style="width:60%;height:100%;background:#7c3aed;border-radius:20px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

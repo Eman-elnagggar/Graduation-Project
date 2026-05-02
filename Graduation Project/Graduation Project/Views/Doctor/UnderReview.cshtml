@@ -1,0 +1,325 @@
+@{
+    Layout = null;
+    var status = ViewData["VerificationStatus"] as string ?? "Pending";
+    var doctorName = ViewData["DoctorName"] as string ?? "Doctor";
+    var rejectionNote = ViewData["RejectionNote"] as string;
+    var isRejected = status == "Rejected";
+}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Account Under Review - NABD نبض</title>
+  <link rel="icon" type="image/png" href="~/images/logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "DM Sans", sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .review-card {
+      background: #161b22;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 52px 48px;
+      max-width: 560px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+    }
+
+    .status-icon {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      margin: 0 auto 28px;
+    }
+
+    .status-icon.pending {
+      background: rgba(251,191,36,0.12);
+      color: #fbbf24;
+      border: 2px solid rgba(251,191,36,0.25);
+      animation: pulse-ring 2.4s ease-in-out infinite;
+    }
+
+    .status-icon.rejected {
+      background: rgba(248,113,113,0.12);
+      color: #f87171;
+      border: 2px solid rgba(248,113,113,0.25);
+    }
+
+    @@keyframes pulse-ring {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(251,191,36,0.3); }
+      50%       { box-shadow: 0 0 0 16px rgba(251,191,36,0); }
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    .status-badge.pending { background: rgba(251,191,36,0.12); color: #fbbf24; }
+    .status-badge.rejected { background: rgba(248,113,113,0.12); color: #f87171; }
+
+    .review-title {
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: #e6edf3;
+      margin-bottom: 12px;
+      line-height: 1.25;
+    }
+
+    .review-subtitle {
+      font-size: 0.95rem;
+      color: #8b949e;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+
+    .rejection-note-box {
+      background: rgba(248,113,113,0.08);
+      border: 1px solid rgba(248,113,113,0.2);
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin-bottom: 28px;
+      text-align: left;
+    }
+
+    .rejection-note-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #f87171;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .rejection-note-text {
+      font-size: 0.9rem;
+      color: #e6edf3;
+      line-height: 1.6;
+    }
+
+    .steps-list {
+      list-style: none;
+      text-align: left;
+      margin-bottom: 36px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .steps-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 0.88rem;
+      color: #8b949e;
+      line-height: 1.5;
+    }
+
+    .step-ico {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      margin-top: 1px;
+    }
+
+    .step-ico.done  { background: rgba(74,222,128,0.15); color: #4ade80; }
+    .step-ico.wait  { background: rgba(251,191,36,0.15); color: #fbbf24; }
+    .step-ico.next  { background: rgba(79,142,247,0.15); color: #4f8ef7; }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-logout {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 22px;
+      background: rgba(248,113,113,0.1);
+      color: #f87171;
+      border: 1px solid rgba(248,113,113,0.2);
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .btn-logout:hover {
+      background: rgba(248,113,113,0.18);
+      border-color: rgba(248,113,113,0.35);
+    }
+
+    .btn-refresh {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 22px;
+      background: #4f8ef7;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.2s;
+      cursor: pointer;
+    }
+
+    .btn-refresh:hover { background: #2563eb; }
+
+    .brand {
+      margin-bottom: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .brand img { width: 36px; height: 36px; border-radius: 8px; object-fit: contain; }
+    .brand-name { font-size: 1.3rem; font-weight: 700; color: #e6edf3; }
+    .brand-name span { color: #4f8ef7; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.07);
+      margin: 28px 0;
+    }
+
+    .eta-note {
+      font-size: 0.8rem;
+      color: #6e7681;
+      margin-top: 20px;
+    }
+
+    @@media (max-width: 480px) {
+      .review-card { padding: 36px 24px; }
+      .review-title { font-size: 1.4rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="review-card">
+  <div class="brand">
+    <img src="/images/logo.png" alt="NABD" onerror="this.style.display='none'" />
+    <div class="brand-name">NABD <span>نبض</span></div>
+  </div>
+
+  <div class="status-icon @status.ToLower()">
+    <i class="fas @(isRejected ? "fa-times-circle" : "fa-hourglass-half")"></i>
+  </div>
+
+  <span class="status-badge @status.ToLower()">
+    <i class="fas fa-circle" style="font-size:0.5rem;"></i>
+    @(isRejected ? "Application Rejected" : "Under Review")
+  </span>
+
+  <h1 class="review-title">
+    @(isRejected ? "Application Not Approved" : "Your profile is under review")
+  </h1>
+
+  <p class="review-subtitle">
+    @if (isRejected)
+    {
+        <text>Hello Dr. @doctorName, unfortunately your registration request was not approved. Please review the reason below and contact support if you have questions.</text>
+    }
+    else
+    {
+        <text>Hello Dr. @doctorName, your registration is being reviewed by our admin team. You will be able to access your dashboard once approved.</text>
+    }
+  </p>
+
+  @if (isRejected && !string.IsNullOrWhiteSpace(rejectionNote))
+  {
+    <div class="rejection-note-box">
+      <div class="rejection-note-label">
+        <i class="fas fa-exclamation-circle"></i>
+        Reason for Rejection
+      </div>
+      <div class="rejection-note-text">@rejectionNote</div>
+    </div>
+  }
+  else if (!isRejected)
+  {
+    <ul class="steps-list">
+      <li>
+        <div class="step-ico done"><i class="fas fa-check"></i></div>
+        <div><strong style="color:#e6edf3;">Account created</strong><br />Your registration was submitted successfully.</div>
+      </li>
+      <li>
+        <div class="step-ico wait"><i class="fas fa-hourglass-half"></i></div>
+        <div><strong style="color:#e6edf3;">Admin review in progress</strong><br />Our team is verifying your credentials and license.</div>
+      </li>
+      <li>
+        <div class="step-ico next"><i class="fas fa-unlock-alt"></i></div>
+        <div><strong style="color:#e6edf3;">Access granted</strong><br />You'll be able to log in to your full dashboard after approval.</div>
+      </li>
+    </ul>
+  }
+
+  <hr class="divider" />
+
+  <div class="actions">
+    @if (!isRejected)
+    {
+      <a href="/Doctor/UnderReview" class="btn-refresh">
+        <i class="fas fa-sync-alt"></i> Check Status
+      </a>
+    }
+    <form method="post" action="/Account/Logout" style="display:inline;">
+      @Html.AntiForgeryToken()
+      <button type="submit" class="btn-logout">
+        <i class="fas fa-sign-out-alt"></i> Sign Out
+      </button>
+    </form>
+  </div>
+
+  @if (!isRejected)
+  {
+    <p class="eta-note"><i class="fas fa-clock" style="margin-right:4px;"></i>Typical review time is 1–2 business days.</p>
+  }
+</div>
+
+</body>
+</html>
