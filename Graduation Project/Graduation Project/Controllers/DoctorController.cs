@@ -17,17 +17,23 @@ namespace Graduation_Project.Controllers
         private readonly IPatientDoctor _patientDoctorRepository;
         private readonly AppDbContext _context;
         private readonly IChatMessageCrypto _chatMessageCrypto;
+        private readonly MedicationService _medicationService;
+        private readonly MedicationAdherenceService _medicationAdherenceService;
 
         public DoctorController(
             IAppointment appointmentRepository,
             IPatientDoctor patientDoctorRepository,
             AppDbContext context,
-            IChatMessageCrypto chatMessageCrypto)
+            IChatMessageCrypto chatMessageCrypto,
+            MedicationService medicationService,
+            MedicationAdherenceService medicationAdherenceService)
         {
             _appointmentRepository = appointmentRepository;
             _patientDoctorRepository = patientDoctorRepository;
             _context = context;
             _chatMessageCrypto = chatMessageCrypto;
+            _medicationService = medicationService;
+            _medicationAdherenceService = medicationAdherenceService;
         }
 
         public IActionResult Index(int id = 0)
@@ -166,6 +172,51 @@ namespace Graduation_Project.Controllers
             };
 
             return View(vm);
+        }
+
+        [HttpGet]
+        public IActionResult PatientMedicationSummary(int id, int patientId)
+        {
+            var accessResult = TryResolveDoctor(id, out var doctor);
+            if (accessResult != null)
+                return accessResult;
+
+            var isAssigned = _patientDoctorRepository
+                .GetApprovedByDoctor(doctor!.DoctorID)
+                .Any(pd => pd.PatientID == patientId);
+            if (!isAssigned)
+                return Forbid();
+
+            var patient = _context.Patients
+                .Include(p => p.User)
+                .FirstOrDefault(p => p.PatientID == patientId);
+            if (patient == null)
+                return NotFound();
+
+            var startDate = DateTime.Today.AddDays(-30);
+            var endDate = DateTime.Today.AddDays(1);
+            var summary = _medicationAdherenceService.GetSummary(patientId, startDate, endDate);
+            var recentLogs = _context.MedicationLogs
+                .Include(l => l.Medication)
+                .Where(l => l.Medication.PatientID == patientId)
+                .OrderByDescending(l => l.ScheduledAt)
+                .Take(10)
+                .ToList();
+
+            var doctorName = BuildDoctorName(doctor);
+            var patientName = BuildPatientName(patient);
+
+            var viewModel = new DoctorMedicationSummaryViewModel
+            {
+                Doctor = doctor,
+                Patient = patient,
+                DoctorName = doctorName,
+                PatientName = patientName,
+                Summary = summary,
+                RecentLogs = recentLogs
+            };
+
+            return View("~/Views/Doctor/PatientMedicationSummary.cshtml", viewModel);
         }
 
         [HttpGet]
@@ -1414,6 +1465,16 @@ namespace Graduation_Project.Controllers
 
             _context.Prescriptions.Add(prescription);
             _context.SaveChanges();
+
+            var savedItems = _context.PrescriptionItems
+                .Include(i => i.Prescription)
+                .Where(i => i.PrescriptionID == prescription.PrescriptionID)
+                .ToList();
+
+            foreach (var item in savedItems)
+            {
+                _medicationService.CreateFromPrescription(item, prescription.PrescriptionDate);
+            }
 
             return Json(new { success = true, message = "Prescription saved successfully.", prescriptionId = prescription.PrescriptionID });
         }

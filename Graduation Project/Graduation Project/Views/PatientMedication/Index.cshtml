@@ -1,0 +1,125 @@
+@using System.Linq
+@model Graduation_Project.ViewModels.PatientMedicationIndexViewModel
+@{
+    Layout = "~/Views/Shared/_PatientLayout.cshtml";
+    ViewData["Title"] = "My Medications";
+    ViewData["PatientId"] = Model.Patient.PatientID;
+    ViewData["ActivePage"] = "Medications";
+    ViewData["UserName"] = Model.UserName;
+    ViewData["PageTitleHtml"] = "Medication <span class='topbar-accent'>Tracker</span>";
+    ViewData["PageSubtitle"] = "Manage your treatment safely, every day.";
+
+    var totalCount = Model.ActiveMedications.Count;
+    var prescriptionCount = Model.ActiveMedications.Count(m => m.Source == Graduation_Project.Models.MedicationSource.Prescription);
+    var selfCount = totalCount - prescriptionCount;
+    var endingSoonCount = Model.ActiveMedications.Count(m => m.EndDate.HasValue && m.EndDate.Value.Date <= DateTime.Today.AddDays(7));
+}
+
+<section class="pm-page pd-wrap" data-patient-medications>
+    <div class="pm-hero">
+        <div class="pm-hero-left">
+            <span class="pm-hero-eyebrow"><i class="fas fa-capsules"></i> Patient Medication Hub</span>
+            <h2>Medication Tracker</h2>
+            <p>Manage active prescriptions and self-added medications in one place.</p>
+        </div>
+        <div class="pm-hero-actions">
+            <a class="btn btn-primary" href="/PatientMedication/Add/@Model.Patient.PatientID"><i class="fas fa-plus-circle"></i> Add Medication</a>
+            <a class="btn btn-outline" href="/PatientMedication/Daily/@Model.Patient.PatientID"><i class="fas fa-calendar-day"></i> View Today</a>
+        </div>
+    </div>
+
+    @Html.AntiForgeryToken()
+    <input type="hidden" id="patientId" value="@Model.Patient.PatientID" />
+
+    <div class="pm-settings">
+        <label for="globalLeadTime">Reminder lead time (minutes)</label>
+        <div class="pm-settings-row">
+            <input type="number" id="globalLeadTime" min="0" max="180" value="@Model.GlobalLeadTimeMinutes" />
+            <button class="btn btn-outline" id="saveGlobalLeadTime">Save</button>
+        </div>
+    </div>
+
+    <div class="pm-stats">
+        <div class="pm-stat-card">
+            <div class="pm-stat-icon"><i class="fas fa-capsules"></i></div>
+            <span class="pm-stat-label">Active Medications</span>
+            <strong class="pm-stat-value">@totalCount</strong>
+        </div>
+        <div class="pm-stat-card">
+            <div class="pm-stat-icon"><i class="fas fa-file-prescription"></i></div>
+            <span class="pm-stat-label">From Prescriptions</span>
+            <strong class="pm-stat-value">@prescriptionCount</strong>
+        </div>
+        <div class="pm-stat-card">
+            <div class="pm-stat-icon"><i class="fas fa-user-pen"></i></div>
+            <span class="pm-stat-label">Self-added</span>
+            <strong class="pm-stat-value">@selfCount</strong>
+        </div>
+        <div class="pm-stat-card">
+            <div class="pm-stat-icon"><i class="fas fa-hourglass-half"></i></div>
+            <span class="pm-stat-label">Ending in 7 Days</span>
+            <strong class="pm-stat-value">@endingSoonCount</strong>
+        </div>
+    </div>
+
+    <div class="pm-grid">
+        @if (Model.ActiveMedications.Any())
+        {
+            foreach (var med in Model.ActiveMedications)
+            {
+                var sourceText = med.Source == Graduation_Project.Models.MedicationSource.Prescription ? "Prescription" : "Self";
+                var sourceClass = med.Source == Graduation_Project.Models.MedicationSource.Prescription ? "is-prescription" : "is-self";
+                var periodText = med.EndDate.HasValue
+                    ? $"{med.StartDate:MMM dd, yyyy} - {med.EndDate.Value:MMM dd, yyyy}"
+                    : $"{med.StartDate:MMM dd, yyyy} - Ongoing";
+
+                <article class="pm-card" data-medication-id="@med.MedicationId">
+                    <div class="card-header">
+                        <div class="card-header-left">
+                            <div class="card-ico teal"><i class="fas fa-capsules"></i></div>
+                            <div>
+                                <div class="card-title">@med.Name</div>
+                                <div class="card-sub">@sourceText medication</div>
+                            </div>
+                        </div>
+                        <div class="pm-card-header-right">
+                            <span class="pm-tag @sourceClass">@sourceText</span>
+                            <button type="button" class="btn btn-outline pm-delete-med" title="Remove from tracker" aria-label="Remove @med.Name from tracker">
+                                <i class="fas fa-trash-alt"></i> Remove
+                            </button>
+                        </div>
+                    </div>
+                    <div class="pm-card-body">
+                        <div class="pm-row"><span>Dosage</span><strong>@(string.IsNullOrWhiteSpace(med.Dosage) ? "Not specified" : med.Dosage)</strong></div>
+                        <div class="pm-row"><span>Frequency</span><strong>@(string.IsNullOrWhiteSpace(med.Frequency) ? "Not specified" : med.Frequency)</strong></div>
+                        <div class="pm-row"><span>Duration</span><strong>@periodText</strong></div>
+                        <div class="pm-note">
+                            <i class="fas fa-note-sticky"></i>
+                            <span>@(string.IsNullOrWhiteSpace(med.Instructions) ? "No additional instructions." : med.Instructions)</span>
+                        </div>
+                        <div class="pm-lead-time">
+                            <label>Lead time (minutes)</label>
+                            <div class="pm-settings-row">
+                                <input type="number" class="pm-lead-input" min="0" max="180" value="@(med.ReminderLeadTimeMinutes?.ToString() ?? string.Empty)" data-medication-id="@med.MedicationId" />
+                                <button class="btn btn-outline pm-lead-save" data-medication-id="@med.MedicationId">Save</button>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            }
+        }
+        else
+        {
+            <div class="pm-empty">
+                <i class="fas fa-capsules"></i>
+                <h3>No active medications yet</h3>
+                <p>Add your first medication to start tracking reminders and doses.</p>
+                <a class="btn btn-primary" href="/PatientMedication/Add/@Model.Patient.PatientID">Add Medication</a>
+            </div>
+        }
+    </div>
+</section>
+
+@section Scripts {
+    <script src="~/js/patient-medications.js" asp-append-version="true"></script>
+}

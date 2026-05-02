@@ -59,6 +59,9 @@ namespace Graduation_Project
             builder.Services.AddScoped<IHCV_Test, HCV_TestRepository>();
             builder.Services.AddScoped<ILabTest, LabTestRepository>();
             builder.Services.AddScoped<IMedicalHistory, MedicalHistoryRepository>();
+            builder.Services.AddScoped<IMedication, MedicationRepository>();
+            builder.Services.AddScoped<IMedicationLog, MedicationLogRepository>();
+            builder.Services.AddScoped<IMedicationSchedule, MedicationScheduleRepository>();
             builder.Services.AddScoped<INote, NoteRepository>();
             builder.Services.AddScoped<IPatient, PatientRepository>();
             builder.Services.AddScoped<IPatientBloodPressure, PatientBloodPressureRepository>();
@@ -77,7 +80,11 @@ namespace Graduation_Project
             // Register Services
             builder.Services.AddScoped<AlertService>();
             builder.Services.AddScoped<AssistantScheduleService>();
+            builder.Services.AddScoped<MedicationService>();
+            builder.Services.AddScoped<MedicationAdherenceService>();
+            builder.Services.AddScoped<MedicationReminderService>();
             builder.Services.AddSingleton<IChatMessageCrypto, ChatMessageCrypto>();
+            builder.Services.AddHostedService<MedicationReminderHostedService>();
 
             // ?? Product OCR ????????????????????????????????????????????????
             builder.Services.AddHttpClient("ProductOcr", client =>

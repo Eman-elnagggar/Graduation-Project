@@ -1,0 +1,62 @@
+@model Graduation_Project.ViewModels.DoctorMedicationSummaryViewModel
+@{
+    Layout = "~/Views/Shared/_DoctorLayout.cshtml";
+    ViewData["Title"] = "Medication Summary";
+    ViewData["ActivePage"] = "Patients";
+    ViewData["DoctorId"] = Model.Doctor.DoctorID;
+    ViewData["DoctorName"] = Model.DoctorName;
+}
+
+<section class="pp-wrap">
+    <div class="pp-header">
+        <div class="pp-header-left">
+            <a asp-controller="Doctor" asp-action="PatientDetails" asp-route-id="@Model.Doctor.DoctorID" asp-route-patientId="@Model.Patient.PatientID" class="pp-back"><i class="fas fa-arrow-left"></i> Back to Patient</a>
+            <div>
+                <h2>Medication Adherence</h2>
+                <p>@Model.PatientName</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="pp-card">
+        <div class="pp-card-header">
+            <div class="pp-card-title">Last 30 Days Summary</div>
+        </div>
+        <div class="pp-card-body">
+            <div class="pp-info-grid">
+                <div class="pp-info-item"><div class="pp-info-label">Total Doses</div><div class="pp-info-value">@Model.Summary.TotalDoses</div></div>
+                <div class="pp-info-item"><div class="pp-info-label">Taken</div><div class="pp-info-value">@Model.Summary.TakenDoses</div></div>
+                <div class="pp-info-item"><div class="pp-info-label">Missed</div><div class="pp-info-value">@Model.Summary.MissedDoses</div></div>
+                <div class="pp-info-item"><div class="pp-info-label">Skipped</div><div class="pp-info-value">@Model.Summary.SkippedDoses</div></div>
+                <div class="pp-info-item"><div class="pp-info-label">Adherence</div><div class="pp-info-value">@Model.Summary.AdherencePercent%</div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="pp-card">
+        <div class="pp-card-header">
+            <div class="pp-card-title">Recent Logs</div>
+        </div>
+        <div class="pp-card-body">
+            @if (Model.RecentLogs.Any())
+            {
+                <div class="pp-medication-list">
+                    @foreach (var log in Model.RecentLogs)
+                    {
+                        <div class="pp-medication-item">
+                            <div class="pp-med-icon"><i class="fas fa-pills"></i></div>
+                            <div class="pp-med-body">
+                                <div class="pp-med-name">@log.Medication?.Name</div>
+                                <div class="pp-med-dosage">@log.Status - @log.ScheduledAt.ToString("MMM dd, h:mm tt")</div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="pp-info-value">No medication logs yet.</div>
+            }
+        </div>
+    </div>
+</section>
