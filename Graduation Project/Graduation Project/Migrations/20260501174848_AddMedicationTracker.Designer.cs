@@ -4,6 +4,7 @@ using Graduation_Project.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Graduation_Project.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260501174848_AddMedicationTracker")]
+    partial class AddMedicationTracker
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -725,9 +728,6 @@ namespace Graduation_Project.Migrations
                     b.Property<int?>("PrescriptionItemId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("ReminderLeadTimeMinutes")
-                        .HasColumnType("int");
-
                     b.Property<int>("Source")
                         .HasColumnType("int");
 
@@ -775,31 +775,6 @@ namespace Graduation_Project.Migrations
                     b.HasIndex("MedicationId", "Status");
 
                     b.ToTable("MedicationLogs");
-                });
-
-            modelBuilder.Entity("Graduation_Project.Models.MedicationReminderSettings", b =>
-                {
-                    b.Property<int>("MedicationReminderSettingsId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MedicationReminderSettingsId"));
-
-                    b.Property<int>("LeadTimeMinutes")
-                        .HasColumnType("int");
-
-                    b.Property<int>("PatientID")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("MedicationReminderSettingsId");
-
-                    b.HasIndex("PatientID")
-                        .IsUnique();
-
-                    b.ToTable("MedicationReminderSettings");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.MedicationSchedule", b =>
@@ -1832,17 +1807,6 @@ namespace Graduation_Project.Migrations
                         .IsRequired();
 
                     b.Navigation("Medication");
-                });
-
-            modelBuilder.Entity("Graduation_Project.Models.MedicationReminderSettings", b =>
-                {
-                    b.HasOne("Graduation_Project.Models.Patient", "Patient")
-                        .WithMany()
-                        .HasForeignKey("PatientID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Patient");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.MedicationSchedule", b =>

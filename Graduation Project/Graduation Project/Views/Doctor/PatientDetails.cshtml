@@ -285,6 +285,7 @@
                     <div class="pp-card-links-group">
                         <button type="button" class="pp-card-link pp-card-link-soft" data-open-modal="prescriptionModal"><i class="fas fa-plus"></i> Write New</button>
                         <button type="button" class="pp-card-link pp-card-link-soft" id="btnViewAllPrescriptions"><i class="fas fa-external-link-alt"></i> View All</button>
+                        <a class="pp-card-link pp-card-link-soft" asp-controller="Doctor" asp-action="PatientMedicationSummary" asp-route-id="@Model.Doctor.DoctorID" asp-route-patientId="@p.PatientID"><i class="fas fa-pills"></i> Medication Summary</a>
                     </div>
                 </div>
                 <div class="pp-card-body">
