@@ -1,0 +1,178 @@
+@model Graduation_Project.ViewModels.AdminDoctorVerificationViewModel
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Doctor Verification";
+    ViewData["ActivePage"] = "DoctorVerification";
+    ViewData["PageTitle"] = "Doctor Verification";
+    ViewData["PageSubtitle"] = "Review and approve doctor registrations before they can practice";
+}
+
+<div class="dv-tabs">
+    <button class="dv-tab active" onclick="switchTab('pending', this)">
+        <i class="fas fa-hourglass-half"></i> Pending
+        <span class="dv-tab-count pending">@Model.PendingDoctors.Count</span>
+    </button>
+    <button class="dv-tab" onclick="switchTab('approved', this)">
+        <i class="fas fa-check-circle"></i> Approved
+        <span class="dv-tab-count approved">@Model.ApprovedDoctors.Count</span>
+    </button>
+    <button class="dv-tab" onclick="switchTab('rejected', this)">
+        <i class="fas fa-times-circle"></i> Rejected
+        <span class="dv-tab-count rejected">@Model.RejectedDoctors.Count</span>
+    </button>
+</div>
+
+<div id="panel-pending" class="dv-panel active">
+    @if (Model.PendingDoctors.Any())
+    {
+        <div class="doctor-cards">
+            @foreach (var doc in Model.PendingDoctors)
+            {
+                @await Html.PartialAsync("_DoctorVerificationCard", doc)
+            }
+        </div>
+    }
+    else
+    {
+        <div class="empty-state">
+            <i class="fas fa-check-double"></i>
+            No pending doctor verifications. All caught up!
+        </div>
+    }
+</div>
+
+<div id="panel-approved" class="dv-panel">
+    @if (Model.ApprovedDoctors.Any())
+    {
+        <div class="doctor-cards">
+            @foreach (var doc in Model.ApprovedDoctors)
+            {
+                @await Html.PartialAsync("_DoctorVerificationCard", doc)
+            }
+        </div>
+    }
+    else
+    {
+        <div class="empty-state">
+            <i class="fas fa-user-md"></i>
+            No approved doctors yet.
+        </div>
+    }
+</div>
+
+<div id="panel-rejected" class="dv-panel">
+    @if (Model.RejectedDoctors.Any())
+    {
+        <div class="doctor-cards">
+            @foreach (var doc in Model.RejectedDoctors)
+            {
+                @await Html.PartialAsync("_DoctorVerificationCard", doc)
+            }
+        </div>
+    }
+    else
+    {
+        <div class="empty-state">
+            <i class="fas fa-ban"></i>
+            No rejected doctor registrations.
+        </div>
+    }
+</div>
+
+
+<div class="modal-overlay" id="assignClinicModal" style="display:none;">
+    <div class="modal-box">
+        <div class="modal-title"><i class="fas fa-clinic-medical" style="color:var(--admin-primary);margin-right:8px;"></i>Assign Doctor to Clinic</div>
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:14px;">Select a clinic to assign <strong id="assignDoctorName"></strong> to:</p>
+        <form method="post" action="/Admin/AssignClinic">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="doctorId" id="assignDoctorId" />
+            <select class="modal-select" name="clinicId" id="clinicSelect">
+                <option value="">Loading clinics...</option>
+            </select>
+            <div class="modal-actions">
+                <button type="button" class="btn-modal-cancel" onclick="closeAssignModal()">Cancel</button>
+                <button type="submit" class="btn-modal-confirm"><i class="fas fa-check"></i> Assign</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<div class="modal-overlay" id="rejectModal" style="display:none;">
+    <div class="modal-box">
+        <div class="modal-title" style="color:#f87171;">
+            <i class="fas fa-times-circle" style="margin-right:8px;"></i>Reject Doctor Registration
+        </div>
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:14px;">
+            You are about to reject <strong id="rejectDoctorName"></strong>. Optionally write a reason the doctor will see on their account.
+        </p>
+        <form method="post" action="/Admin/RejectDoctor" id="rejectForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="doctorId" id="rejectDoctorId" />
+            <textarea name="rejectionNote" id="rejectNoteInput"
+                      placeholder="e.g. License documents are unclear or incomplete. Please re-upload a clear copy."
+                      style="width:100%;padding:10px 14px;border:1px solid var(--border-color);border-radius:10px;font-size:0.88rem;background:var(--bg-secondary);color:var(--text-primary);resize:vertical;min-height:100px;outline:none;font-family:inherit;margin-bottom:16px;"
+                      onfocus="this.style.borderColor='#f87171'" onblur="this.style.borderColor=''"></textarea>
+            <div class="modal-actions">
+                <button type="button" class="btn-modal-cancel" onclick="closeRejectModal()">Cancel</button>
+                <button type="submit" class="btn-modal-confirm" style="background:#ef4444;">
+                    <i class="fas fa-times"></i> Reject
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function switchTab(tab, el) {
+        document.querySelectorAll('.dv-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.dv-panel').forEach(p => p.classList.remove('active'));
+        el.classList.add('active');
+        document.getElementById('panel-' + tab).classList.add('active');
+    }
+
+    function openAssignModal(doctorId, doctorName) {
+        document.getElementById('assignDoctorId').value = doctorId;
+        document.getElementById('assignDoctorName').textContent = doctorName;
+        document.getElementById('assignClinicModal').style.display = 'flex';
+
+        fetch('/Admin/GetClinics')
+            .then(r => r.json())
+            .then(clinics => {
+                var sel = document.getElementById('clinicSelect');
+                sel.innerHTML = clinics.length === 0
+                    ? '<option value="">No clinics available</option>'
+                    : '<option value="">Select a clinic...</option>' +
+                      clinics.map(c => '<option value="' + c.clinicID + '">' + c.name + '</option>').join('');
+            })
+            .catch(() => {
+                document.getElementById('clinicSelect').innerHTML = '<option value="">Error loading clinics</option>';
+            });
+    }
+
+    function closeAssignModal() {
+        document.getElementById('assignClinicModal').style.display = 'none';
+    }
+
+    function openRejectModal(doctorId, doctorName) {
+        document.getElementById('rejectDoctorId').value = doctorId;
+        document.getElementById('rejectDoctorName').textContent = doctorName;
+        document.getElementById('rejectNoteInput').value = '';
+        document.getElementById('rejectModal').style.display = 'flex';
+    }
+
+    function closeRejectModal() {
+        document.getElementById('rejectModal').style.display = 'none';
+    }
+
+    document.getElementById('assignClinicModal').addEventListener('click', function(e) {
+        if (e.target === this) closeAssignModal();
+    });
+
+    document.getElementById('rejectModal').addEventListener('click', function(e) {
+        if (e.target === this) closeRejectModal();
+    });
+</script>
+}

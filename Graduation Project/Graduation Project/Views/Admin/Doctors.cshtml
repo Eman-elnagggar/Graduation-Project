@@ -1,0 +1,158 @@
+@model Graduation_Project.ViewModels.AdminDoctorListViewModel
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Doctor Management";
+    ViewData["ActivePage"] = "Doctors";
+    ViewData["PageTitle"] = "Doctor Management";
+    ViewData["PageSubtitle"] = "View, manage, ban, or remove doctor accounts";
+
+    Func<string,string,string,string> Opt = (val, lbl, cur) =>
+        string.Format("<option value=\"{0}\"{1}>{2}</option>", val,
+            cur == val ? " selected=\"selected\"" : "", lbl);
+}
+
+<div class="um-stats">
+    <div class="um-stat">
+        <div class="um-stat-ico blue"><i class="fas fa-stethoscope"></i></div>
+        <div>
+            <div class="um-stat-val">@Model.TotalCount</div>
+            <div class="um-stat-lbl">Total Doctors</div>
+        </div>
+    </div>
+    <div class="um-stat">
+        <div class="um-stat-ico green"><i class="fas fa-check-circle"></i></div>
+        <div>
+            <div class="um-stat-val">@Model.ApprovedCount</div>
+            <div class="um-stat-lbl">Approved</div>
+        </div>
+    </div>
+    <div class="um-stat">
+        <div class="um-stat-ico orange"><i class="fas fa-hourglass-half"></i></div>
+        <div>
+            <div class="um-stat-val">@Model.PendingCount</div>
+            <div class="um-stat-lbl">Pending</div>
+        </div>
+    </div>
+    <div class="um-stat">
+        <div class="um-stat-ico red"><i class="fas fa-ban"></i></div>
+        <div>
+            <div class="um-stat-val">@Model.BannedCount</div>
+            <div class="um-stat-lbl">Banned</div>
+        </div>
+    </div>
+</div>
+
+<form method="get" action="/Admin/Doctors">
+    <div class="um-header">
+        <div class="um-search">
+            <i class="fas fa-search"></i>
+            <input type="text" name="search" value="@Model.SearchQuery" placeholder="Search by name, email, or specialization..." />
+        </div>
+        <div class="um-filters">
+            <select class="um-select" name="status" onchange="this.form.submit()">
+                @Html.Raw(Opt("",          "All Statuses", Model.StatusFilter ?? ""))
+                @Html.Raw(Opt("Approved",  "Approved",     Model.StatusFilter ?? ""))
+                @Html.Raw(Opt("Pending",   "Pending",      Model.StatusFilter ?? ""))
+                @Html.Raw(Opt("Rejected",  "Rejected",     Model.StatusFilter ?? ""))
+                @Html.Raw(Opt("Banned",    "Banned",       Model.StatusFilter ?? ""))
+                @Html.Raw(Opt("Inactive",  "Inactive",     Model.StatusFilter ?? ""))
+            </select>
+            <button type="submit" class="um-select" style="cursor:pointer;background:var(--admin-primary);color:white;border-color:var(--admin-primary);font-weight:600;">
+                <i class="fas fa-filter"></i> Filter
+            </button>
+            @if (!string.IsNullOrWhiteSpace(Model.SearchQuery) || !string.IsNullOrWhiteSpace(Model.StatusFilter))
+            {
+                <a href="/Admin/Doctors" class="um-select" style="text-decoration:none;display:flex;align-items:center;gap:5px;color:var(--text-secondary);">
+                    <i class="fas fa-times"></i> Clear
+                </a>
+            }
+        </div>
+    </div>
+</form>
+
+<div class="users-table-wrap">
+    @if (Model.Doctors.Any())
+    {
+        <table class="users-table">
+            <thead>
+                <tr>
+                    <th>Doctor</th>
+                    <th>Specialization</th>
+                    <th>Status</th>
+                    <th>Patients</th>
+                    <th>Appointments</th>
+                    <th>Clinics</th>
+                    <th>Registered</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var doc in Model.Doctors)
+                {
+                    var initials = string.Concat(
+                        (doc.FullName ?? "D")
+                        .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                        .Take(2)
+                        .Select(s => char.ToUpperInvariant(s[0])));
+
+                    <tr style="@(doc.IsBanned ? "opacity:0.6;" : "")">
+                        <td>
+                            <div class="user-name-cell">
+                                <div class="user-avatar" style="@(doc.IsBanned ? "background:rgba(239,68,68,0.2);color:#ef4444;" : "")">@initials</div>
+                                <div>
+                                    <div class="user-full-name">
+                                        Dr. @doc.FullName
+                                        @if (doc.IsBanned)
+                                        {
+                                            <span style="font-size:0.65rem;background:rgba(239,68,68,0.15);color:#ef4444;padding:2px 7px;border-radius:10px;margin-left:4px;font-weight:700;">BANNED</span>
+                                        }
+                                    </div>
+                                    <div class="user-email-sub">@doc.Email</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="color:var(--text-secondary);font-size:0.83rem;">
+                            @(string.IsNullOrWhiteSpace(doc.Specialization) ? "—" : doc.Specialization)
+                        </td>
+                        <td>
+                            @{
+                                var (vstyle, vicon) = doc.VerificationStatus switch {
+                                    "Approved" => ("background:rgba(74,222,128,0.12);color:#4ade80;border:1px solid rgba(74,222,128,0.2);", "fa-check-circle"),
+                                    "Rejected" => ("background:rgba(248,113,113,0.12);color:#f87171;border:1px solid rgba(248,113,113,0.2);", "fa-times-circle"),
+                                    _ => ("background:rgba(251,191,36,0.12);color:#fbbf24;border:1px solid rgba(251,191,36,0.2);", "fa-hourglass-half")
+                                };
+                            }
+                            <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:700;@vstyle">
+                                <i class="fas @vicon" style="font-size:0.6rem;"></i>@doc.VerificationStatus
+                            </span>
+                        </td>
+                        <td style="text-align:center;font-weight:600;color:var(--text-primary);">@doc.PatientCount</td>
+                        <td style="text-align:center;font-weight:600;color:var(--text-primary);">@doc.AppointmentCount</td>
+                        <td style="font-size:0.78rem;color:var(--text-secondary);">
+                            @(doc.ClinicNames.Any() ? string.Join(", ", doc.ClinicNames.Take(2)) + (doc.ClinicNames.Count > 2 ? $" +{doc.ClinicNames.Count-2}" : "") : "—")
+                        </td>
+                        <td style="color:var(--text-secondary);font-size:0.82rem;">
+                            @doc.RegisteredDate.ToString("MMM d, yyyy")
+                        </td>
+                        <td>
+                            <div class="action-btns">
+                                <a href="/Admin/DoctorDetail/@doc.DoctorId"
+                                   class="btn-action activate" title="View Profile"
+                                   style="text-decoration:none;">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <div class="empty-state">
+            <i class="fas fa-stethoscope"></i>
+            No doctors found matching your filters.
+        </div>
+    }
+</div>

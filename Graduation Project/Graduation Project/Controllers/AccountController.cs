@@ -600,6 +600,11 @@ namespace Graduation_Project.Controllers
 
         private async Task<IActionResult> RedirectToRoleLandingAsync(ApplicationUser user)
         {
+            if (await _userManager.IsInRoleAsync(user, "Admin"))
+            {
+                return RedirectToAction("Index", "Admin");
+            }
+
             if (await _userManager.IsInRoleAsync(user, "Patient"))
             {
                 var patient = await _context.Patients.FirstOrDefaultAsync(p => p.UserID == user.Id);
@@ -616,6 +621,9 @@ namespace Graduation_Project.Controllers
 
             if (await _userManager.IsInRoleAsync(user, "Doctor"))
             {
+                var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.UserID == user.Id);
+                if (doctor != null && doctor.VerificationStatus != "Approved")
+                    return RedirectToAction("UnderReview", "Doctor");
                 return RedirectToAction("Index", "Doctor");
             }
 

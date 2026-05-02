@@ -1,0 +1,472 @@
+@model Graduation_Project.ViewModels.AdminDoctorDetailViewModel
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Doctor Profile";
+    ViewData["ActivePage"] = "DoctorDetail";
+    ViewData["PageTitle"] = Model.FullName;
+    ViewData["PageSubtitle"] = Model.Specialization + " · Doctor Profile";
+
+    var hasFile = !string.IsNullOrWhiteSpace(Model.LicenseImagePath);
+    var isPdf = hasFile && System.IO.Path.GetExtension(Model.LicenseImagePath).ToLowerInvariant() == ".pdf";
+
+    var (vstyle, vicon, vlabel) = Model.VerificationStatus switch {
+        "Approved" => ("background:rgba(74,222,128,0.12);color:#4ade80;border:1px solid rgba(74,222,128,0.2);", "fa-check-circle", "Approved"),
+        "Rejected" => ("background:rgba(248,113,113,0.12);color:#f87171;border:1px solid rgba(248,113,113,0.2);", "fa-times-circle", "Rejected"),
+        _ => ("background:rgba(251,191,36,0.12);color:#fbbf24;border:1px solid rgba(251,191,36,0.2);", "fa-hourglass-half", "Pending")
+    };
+}
+
+@section Styles {
+<style>
+.dp-grid          { display:grid; grid-template-columns:340px 1fr; gap:24px; align-items:start; }
+.dp-sidebar       { display:flex; flex-direction:column; gap:16px; }
+.dp-card          { background:var(--bg-card); border:1px solid var(--border-color); border-radius:16px; padding:24px; }
+.dp-avatar-wrap   { display:flex; flex-direction:column; align-items:center; text-align:center; padding-bottom:8px; }
+.dp-avatar        { width:88px; height:88px; border-radius:50%; background:rgba(79,142,247,0.15);
+                    color:#4f8ef7; font-size:2rem; font-weight:700; display:flex;
+                    align-items:center; justify-content:center; border:2px solid rgba(79,142,247,0.25);
+                    margin-bottom:14px; }
+.dp-avatar.banned { background:rgba(239,68,68,0.12); color:#ef4444; border-color:rgba(239,68,68,0.25); }
+.dp-name          { font-size:1.25rem; font-weight:700; color:var(--text-primary); margin-bottom:4px; }
+.dp-spec          { font-size:0.85rem; color:var(--text-muted); margin-bottom:12px; }
+.dp-info-row      { display:flex; align-items:flex-start; gap:10px; padding:7px 0;
+                    border-bottom:1px solid rgba(255,255,255,0.05); font-size:0.82rem; color:var(--text-secondary); }
+.dp-info-row:last-child { border-bottom:none; }
+.dp-info-row i    { color:var(--admin-primary); width:15px; flex-shrink:0; margin-top:2px; }
+.dp-info-val      { color:var(--text-primary); font-weight:500; }
+.dp-section-title { font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em;
+                    color:var(--text-muted); margin-bottom:14px; }
+.dp-stat-grid     { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px; }
+.dp-stat          { background:rgba(79,142,247,0.06); border:1px solid rgba(79,142,247,0.12);
+                    border-radius:10px; padding:12px; text-align:center; }
+.dp-stat-val      { font-size:1.4rem; font-weight:700; color:var(--text-primary); }
+.dp-stat-lbl      { font-size:0.68rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; margin-top:2px; }
+.dp-actions       { display:flex; flex-direction:column; gap:8px; }
+.dp-btn           { display:flex; align-items:center; justify-content:center; gap:8px;
+                    padding:10px 16px; border-radius:10px; font-size:0.83rem; font-weight:600;
+                    cursor:pointer; border:none; width:100%; transition:all 0.15s; text-decoration:none; }
+.dp-btn.primary   { background:#4f8ef7; color:white; }
+.dp-btn.primary:hover { background:#2563eb; }
+.dp-btn.success   { background:rgba(74,222,128,0.12); color:#4ade80; border:1px solid rgba(74,222,128,0.2); }
+.dp-btn.success:hover { background:rgba(74,222,128,0.2); }
+.dp-btn.warning   { background:rgba(251,191,36,0.1); color:#fbbf24; border:1px solid rgba(251,191,36,0.2); }
+.dp-btn.warning:hover { background:rgba(251,191,36,0.18); }
+.dp-btn.danger    { background:rgba(248,113,113,0.1); color:#f87171; border:1px solid rgba(248,113,113,0.2); }
+.dp-btn.danger:hover { background:rgba(248,113,113,0.18); }
+.dp-btn.hard-del  { background:rgba(220,38,38,0.12); color:#ef4444; border:1px solid rgba(220,38,38,0.2); }
+.dp-btn.hard-del:hover { background:rgba(220,38,38,0.22); }
+.dp-btn.ban       { background:rgba(239,68,68,0.1); color:#ef4444; border:1px solid rgba(239,68,68,0.2); }
+.dp-btn.ban:hover { background:rgba(239,68,68,0.2); }
+.dp-btn.unban     { background:rgba(74,222,128,0.1); color:#4ade80; border:1px solid rgba(74,222,128,0.2); }
+.dp-btn.unban:hover { background:rgba(74,222,128,0.2); }
+.dp-back          { display:inline-flex; align-items:center; gap:6px; padding:7px 14px;
+                    background:rgba(255,255,255,0.06); border:1px solid var(--border-color);
+                    border-radius:8px; text-decoration:none; color:var(--text-secondary);
+                    font-size:0.8rem; font-weight:600; margin-bottom:20px; transition:all 0.15s; }
+.dp-back:hover    { background:rgba(255,255,255,0.1); color:var(--text-primary); }
+.dp-table         { width:100%; border-collapse:collapse; font-size:0.82rem; }
+.dp-table th      { text-align:left; padding:8px 12px; color:var(--text-muted); font-weight:600;
+                    font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em;
+                    border-bottom:1px solid var(--border-color); }
+.dp-table td      { padding:10px 12px; color:var(--text-secondary);
+                    border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:middle; }
+.dp-table tr:last-child td { border-bottom:none; }
+.dp-table td strong { color:var(--text-primary); }
+.banned-banner    { background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2);
+                    border-radius:12px; padding:14px 18px; display:flex; align-items:center;
+                    gap:12px; font-size:0.88rem; color:#ef4444; margin-bottom:16px; }
+.rej-note-box     { background:rgba(248,113,113,0.07); border:1px solid rgba(248,113,113,0.18);
+                    border-radius:10px; padding:14px 16px; margin-top:10px; }
+.rej-note-lbl     { font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;
+                    color:#f87171;margin-bottom:6px; }
+.clinic-chip      { display:inline-flex;align-items:center;gap:5px;padding:4px 10px;
+                    background:rgba(79,142,247,0.1);border:1px solid rgba(79,142,247,0.18);
+                    border-radius:20px;font-size:0.75rem;color:#4f8ef7;margin:2px; }
+.modal-overlay    { position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;
+                    align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(4px); }
+.modal-box        { background:#161b22;border:1px solid rgba(255,255,255,0.1);border-radius:16px;
+                    padding:28px 32px;max-width:440px;width:90%;box-shadow:0 24px 64px rgba(0,0,0,0.5); }
+.modal-title      { font-size:1.05rem;font-weight:700;color:var(--text-primary);margin-bottom:12px;
+                    display:flex;align-items:center;gap:8px; }
+.modal-actions    { display:flex;gap:10px;margin-top:16px;justify-content:flex-end; }
+.btn-modal-cancel { padding:9px 18px;background:rgba(255,255,255,0.06);color:var(--text-secondary);
+                    border:1px solid var(--border-color);border-radius:8px;cursor:pointer;font-size:0.85rem; }
+.btn-modal-confirm{ padding:9px 18px;border:none;border-radius:8px;cursor:pointer;
+                    font-size:0.85rem;font-weight:600;color:white; }
+@@media (max-width:1100px) {
+    .dp-grid { grid-template-columns:1fr; }
+    .dp-sidebar { flex-direction:row; flex-wrap:wrap; }
+    .dp-sidebar > * { flex:1; min-width:260px; }
+}
+</style>
+}
+
+<a href="/Admin/Doctors" class="dp-back"><i class="fas fa-arrow-left"></i> Back to Doctor Management</a>
+
+@if (Model.IsBanned)
+{
+    <div class="banned-banner">
+        <i class="fas fa-ban" style="font-size:1.2rem;"></i>
+        <span>This account is <strong>banned</strong>. The doctor cannot log in. You can unban them below.</span>
+    </div>
+}
+
+<div class="dp-grid">
+
+  
+  <div class="dp-sidebar">
+
+    
+    <div class="dp-card">
+      <div class="dp-avatar-wrap">
+        @{
+            var initials = string.Concat(
+                (Model.FullName ?? "D")
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Take(2).Select(s => char.ToUpperInvariant(s[0])));
+        }
+        <div class="dp-avatar @(Model.IsBanned ? "banned" : "")">@initials</div>
+        <div class="dp-name">Dr. @Model.FullName</div>
+        <div class="dp-spec">@Model.Specialization</div>
+        <span style="@vstyle display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:12px;font-size:0.72rem;font-weight:700;">
+            <i class="fas @vicon" style="font-size:0.6rem;"></i>@vlabel
+        </span>
+      </div>
+
+      <div style="margin-top:16px;">
+        @if (!string.IsNullOrWhiteSpace(Model.Email))
+        {
+            <div class="dp-info-row"><i class="fas fa-envelope"></i><div><div style="font-size:0.72rem;color:var(--text-muted);">Email</div><div class="dp-info-val">@Model.Email</div></div></div>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.PhoneNumber))
+        {
+            <div class="dp-info-row"><i class="fas fa-phone"></i><div><div style="font-size:0.72rem;color:var(--text-muted);">Phone</div><div class="dp-info-val">@Model.PhoneNumber</div></div></div>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.Address))
+        {
+            <div class="dp-info-row"><i class="fas fa-map-marker-alt"></i><div><div style="font-size:0.72rem;color:var(--text-muted);">Address</div><div class="dp-info-val">@Model.Address</div></div></div>
+        }
+        <div class="dp-info-row"><i class="fas fa-id-card"></i><div><div style="font-size:0.72rem;color:var(--text-muted);">License #</div><div class="dp-info-val">@(string.IsNullOrWhiteSpace(Model.LicenseNumber) ? "Not provided" : Model.LicenseNumber)</div></div></div>
+        <div class="dp-info-row"><i class="fas fa-calendar-plus"></i><div><div style="font-size:0.72rem;color:var(--text-muted);">Registered</div><div class="dp-info-val">@Model.RegisteredDate.ToString("MMMM d, yyyy")</div></div></div>
+        @if (Model.VerificationDate.HasValue)
+        {
+            <div class="dp-info-row"><i class="fas fa-check-double"></i><div><div style="font-size:0.72rem;color:var(--text-muted);">Verified</div><div class="dp-info-val">@Model.VerificationDate.Value.ToString("MMMM d, yyyy")</div></div></div>
+        }
+        <div class="dp-info-row"><i class="fas fa-circle" style="font-size:0.5rem;margin-top:4px;color:@(Model.IsActive ? "#4ade80" : "#6e7681");"></i>
+            <div><div style="font-size:0.72rem;color:var(--text-muted);">Account</div>
+            <div class="dp-info-val" style="color:@(Model.IsActive ? "#4ade80" : "#6e7681")">@(Model.IsActive ? "Active" : "Inactive")</div></div>
+        </div>
+      </div>
+
+      @if (Model.ClinicNames.Any())
+      {
+          <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border-color);">
+              <div class="dp-section-title">Clinics</div>
+              <div>@foreach(var c in Model.ClinicNames) { <span class="clinic-chip"><i class="fas fa-hospital"></i>@c</span> }</div>
+          </div>
+      }
+
+      @if (Model.AssistantNames.Any())
+      {
+          <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border-color);">
+              <div class="dp-section-title">Assistants</div>
+              <div>@foreach(var a in Model.AssistantNames) { <span class="clinic-chip" style="background:rgba(167,139,250,0.1);color:#a78bfa;border-color:rgba(167,139,250,0.2);"><i class="fas fa-user-nurse"></i>@a</span> }</div>
+          </div>
+      }
+
+      @if (Model.VerificationStatus == "Rejected" && !string.IsNullOrWhiteSpace(Model.RejectionNote))
+      {
+          <div class="rej-note-box">
+              <div class="rej-note-lbl"><i class="fas fa-exclamation-circle" style="margin-right:4px;"></i>Rejection Note</div>
+              <div style="font-size:0.82rem;color:var(--text-primary);line-height:1.5;">@Model.RejectionNote</div>
+          </div>
+      }
+    </div>
+
+    
+    @if (hasFile)
+    {
+        <div class="dp-card">
+            <div class="dp-section-title"><i class="fas fa-file-medical" style="margin-right:5px;"></i>License Document</div>
+            @if (isPdf)
+            {
+                <a href="@Model.LicenseImagePath" target="_blank" class="dp-btn primary" style="text-decoration:none;">
+                    <i class="fas fa-file-pdf"></i> Open PDF License
+                </a>
+            }
+            else
+            {
+                <a href="@Model.LicenseImagePath" target="_blank" style="display:block;text-decoration:none;">
+                    <div style="position:relative;border-radius:8px;overflow:hidden;cursor:pointer;">
+                        <img src="@Model.LicenseImagePath" alt="License"
+                             style="width:100%;border-radius:8px;display:block;max-height:200px;object-fit:cover;"
+                             onerror="this.parentElement.innerHTML='<div style=\'padding:20px;text-align:center;color:var(--text-muted);font-size:0.82rem;\'><i class=\'fas fa-image\' style=\'margin-right:6px;\'></i>License image not available</div>'" />
+                        <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.7));padding:12px 10px 8px;color:white;font-size:0.75rem;font-weight:600;">
+                            <i class="fas fa-external-link-alt" style="margin-right:4px;"></i>Click to open full size
+                        </div>
+                    </div>
+                </a>
+            }
+        </div>
+    }
+
+    
+    <div class="dp-card">
+        <div class="dp-section-title"><i class="fas fa-tools" style="margin-right:5px;"></i>Admin Actions</div>
+        <div class="dp-actions">
+
+            @if (Model.VerificationStatus != "Approved")
+            {
+                <form method="post" action="/Admin/ApproveDoctor" onsubmit="return confirm('Approve this doctor?')">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="doctorId" value="@Model.DoctorId" />
+                    <button type="submit" class="dp-btn success"><i class="fas fa-check-circle"></i> Approve Doctor</button>
+                </form>
+            }
+
+            @if (Model.VerificationStatus != "Rejected")
+            {
+                <button type="button" class="dp-btn warning" onclick="document.getElementById('rejectModal').style.display='flex'">
+                    <i class="fas fa-times-circle"></i> Reject Doctor
+                </button>
+            }
+
+            <form method="post" action="/Admin/ResetPassword" onsubmit="return confirm('Reset this doctor\'s password to Nabd@123?')">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="userId" value="@Model.UserId" />
+                <button type="submit" class="dp-btn warning" style="width:100%;"><i class="fas fa-key"></i> Reset Password</button>
+            </form>
+
+            @if (!Model.IsBanned)
+            {
+                <button type="button" class="dp-btn ban" onclick="document.getElementById('banModal').style.display='flex'">
+                    <i class="fas fa-ban"></i> Ban Doctor
+                </button>
+            }
+            else
+            {
+                <form method="post" action="/Admin/UnbanDoctor" onsubmit="return confirm('Unban this doctor and restore their access?')">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="doctorId" value="@Model.DoctorId" />
+                    <button type="submit" class="dp-btn unban" style="width:100%;"><i class="fas fa-unlock-alt"></i> Unban Doctor</button>
+                </form>
+            }
+
+            @if (!Model.IsActive && string.IsNullOrWhiteSpace(Model.OriginalEmail) == false)
+            {
+                <form method="post" action="/Admin/ToggleUserStatus" onsubmit="return confirm('Reactivate this user account?')">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="userId" value="@Model.UserId" />
+                    <button type="submit" class="dp-btn success" style="width:100%;"><i class="fas fa-user-check"></i> Reactivate Account</button>
+                </form>
+            }
+
+            <hr style="border:none;border-top:1px solid rgba(255,255,255,0.07);margin:4px 0;" />
+
+            <button type="button" class="dp-btn hard-del" onclick="document.getElementById('hardDeleteModal').style.display='flex'">
+                <i class="fas fa-skull-crossbones"></i> Permanently Delete
+            </button>
+        </div>
+    </div>
+
+  </div>
+
+  
+  <div>
+
+    
+    <div class="dp-card" style="margin-bottom:20px;">
+        <div class="dp-section-title">Activity Overview</div>
+        <div class="dp-stat-grid">
+            <div class="dp-stat">
+                <div class="dp-stat-val">@Model.TotalPatients</div>
+                <div class="dp-stat-lbl">Patients</div>
+            </div>
+            <div class="dp-stat">
+                <div class="dp-stat-val">@Model.TotalAppointments</div>
+                <div class="dp-stat-lbl">Appointments</div>
+            </div>
+            <div class="dp-stat">
+                <div class="dp-stat-val">@Model.TotalPrescriptions</div>
+                <div class="dp-stat-lbl">Prescriptions</div>
+            </div>
+            <div class="dp-stat">
+                <div class="dp-stat-val">@Model.TotalNotes</div>
+                <div class="dp-stat-lbl">Notes</div>
+            </div>
+            <div class="dp-stat">
+                <div class="dp-stat-val">@Model.TotalLabTests</div>
+                <div class="dp-stat-lbl">Lab Tests</div>
+            </div>
+            <div class="dp-stat">
+                <div class="dp-stat-val">@(Model.ClinicNames.Count)</div>
+                <div class="dp-stat-lbl">Clinics</div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="dp-card" style="margin-bottom:20px;">
+        <div class="dp-section-title"><i class="fas fa-users" style="margin-right:5px;"></i>Assigned Patients (@Model.TotalPatients)</div>
+        @if (Model.Patients.Any())
+        {
+            <table class="dp-table">
+                <thead>
+                    <tr>
+                        <th>Patient</th>
+                        <th>Status</th>
+                        <th>Joined</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model.Patients.Take(20))
+                    {
+                        var pi = string.Concat((p.FullName ?? "P").Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(s => char.ToUpperInvariant(s[0])));
+                        var (ps, pc) = p.Status switch {
+                            "Approved" => ("background:rgba(74,222,128,0.1);color:#4ade80;", "#4ade80"),
+                            "Rejected" => ("background:rgba(248,113,113,0.1);color:#f87171;", "#f87171"),
+                            _ => ("background:rgba(251,191,36,0.1);color:#fbbf24;", "#fbbf24")
+                        };
+                        <tr>
+                            <td>
+                                <div style="display:flex;align-items:center;gap:10px;">
+                                    <div style="width:30px;height:30px;border-radius:50%;background:rgba(79,142,247,0.15);color:#4f8ef7;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0;">@pi</div>
+                                    <div>
+                                        <div style="color:var(--text-primary);font-weight:600;font-size:0.82rem;">@p.FullName</div>
+                                        <div style="font-size:0.72rem;color:var(--text-muted);">@p.Email</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span style="@ps padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:700;">@p.Status</span></td>
+                            <td style="font-size:0.78rem;">@p.JoinDate.ToString("MMM d, yyyy")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            @if (Model.Patients.Count > 20)
+            {
+                <p style="font-size:0.75rem;color:var(--text-muted);margin-top:10px;text-align:center;">
+                    Showing 20 of @Model.Patients.Count patients
+                </p>
+            }
+        }
+        else
+        {
+            <p style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:20px 0;">No patients assigned yet.</p>
+        }
+    </div>
+
+    
+    <div class="dp-card">
+        <div class="dp-section-title"><i class="fas fa-calendar-check" style="margin-right:5px;"></i>Recent Appointments</div>
+        @if (Model.RecentAppointments.Any())
+        {
+            <table class="dp-table">
+                <thead>
+                    <tr>
+                        <th>Date &amp; Time</th>
+                        <th>Patient</th>
+                        <th>Clinic</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var a in Model.RecentAppointments)
+                    {
+                        var (aps, apc) = a.IsBooked
+                            ? ("background:rgba(74,222,128,0.1);color:#4ade80;", "Booked")
+                            : ("background:rgba(107,114,128,0.1);color:#6b7280;", "Open");
+                        <tr>
+                            <td>
+                                <div style="font-weight:600;color:var(--text-primary);font-size:0.82rem;">@a.Date.ToString("MMM d, yyyy")</div>
+                                <div style="font-size:0.72rem;color:var(--text-muted);">@a.Time.ToString(@"hh\:mm")</div>
+                            </td>
+                            <td style="color:var(--text-primary);font-size:0.82rem;">@(string.IsNullOrWhiteSpace(a.PatientName) ? "—" : a.PatientName)</td>
+                            <td style="font-size:0.78rem;color:var(--text-secondary);">@a.ClinicName</td>
+                            <td><span style="@aps padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:700;">@apc</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:20px 0;">No appointments found.</p>
+        }
+    </div>
+
+  </div>
+</div>
+
+
+<div class="modal-overlay" id="rejectModal" style="display:none;">
+    <div class="modal-box">
+        <div class="modal-title" style="color:#fbbf24;"><i class="fas fa-times-circle"></i> Reject Doctor</div>
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">Optionally write a reason — the doctor will see it on their account.</p>
+        <form method="post" action="/Admin/RejectDoctor">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="doctorId" value="@Model.DoctorId" />
+            <textarea name="rejectionNote" placeholder="e.g. License documents are unclear. Please re-upload a clear copy."
+                      style="width:100%;padding:10px 14px;border:1px solid var(--border-color);border-radius:10px;font-size:0.88rem;background:var(--bg-secondary);color:var(--text-primary);resize:vertical;min-height:90px;outline:none;font-family:inherit;margin-bottom:14px;"></textarea>
+            <div class="modal-actions">
+                <button type="button" class="btn-modal-cancel" onclick="document.getElementById('rejectModal').style.display='none'">Cancel</button>
+                <button type="submit" class="btn-modal-confirm" style="background:#f59e0b;"><i class="fas fa-times"></i> Reject</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<div class="modal-overlay" id="banModal" style="display:none;">
+    <div class="modal-box">
+        <div class="modal-title" style="color:#ef4444;"><i class="fas fa-ban"></i> Ban Doctor</div>
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">
+            Banning <strong style="color:var(--text-primary);">Dr. @Model.FullName</strong> will immediately revoke their access. They will not be able to log in.
+        </p>
+        <form method="post" action="/Admin/BanDoctor">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="doctorId" value="@Model.DoctorId" />
+            <div class="modal-actions">
+                <button type="button" class="btn-modal-cancel" onclick="document.getElementById('banModal').style.display='none'">Cancel</button>
+                <button type="submit" class="btn-modal-confirm" style="background:#ef4444;"><i class="fas fa-ban"></i> Ban Doctor</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<div class="modal-overlay" id="hardDeleteModal" style="display:none;">
+    <div class="modal-box">
+        <div class="modal-title" style="color:#ef4444;"><i class="fas fa-skull-crossbones"></i> Permanently Delete Doctor</div>
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:8px;">
+            This will <strong style="color:#ef4444;">permanently and irreversibly</strong> delete:
+        </p>
+        <ul style="font-size:0.82rem;color:var(--text-secondary);line-height:1.8;margin:0 0 14px 16px;padding:0;">
+            <li>The doctor's account and profile</li>
+            <li>All @Model.TotalAppointments appointments and their bookings</li>
+            <li>All @Model.TotalPrescriptions prescriptions and items</li>
+            <li>All @Model.TotalPatients patient assignments</li>
+            <li>All @Model.TotalNotes notes and @Model.TotalLabTests lab tests</li>
+            <li>All chat messages and medical histories</li>
+        </ul>
+        <p style="font-size:0.82rem;color:#ef4444;font-weight:600;">This cannot be undone.</p>
+        <form method="post" action="/Admin/HardDeleteDoctor">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="doctorId" value="@Model.DoctorId" />
+            <div class="modal-actions">
+                <button type="button" class="btn-modal-cancel" onclick="document.getElementById('hardDeleteModal').style.display='none'">Cancel</button>
+                <button type="submit" class="btn-modal-confirm" style="background:#dc2626;"><i class="fas fa-skull-crossbones"></i> Delete Everything</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
+        overlay.addEventListener('click', function(e) {
+            if (e.target === this) this.style.display = 'none';
+        });
+    });
+</script>
+}
