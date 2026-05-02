@@ -36,6 +36,10 @@ namespace Graduation_Project.Data
         public DbSet<Doctor> Doctors { get; set; }
         public DbSet<LabTest> LabTests { get; set; }
         public DbSet<MedicalHistory> MedicalHistories { get; set; }
+        public DbSet<Medication> Medications { get; set; }
+        public DbSet<MedicationSchedule> MedicationSchedules { get; set; }
+        public DbSet<MedicationLog> MedicationLogs { get; set; }
+        public DbSet<MedicationReminderSettings> MedicationReminderSettings { get; set; }
         public DbSet<Note> Notes { get; set; }
         public DbSet<Patient> Patients { get; set; }
         public DbSet<PatientBloodPressure> PatientBloodPressure { get; set; }
@@ -686,6 +690,69 @@ namespace Graduation_Project.Data
                     .WithMany(p => p.Items)
                     .HasForeignKey(d => d.PrescriptionID)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ============================================================
+            // MEDICATIONS
+            // ============================================================
+            modelBuilder.Entity<Medication>(entity =>
+            {
+                entity.HasKey(e => e.MedicationId);
+
+                entity.HasOne(d => d.Patient)
+                    .WithMany()
+                    .HasForeignKey(d => d.PatientID)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(d => d.PrescriptionItem)
+                    .WithMany()
+                    .HasForeignKey(d => d.PrescriptionItemId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasIndex(e => new { e.PatientID, e.IsActive });
+                entity.HasIndex(e => e.PrescriptionItemId)
+                    .IsUnique()
+                    .HasFilter("[PrescriptionItemId] IS NOT NULL");
+            });
+
+            modelBuilder.Entity<MedicationSchedule>(entity =>
+            {
+                entity.HasKey(e => e.MedicationScheduleId);
+
+                entity.HasOne(d => d.Medication)
+                    .WithMany(m => m.Schedules)
+                    .HasForeignKey(d => d.MedicationId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => new { e.MedicationId, e.TimeOfDay });
+            });
+
+            modelBuilder.Entity<MedicationLog>(entity =>
+            {
+                entity.HasKey(e => e.MedicationLogId);
+
+                entity.HasOne(d => d.Medication)
+                    .WithMany(m => m.Logs)
+                    .HasForeignKey(d => d.MedicationId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => new { e.MedicationId, e.ScheduledAt });
+                entity.HasIndex(e => new { e.MedicationId, e.Status });
+            });
+
+            // ============================================================
+            // MEDICATION REMINDER SETTINGS
+            // ============================================================
+            modelBuilder.Entity<MedicationReminderSettings>(entity =>
+            {
+                entity.HasKey(e => e.MedicationReminderSettingsId);
+
+                entity.HasOne(d => d.Patient)
+                    .WithMany()
+                    .HasForeignKey(d => d.PatientID)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => e.PatientID).IsUnique();
             });
 
             // ============================================================

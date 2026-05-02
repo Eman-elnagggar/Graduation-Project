@@ -1,0 +1,70 @@
+@model Graduation_Project.ViewModels.PatientMedicationAddViewModel
+@{
+    Layout = "~/Views/Shared/_PatientLayout.cshtml";
+    ViewData["Title"] = "Add Medication";
+    ViewData["PatientId"] = Model.Patient.PatientID;
+    ViewData["ActivePage"] = "Medications";
+    ViewData["UserName"] = Model.UserName;
+    ViewData["PageTitleHtml"] = "Add <span class='topbar-accent'>Medication</span>";
+    ViewData["PageSubtitle"] = "Track your own medicines with reminders.";
+}
+
+<section class="pm-page pd-wrap" data-patient-medications>
+    <div class="pm-hero">
+        <div class="pm-hero-left">
+            <span class="pm-hero-eyebrow"><i class="fas fa-plus-circle"></i> Self-managed Medication</span>
+            <h2>Add Medication</h2>
+            <p>Track a medication you are taking on your own.</p>
+        </div>
+        <div class="pm-hero-actions">
+            <a class="btn btn-outline" href="/PatientMedication/Index/@Model.Patient.PatientID"><i class="fas fa-arrow-left"></i> Back</a>
+        </div>
+    </div>
+
+    <form class="pm-form" id="selfMedicationForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" id="patientId" value="@Model.Patient.PatientID" />
+        <div class="card-header">
+            <div class="card-header-left">
+                <div class="card-ico teal"><i class="fas fa-notes-medical"></i></div>
+                <div>
+                    <div class="card-title">Medication Details</div>
+                    <div class="card-sub">Fill the information below to create your tracker record.</div>
+                </div>
+            </div>
+        </div>
+        <div class="pm-form-grid">
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" id="medName" class="form-input" required />
+            </div>
+            <div class="form-group">
+                <label>Dosage</label>
+                <input type="text" id="medDosage" class="form-input" />
+            </div>
+            <div class="form-group">
+                <label>Frequency</label>
+                <input type="text" id="medFrequency" class="form-input" />
+            </div>
+            <div class="form-group">
+                <label>Duration (days)</label>
+                <input type="number" id="medDuration" class="form-input" min="0" />
+            </div>
+            <div class="form-group">
+                <label>Start Date</label>
+                <input type="date" id="medStart" class="form-input" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="form-group pm-full">
+                <label>Instructions</label>
+                <textarea id="medInstructions" class="form-textarea" rows="3"></textarea>
+            </div>
+        </div>
+        <div class="pm-form-actions">
+            <button type="submit" class="btn btn-primary">Save Medication</button>
+        </div>
+    </form>
+</section>
+
+@section Scripts {
+    <script src="~/js/patient-medications.js" asp-append-version="true"></script>
+}

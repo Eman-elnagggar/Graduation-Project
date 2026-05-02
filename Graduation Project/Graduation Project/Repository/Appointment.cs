@@ -411,5 +411,31 @@ namespace Graduation_Project.Repository
 
             return query.FirstOrDefault();
         }
+
+        public IEnumerable<Appointment> GetBookedByClinicAndDoctors(int clinicId, IEnumerable<int> doctorIds)
+        {
+            var scopedDoctorIds = doctorIds
+                .Distinct()
+                .ToList();
+
+            if (!scopedDoctorIds.Any())
+                return new List<Appointment>();
+
+            return _context.Appointments
+                .AsNoTracking()
+                .Include(a => a.Patient)
+                    .ThenInclude(p => p.User)
+                .Include(a => a.Doctor)
+                    .ThenInclude(d => d.User)
+                .Include(a => a.Bookings)
+                .Where(a => a.ClinicID == clinicId
+                         && scopedDoctorIds.Contains(a.DoctorID)
+                         && a.isBooked
+                         && a.PatientID.HasValue)
+                .OrderByDescending(a => a.Date)
+                .ThenByDescending(a => a.Time)
+                .AsSplitQuery()
+                .ToList();
+        }
     }
 }

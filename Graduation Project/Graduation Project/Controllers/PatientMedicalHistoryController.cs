@@ -4,6 +4,7 @@ using Graduation_Project.Models;
 using Graduation_Project.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace Graduation_Project.Controllers
@@ -69,6 +70,12 @@ namespace Graduation_Project.Controllers
             var prescriptions = _prescriptionRepository.GetByPatientId(id).ToList();
             var pregnancyRecords = _context.PregnancyRecords
                 .Where(r => r.PatientID == id)
+                .ToList();
+            var medicationLogs = _context.MedicationLogs
+                .Include(l => l.Medication)
+                .Where(l => l.Medication.PatientID == id)
+                .OrderByDescending(l => l.ScheduledAt)
+                .Take(200)
                 .ToList();
 
             var entries = new List<MedicalHistoryEntry>();
@@ -236,6 +243,22 @@ namespace Graduation_Project.Controllers
                         SubTitle = "This pregnancy was marked as ended by the patient."
                     });
                 }
+            }
+
+            foreach (var log in medicationLogs)
+            {
+                entries.Add(new MedicalHistoryEntry
+                {
+                    DateTime = log.ScheduledAt,
+                    EventType = MedicalHistoryEventTypes.MedicationLog,
+                    Status = log.Status == MedicationLogStatus.Missed ? "attention"
+                           : log.Status == MedicationLogStatus.Skipped ? "attention"
+                           : "normal",
+                    Title = $"Medication {log.Status}",
+                    SubTitle = log.Medication != null
+                        ? $"{log.Medication.Name} @ {log.ScheduledAt:hh:mm tt}"
+                        : $"Medication @ {log.ScheduledAt:hh:mm tt}"
+                });
             }
 
             entries = entries.OrderByDescending(e => e.DateTime).ToList();
