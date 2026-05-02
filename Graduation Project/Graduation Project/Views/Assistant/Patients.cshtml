@@ -67,18 +67,21 @@
                 @foreach (var patient in doctorGroup)
                 {
                     <details class="card section-spacing-sm">
-                        <summary class="appointment-row-main" style="cursor:pointer;">
+                        <summary class="appointment-row-main">
                             <div>
                                 <strong>@patient.FullName</strong>
                                 @if (!string.IsNullOrWhiteSpace(patient.PhoneNumber))
                                 {
-                                    <span class="appointment-doctor-meta"> · @patient.PhoneNumber</span>
+                                    <span class="appointment-doctor-meta"> &middot; @patient.PhoneNumber</span>
                                 }
                             </div>
-                            <span class="status-badge confirmed">@patient.Appointments.Count appointment(s)</span>
+                            <span class="status-badge confirmed">
+                                <i class="fas fa-calendar-check"></i>
+                                @patient.Appointments.Count appointment(s)
+                            </span>
                         </summary>
 
-                        <div class="request-list" style="margin-top:12px;">
+                        <div class="request-list mt-12">
                             <div class="mb-12">
                                 <a class="btn btn-outline btn-sm"
                                    href="@Url.Action("PatientDetails", "Assistant", new { id = Model.Assistant.AssistantID, patientId = patient.PatientID, doctorId = patient.DoctorID })">
