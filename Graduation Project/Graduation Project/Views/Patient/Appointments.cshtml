@@ -230,12 +230,18 @@
                             <div class="primary-doctor-info">
                                 <div class="primary-doctor-details">
                                     <div class="primary-doctor-avatar">
-                                        <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(docName)&background=1BAEBE&color=fff&size=80"
-                                             alt="@docName" />
+                                        <a href="@Url.Action("Details", "PublicDoctor", new { doctorId = doc.DoctorID, patientId = patientId })" style="display:block;">
+                                            <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(docName)&background=1BAEBE&color=fff&size=80"
+                                                 alt="@docName" />
+                                        </a>
                                         <span class="online-status"></span>
                                     </div>
                                     <div class="primary-info">
-                                        <h4>@docName</h4>
+                                        <h4>
+                                            <a href="@Url.Action("Details", "PublicDoctor", new { doctorId = doc.DoctorID, patientId = patientId })" style="text-decoration:none; color:inherit;">
+                                                @docName
+                                            </a>
+                                        </h4>
                                         <p class="specialty"><i class="fas fa-stethoscope"></i> @doc.Specialization</p>
                                         <p class="location"><i class="fas fa-map-marker-alt"></i> @(clinicDoc?.Clinic?.Name ?? "Clinic")</p>
                                         <div class="quick-stats pa-quick-stats">
@@ -295,11 +301,15 @@
                                 var docName = doc.User != null ? $"Dr. {doc.User.FirstName} {doc.User.LastName}".Trim() : "Doctor";
                                 var clinicDoc = doc.ClinicDoctors?.FirstOrDefault();
                                 <div class="doctor-mini-card" data-doctor-id="@doc.DoctorID">
-                                    <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(docName)&background=1BAEBE&color=fff&size=60"
-                                         alt="@docName" />
+                                    <a asp-controller="PublicDoctor" asp-action="Details" asp-route-doctorId="@doc.DoctorID" asp-route-patientId="@patientId">
+                                        <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(docName)&background=1BAEBE&color=fff&size=60"
+                                             alt="@docName" />
+                                    </a>
                                     <div class="doctor-mini-info">
                                         <h5>
-                                            @docName
+                                            <a asp-controller="PublicDoctor" asp-action="Details" asp-route-doctorId="@doc.DoctorID" asp-route-patientId="@patientId" style="text-decoration:none; color:inherit;">
+                                                @docName
+                                            </a>
                                             @if (pd.IsPrimary) { <span class="primary-tag">Primary</span> }
                                         </h5>
                                         <p>@doc.Specialization</p>
@@ -309,6 +319,10 @@
                                         <button class="btn btn-sm btn-outline"
                                                 onclick="window.location.href='@Url.Action("BookAppointment", "PatientAppointments", new { id = patientId, doctorId = doc.DoctorID })'">
                                             Book
+                                        </button>
+                                        <button class="btn btn-sm btn-outline"
+                                                onclick="window.location.href='@Url.Action("Details", "PublicDoctor", new { doctorId = doc.DoctorID, patientId = patientId })'">
+                                            View Dr. Profile
                                         </button>
                                         @if (!pd.IsPrimary)
                                         {

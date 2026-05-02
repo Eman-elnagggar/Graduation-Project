@@ -18,6 +18,7 @@ namespace Graduation_Project.ViewModels
   // Pregnancy
         public bool HasActivePregnancy { get; set; }
         public DateTime? ActivePregnancyStartDate { get; set; }
+        public string? BabyGender { get; set; }
      public int PregnancyWeek { get; set; }
         public int PregnancyDays { get; set; }
         public int PregnancyProgressPercent { get; set; }

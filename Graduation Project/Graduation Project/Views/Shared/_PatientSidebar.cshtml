@@ -101,6 +101,12 @@
                 <div class="nav-icon"><i class="fas fa-bell"></i></div>
                 <span>Alerts</span>
             </a>
+            <a href="/PatientMedication/Index/@patientId"
+               class="nav-item @(activePage == "Medications" ? "active" : "")"
+               data-tooltip="Medications">
+                <div class="nav-icon"><i class="fas fa-pills"></i></div>
+                <span>Medications</span>
+            </a>
             <a href="/PatientProfile/Index/@patientId"
                class="nav-item @(activePage == "Profile" ? "active" : "")" data-tooltip="My Profile">
                 <div class="nav-icon"><i class="fas fa-user-circle"></i></div>
