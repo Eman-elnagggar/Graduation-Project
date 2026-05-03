@@ -38,7 +38,7 @@
             "RBCs_Count": 5.2,
             "MCV": 87.75,
             "MCH": 27.2,
-            "MCHC": 32.8,
+            "RDW": 13.5,
             "WBC": 9000,
             "lymphocytes": 31,
             "platelet_count": 150000
