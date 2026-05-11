@@ -208,6 +208,7 @@ namespace Graduation_Project.ViewModels
         public List<Prescription> Prescriptions { get; set; } = new();
         public List<Alert> AlertRecords { get; set; } = new();
         public List<MedicalHistoryEntry> TimelineEntries { get; set; } = new();
+        public List<UltrasoundImage> UltrasoundScans { get; set; } = new();
     }
 
     public class DoctorPrescriptionPrintViewModel

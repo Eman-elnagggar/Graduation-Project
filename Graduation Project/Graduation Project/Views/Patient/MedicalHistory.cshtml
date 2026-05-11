@@ -386,6 +386,43 @@
                                                 }
 
                                                 @* ── Ultrasound ── *@
+                                                @if (entry.Ultrasound != null && !entry.Ultrasound.IsPatientUploaded && entry.Ultrasound.Status == Graduation_Project.Models.UltrasoundStatus.Completed)
+                                                {
+                                                    var us = entry.Ultrasound;
+                                                    string usPred = string.IsNullOrWhiteSpace(us.Prediction) ? "Analysis complete" : us.Prediction;
+                                                    double usConf = us.ConfidenceScore ?? 0;
+                                                    string usDr = us.Doctor?.User != null ? $"Dr. {us.Doctor.User.FirstName} {us.Doctor.User.LastName}".Trim() : (entry.DoctorName ?? "Your doctor");
+
+                                                    <div class="mh-us-images mb-2">
+                                                        <div class="mh-us-img-cell">
+                                                            <span class="mh-us-img-lbl">Original</span>
+                                                            @if (!string.IsNullOrWhiteSpace(us.OriginalImagePath))
+                                                            { <img src="@us.OriginalImagePath" class="mh-us-img" onclick="window.open(this.src,'_blank')" title="Click to enlarge" alt="Original" /> }
+                                                            else { <div class="mh-us-img-ph"><i class="fas fa-image"></i></div> }
+                                                        </div>
+                                                        <div class="mh-us-img-cell">
+                                                            <span class="mh-us-img-lbl" style="color:#7c3aed">AI Result</span>
+                                                            @if (!string.IsNullOrWhiteSpace(us.ResultImagePath))
+                                                            { <img src="@us.ResultImagePath" class="mh-us-img" onclick="window.open(this.src,'_blank')" title="Click to enlarge" alt="AI Result" /> }
+                                                            else { <div class="mh-us-img-ph"><i class="fas fa-microchip"></i></div> }
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="mh-us-pred-chip"><i class="fas fa-brain"></i> @usPred</div>
+
+                                                    @if (usConf > 0)
+                                                    {
+                                                        <div style="margin:0.5rem 0">
+                                                            <div class="mh-us-conf-hdr"><span>Confidence</span><span>@usConf.ToString("0.#")%</span></div>
+                                                            <div class="mh-us-conf-bar"><div class="mh-us-conf-fill" style="width:@Math.Min(usConf,100)%"></div></div>
+                                                        </div>
+                                                    }
+
+                                                    <div class="mh-doctor-comment" style="margin-top:0.75rem">
+                                                        <i class="fas fa-user-md"></i>
+                                                        <div><strong>@usDr</strong><p>@us.UploadDate.ToString("MMMM dd, yyyy · h:mm tt")</p></div>
+                                                    </div>
+                                                }
                                                 @if (entry.Ultrasound != null)
                                                 {
                                                     bool noAnomaly = string.IsNullOrWhiteSpace(entry.Ultrasound.DetectedAnomaly);
@@ -2233,6 +2270,17 @@ document.addEventListener("DOMContentLoaded", function () {
         display: none;
     }
 }
-</style>
+
+.mh-us-images{display:grid;grid-template-columns:1fr 1fr;gap:.875rem;margin-bottom:.5rem}
+.mh-us-img-cell{display:flex;flex-direction:column;gap:.35rem}
+.mh-us-img-lbl{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#64748b}
+.mh-us-img{width:100%;border-radius:10px;border:1px solid #e2e8f0;object-fit:cover;aspect-ratio:4/3;cursor:zoom-in;transition:transform .2s}
+.mh-us-img:hover{transform:scale(1.02)}
+.mh-us-img-ph{width:100%;aspect-ratio:4/3;background:#f1f5f9;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#cbd5e1;font-size:2rem}
+.mh-us-pred-chip{display:inline-flex;align-items:center;gap:.5rem;padding:6px 14px;background:#ede9fe;color:#7c3aed;border-radius:20px;font-size:.85rem;font-weight:600;width:fit-content;margin-bottom:.5rem}
+.mh-us-conf-hdr{display:flex;justify-content:space-between;font-size:.75rem;color:#64748b;margin-bottom:4px}
+.mh-us-conf-bar{height:6px;background:#e2e8f0;border-radius:20px;overflow:hidden}
+.mh-us-conf-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:20px}
+@@media(max-width:480px){.mh-us-images{grid-template-columns:1fr}}</style>
 }
 

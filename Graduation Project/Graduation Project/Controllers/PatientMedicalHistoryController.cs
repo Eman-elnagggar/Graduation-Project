@@ -63,7 +63,10 @@ namespace Graduation_Project.Controllers
             var bpReadings = _patientBloodPressure.GetRecentByPatientId(id, 200).ToList();
             var bsReadings = _patientBloodSugar.GetRecentByPatientId(id, 200).ToList();
             var labTests = _labTest.GetLabTestsByPatientId(id).ToList();
-            var ultrasounds = _ultrasoundImage.GetUltrasoundsByPatientId(id).ToList();
+            var ultrasounds = _ultrasoundImage
+                .GetUltrasoundsByPatientId(id)
+                .Where(u => !u.IsPatientUploaded)
+                .ToList();
             var appointments = _appointment.GetByPatientId(id).ToList();
             var alerts = _alertRepository.GetByPatientId(id).ToList();
             var notes = _noteRepository.GetByPatientId(id).ToList();

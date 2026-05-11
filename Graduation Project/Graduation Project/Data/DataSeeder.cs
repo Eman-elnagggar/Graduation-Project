@@ -170,20 +170,20 @@ namespace Graduation_Project.Data
             if (!context.Doctors.Any())
             {
                 context.Doctors.AddRange(
-                    new Doctor { UserID = uAhmed.UserID,  Specialization = "Obstetrics & Gynecology", LicenseNumber = "MD-OBG-001", LicenseImagePath = "/uploads/licenses/lic1.jpg", VerificationStatus = "Verified", VerificationDate = new DateTime(2024, 1, 15), Address = "15 Tahrir St, Cairo"     },
-                    new Doctor { UserID = uMona.UserID,   Specialization = "Maternal-Fetal Medicine",  LicenseNumber = "MD-MFM-002", LicenseImagePath = "/uploads/licenses/lic2.jpg", VerificationStatus = "Verified", VerificationDate = new DateTime(2024, 1, 16), Address = "22 Nasr City, Cairo"     },
-                    new Doctor { UserID = uKarim.UserID,  Specialization = "Obstetrics & Gynecology", LicenseNumber = "MD-OBG-003", LicenseImagePath = "/uploads/licenses/lic3.jpg", VerificationStatus = "Verified", VerificationDate = new DateTime(2024, 1, 17), Address = "7 Corniche, Alexandria"  },
-                    new Doctor { UserID = uNadia.UserID,  Specialization = "Endocrinology",            LicenseNumber = "MD-END-004", LicenseImagePath = "/uploads/licenses/lic4.jpg", VerificationStatus = "Verified", VerificationDate = new DateTime(2024, 1, 18), Address = "30 Heliopolis, Cairo"    },
-                    new Doctor { UserID = uOmar.UserID,   Specialization = "Internal Medicine",        LicenseNumber = "MD-INT-005", LicenseImagePath = "/uploads/licenses/lic5.jpg", VerificationStatus = "Pending",  VerificationDate = null,                       Address = "5 Dokki, Giza"           }
+                    new Doctor { UserID = uAhmed.Id,  Specialization = "Obstetrics & Gynecology", LicenseNumber = "MD-OBG-001", LicenseImagePath = "/uploads/licenses/lic1.jpg", VerificationStatus = "Verified", VerificationDate = new DateTime(2024, 1, 15), Address = "15 Tahrir St, Cairo"     },
+                    new Doctor { UserID = uMona.Id,   Specialization = "Maternal-Fetal Medicine",  LicenseNumber = "MD-MFM-002", LicenseImagePath = "/uploads/licenses/lic2.jpg", VerificationStatus = "Verified", VerificationDate = new DateTime(2024, 1, 16), Address = "22 Nasr City, Cairo"     },
+                    new Doctor { UserID = uKarim.Id,  Specialization = "Obstetrics & Gynecology", LicenseNumber = "MD-OBG-003", LicenseImagePath = "/uploads/licenses/lic3.jpg", VerificationStatus = "Verified", VerificationDate = new DateTime(2024, 1, 17), Address = "7 Corniche, Alexandria"  },
+                    new Doctor { UserID = uNadia.Id,  Specialization = "Endocrinology",            LicenseNumber = "MD-END-004", LicenseImagePath = "/uploads/licenses/lic4.jpg", VerificationStatus = "Verified", VerificationDate = new DateTime(2024, 1, 18), Address = "30 Heliopolis, Cairo"    },
+                    new Doctor { UserID = uOmar.Id,   Specialization = "Internal Medicine",        LicenseNumber = "MD-INT-005", LicenseImagePath = "/uploads/licenses/lic5.jpg", VerificationStatus = "Pending",  VerificationDate = null,                       Address = "5 Dokki, Giza"           }
                 );
                 await context.SaveChangesAsync();
             }
 
-            var dAhmed  = context.Doctors.First(d => d.UserID == uAhmed.UserID);
-            var dMona   = context.Doctors.First(d => d.UserID == uMona.UserID);
-            var dKarim  = context.Doctors.First(d => d.UserID == uKarim.UserID);
-            var dNadia  = context.Doctors.First(d => d.UserID == uNadia.UserID);
-            var dOmar   = context.Doctors.First(d => d.UserID == uOmar.UserID);
+            var dAhmed  = context.Doctors.First(d => d.UserID == uAhmed.Id);
+            var dMona   = context.Doctors.First(d => d.UserID == uMona.Id);
+            var dKarim  = context.Doctors.First(d => d.UserID == uKarim.Id);
+            var dNadia  = context.Doctors.First(d => d.UserID == uNadia.Id);
+            var dOmar   = context.Doctors.First(d => d.UserID == uOmar.Id);
 
             // ============================================================
             // 4. CLINICS
@@ -243,11 +243,11 @@ namespace Graduation_Project.Data
                 await context.SaveChangesAsync();
             }
 
-            var aLayla = context.Assistants.First(a => a.UserID == uLayla.UserID);
-            var aDina  = context.Assistants.First(a => a.UserID == uDina.UserID);
-            var aNoura = context.Assistants.First(a => a.UserID == uNoura.UserID);
-            var aAmira = context.Assistants.First(a => a.UserID == uAmira.UserID);
-            var aHeba  = context.Assistants.First(a => a.UserID == uHeba.UserID);
+            var aLayla = context.Assistants.First(a => a.UserID == uLayla.Id);
+            var aDina  = context.Assistants.First(a => a.UserID == uDina.Id);
+            var aNoura = context.Assistants.First(a => a.UserID == uNoura.Id);
+            var aAmira = context.Assistants.First(a => a.UserID == uAmira.Id);
+            var aHeba  = context.Assistants.First(a => a.UserID == uHeba.Id);
 
             // ============================================================
             // 5b. ASSISTANT-DOCTOR RELATIONSHIPS
@@ -276,20 +276,20 @@ namespace Graduation_Project.Data
             if (!context.Patients.Any())
             {
                 context.Patients.AddRange(
-                    new Patient { UserID = uSarah.UserID,   Address = "12 Maadi, Cairo",       DateOfPregnancy = new DateTime(2024, 11, 1),  GestationalWeeks = 24, IsFirstPregnancy = false, PreviousPregnancies = 1, Abortions = 0, Births = 1, WeightKg = 68.0, HeightCm = 162.0, BloodPressureIssue = false, Smoking = false, AlcoholUse = false },
-                    new Patient { UserID = uFatima.UserID,  Address = "5 Zamalek, Cairo",       DateOfPregnancy = new DateTime(2024, 9, 15),  GestationalWeeks = 32, IsFirstPregnancy = true,  PreviousPregnancies = 0, Abortions = 0, Births = 0, WeightKg = 72.0, HeightCm = 158.0, BloodPressureIssue = true,  Smoking = false, AlcoholUse = false },
-                    new Patient { UserID = uYasmine.UserID, Address = "18 New Cairo",            DateOfPregnancy = new DateTime(2025, 1, 10),  GestationalWeeks = 12, IsFirstPregnancy = true,  PreviousPregnancies = 0, Abortions = 0, Births = 0, WeightKg = 60.0, HeightCm = 165.0, BloodPressureIssue = false, Smoking = false, AlcoholUse = false },
-                    new Patient { UserID = uHana.UserID,    Address = "9 Shubra, Cairo",         DateOfPregnancy = new DateTime(2024, 8, 20),  GestationalWeeks = 36, IsFirstPregnancy = false, PreviousPregnancies = 2, Abortions = 1, Births = 1, WeightKg = 80.0, HeightCm = 160.0, BloodPressureIssue = true,  Smoking = false, AlcoholUse = false },
-                    new Patient { UserID = uReem.UserID,    Address = "3 Mohandessin, Giza",     DateOfPregnancy = new DateTime(2024, 12, 5),  GestationalWeeks = 20, IsFirstPregnancy = false, PreviousPregnancies = 1, Abortions = 0, Births = 1, WeightKg = 65.0, HeightCm = 170.0, BloodPressureIssue = false, Smoking = false, AlcoholUse = false }
+                    new Patient { UserID = uSarah.Id,   Address = "12 Maadi, Cairo",       DateOfPregnancy = new DateTime(2024, 11, 1),  LastPregnancyStartedAt = new DateTime(2024, 11, 1),  PregnancyCount = 2, GestationalWeeks = 24, IsFirstPregnancy = false, PreviousPregnancies = 1, Abortions = 0, Births = 1, WeightKg = 68.0, HeightCm = 162.0, BloodPressureIssue = false, Smoking = false, AlcoholUse = false },
+                    new Patient { UserID = uFatima.Id,  Address = "5 Zamalek, Cairo",       DateOfPregnancy = new DateTime(2024, 9, 15),  LastPregnancyStartedAt = new DateTime(2024, 9, 15),  PregnancyCount = 1, GestationalWeeks = 32, IsFirstPregnancy = true,  PreviousPregnancies = 0, Abortions = 0, Births = 0, WeightKg = 72.0, HeightCm = 158.0, BloodPressureIssue = true,  Smoking = false, AlcoholUse = false },
+                    new Patient { UserID = uYasmine.Id, Address = "18 New Cairo",            DateOfPregnancy = new DateTime(2025, 1, 10),  LastPregnancyStartedAt = new DateTime(2025, 1, 10),  PregnancyCount = 1, GestationalWeeks = 12, IsFirstPregnancy = true,  PreviousPregnancies = 0, Abortions = 0, Births = 0, WeightKg = 60.0, HeightCm = 165.0, BloodPressureIssue = false, Smoking = false, AlcoholUse = false },
+                    new Patient { UserID = uHana.Id,    Address = "9 Shubra, Cairo",         DateOfPregnancy = new DateTime(2024, 8, 20),  LastPregnancyStartedAt = new DateTime(2024, 8, 20),  PregnancyCount = 3, GestationalWeeks = 36, IsFirstPregnancy = false, PreviousPregnancies = 2, Abortions = 1, Births = 1, WeightKg = 80.0, HeightCm = 160.0, BloodPressureIssue = true,  Smoking = false, AlcoholUse = false },
+                    new Patient { UserID = uReem.Id,    Address = "3 Mohandessin, Giza",     DateOfPregnancy = new DateTime(2024, 12, 5),  LastPregnancyStartedAt = new DateTime(2024, 12, 5),  PregnancyCount = 2, GestationalWeeks = 20, IsFirstPregnancy = false, PreviousPregnancies = 1, Abortions = 0, Births = 1, WeightKg = 65.0, HeightCm = 170.0, BloodPressureIssue = false, Smoking = false, AlcoholUse = false }
                 );
                 await context.SaveChangesAsync();
             }
 
-            var pSarah   = context.Patients.First(p => p.UserID == uSarah.UserID);
-            var pFatima  = context.Patients.First(p => p.UserID == uFatima.UserID);
-            var pYasmine = context.Patients.First(p => p.UserID == uYasmine.UserID);
-            var pHana    = context.Patients.First(p => p.UserID == uHana.UserID);
-            var pReem    = context.Patients.First(p => p.UserID == uReem.UserID);
+            var pSarah   = context.Patients.First(p => p.UserID == uSarah.Id);
+            var pFatima  = context.Patients.First(p => p.UserID == uFatima.Id);
+            var pYasmine = context.Patients.First(p => p.UserID == uYasmine.Id);
+            var pHana    = context.Patients.First(p => p.UserID == uHana.Id);
+            var pReem    = context.Patients.First(p => p.UserID == uReem.Id);
 
             // ============================================================
             // 7. AI MODELS
@@ -631,12 +631,12 @@ namespace Graduation_Project.Data
             if (!context.UltrasoundImages.Any())
             {
                 context.UltrasoundImages.AddRange(
-                    new UltrasoundImage { PatientID = pSarah.PatientID,   DoctorID = dAhmed.DoctorID, ModelID = aiUs.ModelID, ImagePath = "/uploads/ultrasound/us_p1_1.jpg", UploadDate = new DateTime(2025, 3, 15), DetectedAnomaly = "None",                  DoctorComments = "Normal fetal development at week 24.",            AI_Result_JSON = "{\"anomaly\":\"none\",\"confidence\":97.2}"              },
-                    new UltrasoundImage { PatientID = pFatima.PatientID,  DoctorID = dAhmed.DoctorID, ModelID = aiUs.ModelID, ImagePath = "/uploads/ultrasound/us_p2_1.jpg", UploadDate = new DateTime(2025, 3, 9),  DetectedAnomaly = "Mild Placenta Previa", DoctorComments = "Scheduled follow-up scan in 4 weeks.",             AI_Result_JSON = "{\"anomaly\":\"placenta_previa\",\"confidence\":88.5}" },
-                    new UltrasoundImage { PatientID = pYasmine.PatientID, DoctorID = dMona.DoctorID,  ModelID = aiUs.ModelID, ImagePath = "/uploads/ultrasound/us_p3_1.jpg", UploadDate = new DateTime(2025, 2, 27), DetectedAnomaly = "None",                  DoctorComments = "First trimester scan looks normal.",               AI_Result_JSON = "{\"anomaly\":\"none\",\"confidence\":98.1}"              },
-                    new UltrasoundImage { PatientID = pHana.PatientID,    DoctorID = dKarim.DoctorID, ModelID = aiUs.ModelID, ImagePath = "/uploads/ultrasound/us_p4_1.jpg", UploadDate = new DateTime(2025, 2, 28), DetectedAnomaly = "None",                  DoctorComments = "Third trimester scan. Baby in cephalic position.", AI_Result_JSON = "{\"anomaly\":\"none\",\"confidence\":96.0}"              },
-                    new UltrasoundImage { PatientID = pReem.PatientID,    DoctorID = dNadia.DoctorID, ModelID = aiUs.ModelID, ImagePath = "/uploads/ultrasound/us_p5_1.jpg", UploadDate = new DateTime(2025, 3, 4),  DetectedAnomaly = "None",                  DoctorComments = "Normal fetal growth at week 20.",                 AI_Result_JSON = "{\"anomaly\":\"none\",\"confidence\":95.3}"              },
-                    new UltrasoundImage { PatientID = pSarah.PatientID,   DoctorID = dAhmed.DoctorID, ModelID = aiUs.ModelID, ImagePath = "/uploads/ultrasound/us_p1_2.jpg", UploadDate = new DateTime(2025, 2, 10), DetectedAnomaly = "None",                  DoctorComments = "Week 20 anatomy scan completed.",                  AI_Result_JSON = "{\"anomaly\":\"none\",\"confidence\":96.8}"              }
+                    new UltrasoundImage { PatientID = pSarah.PatientID,   DoctorID = dAhmed.DoctorID, ModelID = aiUs.ModelID, ImagePath = "/uploads/ultrasound/us_p1_1.jpg", OriginalImagePath = "/uploads/ultrasound/original/us_p1_1.jpg", ResultImagePath = "/uploads/ultrasound/results/us_p1_1.jpg", UploadDate = new DateTime(2025, 3, 15), Status = UltrasoundStatus.Completed, DetectedAnomaly = "None",                  Prediction = "Normal",          ConfidenceScore = 97.2, DoctorComments = "Normal fetal development at week 24.",            AI_Result_JSON = "{\"anomaly\":\"none\",\"confidence\":97.2}", IsPatientUploaded = false },
+                    new UltrasoundImage { PatientID = pFatima.PatientID,  DoctorID = dAhmed.DoctorID, ModelID = aiUs.ModelID, ImagePath = "/uploads/ultrasound/us_p2_1.jpg", OriginalImagePath = "/uploads/ultrasound/original/us_p2_1.jpg", ResultImagePath = "/uploads/ultrasound/results/us_p2_1.jpg", UploadDate = new DateTime(2025, 3, 9),  Status = UltrasoundStatus.Completed, DetectedAnomaly = "Mild Placenta Previa", Prediction = "Placenta Previa", ConfidenceScore = 88.5, DoctorComments = "Scheduled follow-up scan in 4 weeks.",             AI_Result_JSON = "{\"anomaly\":\"placenta_previa\",\"confidence\":88.5}", IsPatientUploaded = false },
+                    new UltrasoundImage { PatientID = pYasmine.PatientID, DoctorID = dMona.DoctorID,  ModelID = aiUs.ModelID, ImagePath = "/uploads/ultrasound/us_p3_1.jpg", OriginalImagePath = "/uploads/ultrasound/original/us_p3_1.jpg", ResultImagePath = "/uploads/ultrasound/results/us_p3_1.jpg", UploadDate = new DateTime(2025, 2, 27), Status = UltrasoundStatus.Completed, DetectedAnomaly = "None",                  Prediction = "Normal",          ConfidenceScore = 98.1, DoctorComments = "First trimester scan looks normal.",               AI_Result_JSON = "{\"anomaly\":\"none\",\"confidence\":98.1}", IsPatientUploaded = false },
+                    new UltrasoundImage { PatientID = pHana.PatientID,    DoctorID = dKarim.DoctorID, ModelID = aiUs.ModelID, ImagePath = "/uploads/ultrasound/us_p4_1.jpg", OriginalImagePath = "/uploads/ultrasound/original/us_p4_1.jpg", ResultImagePath = "/uploads/ultrasound/results/us_p4_1.jpg", UploadDate = new DateTime(2025, 2, 28), Status = UltrasoundStatus.Completed, DetectedAnomaly = "None",                  Prediction = "Normal",          ConfidenceScore = 96.0, DoctorComments = "Third trimester scan. Baby in cephalic position.", AI_Result_JSON = "{\"anomaly\":\"none\",\"confidence\":96.0}", IsPatientUploaded = false },
+                    new UltrasoundImage { PatientID = pReem.PatientID,    DoctorID = dNadia.DoctorID, ModelID = aiUs.ModelID, ImagePath = "/uploads/ultrasound/us_p5_1.jpg", OriginalImagePath = "/uploads/ultrasound/original/us_p5_1.jpg", ResultImagePath = "/uploads/ultrasound/results/us_p5_1.jpg", UploadDate = new DateTime(2025, 3, 4),  Status = UltrasoundStatus.Completed, DetectedAnomaly = "None",                  Prediction = "Normal",          ConfidenceScore = 95.3, DoctorComments = "Normal fetal growth at week 20.",                 AI_Result_JSON = "{\"anomaly\":\"none\",\"confidence\":95.3}", IsPatientUploaded = false },
+                    new UltrasoundImage { PatientID = pSarah.PatientID,   DoctorID = dAhmed.DoctorID, ModelID = aiUs.ModelID, ImagePath = "/uploads/ultrasound/us_p1_2.jpg", OriginalImagePath = "/uploads/ultrasound/original/us_p1_2.jpg", ResultImagePath = "/uploads/ultrasound/results/us_p1_2.jpg", UploadDate = new DateTime(2025, 2, 10), Status = UltrasoundStatus.Completed, DetectedAnomaly = "None",                  Prediction = "Normal",          ConfidenceScore = 96.8, DoctorComments = "Week 20 anatomy scan completed.",                  AI_Result_JSON = "{\"anomaly\":\"none\",\"confidence\":96.8}", IsPatientUploaded = false }
                 );
                 await context.SaveChangesAsync();
             }

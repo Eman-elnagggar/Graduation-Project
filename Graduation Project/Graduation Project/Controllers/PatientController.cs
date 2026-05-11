@@ -54,6 +54,30 @@ namespace Graduation_Project.Controllers
             _chatMessageCrypto = chatMessageCrypto;
         }
 
+        [HttpGet]
+        public IActionResult UltrasoundHistory(int id)
+        {
+            var (patient, failure) = AuthorizePatientAccess(id);
+            if (failure != null)
+                return failure;
+
+            var scans = _ultrasoundImage.GetUltrasoundsByPatientId(id).ToList();
+
+            var patientName = patient?.User != null
+                ? $"{patient.User.FirstName} {patient.User.LastName}".Trim()
+                : "Patient";
+
+            var vm = new ViewModels.Ultrasound.PatientUltrasoundHistoryViewModel
+            {
+                Patient = patient!,
+                PatientName = patientName,
+                DoctorScans = scans.Where(s => !s.IsPatientUploaded).ToList(),
+                SelfScans = scans.Where(s => s.IsPatientUploaded).ToList()
+            };
+
+            return View(vm);
+        }
+
         public IActionResult Index(int id)
         {
             var (patient, failure) = AuthorizePatientAccess(id);

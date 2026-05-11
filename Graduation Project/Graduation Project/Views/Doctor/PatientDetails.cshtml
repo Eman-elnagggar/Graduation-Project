@@ -493,6 +493,128 @@
             <div class="pp-card">
                 <div class="pp-card-header">
                     <div class="pp-card-header-left">
+                        <div class="pp-card-ico teal"><i class="fas fa-wave-square"></i></div>
+                        <div>
+                            <div class="pp-card-title">Ultrasound Scans</div>
+                            <div class="pp-card-sub">Fetal imaging &amp; doctor notes</div>
+                        </div>
+                    </div>
+                    <div class="pp-card-links-group">
+                        <a class="pp-card-link pp-card-link-soft"
+                           asp-controller="Ultrasound" asp-action="Upload"
+                           asp-route-id="@Model.Doctor.DoctorID"
+                           asp-route-patientId="@p.PatientID">
+                            <i class="fas fa-plus"></i> Upload Scan
+                        </a>
+                        <a class="pp-card-link pp-card-link-soft"
+                           asp-controller="Ultrasound" asp-action="History"
+                           asp-route-id="@Model.Doctor.DoctorID"
+                           asp-route-patientId="@p.PatientID">
+                            <i class="fas fa-external-link-alt"></i> View All
+                        </a>
+                    </div>
+                </div>
+                <div class="pp-card-body">
+                    @{
+                        var latestScans = Model.UltrasoundScans?.OrderByDescending(s => s.UploadDate).Take(3).ToList()
+                                          ?? new List<Graduation_Project.Models.UltrasoundImage>();
+                        var totalScans   = Model.UltrasoundScans?.Count ?? 0;
+                        var aiAnalyzed   = Model.UltrasoundScans?.Count(s => !string.IsNullOrWhiteSpace(s.Prediction)) ?? 0;
+                    }
+                    @if (!latestScans.Any())
+                    {
+                        <div style="text-align:center;padding:22px 0;">
+                            <div style="font-size:2rem;color:#d1dae4;margin-bottom:10px;"><i class="fas fa-wave-square"></i></div>
+                            <div style="font-size:.83rem;color:#8896ab;margin-bottom:14px;">No ultrasound scans recorded yet for this patient.</div>
+                            <a asp-controller="Ultrasound" asp-action="Upload"
+                               asp-route-id="@Model.Doctor.DoctorID"
+                               asp-route-patientId="@p.PatientID"
+                               class="pp-btn pp-btn-primary" style="font-size:.8rem;padding:8px 16px;">
+                                <i class="fas fa-plus"></i> Upload First Scan
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div style="display:flex;gap:10px;margin-bottom:14px;">
+                            <div class="pp-stat-card" style="flex:1;padding:12px 14px;">
+                                <div class="pp-stat-icon teal"><i class="fas fa-images"></i></div>
+                                <div class="pp-stat-body">
+                                    <div class="pp-stat-value" style="font-size:1.15rem;">@totalScans</div>
+                                    <div class="pp-stat-label">Total Scans</div>
+                                </div>
+                            </div>
+                            <div class="pp-stat-card" style="flex:1;padding:12px 14px;">
+                                <div class="pp-stat-icon blue"><i class="fas fa-brain"></i></div>
+                                <div class="pp-stat-body">
+                                    <div class="pp-stat-value" style="font-size:1.15rem;">@aiAnalyzed</div>
+                                    <div class="pp-stat-label">AI Analyzed</div>
+                                </div>
+                            </div>
+                        </div>
+                        @foreach (var scan in latestScans)
+                        {
+                            bool hasPred = !string.IsNullOrWhiteSpace(scan.Prediction);
+                            bool hasNote = !string.IsNullOrWhiteSpace(scan.DoctorComments);
+                            double conf  = scan.ConfidenceScore ?? 0;
+                            <div style="border:1px solid #e4eaf2;border-radius:10px;overflow:hidden;margin-bottom:10px;display:flex;">
+                                @if (!string.IsNullOrWhiteSpace(scan.OriginalImagePath))
+                                {
+                                    <img src="@scan.OriginalImagePath" alt="Scan"
+                                         style="width:68px;height:68px;object-fit:cover;flex-shrink:0;" />
+                                }
+                                else
+                                {
+                                    <div style="width:68px;height:68px;background:#f3f6fb;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#8896ab;font-size:1.3rem;">
+                                        <i class="fas fa-image"></i>
+                                    </div>
+                                }
+                                <div style="padding:8px 12px;flex:1;min-width:0;">
+                                    <div style="font-size:.71rem;color:#8896ab;font-weight:600;margin-bottom:4px;">
+                                        <i class="fas fa-calendar-alt" style="color:#14967f;"></i>
+                                        @scan.UploadDate.ToString("MMM dd, yyyy")
+                                    </div>
+                                    @if (hasPred)
+                                    {
+                                        <span style="display:inline-flex;align-items:center;gap:5px;background:#e6f5f2;color:#14967f;border-radius:999px;padding:2px 8px;font-size:.71rem;font-weight:700;margin-bottom:3px;">
+                                            <i class="fas fa-brain"></i> @scan.Prediction (@conf.ToString("0.#")%)
+                                        </span>
+                                    }
+                                    else if (hasNote)
+                                    {
+                                        <span style="display:inline-flex;align-items:center;gap:5px;background:#fffbeb;color:#d97706;border-radius:999px;padding:2px 8px;font-size:.71rem;font-weight:700;margin-bottom:3px;">
+                                            <i class="fas fa-sticky-note"></i> Note Only
+                                        </span>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(scan.DoctorComments))
+                                    {
+                                        <div style="font-size:.72rem;color:#4a5568;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">@scan.DoctorComments</div>
+                                    }
+                                </div>
+                                <a asp-controller="Ultrasound" asp-action="Result" asp-route-id="@scan.ImageID"
+                                   style="display:flex;align-items:center;padding:0 12px;color:#14967f;font-size:.74rem;font-weight:700;text-decoration:none;border-left:1px solid #e4eaf2;white-space:nowrap;flex-shrink:0;">
+                                    <i class="fas fa-eye" style="margin-right:4px;"></i> View
+                                </a>
+                            </div>
+                        }
+                        @if (totalScans > 3)
+                        {
+                            <div style="text-align:center;padding-top:4px;">
+                                <a asp-controller="Ultrasound" asp-action="History"
+                                   asp-route-id="@Model.Doctor.DoctorID"
+                                   asp-route-patientId="@p.PatientID"
+                                   style="font-size:.77rem;color:#14967f;font-weight:700;text-decoration:none;">
+                                    <i class="fas fa-history"></i> View All @totalScans Scans
+                                </a>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+
+            <div class="pp-card">
+                <div class="pp-card-header">
+                    <div class="pp-card-header-left">
                         <div class="pp-card-ico amber"><i class="fas fa-vials"></i></div>
                         <div>
                             <div class="pp-card-title">Recent Lab Results</div>

@@ -1329,7 +1329,8 @@ namespace Graduation_Project.Controllers
                 ClinicalNotes = notes,
                 Prescriptions = prescriptions,
                 AlertRecords = alerts,
-                TimelineEntries = timelineEntries
+                TimelineEntries = timelineEntries,
+                UltrasoundScans = ultrasounds
             };
 
             return View(vm);

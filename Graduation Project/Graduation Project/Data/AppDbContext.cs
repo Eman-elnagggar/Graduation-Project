@@ -227,6 +227,17 @@ namespace Graduation_Project.Data
             });
 
             // ============================================================
+            // ULTRASOUNDIMAGE INDEXES
+            // ============================================================
+            modelBuilder.Entity<UltrasoundImage>(entity =>
+            {
+                entity.HasIndex(e => e.PatientID);
+                entity.HasIndex(e => e.UploadDate);
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.DoctorID);
+            });
+
+            // ============================================================
             // 11. CBC_TEST -> LABTEST (One-to-One)
             // ============================================================
             modelBuilder.Entity<CBC_Test>(entity =>
