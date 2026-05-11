@@ -1,0 +1,415 @@
+@model Graduation_Project.ViewModels.Ultrasound.UltrasoundResultViewModel
+@{
+    Layout = "~/Views/Shared/_DoctorLayout.cshtml";
+    ViewData["Title"] = "Ultrasound Result";
+    ViewData["ActivePage"] = "Ultrasound";
+    ViewData["PageTitle"] = "Ultrasound Result";
+    ViewData["PageSubtitle"] = Model.PatientName;
+
+    var status    = Model.Ultrasound.Status;
+    var isOk      = status == Graduation_Project.Models.UltrasoundStatus.Completed;
+    var isFailed  = status == Graduation_Project.Models.UltrasoundStatus.Failed;
+    var hasPred   = !string.IsNullOrWhiteSpace(Model.Ultrasound.Prediction);
+    var hasNote   = !string.IsNullOrWhiteSpace(Model.Ultrasound.DoctorComments);
+    var hasResult = !string.IsNullOrWhiteSpace(Model.Ultrasound.ResultImagePath);
+    var conf      = Model.Ultrasound.ConfidenceScore ?? 0;
+
+    string statusColor  = isOk ? "#16a34a" : isFailed ? "#e53e3e" : "#d97706";
+    string statusBg     = isOk ? "#f0fdf4" : isFailed ? "#fef2f2" : "#fffbeb";
+    string statusBorder = isOk ? "#bbf7d0" : isFailed ? "#fecaca" : "#fde68a";
+    string statusIcon   = isOk ? "fa-check-circle" : isFailed ? "fa-times-circle" : "fa-clock";
+    string statusLabel  = isOk ? "Completed" : isFailed ? "Failed" : "Processing";
+}
+
+@section Styles {
+<style>
+:root {
+    --r-p: #14967f; --r-p-dk: #0e7a68; --r-p-mid: #1aad94;
+    --r-p-lt: #e6f5f2; --r-p-xlt: #f0faf8;
+    --r-navy: #0b1f35; --r-navy-mid: #152d47;
+    --r-text: #0f1c2e; --r-text-2: #4a5568; --r-text-3: #8896ab;
+    --r-border: #e4eaf2; --r-bg: #f3f6fb; --r-white: #fff;
+    --r-r: 10px; --r-r-lg: 16px; --r-r-xl: 22px;
+    --r-shadow-sm: 0 1px 4px rgba(15,28,46,.06);
+    --r-shadow: 0 4px 16px rgba(15,28,46,.08);
+}
+
+.ur-wrap { display: flex; flex-direction: column; gap: 20px; }
+
+/* Hero */
+.ur-hero {
+    background: linear-gradient(130deg, var(--r-navy) 0%, var(--r-navy-mid) 55%, #1a3d5c 100%);
+    border-radius: var(--r-r-xl); padding: 24px 28px;
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 20px; flex-wrap: wrap;
+}
+.ur-hero-left { display: flex; align-items: center; gap: 18px; }
+.ur-hero-icon {
+    width: 56px; height: 56px; background: rgba(255,255,255,.1);
+    border-radius: 14px; display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem; color: var(--r-p-mid); flex-shrink: 0;
+}
+.ur-hero-title  { font-size: 1.35rem; font-weight: 700; color: #f1f5f9; margin: 0 0 6px; }
+.ur-hero-meta   { display: flex; flex-wrap: wrap; gap: 10px; }
+.ur-hero-chip   {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: .78rem; color: #94a3b8; background: rgba(255,255,255,.07);
+    padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(255,255,255,.1);
+}
+.ur-hero-chip i { font-size: .7rem; color: var(--r-p-mid); }
+
+.ur-status-pill {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 16px; border-radius: 999px;
+    font-size: .82rem; font-weight: 700; flex-shrink: 0;
+}
+
+.ur-hero-actions { display: flex; gap: 10px; flex-wrap: wrap; flex-shrink: 0; }
+.ur-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 10px 16px; border-radius: var(--r-r); border: none;
+    font: inherit; font-size: .86rem; font-weight: 700; cursor: pointer;
+    transition: all .2s; text-decoration: none;
+}
+.ur-btn:hover { transform: translateY(-1px); }
+.ur-btn-primary {
+    background: var(--r-p); color: #fff;
+}
+.ur-btn-primary:hover { background: var(--r-p-dk); }
+.ur-btn-ghost {
+    background: rgba(255,255,255,.1); color: #fff;
+    border: 1px solid rgba(255,255,255,.2);
+}
+.ur-btn-ghost:hover { background: rgba(255,255,255,.18); }
+
+/* Grid layout */
+.ur-grid {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 16px;
+    align-items: start;
+}
+
+/* Card */
+.ur-card {
+    background: var(--r-white);
+    border: 1px solid var(--r-border);
+    border-radius: var(--r-r-lg);
+    box-shadow: var(--r-shadow-sm);
+    overflow: hidden;
+}
+.ur-card-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 18px; border-bottom: 1px solid var(--r-border);
+}
+.ur-card-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .82rem;
+}
+.ur-card-icon.teal  { background: var(--r-p-lt); color: var(--r-p); }
+.ur-card-icon.blue  { background: #eff6ff; color: #2563eb; }
+.ur-card-icon.amber { background: #fffbeb; color: #d97706; }
+.ur-card-icon.green { background: #f0fdf4; color: #16a34a; }
+.ur-card-title { font-size: .88rem; font-weight: 700; color: var(--r-text); }
+.ur-card-sub   { font-size: .71rem; color: var(--r-text-3); }
+.ur-card-body  { padding: 16px 18px; }
+
+/* Info rows */
+.ur-info-row {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 0; border-bottom: 1px solid var(--r-border);
+}
+.ur-info-row:last-child { border-bottom: none; }
+.ur-info-icon { width: 28px; height: 28px; border-radius: 7px; background: var(--r-p-lt); color: var(--r-p); display: flex; align-items: center; justify-content: center; font-size: .76rem; flex-shrink: 0; }
+.ur-info-label { font-size: .74rem; color: var(--r-text-3); font-weight: 600; }
+.ur-info-value { font-size: .88rem; color: var(--r-text); font-weight: 700; margin-top: 1px; }
+
+/* AI result block */
+.ur-ai-block {
+    background: linear-gradient(135deg, var(--r-p-xlt), var(--r-p-lt));
+    border: 1px solid rgba(20,150,127,.2);
+    border-radius: var(--r-r-lg);
+    padding: 16px 18px;
+    margin-bottom: 14px;
+    display: flex; flex-direction: column; gap: 10px;
+}
+.ur-ai-header { display: flex; align-items: center; justify-content: space-between; }
+.ur-ai-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--r-text-3); }
+.ur-prediction-value { font-size: 1.15rem; font-weight: 800; color: var(--r-text); }
+
+.ur-confidence-track { height: 6px; background: rgba(20,150,127,.15); border-radius: 4px; overflow: hidden; }
+.ur-confidence-fill  { height: 100%; background: linear-gradient(90deg, var(--r-p), var(--r-p-mid)); border-radius: 4px; }
+.ur-confidence-labels { display: flex; justify-content: space-between; font-size: .72rem; color: var(--r-text-3); font-weight: 600; margin-top: 3px; }
+
+/* Note block */
+.ur-note-block {
+    background: #fffbeb; border: 1px solid #fde68a;
+    border-radius: var(--r-r); padding: 12px 14px;
+    display: flex; align-items: flex-start; gap: 9px;
+    font-size: .85rem; color: var(--r-text-2); line-height: 1.5;
+}
+.ur-note-block i { color: #d97706; margin-top: 1px; flex-shrink: 0; }
+
+/* Images */
+.ur-images-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ur-images-grid.single { grid-template-columns: 1fr; max-width: 400px; }
+.ur-img-card {
+    border: 1px solid var(--r-border); border-radius: var(--r-r);
+    overflow: hidden; background: var(--r-bg);
+}
+.ur-img-top {
+    padding: 8px 12px; background: var(--r-bg); border-bottom: 1px solid var(--r-border);
+    font-size: .72rem; font-weight: 700; color: var(--r-text-2);
+    display: flex; align-items: center; gap: 5px;
+}
+.ur-img-top i { color: var(--r-p); }
+.ur-img-top.ai-icon i { color: #2563eb; }
+.ur-img-body { padding: 8px; }
+.ur-img-body img { width: 100%; border-radius: 6px; display: block; }
+.ur-img-placeholder {
+    padding: 40px 20px; text-align: center;
+    color: var(--r-text-3); font-size: .85rem;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.ur-img-placeholder i { font-size: 2rem; color: var(--r-border); }
+
+/* Failed state */
+.ur-failed-block {
+    background: #fef2f2; border: 1px solid #fecaca;
+    border-radius: var(--r-r-lg); padding: 20px;
+    text-align: center; color: #991b1b;
+}
+.ur-failed-block i { font-size: 2rem; margin-bottom: 10px; display: block; }
+.ur-failed-block strong { display: block; margin-bottom: 6px; font-size: 1rem; }
+.ur-failed-block p { font-size: .85rem; color: #b91c1c; margin: 0; }
+
+@@media (max-width: 900px) {
+    .ur-grid { grid-template-columns: 1fr; }
+}
+@@media (max-width: 640px) {
+    .ur-images-grid { grid-template-columns: 1fr; }
+    .ur-hero { flex-direction: column; }
+    .ur-hero-actions { width: 100%; }
+    .ur-btn { flex: 1; justify-content: center; }
+}
+</style>
+}
+
+<div class="ur-wrap">
+
+    <!-- Hero -->
+    <div class="ur-hero">
+        <div class="ur-hero-left">
+            <div class="ur-hero-icon"><i class="fas fa-wave-square"></i></div>
+            <div>
+                <div class="ur-hero-title">@Model.PatientName</div>
+                <div class="ur-hero-meta">
+                    <span class="ur-hero-chip"><i class="fas fa-user-md"></i> Dr. @Model.DoctorName</span>
+                    <span class="ur-hero-chip"><i class="fas fa-calendar-alt"></i> @Model.Ultrasound.UploadDate.ToString("MMM dd, yyyy · h:mm tt")</span>
+                    <span class="ur-status-pill"
+                          style="background:@statusBg;color:@statusColor;border:1px solid @statusBorder;">
+                        <i class="fas @statusIcon"></i> @statusLabel
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="ur-hero-actions">
+            <a asp-action="History"
+               asp-route-id="@Model.Ultrasound.DoctorID"
+               asp-route-patientId="@Model.Ultrasound.PatientID"
+               class="ur-btn ur-btn-ghost">
+                <i class="fas fa-history"></i> View All Scans
+            </a>
+            <a asp-action="Upload"
+               asp-route-id="@Model.Ultrasound.DoctorID"
+               asp-route-patientId="@Model.Ultrasound.PatientID"
+               class="ur-btn ur-btn-primary">
+                <i class="fas fa-plus"></i> New Scan
+            </a>
+        </div>
+    </div>
+
+    <div class="ur-grid">
+
+        <!-- Left: Scan Info -->
+        <div style="display:flex;flex-direction:column;gap:16px;">
+
+            <!-- Summary card -->
+            <div class="ur-card">
+                <div class="ur-card-header">
+                    <div class="ur-card-icon teal"><i class="fas fa-info-circle"></i></div>
+                    <div>
+                        <div class="ur-card-title">Scan Summary</div>
+                        <div class="ur-card-sub">Patient and scan details</div>
+                    </div>
+                </div>
+                <div class="ur-card-body">
+                    <div class="ur-info-row">
+                        <div class="ur-info-icon"><i class="fas fa-user"></i></div>
+                        <div>
+                            <div class="ur-info-label">Patient</div>
+                            <div class="ur-info-value">@Model.PatientName</div>
+                        </div>
+                    </div>
+                    <div class="ur-info-row">
+                        <div class="ur-info-icon"><i class="fas fa-user-md"></i></div>
+                        <div>
+                            <div class="ur-info-label">Attending Doctor</div>
+                            <div class="ur-info-value">Dr. @Model.DoctorName</div>
+                        </div>
+                    </div>
+                    <div class="ur-info-row">
+                        <div class="ur-info-icon"><i class="fas fa-calendar-alt"></i></div>
+                        <div>
+                            <div class="ur-info-label">Uploaded</div>
+                            <div class="ur-info-value">@Model.Ultrasound.UploadDate.ToString("MMMM dd, yyyy")</div>
+                        </div>
+                    </div>
+                    <div class="ur-info-row">
+                        <div class="ur-info-icon"><i class="fas fa-clock"></i></div>
+                        <div>
+                            <div class="ur-info-label">Time</div>
+                            <div class="ur-info-value">@Model.Ultrasound.UploadDate.ToString("h:mm tt")</div>
+                        </div>
+                    </div>
+                    <div class="ur-info-row">
+                        <div class="ur-info-icon"><i class="fas fa-hashtag"></i></div>
+                        <div>
+                            <div class="ur-info-label">Scan ID</div>
+                            <div class="ur-info-value">#@Model.Ultrasound.ImageID.ToString("D6")</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI result -->
+            @if (isOk && hasPred)
+            {
+                <div class="ur-card">
+                    <div class="ur-card-header">
+                        <div class="ur-card-icon blue"><i class="fas fa-microchip"></i></div>
+                        <div>
+                            <div class="ur-card-title">AI Analysis</div>
+                            <div class="ur-card-sub">Fetal detection result</div>
+                        </div>
+                    </div>
+                    <div class="ur-card-body">
+                        <div class="ur-ai-block">
+                            <div>
+                                <div class="ur-ai-label">Prediction</div>
+                                <div class="ur-prediction-value">@Model.Ultrasound.Prediction</div>
+                            </div>
+                            @if (conf > 0)
+                            {
+                                <div>
+                                    <div class="ur-confidence-track">
+                                        <div class="ur-confidence-fill" style="width:@Math.Min(conf,100)%"></div>
+                                    </div>
+                                    <div class="ur-confidence-labels">
+                                        <span>Confidence Score</span>
+                                        <span>@conf.ToString("0.##")%</span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        @if (hasNote)
+                        {
+                            <div class="ur-note-block">
+                                <i class="fas fa-notes-medical"></i>
+                                <span>@Model.Ultrasound.DoctorComments</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+            else if (isFailed)
+            {
+                <div class="ur-card">
+                    <div class="ur-card-header">
+                        <div class="ur-card-icon" style="background:#fef2f2;color:#e53e3e;"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div>
+                            <div class="ur-card-title">Analysis Failed</div>
+                        </div>
+                    </div>
+                    <div class="ur-card-body">
+                        <div class="ur-failed-block">
+                            <i class="fas fa-robot"></i>
+                            <strong>AI service could not process this image</strong>
+                            <p>The image may be unsupported or the AI service was temporarily unavailable.</p>
+                        </div>
+                        @if (hasNote)
+                        {
+                            <div class="ur-note-block" style="margin-top:12px;">
+                                <i class="fas fa-notes-medical"></i>
+                                <span>@Model.Ultrasound.DoctorComments</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+            else if (!hasPred && hasNote)
+            {
+                <div class="ur-card">
+                    <div class="ur-card-header">
+                        <div class="ur-card-icon amber"><i class="fas fa-sticky-note"></i></div>
+                        <div>
+                            <div class="ur-card-title">Doctor's Note</div>
+                            <div class="ur-card-sub">Saved without AI analysis</div>
+                        </div>
+                    </div>
+                    <div class="ur-card-body">
+                        <div class="ur-note-block">
+                            <i class="fas fa-notes-medical"></i>
+                            <span>@Model.Ultrasound.DoctorComments</span>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Right: Images -->
+        <div class="ur-card">
+            <div class="ur-card-header">
+                <div class="ur-card-icon green"><i class="fas fa-images"></i></div>
+                <div>
+                    <div class="ur-card-title">Scan Images</div>
+                    <div class="ur-card-sub">Original and AI-processed views</div>
+                </div>
+            </div>
+            <div class="ur-card-body">
+                @if (!string.IsNullOrWhiteSpace(Model.Ultrasound.OriginalImagePath) || hasResult)
+                {
+                    <div class="ur-images-grid @(hasResult ? "" : "single")">
+                        @if (!string.IsNullOrWhiteSpace(Model.Ultrasound.OriginalImagePath))
+                        {
+                            <div class="ur-img-card">
+                                <div class="ur-img-top"><i class="fas fa-image"></i> Original Scan</div>
+                                <div class="ur-img-body">
+                                    <img src="@Model.Ultrasound.OriginalImagePath" alt="Original ultrasound scan" />
+                                </div>
+                            </div>
+                        }
+                        @if (hasResult)
+                        {
+                            <div class="ur-img-card">
+                                <div class="ur-img-top ai-icon"><i class="fas fa-microchip"></i> AI Processed</div>
+                                <div class="ur-img-body">
+                                    <img src="@Model.Ultrasound.ResultImagePath" alt="AI-processed ultrasound" />
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="ur-img-placeholder">
+                        <i class="fas fa-image"></i>
+                        <span>No images available for this scan.</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+    </div>
+</div>

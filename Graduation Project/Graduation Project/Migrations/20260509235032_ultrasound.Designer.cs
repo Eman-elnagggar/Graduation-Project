@@ -4,6 +4,7 @@ using Graduation_Project.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Graduation_Project.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260509235032_ultrasound")]
+    partial class ultrasound
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -492,103 +495,6 @@ namespace Graduation_Project.Migrations
                     b.HasIndex("DoctorID", "ClinicID", "AssistantID", "Status");
 
                     b.ToTable("ClinicInvitations");
-                });
-
-            modelBuilder.Entity("Graduation_Project.Models.CommunityComment", b =>
-                {
-                    b.Property<int>("CommunityCommentId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CommunityCommentId"));
-
-                    b.Property<int>("CommunityPostId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("PatientID")
-                        .HasColumnType("int");
-
-                    b.HasKey("CommunityCommentId");
-
-                    b.HasIndex("CommunityPostId");
-
-                    b.HasIndex("PatientID");
-
-                    b.ToTable("CommunityComments");
-                });
-
-            modelBuilder.Entity("Graduation_Project.Models.CommunityLike", b =>
-                {
-                    b.Property<int>("CommunityLikeId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CommunityLikeId"));
-
-                    b.Property<int>("CommunityPostId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("PatientID")
-                        .HasColumnType("int");
-
-                    b.HasKey("CommunityLikeId");
-
-                    b.HasIndex("PatientID");
-
-                    b.HasIndex("CommunityPostId", "PatientID")
-                        .IsUnique();
-
-                    b.ToTable("CommunityLikes");
-                });
-
-            modelBuilder.Entity("Graduation_Project.Models.CommunityPost", b =>
-                {
-                    b.Property<int>("CommunityPostId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CommunityPostId"));
-
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("PatientID")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("CommunityPostId");
-
-                    b.HasIndex("PatientID");
-
-                    b.ToTable("CommunityPosts");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.Doctor", b =>
@@ -1359,10 +1265,7 @@ namespace Graduation_Project.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                                        b.Property<bool>("IsPatientUploaded")
-                        .HasColumnType("bit");
-
-b.Property<double?>("Lymphocytes")
+                    b.Property<double?>("Lymphocytes")
                         .HasColumnType("float");
 
                     b.Property<int?>("ModelID")
@@ -1810,55 +1713,6 @@ b.Property<double?>("Lymphocytes")
                     b.Navigation("Doctor");
                 });
 
-            modelBuilder.Entity("Graduation_Project.Models.CommunityComment", b =>
-                {
-                    b.HasOne("Graduation_Project.Models.CommunityPost", "Post")
-                        .WithMany("Comments")
-                        .HasForeignKey("CommunityPostId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Graduation_Project.Models.Patient", "Patient")
-                        .WithMany()
-                        .HasForeignKey("PatientID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Patient");
-
-                    b.Navigation("Post");
-                });
-
-            modelBuilder.Entity("Graduation_Project.Models.CommunityLike", b =>
-                {
-                    b.HasOne("Graduation_Project.Models.CommunityPost", "Post")
-                        .WithMany("Likes")
-                        .HasForeignKey("CommunityPostId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Graduation_Project.Models.Patient", "Patient")
-                        .WithMany()
-                        .HasForeignKey("PatientID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Patient");
-
-                    b.Navigation("Post");
-                });
-
-            modelBuilder.Entity("Graduation_Project.Models.CommunityPost", b =>
-                {
-                    b.HasOne("Graduation_Project.Models.Patient", "Patient")
-                        .WithMany()
-                        .HasForeignKey("PatientID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Patient");
-                });
-
             modelBuilder.Entity("Graduation_Project.Models.Doctor", b =>
                 {
                     b.HasOne("Graduation_Project.Models.ApplicationUser", "User")
@@ -2304,13 +2158,6 @@ b.Property<double?>("Lymphocytes")
                     b.Navigation("Assistants");
 
                     b.Navigation("ClinicDoctors");
-                });
-
-            modelBuilder.Entity("Graduation_Project.Models.CommunityPost", b =>
-                {
-                    b.Navigation("Comments");
-
-                    b.Navigation("Likes");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.Doctor", b =>

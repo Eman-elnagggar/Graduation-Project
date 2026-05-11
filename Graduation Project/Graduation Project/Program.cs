@@ -85,6 +85,13 @@ namespace Graduation_Project
             builder.Services.AddScoped<MedicationReminderService>();
             builder.Services.AddSingleton<IChatMessageCrypto, ChatMessageCrypto>();
             builder.Services.AddHostedService<MedicationReminderHostedService>();
+            builder.Services.AddScoped<UltrasoundImageStorage>();
+
+            builder.Services.AddHttpClient<IUltrasoundAIService, UltrasoundAIService>(client =>
+            {
+                client.BaseAddress = new Uri("https://eman123yasser-fetal-abnormalities.hf.space/");
+                client.Timeout = TimeSpan.FromSeconds(60);
+            });
 
             // ?? Product OCR ????????????????????????????????????????????????
             builder.Services.AddHttpClient("ProductOcr", client =>

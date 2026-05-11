@@ -1,0 +1,1277 @@
+@model IEnumerable<Graduation_Project.Models.Patient>
+@{
+    Layout = "~/Views/Shared/_DoctorLayout.cshtml";
+    ViewData["Title"] = "Ultrasound";
+    ViewData["ActivePage"] = "Ultrasound";
+    ViewData["PageTitle"] = "Ultrasound Center";
+    ViewData["PageSubtitle"] = "Select a patient and upload an ultrasound scan";
+    var doctorId = ViewBag.DoctorId;
+}
+
+@section Styles {
+<style>
+:root {
+    --us-primary: #14967f;
+    --us-primary-dk: #0e7a68;
+    --us-primary-mid: #1aad94;
+    --us-primary-lt: #e6f5f2;
+    --us-primary-xlt: #f0faf8;
+    --us-navy: #0b1f35;
+    --us-navy-mid: #152d47;
+    --us-navy-light: #1e3a5f;
+    --us-text: #0f1c2e;
+    --us-text-2: #4a5568;
+    --us-text-3: #8896ab;
+    --us-text-4: #a0aec0;
+    --us-border: #e4eaf2;
+    --us-border-dk: #c8d5e3;
+    --us-bg: #f3f6fb;
+    --us-white: #fff;
+    --us-danger: #e53e3e;
+    --us-warning: #d97706;
+    --us-success: #16a34a;
+    --us-info: #2563eb;
+    --us-r: 12px;
+    --us-r-lg: 16px;
+    --us-r-xl: 20px;
+    --us-r-xxl: 28px;
+    --us-shadow-sm: 0 2px 8px rgba(15,28,46,.06);
+    --us-shadow: 0 8px 24px rgba(15,28,46,.1);
+    --us-shadow-lg: 0 16px 48px rgba(15,28,46,.12);
+}
+
+.us-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+/* ── Hero Section ── */
+.us-hero {
+    background: linear-gradient(135deg, var(--us-navy) 0%, var(--us-navy-mid) 50%, var(--us-navy-light) 100%);
+    border-radius: var(--us-r-xxl);
+    padding: 36px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+    position: relative;
+    overflow: hidden;
+}
+.us-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(20,150,127,0.15) 0%, transparent 70%);
+    pointer-events: none;
+}
+.us-hero::after {
+    content: '';
+    position: absolute;
+    bottom: -30%;
+    left: 10%;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(20,150,127,0.1) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.us-hero-left {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    position: relative;
+    z-index: 1;
+}
+
+.us-hero-icon {
+    width: 72px;
+    height: 72px;
+    background: linear-gradient(135deg, rgba(20,150,127,0.2), rgba(20,150,127,0.1));
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    color: var(--us-primary-mid);
+    backdrop-filter: blur(10px);
+}
+
+.us-hero-content {}
+
+.us-hero-title {
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: #fff;
+    margin: 0 0 6px;
+    letter-spacing: -0.02em;
+}
+
+.us-hero-sub {
+    font-size: .95rem;
+    color: rgba(255,255,255,0.65);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.us-hero-sub i {
+    font-size: .5rem;
+    color: var(--us-primary-mid);
+}
+
+.us-hero-stats {
+    display: flex;
+    gap: 32px;
+    position: relative;
+    z-index: 1;
+}
+
+.us-stat {
+    text-align: center;
+    padding: 16px 24px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: var(--us-r-lg);
+    backdrop-filter: blur(10px);
+}
+
+.us-stat-num {
+    display: block;
+    font-size: 2rem;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+    margin-bottom: 4px;
+}
+
+.us-stat-lbl {
+    font-size: .72rem;
+    color: rgba(255,255,255,0.6);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    font-weight: 600;
+}
+
+/* ── Main Content Cards ── */
+.us-main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+.us-card {
+    background: var(--us-white);
+    border: 1px solid var(--us-border);
+    border-radius: var(--us-r-xl);
+    box-shadow: var(--us-shadow-sm);
+    overflow: hidden;
+}
+
+.us-card-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--us-border);
+    background: linear-gradient(to bottom, var(--us-white), #fafbfc);
+}
+
+.us-card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+}
+
+.us-card-icon.patient {
+    background: linear-gradient(135deg, var(--us-primary-lt), #d1fae5);
+    color: var(--us-primary);
+}
+
+.us-card-icon.upload {
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+    color: var(--us-info);
+}
+
+.us-card-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--us-text);
+    margin: 0;
+}
+
+.us-card-sub {
+    font-size: .8rem;
+    color: var(--us-text-3);
+    margin: 2px 0 0;
+}
+
+.us-card-body {
+    padding: 24px;
+}
+
+/* ── Search Box ── */
+.us-search-wrapper {
+    position: relative;
+}
+
+.us-search-box {
+    position: relative;
+}
+
+.us-search-input {
+    width: 100%;
+    padding: 16px 20px 16px 52px;
+    border: 2px solid var(--us-border);
+    border-radius: var(--us-r);
+    font-size: .95rem;
+    color: var(--us-text);
+    background: var(--us-bg);
+    transition: all .25s ease;
+    box-sizing: border-box;
+}
+
+.us-search-input:focus {
+    outline: none;
+    border-color: var(--us-primary);
+    background: var(--us-white);
+    box-shadow: 0 0 0 4px rgba(20,150,127,.12), var(--us-shadow);
+}
+
+.us-search-input::placeholder {
+    color: var(--us-text-3);
+}
+
+.us-search-icon {
+    position: absolute;
+    left: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--us-text-3);
+    font-size: 1.05rem;
+    pointer-events: none;
+    transition: color .2s;
+}
+
+.us-search-input:focus + .us-search-icon {
+    color: var(--us-primary);
+}
+
+.us-search-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background: var(--us-white);
+    border: 1px solid var(--us-border);
+    border-radius: var(--us-r);
+    box-shadow: var(--us-shadow-lg);
+    max-height: 320px;
+    overflow-y: auto;
+    z-index: 100;
+    display: none;
+    animation: slideDown .2s ease;
+}
+
+.us-search-dropdown.show {
+    display: block;
+}
+
+
+
+.us-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    cursor: pointer;
+    transition: all .15s ease;
+    border-bottom: 1px solid var(--us-border);
+}
+
+.us-dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.us-dropdown-item:hover {
+    background: var(--us-primary-xlt);
+}
+
+.us-dropdown-item.selected {
+    background: var(--us-primary-lt);
+}
+
+.us-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: .9rem;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.us-avatar.teal {
+    background: linear-gradient(135deg, var(--us-primary), var(--us-primary-mid));
+}
+
+.us-avatar.blue {
+    background: linear-gradient(135deg, #3b82f6, #60a5fa);
+}
+
+.us-avatar.purple {
+    background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+}
+
+.us-avatar.orange {
+    background: linear-gradient(135deg, #f59e0b, #fbbf24);
+}
+
+.us-dropdown-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.us-dropdown-name {
+    font-weight: 600;
+    color: var(--us-text);
+    font-size: .95rem;
+    margin-bottom: 2px;
+}
+
+.us-dropdown-meta {
+    font-size: .78rem;
+    color: var(--us-text-3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.us-dropdown-empty {
+    padding: 32px;
+    text-align: center;
+    color: var(--us-text-3);
+}
+
+.us-dropdown-empty i {
+    font-size: 2rem;
+    margin-bottom: 12px;
+    display: block;
+    opacity: .5;
+}
+
+/* ── Patient List ── */
+.us-patient-list {
+    margin-top: 20px;
+}
+
+.us-patient-list-title {
+    font-size: .85rem;
+    font-weight: 700;
+    color: var(--us-text-2);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.us-patient-list-title i {
+    color: var(--us-primary);
+}
+
+.us-patient-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.us-patient-chip {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    background: var(--us-bg);
+    border: 1px solid var(--us-border);
+    border-radius: var(--us-r);
+    cursor: pointer;
+    transition: all .2s ease;
+}
+
+.us-patient-chip:hover {
+    border-color: var(--us-primary);
+    background: var(--us-primary-xlt);
+    transform: translateY(-2px);
+    box-shadow: var(--us-shadow-sm);
+}
+
+.us-patient-chip.active {
+    border-color: var(--us-primary);
+    background: var(--us-primary-lt);
+}
+
+.us-chip-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--us-primary), var(--us-primary-mid));
+    color: #fff;
+    font-weight: 700;
+    font-size: .8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.us-chip-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.us-chip-name {
+    font-weight: 600;
+    color: var(--us-text);
+    font-size: .9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+}
+
+.us-chip-id {
+    font-size: .75rem;
+    color: var(--us-primary);
+    font-weight: 600;
+}
+
+/* ── Selected Patient ── */
+.us-selected {
+    display: none;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, var(--us-primary-xlt), #d1fae5);
+    border: 2px solid var(--us-primary);
+    border-radius: var(--us-r-lg);
+    margin-bottom: 20px;
+    animation: fadeIn .3s ease;
+}
+
+.us-selected.show {
+    display: flex;
+}
+
+
+
+.us-selected-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--us-primary), var(--us-primary-mid));
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.us-selected-info {
+    flex: 1;
+}
+
+.us-selected-name {
+    font-weight: 700;
+    color: var(--us-text);
+    font-size: 1.05rem;
+    margin-bottom: 2px;
+}
+
+.us-selected-label {
+    font-size: .8rem;
+    color: var(--us-primary);
+    font-weight: 600;
+}
+
+.us-selected-clear {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--us-white);
+    border: 1px solid var(--us-border);
+    color: var(--us-text-3);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .2s;
+}
+
+.us-selected-clear:hover {
+    background: var(--us-danger);
+    border-color: var(--us-danger);
+    color: #fff;
+}
+
+/* ── Upload Form ── */
+.us-upload-form {
+    display: none;
+}
+
+.us-upload-form.show {
+    display: block;
+    animation: fadeIn .3s ease;
+}
+
+/* Mode Toggle */
+.us-mode-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.us-mode-option {
+    position: relative;
+    cursor: pointer;
+}
+
+.us-mode-option input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.us-mode-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px 18px;
+    border: 2px solid var(--us-border);
+    border-radius: var(--us-r-lg);
+    background: var(--us-bg);
+    cursor: pointer;
+    transition: all .25s ease;
+}
+
+.us-mode-option input:checked + .us-mode-label {
+    border-color: var(--us-primary);
+    background: var(--us-white);
+    box-shadow: 0 4px 12px rgba(20,150,127,.15);
+}
+
+.us-mode-label-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    transition: all .25s ease;
+}
+
+.us-mode-option input:checked + .us-mode-label .us-mode-label-icon {
+    transform: scale(1.1);
+}
+
+.us-mode-label-icon.ai {
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+    color: var(--us-info);
+}
+
+.us-mode-label-icon.note {
+    background: linear-gradient(135deg, var(--us-primary-lt), #d1fae5);
+    color: var(--us-primary);
+}
+
+.us-mode-option input:checked + .us-mode-label .us-mode-label-icon.ai {
+    background: linear-gradient(135deg, var(--us-info), #3b82f6);
+    color: #fff;
+}
+
+.us-mode-option input:checked + .us-mode-label .us-mode-label-icon.note {
+    background: linear-gradient(135deg, var(--us-primary), var(--us-primary-mid));
+    color: #fff;
+}
+
+.us-mode-label-text strong {
+    display: block;
+    font-size: .95rem;
+    color: var(--us-text);
+    font-weight: 700;
+    margin-bottom: 3px;
+}
+
+.us-mode-label-text span {
+    font-size: .78rem;
+    color: var(--us-text-3);
+    line-height: 1.4;
+}
+
+/* Mode Hint */
+.us-mode-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .8rem;
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+}
+
+.us-mode-hint.ai {
+    background: rgba(37,99,235,.08);
+    color: var(--us-info);
+    border: 1px solid rgba(37,99,235,.15);
+}
+
+.us-mode-hint.note {
+    background: var(--us-primary-lt);
+    color: var(--us-primary);
+    border: 1px solid rgba(20,150,127,.2);
+}
+
+/* Form */
+.us-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.us-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.us-form-group label {
+    font-size: .85rem;
+    font-weight: 700;
+    color: var(--us-text-2);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.us-form-group label i {
+    color: var(--us-primary);
+}
+
+.us-form-input,
+.us-form-textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1.5px solid var(--us-border);
+    border-radius: var(--us-r);
+    font: inherit;
+    font-size: .9rem;
+    color: var(--us-text);
+    background: var(--us-white);
+    transition: all .2s;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.us-form-input:focus,
+.us-form-textarea:focus {
+    border-color: var(--us-primary);
+    box-shadow: 0 0 0 3px rgba(20,150,127,.12);
+}
+
+.us-form-textarea {
+    min-height: 90px;
+    resize: vertical;
+}
+
+/* Dropzone */
+.us-dropzone {
+    border: 2px dashed var(--us-border-dk);
+    border-radius: var(--us-r-lg);
+    padding: 32px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .25s ease;
+    background: linear-gradient(to bottom, var(--us-white), var(--us-bg));
+    position: relative;
+}
+
+.us-dropzone:hover {
+    border-color: var(--us-primary);
+    background: var(--us-primary-xlt);
+}
+
+.us-dropzone.drag-over {
+    border-color: var(--us-primary);
+    background: var(--us-primary-lt);
+    transform: scale(1.01);
+}
+
+.us-dropzone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.us-dropzone-icon {
+    font-size: 2.5rem;
+    color: var(--us-primary-mid);
+    margin-bottom: 12px;
+}
+
+.us-dropzone-title {
+    font-size: .95rem;
+    font-weight: 700;
+    color: var(--us-text);
+    margin-bottom: 4px;
+}
+
+.us-dropzone-sub {
+    font-size: .8rem;
+    color: var(--us-text-3);
+}
+
+.us-dropzone-preview {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.us-dropzone-preview.show {
+    display: flex;
+}
+
+.us-dropzone-preview img {
+    max-height: 160px;
+    max-width: 100%;
+    border-radius: 12px;
+    border: 2px solid var(--us-border);
+    box-shadow: var(--us-shadow-sm);
+}
+
+.us-dropzone-preview-name {
+    font-size: .85rem;
+    color: var(--us-text-2);
+    font-weight: 600;
+}
+
+/* Actions */
+.us-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-top: 16px;
+}
+
+.us-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 24px;
+    border-radius: var(--us-r);
+    border: none;
+    font: inherit;
+    font-size: .95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .25s ease;
+    text-decoration: none;
+}
+
+.us-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(20,150,127,.25);
+}
+
+.us-btn-primary {
+    background: linear-gradient(135deg, var(--us-primary), var(--us-primary-mid));
+    color: #fff;
+    flex: 1;
+    justify-content: center;
+}
+
+.us-btn-primary:hover {
+    background: linear-gradient(135deg, var(--us-primary-dk), var(--us-primary));
+}
+
+.us-btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Toast */
+.us-toast {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    padding: 16px 24px;
+    border-radius: var(--us-r);
+    font-weight: 600;
+    font-size: .9rem;
+    transform: translateY(120px);
+    opacity: 0;
+    transition: all .3s ease;
+    z-index: 1000;
+    max-width: 360px;
+}
+
+.us-toast.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.us-toast.success {
+    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+    box-shadow: 0 8px 24px rgba(21,128,61,.15);
+}
+
+.us-toast.error {
+    background: linear-gradient(135deg, #fef2f2, #fee2e2);
+    color: #dc2626;
+    border: 1px solid #fecaca;
+    box-shadow: 0 8px 24px rgba(220,38,38,.15);
+}
+
+.us-toast.info {
+    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    color: #2563eb;
+    border: 1px solid #bfdbfe;
+    box-shadow: 0 8px 24px rgba(37,99,235,.15);
+}
+
+/* Responsive */
+@@media (max-width: 900px) {
+    .us-main-grid {
+        grid-template-columns: 1fr;
+    }
+    .us-patient-grid {
+        grid-template-columns: 1fr;
+    }
+    .us-form-grid {
+        grid-template-columns: 1fr;
+    }
+    .us-hero {
+        flex-direction: column;
+        padding: 28px;
+    }
+    .us-hero-stats {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@@media (max-width: 640px) {
+    .us-hero-title {
+        font-size: 1.3rem;
+    }
+    .us-stat {
+        padding: 12px 16px;
+    }
+    .us-stat-num {
+        font-size: 1.5rem;
+    }
+    .us-mode-toggle {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+}
+
+@Html.AntiForgeryToken()
+
+<div class="us-wrap">
+
+    @* ── Hero ── *@
+    <div class="us-hero">
+        <div class="us-hero-left">
+            <div class="us-hero-icon">
+                <i class="fas fa-wave-square"></i>
+            </div>
+            <div class="us-hero-content">
+                <div class="us-hero-title">Ultrasound Center</div>
+                <div class="us-hero-sub">
+                    <i class="fas fa-circle"></i>
+                    Upload & analyze patient scans
+                    <i class="fas fa-circle"></i>
+                    AI-powered detection
+                </div>
+            </div>
+        </div>
+        <div class="us-hero-stats">
+            <div class="us-stat">
+                <span class="us-stat-num">@Model.Count()</span>
+                <span class="us-stat-lbl">Patients</span>
+            </div>
+        </div>
+    </div>
+
+    @* ── Main Grid ── *@
+    <div class="us-main-grid">
+
+        @* ── Patient Selection Card ── *@
+        <div class="us-card">
+            <div class="us-card-header">
+                <div class="us-card-icon patient">
+                    <i class="fas fa-user-injured"></i>
+                </div>
+                <div>
+                    <div class="us-card-title">Select Patient</div>
+                    <div class="us-card-sub">Choose a patient to upload scan</div>
+                </div>
+            </div>
+            <div class="us-card-body">
+                <div class="us-search-wrapper">
+                    <div class="us-search-box">
+                        <input type="text" class="us-search-input" id="patientSearch"
+                               placeholder="Search patients by name or ID..." autocomplete="off" />
+                        <i class="fas fa-search us-search-icon"></i>
+                    </div>
+                    <div class="us-search-dropdown" id="searchDropdown"></div>
+                </div>
+
+                @* Selected Patient *@
+                <div class="us-selected" id="selectedPatient">
+                    <div class="us-selected-avatar" id="selectedAvatar"></div>
+                    <div class="us-selected-info">
+                        <div class="us-selected-name" id="selectedName"></div>
+                        <div class="us-selected-label" id="selectedLabel"></div>
+                    </div>
+                    <button type="button" class="us-selected-clear" onclick="clearPatient()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                @* Patient List *@
+                <div class="us-patient-list">
+                    <div class="us-patient-list-title">
+                        <i class="fas fa-users"></i> Your Patients (@Model.Count())
+                    </div>
+                    <div class="us-patient-grid" id="patientGrid">
+                        @foreach (var patient in Model.OrderBy(p => p.User?.LastName).Take(6))
+                        {
+                            <div class="us-patient-chip" onclick="selectPatient(@patient.PatientID, '@(patient.User?.FirstName + " " + patient.User?.LastName)')" data-id="@patient.PatientID">
+                                <div class="us-chip-avatar">
+                                    @(patient.User?.FirstName?.FirstOrDefault() ?? '?')@(patient.User?.LastName?.FirstOrDefault() ?? '?')
+                                </div>
+                                <div class="us-chip-info">
+                                    <div class="us-chip-name">@(patient.User?.FirstName) @(patient.User?.LastName)</div>
+                                    <div class="us-chip-id">#@patient.PatientID</div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* ── Upload Card ── *@
+        <div class="us-card">
+            <div class="us-card-header">
+                <div class="us-card-icon upload">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                </div>
+                <div>
+                    <div class="us-card-title">Upload Scan</div>
+                    <div class="us-card-sub">Select image and upload</div>
+                </div>
+            </div>
+            <div class="us-card-body">
+                <form method="post" action="/Ultrasound/Upload" enctype="multipart/form-data" id="uploadFormElement">
+                    <input type="hidden" name="DoctorId" value="@doctorId" />
+                    <input type="hidden" name="PatientId" id="formPatientId" value="" />
+                    <input type="hidden" name="AnalyzeWithAI" id="formAnalyzeWithAI" value="true" />
+
+                    <div class="us-upload-form" id="uploadForm">
+                        @* Mode Toggle *@
+                        <div class="us-mode-toggle">
+                            <label class="us-mode-option">
+                                <input type="radio" name="uploadMode" value="analyze" checked onchange="toggleMode()" />
+                                <div class="us-mode-label">
+                                    <div class="us-mode-label-icon ai">
+                                        <i class="fas fa-microchip"></i>
+                                    </div>
+                                    <div class="us-mode-label-text">
+                                        <strong>Analyze with AI</strong>
+                                        <span>Upload & run fetal detection</span>
+                                    </div>
+                                </div>
+                            </label>
+                            <label class="us-mode-option">
+                                <input type="radio" name="uploadMode" value="note" onchange="toggleMode()" />
+                                <div class="us-mode-label">
+                                    <div class="us-mode-label-icon note">
+                                        <i class="fas fa-sticky-note"></i>
+                                    </div>
+                                    <div class="us-mode-label-text">
+                                        <strong>Save with Note</strong>
+                                        <span>Upload without AI analysis</span>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div class="us-mode-hint ai" id="modeHint">
+                            <i class="fas fa-info-circle"></i> The image will be processed by AI for fetal detection
+                        </div>
+
+                        @* Form Grid *@
+                        <div class="us-form-grid">
+                            <div class="us-form-group" style="grid-column: span 2;">
+                                <label><i class="fas fa-image"></i> Ultrasound Image</label>
+                                <div class="us-dropzone" id="dropzone">
+                                    <input type="file" id="ultrasoundImage" name="ImageFile" accept=".jpg,.jpeg,.png" onchange="handleFileSelect(event)" />
+                                    <div class="us-dropzone-content" id="dropzoneContent">
+                                        <div class="us-dropzone-icon">
+                                            <i class="fas fa-cloud-upload-alt"></i>
+                                        </div>
+                                        <div class="us-dropzone-title">Click or drag file here</div>
+                                        <div class="us-dropzone-sub">JPG or PNG, max 10 MB</div>
+                                    </div>
+                                    <div class="us-dropzone-preview" id="dropzonePreview">
+                                        <img id="previewImg" src="" alt="Preview" />
+                                        <div class="us-dropzone-preview-name" id="previewName"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="us-form-group" style="grid-column: span 2;">
+                                <label><i class="fas fa-comment-medical"></i> Doctor's Note (optional)</label>
+                                <textarea id="doctorComment" name="DoctorNote" class="us-form-textarea" placeholder="Add notes about this scan..."></textarea>
+                            </div>
+                        </div>
+
+                        <div class="us-actions">
+                            <button type="submit" class="us-btn us-btn-primary" id="uploadBtn">
+                                <i class="fas fa-cloud-upload-alt"></i> Upload & Analyze
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="us-toast" id="usToast"></div>
+
+@section Scripts {
+<script>
+(function() {
+    const searchInput = document.getElementById('patientSearch');
+    const dropdown = document.getElementById('searchDropdown');
+    const selectedPatient = document.getElementById('selectedPatient');
+    const selectedAvatar = document.getElementById('selectedAvatar');
+    const selectedName = document.getElementById('selectedName');
+    const selectedLabel = document.getElementById('selectedLabel');
+    const uploadForm = document.getElementById('uploadForm');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const doctorId = @doctorId;
+    let selectedPatientId = null;
+    let selectedPatientName = null;
+    let selectedFile = null;
+
+    const avatarColors = ['teal', 'blue', 'purple', 'orange'];
+    function getAvatarColor(name) {
+        let hash = 0;
+        for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+        return avatarColors[Math.abs(hash) % avatarColors.length];
+    }
+
+    searchInput.addEventListener('input', function() {
+        const q = this.value.trim();
+        if (q === '') {
+            renderAllPatients();
+        } else {
+            searchPatients(q);
+        }
+    });
+
+    searchInput.addEventListener('focus', function() {
+        if (this.value.trim() === '') {
+            renderAllPatients();
+        } else {
+            searchPatients(this.value.trim());
+        }
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.remove('show');
+        }
+    });
+
+    async function searchPatients(q) {
+        try {
+            const url = '/Ultrasound/SearchPatients?id=' + doctorId + '&q=' + encodeURIComponent(q);
+            const res = await fetch(url);
+            const patients = await res.json();
+            renderDropdown(patients);
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function renderDropdown(patients) {
+        if (!patients || patients.length === 0) {
+            dropdown.innerHTML = '<div class="us-dropdown-empty"><i class="fas fa-user-slash"></i>No patients found</div>';
+        } else {
+            dropdown.innerHTML = patients.map(p => {
+                const color = getAvatarColor(p.name);
+                return '<div class="us-dropdown-item" onclick="selectPatient(' + p.id + ', \'' + esc(p.name) + '\')">' +
+                    '<div class="us-avatar ' + color + '">' + (p.name.split(' ').map(n => n[0]).join('')) + '</div>' +
+                    '<div class="us-dropdown-info">' +
+                        '<div class="us-dropdown-name">' + esc(p.name) + '</div>' +
+                        '<div class="us-dropdown-meta"><span>ID: #' + p.id + '</span></div>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+        }
+        dropdown.classList.add('show');
+    }
+
+    function renderAllPatients() {
+        const patients = @Html.Raw(Json.Serialize(Model.Select(p => new { id = p.PatientID, name = (p.User?.FirstName ?? "") + " " + (p.User?.LastName ?? "") })));
+        if (!patients || patients.length === 0) {
+            dropdown.innerHTML = '<div class="us-dropdown-empty"><i class="fas fa-users"></i>No patients found</div>';
+        } else {
+            dropdown.innerHTML = patients.map(p => {
+                const color = getAvatarColor(p.name);
+                return '<div class="us-dropdown-item" onclick="selectPatient(' + p.id + ', \'' + esc(p.name) + '\')">' +
+                    '<div class="us-avatar ' + color + '">' + (p.name.split(' ').map(n => n[0]).join('')) + '</div>' +
+                    '<div class="us-dropdown-info">' +
+                        '<div class="us-dropdown-name">' + esc(p.name) + '</div>' +
+                        '<div class="us-dropdown-meta"><span>ID: #' + p.id + '</span></div>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+        }
+        dropdown.classList.add('show');
+    }
+
+    window.selectPatient = function(patientId, patientName) {
+        selectedPatientId = patientId;
+        selectedPatientName = patientName;
+        
+        const initials = patientName.split(' ').map(n => n[0]).join('');
+        const color = getAvatarColor(patientName);
+        
+        selectedAvatar.className = 'us-selected-avatar ' + color;
+        selectedAvatar.textContent = initials;
+        selectedName.textContent = patientName;
+        selectedLabel.textContent = 'Patient ID: #' + patientId;
+        
+        selectedPatient.classList.add('show');
+        uploadForm.classList.add('show');
+        
+        document.getElementById('formPatientId').value = patientId;
+        
+        searchInput.value = '';
+        dropdown.classList.remove('show');
+        
+        document.querySelectorAll('.us-patient-chip').forEach(chip => {
+            chip.classList.toggle('active', parseInt(chip.dataset.id) === patientId);
+        });
+        
+        updateUploadButton();
+    };
+
+    window.clearPatient = function() {
+        selectedPatientId = null;
+        selectedPatientName = null;
+        selectedPatient.classList.remove('show');
+        uploadForm.classList.remove('show');
+        clearFile();
+        document.getElementById('formPatientId').value = '';
+        
+        document.querySelectorAll('.us-patient-chip').forEach(chip => chip.classList.remove('active'));
+    };
+
+    window.toggleMode = function() {
+        const mode = document.querySelector('input[name="uploadMode"]:checked').value;
+        const hint = document.getElementById('modeHint');
+        const btn = document.getElementById('uploadBtn');
+        const analyzeField = document.getElementById('formAnalyzeWithAI');
+        
+        if (mode === 'analyze') {
+            hint.className = 'us-mode-hint ai';
+            hint.innerHTML = '<i class="fas fa-info-circle"></i> The image will be processed by AI for fetal detection';
+            btn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Upload & Analyze';
+            analyzeField.value = 'true';
+        } else {
+            hint.className = 'us-mode-hint note';
+            hint.innerHTML = '<i class="fas fa-info-circle"></i> Image will be saved without AI analysis';
+            btn.innerHTML = '<i class="fas fa-save"></i> Save with Note';
+            analyzeField.value = 'false';
+        }
+    };
+
+    window.handleFileSelect = function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            selectedFile = file;
+            const previewImg = document.getElementById('previewImg');
+            const previewName = document.getElementById('previewName');
+            const content = document.getElementById('dropzoneContent');
+            const preview = document.getElementById('dropzonePreview');
+            
+            previewImg.src = URL.createObjectURL(file);
+            previewName.textContent = file.name;
+            content.style.display = 'none';
+            preview.classList.add('show');
+        }
+        updateUploadButton();
+    };
+
+    function clearFile() {
+        selectedFile = null;
+        document.getElementById('ultrasoundImage').value = '';
+        document.getElementById('dropzoneContent').style.display = 'block';
+        document.getElementById('dropzonePreview').classList.remove('show');
+        updateUploadButton();
+    }
+
+    function updateUploadButton() {
+        uploadBtn.disabled = !selectedPatientId || !selectedFile;
+    }
+
+    function toast(msg, type) {
+        const t = document.getElementById('usToast');
+        t.textContent = msg;
+        t.className = 'us-toast ' + type + ' show';
+        setTimeout(() => t.classList.remove('show'), 4000);
+    }
+
+    function esc(s) {
+        return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g, "\\'");
+    }
+
+    updateUploadButton();
+})();
+</script>
+}
