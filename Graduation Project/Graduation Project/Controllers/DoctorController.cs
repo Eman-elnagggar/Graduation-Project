@@ -16,6 +16,7 @@ namespace Graduation_Project.Controllers
         private readonly IAppointment _appointmentRepository;
         private readonly IPatientDoctor _patientDoctorRepository;
         private readonly AppDbContext _context;
+        private readonly IAnalysisService _analysisService;
         private readonly IChatMessageCrypto _chatMessageCrypto;
         private readonly MedicationService _medicationService;
         private readonly MedicationAdherenceService _medicationAdherenceService;
@@ -24,6 +25,7 @@ namespace Graduation_Project.Controllers
             IAppointment appointmentRepository,
             IPatientDoctor patientDoctorRepository,
             AppDbContext context,
+            IAnalysisService analysisService,
             IChatMessageCrypto chatMessageCrypto,
             MedicationService medicationService,
             MedicationAdherenceService medicationAdherenceService)
@@ -31,6 +33,7 @@ namespace Graduation_Project.Controllers
             _appointmentRepository = appointmentRepository;
             _patientDoctorRepository = patientDoctorRepository;
             _context = context;
+            _analysisService = analysisService;
             _chatMessageCrypto = chatMessageCrypto;
             _medicationService = medicationService;
             _medicationAdherenceService = medicationAdherenceService;
@@ -1102,9 +1105,10 @@ namespace Graduation_Project.Controllers
                 .ToList();
 
             var labTests = _context.LabTests
-                .Where(l => l.PatientID == patientId && l.DoctorID == doctor.DoctorID)
+                .Include(l => l.TestReport)
+                .Where(l => l.PatientID == patientId)
                 .OrderByDescending(l => l.UploadDate)
-                .Take(20)
+                .Take(50)
                 .ToList();
 
             var appointmentHistory = _context.Appointments
@@ -1339,6 +1343,37 @@ namespace Graduation_Project.Controllers
             };
 
             return View(vm);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> LabReport(int id, int labTestId, CancellationToken cancellationToken)
+        {
+            var accessResult = TryResolveDoctor(id, out var doctor);
+            if (accessResult != null)
+                return accessResult;
+
+            if (labTestId <= 0)
+                return BadRequest(new { error = "Invalid lab test id." });
+
+            var labTest = await _context.LabTests
+                .AsNoTracking()
+                .FirstOrDefaultAsync(l => l.LabTestID == labTestId, cancellationToken);
+
+            if (labTest == null)
+                return NotFound();
+
+            var isAssigned = _patientDoctorRepository
+                .GetApprovedByDoctor(doctor.DoctorID)
+                .Any(pd => pd.PatientID == labTest.PatientID);
+
+            if (!isAssigned)
+                return Forbid();
+
+            var result = await _analysisService.GetAnalysisResultAsync(labTestId, cancellationToken);
+            if (result == null)
+                return NotFound();
+
+            return Ok(result);
         }
 
         [HttpGet]

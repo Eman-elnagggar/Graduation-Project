@@ -47,6 +47,105 @@
         .ToList();
     var historyPreview = historyTimeline.Take(5).ToList();
     var prescriptions = Model.Prescriptions ?? new List<Graduation_Project.Models.Prescription>();
+
+    var labTests = Model.LabTests ?? new List<Graduation_Project.Models.LabTest>();
+    var testTypeNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        { "cbc", "CBC" },
+        { "urinalysis", "Urinalysis" },
+        { "tsh", "TSH" },
+        { "ferritin", "Ferritin" },
+        { "fbg", "FBG" },
+        { "hba1c", "HbA1c" },
+        { "hcv", "HCV" },
+        { "hbsag", "HBsAg" },
+        { "bloodgroup", "Blood Group" }
+    };
+
+    string ResolveTestName(string? testType, string? testName) =>
+        testTypeNames.TryGetValue(testType ?? "", out var rn) ? rn
+        : (!string.IsNullOrWhiteSpace(testName) ? testName! : testType ?? "Unknown");
+
+    string FormatTestTitle(string name) => string.IsNullOrWhiteSpace(name) ? "Test" : $"{name} Test";
+
+    string LabStatusText(string? status) =>
+        (status ?? "").ToLowerInvariant() switch
+        {
+            "completed" => "Reviewed",
+            "reviewed" => "Reviewed",
+            "processing" => "Processing",
+            "failed" => "Failed",
+            "waitingforconfirmation" => "Pending",
+            _ => string.IsNullOrWhiteSpace(status) ? "Pending" : status
+        };
+
+    string LabStatusClass(string? status) =>
+        (status ?? "").ToLowerInvariant() switch
+        {
+            "completed" => "normal",
+            "reviewed" => "normal",
+            "processing" => "warning",
+            "failed" => "high",
+            _ => "pending"
+        };
+
+    string ResultText(string? overall) =>
+        (overall ?? "").ToLowerInvariant() switch
+        {
+            "all values normal" => "Normal",
+            "abnormal values detected" => "Abnormal",
+            "some values below normal" => "Attention",
+            "abnormal" => "Abnormal",
+            "attention" => "Attention",
+            _ => string.IsNullOrWhiteSpace(overall) ? "Pending" : overall
+        };
+
+    string ResultClass(string? overall) =>
+        (overall ?? "").ToLowerInvariant() switch
+        {
+            "all values normal" => "normal",
+            "abnormal values detected" => "high",
+            "some values below normal" => "warning",
+            "abnormal" => "high",
+            "attention" => "warning",
+            _ => "pending"
+        };
+
+    var labSessions = labTests
+        .Where(t => t.ReportID.HasValue)
+        .GroupBy(t => t.ReportID!.Value)
+        .Select(g =>
+        {
+            var sorted = g.OrderBy(t => t.UploadDate).ToList();
+            var report = sorted.Select(t => t.TestReport).FirstOrDefault(r => r != null);
+            var names = sorted
+                .Select(t => ResolveTestName(t.TestType, t.TestName))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            var images = sorted
+                .Where(t => !string.IsNullOrWhiteSpace(t.ImagePath))
+                .Select(t => new { name = ResolveTestName(t.TestType, t.TestName), path = t.ImagePath! })
+                .ToList();
+            var viewTestId = sorted.FirstOrDefault(t => t.TestReport?.OverallStatus != null)?.LabTestID
+                ?? sorted.Last().LabTestID;
+            return new
+            {
+                Date = sorted.Max(t => t.UploadDate),
+                Names = names,
+                Status = report?.AnalysisStatus ?? sorted.Last().AnalysisStatus ?? "",
+                Overall = report?.OverallStatus,
+                HasReport = report?.OverallStatus != null,
+                ViewTestId = viewTestId,
+                Images = images
+            };
+        })
+        .OrderByDescending(s => s.Date)
+        .ToList();
+
+    var labOrphans = labTests
+        .Where(t => !t.ReportID.HasValue)
+        .OrderByDescending(t => t.UploadDate)
+        .ToList();
 }
 
 <div class="pp-wrap" data-patient-profile>
@@ -245,9 +344,16 @@
                                         ? "warning"
                                         : "normal";
 
+                                var previewTitle = entry.Title;
+                                if (string.Equals(entry.EventType, "lab-test", StringComparison.OrdinalIgnoreCase) && entry.LabTest != null)
+                                {
+                                    var labName = ResolveTestName(entry.LabTest.TestType, entry.LabTest.TestName);
+                                    previewTitle = $"{labName} Test";
+                                }
+
                                 <div class="pp-history-timeline-item @entryClass">
                                     <div class="pp-history-timeline-main">
-                                        <div class="pp-history-timeline-title">@entry.Title</div>
+                                        <div class="pp-history-timeline-title">@previewTitle</div>
                                         @if (!string.IsNullOrWhiteSpace(entry.SubTitle))
                                         {
                                             <div class="pp-history-timeline-sub">@entry.SubTitle</div>
@@ -560,12 +666,12 @@
                 </div>
                 <div class="pp-card-body">
                     <div class="pp-lab-list">
-                        @if (Model.LabTests.Any())
+                        @if (labTests.Any())
                         {
-                            @foreach (var test in Model.LabTests.Take(4))
+                            @foreach (var test in labTests.Take(4))
                             {
                                 <div class="pp-lab-item">
-                                    <div class="pp-lab-name">@test.TestType</div>
+                                    <div class="pp-lab-name">@FormatTestTitle(ResolveTestName(test.TestType, test.TestName))</div>
                                     <div class="pp-lab-value">@test.UploadDate.ToString("MMM dd")</div>
                                     <div class="pp-lab-status normal"><i class="fas fa-check-circle"></i> Uploaded</div>
                                 </div>
@@ -922,12 +1028,58 @@
                                         ? "warning"
                                         : "normal";
 
+                                var lab = entry.LabTest;
+                                var canShowLabActions = string.Equals(entry.EventType, "lab-test", StringComparison.OrdinalIgnoreCase) && lab != null;
+                                var historyTestName = canShowLabActions ? ResolveTestName(lab!.TestType, lab.TestName) : string.Empty;
+                                var historyResultText = canShowLabActions ? ResultText(lab!.TestReport?.OverallStatus) : string.Empty;
+                                var historyResultClass = canShowLabActions ? ResultClass(lab!.TestReport?.OverallStatus) : string.Empty;
+                                var historyImagesJson = canShowLabActions && !string.IsNullOrWhiteSpace(lab!.ImagePath)
+                                    ? System.Text.Json.JsonSerializer.Serialize(new[] { new { name = historyTestName, path = lab.ImagePath! } })
+                                    : "";
+
+                                var historyTitle = entry.Title;
+                                if (canShowLabActions)
+                                {
+                                    historyTitle = $"{historyTestName} Test";
+                                }
+
                                 <div class="pp-history-timeline-item @entryClass">
                                     <div class="pp-history-timeline-main">
-                                        <div class="pp-history-timeline-title">@entry.Title</div>
+                                        <div class="pp-history-timeline-title">@historyTitle</div>
                                         @if (!string.IsNullOrWhiteSpace(entry.SubTitle))
                                         {
                                             <div class="pp-history-timeline-sub">@entry.SubTitle</div>
+                                        }
+                                        @if (canShowLabActions)
+                                        {
+                                            <div class="pp-history-actions">
+                                                @if (!string.IsNullOrWhiteSpace(lab!.ImagePath))
+                                                {
+                                                    <button type="button"
+                                                            class="pp-lab-action-btn pp-lab-view-images"
+                                                            data-images="@historyImagesJson"
+                                                            data-test-name="@historyTestName"
+                                                            data-test-date="@entry.DateTime.ToString("MMM dd, yyyy")">
+                                                        <i class="fas fa-images"></i> Images
+                                                    </button>
+                                                }
+                                                @if (lab!.TestReport?.OverallStatus != null)
+                                                {
+                                                    <button type="button"
+                                                            class="pp-lab-action-btn primary pp-lab-view-report"
+                                                            data-test-id="@lab.LabTestID"
+                                                            data-test-name="@historyTestName"
+                                                            data-test-date="@entry.DateTime.ToString("MMM dd, yyyy")"
+                                                            data-result="@historyResultText"
+                                                            data-result-class="@historyResultClass">
+                                                        <i class="fas fa-file-medical-alt"></i> Report
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <span class="pp-lab-pending"><i class="fas fa-clock"></i> Pending</span>
+                                                }
+                                            </div>
                                         }
                                     </div>
                                     <div class="pp-history-timeline-time">@entry.DateTime.ToString("h:mm tt")</div>
@@ -964,24 +1116,75 @@
                                 <th>Test Name</th>
                                 <th>Date</th>
                                 <th>Status</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @if (Model.LabTests.Any())
+                            @if (labSessions.Any() || labOrphans.Any())
                             {
-                                @foreach (var test in Model.LabTests)
+                                @foreach (var session in labSessions)
                                 {
+                                    var displayName = string.Join(" - ", session.Names.Select(n => FormatTestTitle(n)));
+                                    var statusText = LabStatusText(session.Status);
+                                    var statusClass = LabStatusClass(session.Status);
+                                    var resultText = ResultText(session.Overall);
+                                    var resultClass = ResultClass(session.Overall);
+                                    var imagesJson = session.Images.Any()
+                                        ? System.Text.Json.JsonSerializer.Serialize(session.Images.Select(i => new { name = i.name, path = i.path }))
+                                        : "";
                                     <tr>
-                                        <td><strong>@test.TestType</strong></td>
+                                        <td><strong>@displayName</strong></td>
+                                        <td>@session.Date.ToString("MMM dd, yyyy")</td>
+                                        <td><span class="pp-lab-badge @statusClass"><i class="fas fa-check-circle"></i> @statusText</span></td>
+                                        <td>
+                                            <div class="pp-lab-actions">
+                                                @if (session.Images.Any())
+                                                {
+                                                    <button type="button"
+                                                            class="pp-lab-action-btn pp-lab-view-images"
+                                                            data-images="@imagesJson"
+                                                            data-test-name="@displayName"
+                                                            data-test-date="@session.Date.ToString("MMM dd, yyyy")">
+                                                        <i class="fas fa-images"></i> Images
+                                                    </button>
+                                                }
+                                                @if (session.HasReport)
+                                                {
+                                                    <button type="button"
+                                                            class="pp-lab-action-btn primary pp-lab-view-report"
+                                                            data-test-id="@session.ViewTestId"
+                                                            data-test-name="@displayName"
+                                                            data-test-date="@session.Date.ToString("MMM dd, yyyy")"
+                                                            data-result="@resultText"
+                                                            data-result-class="@resultClass">
+                                                        <i class="fas fa-file-medical-alt"></i> Report
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <span class="pp-lab-pending"><i class="fas fa-clock"></i> Pending</span>
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                                @foreach (var test in labOrphans)
+                                {
+                                    var displayName = FormatTestTitle(ResolveTestName(test.TestType, test.TestName));
+                                    var statusText = LabStatusText(test.AnalysisStatus);
+                                    var statusClass = LabStatusClass(test.AnalysisStatus);
+                                    <tr>
+                                        <td><strong>@displayName</strong></td>
                                         <td>@test.UploadDate.ToString("MMM dd, yyyy")</td>
-                                        <td><span class="pp-lab-badge normal"><i class="fas fa-check-circle"></i> Uploaded</span></td>
+                                        <td><span class="pp-lab-badge @statusClass"><i class="fas fa-check-circle"></i> @statusText</span></td>
+                                        <td><span class="pp-lab-pending"><i class="fas fa-clock"></i> Pending</span></td>
                                     </tr>
                                 }
                             }
                             else
                             {
                                 <tr>
-                                    <td colspan="3">No lab tests available.</td>
+                                    <td colspan="4">No lab tests available.</td>
                                 </tr>
                             }
                         </tbody>
@@ -992,6 +1195,56 @@
         <div class="pp-modal-footer">
             <button class="pp-btn pp-btn-secondary" onclick="window.print()"><i class="fas fa-print"></i> Print Results</button>
             <button class="pp-btn pp-btn-primary" data-modal="labTestsModal">Close</button>
+        </div>
+    </div>
+</div>
+
+<div class="pp-modal" id="labReportModal">
+    <div class="pp-modal-overlay"></div>
+    <div class="pp-modal-content pp-modal-large">
+        <div class="pp-modal-header">
+            <h2><i class="fas fa-file-medical-alt"></i> Lab Report</h2>
+            <button class="pp-modal-close" data-modal="labReportModal"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="pp-modal-body">
+            <div class="pp-report-loading" id="labReportLoading">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>Loading report...</span>
+            </div>
+            <div class="pp-report-error" id="labReportError" style="display:none;">
+                <i class="fas fa-circle-exclamation"></i>
+                <p id="labReportErrorMsg">Could not load the report.</p>
+            </div>
+            <div id="labReportContent" style="display:none;">
+                <div class="pp-report-meta">
+                    <div>
+                        <div class="pp-report-title" id="labReportTitle">Lab Report</div>
+                        <div class="pp-report-subtitle" id="labReportSubtitle"></div>
+                    </div>
+                    <span class="pp-report-badge" id="labReportBadge" style="display:none;"></span>
+                </div>
+                <div id="labReportBody"></div>
+            </div>
+        </div>
+        <div class="pp-modal-footer">
+            <button class="pp-btn pp-btn-primary" data-modal="labReportModal">Close</button>
+        </div>
+    </div>
+</div>
+
+<div class="pp-modal" id="labImagesModal">
+    <div class="pp-modal-overlay"></div>
+    <div class="pp-modal-content pp-modal-large">
+        <div class="pp-modal-header">
+            <h2><i class="fas fa-images"></i> <span id="labImagesTitle">Lab Images</span></h2>
+            <button class="pp-modal-close" data-modal="labImagesModal"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="pp-modal-body">
+            <div class="pp-report-subtitle" id="labImagesSubtitle"></div>
+            <div class="pp-image-grid" id="labImagesGrid"></div>
+        </div>
+        <div class="pp-modal-footer">
+            <button class="pp-btn pp-btn-primary" data-modal="labImagesModal">Close</button>
         </div>
     </div>
 </div>
@@ -1007,7 +1260,8 @@
             doctorId: @Model.Doctor.DoctorID,
             patientId: @p.PatientID,
             patientName: '@patientName',
-            createPrescriptionUrl: '@Url.Action("CreatePrescription", "Doctor", new { id = Model.Doctor.DoctorID })'
+            createPrescriptionUrl: '@Url.Action("CreatePrescription", "Doctor", new { id = Model.Doctor.DoctorID })',
+            labReportUrl: '@Url.Action("LabReport", "Doctor", new { id = Model.Doctor.DoctorID })'
         };
     </script>
     <script src="~/js/doctor-patient-profile.js" asp-append-version="true"></script>
