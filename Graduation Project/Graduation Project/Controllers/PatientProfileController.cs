@@ -23,20 +23,6 @@ namespace Graduation_Project.Controllers
             _context = context;
         }
 
-        private static string? NormalizeBabyGender(string? value)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-                return null;
-
-            return value.Trim() switch
-            {
-                "Male" => "Male",
-                "Female" => "Female",
-                "Unknown" => "Unknown",
-                _ => null
-            };
-        }
-
         // GET: /PatientProfile/Index/5
         public IActionResult Index(int id)
         {
@@ -113,7 +99,6 @@ namespace Graduation_Project.Controllers
         Phone              = user?.Phone ?? string.Empty,
          HasActivePregnancy = hasActivePregnancy,
          ActivePregnancyStartDate = activePregnancy?.StartDate,
-         BabyGender = activePregnancy?.BabyGender,
          PregnancyWeek      = currentWeek,
           PregnancyDays      = daysIntoWeek,
       PregnancyProgressPercent = pregnancyPercent,
@@ -186,27 +171,16 @@ namespace Graduation_Project.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult SavePregnancy(int patientId, DateTime? pregnancyDate,
-            bool isFirstPregnancy, int previousPregnancies, int abortions, int births, string? babyGender)
+            bool isFirstPregnancy, int previousPregnancies, int abortions, int births)
         {
             var (patient, failure) = AuthorizePatientAccess(patientId, true);
     if (failure != null)
     return failure;
 
-    var normalizedBabyGender = NormalizeBabyGender(babyGender);
     var activePregnancy = _context.PregnancyRecords
         .Where(r => r.PatientID == patientId && !r.EndDate.HasValue)
         .OrderByDescending(r => r.StartDate)
         .FirstOrDefault();
-
-    if (activePregnancy == null && !pregnancyDate.HasValue && !string.IsNullOrWhiteSpace(normalizedBabyGender))
-    {
-        return Json(new
-        {
-            success = false,
-            message = "You must start a current pregnancy before adding baby gender."
-        });
-    }
-
     var isNewPregnancyRecord = false;
 
     if (pregnancyDate.HasValue)
@@ -217,7 +191,6 @@ namespace Graduation_Project.Controllers
             {
                 PatientID = patientId,
                 StartDate = pregnancyDate.Value,
-                BabyGender = normalizedBabyGender,
                 CreatedAt = DateTime.Now
             };
             _context.PregnancyRecords.Add(activePregnancy);
@@ -231,11 +204,6 @@ namespace Graduation_Project.Controllers
         patient.DateOfPregnancy = pregnancyDate;
         patient.LastPregnancyStartedAt = pregnancyDate;
     }
-
-            if (activePregnancy != null)
-            {
-                activePregnancy.BabyGender = normalizedBabyGender;
-            }
             patient.IsFirstPregnancy    = isFirstPregnancy;
             patient.PreviousPregnancies = previousPregnancies;
   patient.Abortions         = abortions;

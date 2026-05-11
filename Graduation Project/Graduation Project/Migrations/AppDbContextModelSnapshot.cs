@@ -338,29 +338,29 @@ namespace Graduation_Project.Migrations
                     b.Property<int>("LabTestID")
                         .HasColumnType("int");
 
-                    b.Property<float>("HB")
-                        .HasColumnType("real");
+                    b.Property<double>("HB")
+                        .HasColumnType("float");
 
-                    b.Property<float>("MCH")
-                        .HasColumnType("real");
+                    b.Property<double>("Lymphocytes")
+                        .HasColumnType("float");
 
-                    b.Property<float>("MCHC")
-                        .HasColumnType("real");
+                    b.Property<double>("MCH")
+                        .HasColumnType("float");
 
-                    b.Property<float>("MCV")
-                        .HasColumnType("real");
+                    b.Property<double>("MCHC")
+                        .HasColumnType("float");
 
-                    b.Property<float>("RBCs_Count")
-                        .HasColumnType("real");
+                    b.Property<double>("MCV")
+                        .HasColumnType("float");
 
-                    b.Property<float>("WBC")
-                        .HasColumnType("real");
+                    b.Property<double>("Platelet_Count")
+                        .HasColumnType("float");
 
-                    b.Property<float>("lymphocytes")
-                        .HasColumnType("real");
+                    b.Property<double>("RBC_Count")
+                        .HasColumnType("float");
 
-                    b.Property<float>("platelet_count")
-                        .HasColumnType("real");
+                    b.Property<double>("WBC_Count")
+                        .HasColumnType("float");
 
                     b.HasKey("LabTestID");
 
@@ -494,6 +494,103 @@ namespace Graduation_Project.Migrations
                     b.ToTable("ClinicInvitations");
                 });
 
+            modelBuilder.Entity("Graduation_Project.Models.CommunityComment", b =>
+                {
+                    b.Property<int>("CommunityCommentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CommunityCommentId"));
+
+                    b.Property<int>("CommunityPostId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("PatientID")
+                        .HasColumnType("int");
+
+                    b.HasKey("CommunityCommentId");
+
+                    b.HasIndex("CommunityPostId");
+
+                    b.HasIndex("PatientID");
+
+                    b.ToTable("CommunityComments");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.CommunityLike", b =>
+                {
+                    b.Property<int>("CommunityLikeId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CommunityLikeId"));
+
+                    b.Property<int>("CommunityPostId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("PatientID")
+                        .HasColumnType("int");
+
+                    b.HasKey("CommunityLikeId");
+
+                    b.HasIndex("PatientID");
+
+                    b.HasIndex("CommunityPostId", "PatientID")
+                        .IsUnique();
+
+                    b.ToTable("CommunityLikes");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.CommunityPost", b =>
+                {
+                    b.Property<int>("CommunityPostId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CommunityPostId"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("PatientID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("CommunityPostId");
+
+                    b.HasIndex("PatientID");
+
+                    b.ToTable("CommunityPosts");
+                });
+
             modelBuilder.Entity("Graduation_Project.Models.Doctor", b =>
                 {
                     b.Property<int>("DoctorID")
@@ -535,19 +632,6 @@ namespace Graduation_Project.Migrations
                         .IsUnique();
 
                     b.ToTable("Doctors");
-                });
-
-            modelBuilder.Entity("Graduation_Project.Models.FBG_Test", b =>
-                {
-                    b.Property<int>("LabTestID")
-                        .HasColumnType("int");
-
-                    b.Property<float>("FBG")
-                        .HasColumnType("real");
-
-                    b.HasKey("LabTestID");
-
-                    b.ToTable("FBG_Tests");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.Ferritin_Test", b =>
@@ -613,37 +697,24 @@ namespace Graduation_Project.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LabTestID"));
 
                     b.Property<string>("AI_AnalysisJSON")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("AnalysisStatus")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ConfirmedJson")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("DoctorID")
+                    b.Property<int>("DoctorID")
                         .HasColumnType("int");
 
                     b.Property<string>("ImagePath")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("ModelID")
                         .HasColumnType("int");
-
-                    b.Property<string>("OcrNormalizedJson")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("OcrRawJson")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("PatientID")
                         .HasColumnType("int");
 
                     b.Property<int?>("ReportID")
                         .HasColumnType("int");
-
-                    b.Property<string>("TestName")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("TestType")
                         .IsRequired()
@@ -912,9 +983,6 @@ namespace Graduation_Project.Migrations
                     b.Property<DateTime?>("DateOfPregnancy")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("DgState")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<int>("GestationalWeeks")
                         .HasColumnType("int");
 
@@ -935,9 +1003,6 @@ namespace Graduation_Project.Migrations
 
                     b.Property<int>("PreviousPregnancies")
                         .HasColumnType("int");
-
-                    b.Property<string>("RiskState")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("Smoking")
                         .HasColumnType("bit");
@@ -1120,10 +1185,6 @@ namespace Graduation_Project.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PregnancyRecordID"));
 
-                    b.Property<string>("BabyGender")
-                        .HasMaxLength(16)
-                        .HasColumnType("nvarchar(16)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -1236,40 +1297,28 @@ namespace Graduation_Project.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ReportID"));
 
                     b.Property<string>("AISummary")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("AiResultJson")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("AlertsJson")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("AnalysisStatus")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<double?>("ConfidenceScore")
                         .HasColumnType("float");
 
-                    b.Property<int?>("DoctorID")
+                    b.Property<int>("DoctorID")
                         .HasColumnType("int");
 
                     b.Property<string>("DoctorInterpretation")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("OverallStatus")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("PatientID")
                         .HasColumnType("int");
 
-                    b.Property<string>("PersonalInfoJson")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<DateTime>("ReportDate")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("RiskJson")
-                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("ReportID");
 
@@ -1736,6 +1785,55 @@ namespace Graduation_Project.Migrations
                     b.Navigation("Doctor");
                 });
 
+            modelBuilder.Entity("Graduation_Project.Models.CommunityComment", b =>
+                {
+                    b.HasOne("Graduation_Project.Models.CommunityPost", "Post")
+                        .WithMany("Comments")
+                        .HasForeignKey("CommunityPostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Graduation_Project.Models.Patient", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Patient");
+
+                    b.Navigation("Post");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.CommunityLike", b =>
+                {
+                    b.HasOne("Graduation_Project.Models.CommunityPost", "Post")
+                        .WithMany("Likes")
+                        .HasForeignKey("CommunityPostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Graduation_Project.Models.Patient", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Patient");
+
+                    b.Navigation("Post");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.CommunityPost", b =>
+                {
+                    b.HasOne("Graduation_Project.Models.Patient", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Patient");
+                });
+
             modelBuilder.Entity("Graduation_Project.Models.Doctor", b =>
                 {
                     b.HasOne("Graduation_Project.Models.ApplicationUser", "User")
@@ -1745,17 +1843,6 @@ namespace Graduation_Project.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Graduation_Project.Models.FBG_Test", b =>
-                {
-                    b.HasOne("Graduation_Project.Models.LabTest", "LabTest")
-                        .WithOne()
-                        .HasForeignKey("Graduation_Project.Models.FBG_Test", "LabTestID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("LabTest");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.Ferritin_Test", b =>
@@ -1807,7 +1894,8 @@ namespace Graduation_Project.Migrations
                     b.HasOne("Graduation_Project.Models.Doctor", "Doctor")
                         .WithMany()
                         .HasForeignKey("DoctorID")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("Graduation_Project.Models.AIModel", "AIModel")
                         .WithMany()
@@ -2064,7 +2152,8 @@ namespace Graduation_Project.Migrations
                     b.HasOne("Graduation_Project.Models.Doctor", "Doctor")
                         .WithMany()
                         .HasForeignKey("DoctorID")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("Graduation_Project.Models.Patient", "Patient")
                         .WithMany()
@@ -2190,6 +2279,13 @@ namespace Graduation_Project.Migrations
                     b.Navigation("Assistants");
 
                     b.Navigation("ClinicDoctors");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.CommunityPost", b =>
+                {
+                    b.Navigation("Comments");
+
+                    b.Navigation("Likes");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.Doctor", b =>

@@ -269,30 +269,6 @@
     document.getElementById('cancelNote')?.addEventListener('click', () => toggleAddNoteForm(false));
   }
 
-  function setupBabyGenderEditor() {
-    const editBtn = document.getElementById('editBabyGenderBtn');
-    const cancelBtn = document.getElementById('cancelBabyGenderEdit');
-    const form = document.getElementById('babyGenderForm');
-    const value = document.getElementById('babyGenderValue');
-
-    if (!editBtn || !form || !value) {
-      return;
-    }
-
-    editBtn.addEventListener('click', () => {
-      form.style.display = 'flex';
-      value.style.display = 'none';
-      editBtn.style.display = 'none';
-      form.querySelector('select[name="babyGender"]')?.focus();
-    });
-
-    cancelBtn?.addEventListener('click', () => {
-      form.style.display = 'none';
-      value.style.display = '';
-      editBtn.style.display = 'inline-flex';
-    });
-  }
-
   function animateTimeline() {
     const progressBar = document.querySelector('.pp-timeline-fill');
     if (!progressBar) return;
@@ -375,7 +351,6 @@
   document.addEventListener('DOMContentLoaded', function () {
     setupModals();
     setupAddNoteButtons();
-    setupBabyGenderEditor();
     animateTimeline();
     setupChartBars();
     updateDueDateFooter();

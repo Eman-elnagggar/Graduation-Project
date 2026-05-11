@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Graduation_Project.Models;
 
@@ -29,7 +29,6 @@ namespace Graduation_Project.Data
         public DbSet<HCV_Test> HCV_Tests { get; set; }
         public DbSet<TSH_Test> TSH_Tests { get; set; }
         public DbSet<Ferritin_Test> Ferritin_Tests { get; set; }
-        public DbSet<FBG_Test> FBG_Tests { get; set; }
         public DbSet<Clinic> Clinics { get; set; }
         public DbSet<ClinicDoctor> ClinicDoctors { get; set; }
         public DbSet<AssistantDoctor> AssistantDoctors { get; set; }
@@ -55,6 +54,9 @@ namespace Graduation_Project.Data
         public DbSet<WeightTracking> WeightTrackings { get; set; }
         public DbSet<ChatMessage> ChatMessages { get; set; }
         public DbSet<ClinicInvitation> ClinicInvitations { get; set; }
+        public DbSet<CommunityPost> CommunityPosts { get; set; }
+        public DbSet<CommunityComment> CommunityComments { get; set; }
+        public DbSet<CommunityLike> CommunityLikes { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -213,16 +215,6 @@ namespace Graduation_Project.Data
                 entity.HasOne(d => d.Doctor)
                     .WithMany()
                     .HasForeignKey(d => d.DoctorID)
-                    .IsRequired(false)
-                    .OnDelete(DeleteBehavior.Restrict);
-            });
-
-            modelBuilder.Entity<TestReport>(entity =>
-            {
-                entity.HasOne(d => d.Doctor)
-                    .WithMany()
-                    .HasForeignKey(d => d.DoctorID)
-                    .IsRequired(false)
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
@@ -338,19 +330,6 @@ namespace Graduation_Project.Data
                 entity.HasOne(d => d.LabTest)
                     .WithOne()
                     .HasForeignKey<Ferritin_Test>(d => d.LabTestID)
-                    .OnDelete(DeleteBehavior.Cascade);
-            });
-
-            // ============================================================
-            // 47. FBG_TEST -> LABTEST (One-to-One)
-            // ============================================================
-            modelBuilder.Entity<FBG_Test>(entity =>
-            {
-                entity.HasKey(e => e.LabTestID);
-
-                entity.HasOne(d => d.LabTest)
-                    .WithOne()
-                    .HasForeignKey<FBG_Test>(d => d.LabTestID)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
@@ -834,6 +813,78 @@ namespace Graduation_Project.Data
                     .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasIndex(e => new { e.DoctorID, e.ClinicID, e.AssistantID, e.Status });
+            });
+
+            // ============================================================
+            // COMMUNITY
+            // ============================================================
+            modelBuilder.Entity<CommunityPost>(entity =>
+            {
+                entity.HasKey(e => e.CommunityPostId);
+                entity.Property(e => e.Title).HasMaxLength(150).IsRequired();
+                entity.Property(e => e.Content).HasMaxLength(2000).IsRequired();
+                entity.Property(e => e.Category).HasMaxLength(60);
+                entity.HasOne(e => e.Patient)
+                    .WithMany()
+                    .HasForeignKey(e => e.PatientID)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<CommunityComment>(entity =>
+            {
+                entity.HasKey(e => e.CommunityCommentId);
+                entity.Property(e => e.Content).HasMaxLength(1000).IsRequired();
+                entity.HasOne(e => e.Post)
+                    .WithMany(p => p.Comments)
+                    .HasForeignKey(e => e.CommunityPostId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.Patient)
+                    .WithMany()
+                    .HasForeignKey(e => e.PatientID)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<CommunityLike>(entity =>
+            {
+                entity.HasKey(e => e.CommunityLikeId);
+                entity.HasIndex(e => new { e.CommunityPostId, e.PatientID }).IsUnique();
+                entity.HasOne(e => e.Post)
+                    .WithMany(p => p.Likes)
+                    .HasForeignKey(e => e.CommunityPostId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.Patient)
+                    .WithMany()
+                    .HasForeignKey(e => e.PatientID)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // ============================================================
+            // COMMUNITY
+            // ============================================================
+            modelBuilder.Entity<CommunityPost>(entity =>
+            {
+                entity.HasKey(e => e.CommunityPostId);
+                entity.Property(e => e.Title).HasMaxLength(150).IsRequired();
+                entity.Property(e => e.Content).HasMaxLength(2000).IsRequired();
+                entity.Property(e => e.Category).HasMaxLength(60);
+                entity.HasOne(e => e.Patient)
+                    .WithMany()
+                    .HasForeignKey(e => e.PatientID)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<CommunityComment>(entity =>
+            {
+                entity.HasKey(e => e.CommunityCommentId);
+                entity.Property(e => e.Content).HasMaxLength(1000).IsRequired();
+                entity.HasOne(e => e.Post)
+                    .WithMany(p => p.Comments)
+                    .HasForeignKey(e => e.CommunityPostId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.Patient)
+                    .WithMany()
+                    .HasForeignKey(e => e.PatientID)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
         }
     }

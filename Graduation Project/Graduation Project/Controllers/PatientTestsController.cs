@@ -9,12 +9,10 @@ namespace Graduation_Project.Controllers
     public class PatientTestsController : Controller
     {
         private readonly IPatient _patientRepository;
-        private readonly ILabTest _labTestRepository;
 
-        public PatientTestsController(IPatient patientRepository, ILabTest labTestRepository)
+        public PatientTestsController(IPatient patientRepository)
         {
             _patientRepository = patientRepository;
-            _labTestRepository = labTestRepository;
         }
 
         public IActionResult TestsUpload(int id)
@@ -30,12 +28,8 @@ namespace Graduation_Project.Controllers
             if (!string.Equals(patient.UserID, userId, StringComparison.Ordinal))
                 return Forbid();
 
-            var previousTests = _labTestRepository.GetLabTestsByPatientId(id).ToList();
-
             ViewBag.PatientId = id;
             ViewBag.UserName = patient.User?.FirstName ?? "Patient";
-            ViewBag.PreviousTests = previousTests;
-
             return View("~/Views/Patient/TestsUpload.cshtml");
         }
     }

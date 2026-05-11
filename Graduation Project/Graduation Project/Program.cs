@@ -85,9 +85,6 @@ namespace Graduation_Project
             builder.Services.AddScoped<MedicationReminderService>();
             builder.Services.AddSingleton<IChatMessageCrypto, ChatMessageCrypto>();
             builder.Services.AddHostedService<MedicationReminderHostedService>();
-            builder.Services.AddScoped<IAnalysisService, AnalysisService>();
-            builder.Services.AddScoped<AnalysisBackgroundJob>();
-            builder.Services.AddSingleton<IBackgroundJobScheduler, HangfireBackgroundJobScheduler>();
 
             // ?? Product OCR ????????????????????????????????????????????????
             builder.Services.AddHttpClient("ProductOcr", client =>
@@ -97,24 +94,6 @@ namespace Graduation_Project
             });
             builder.Services.AddScoped<ProductOcrClient>();
             // ??????????????????????????????????????????????????????????????
-
-            builder.Services.AddHttpClient("AnalysisOcr", client =>
-            {
-                client.BaseAddress = new Uri("https://eman123yasser-tests-ocr.hf.space/");
-                client.Timeout = TimeSpan.FromSeconds(60);
-            });
-            builder.Services.AddHttpClient("AnalysisConfirm", client =>
-            {
-                client.BaseAddress = new Uri("https://eman123yasser-tests-ocr.hf.space/");
-                client.Timeout = TimeSpan.FromSeconds(60);
-            });
-            builder.Services.AddHttpClient("AnalysisSubmit", client =>
-            {
-                client.BaseAddress = new Uri("https://eman123yasser-submit-api.hf.space/");
-                client.Timeout = TimeSpan.FromSeconds(60);
-            });
-            builder.Services.AddScoped<AnalysisOcrClient>();
-            builder.Services.AddScoped<AnalysisSubmitClient>();
 
             var app = builder.Build();
 
@@ -146,6 +125,54 @@ BEGIN
 
     CREATE INDEX [IX_ChatMessages_ReceiverUserId_IsRead]
         ON [dbo].[ChatMessages]([ReceiverUserId], [IsRead]);
+END");
+
+                // Ensure community tables exist.
+                await db.Database.ExecuteSqlRawAsync(@"
+IF OBJECT_ID(N'dbo.CommunityPosts', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[CommunityPosts](
+        [CommunityPostId] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        [Title]     NVARCHAR(150) NOT NULL,
+        [Content]   NVARCHAR(2000) NOT NULL,
+        [Category]  NVARCHAR(60)  NOT NULL DEFAULT 'General',
+        [PatientID] INT NOT NULL,
+        [CreatedAt] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+        [UpdatedAt] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+        CONSTRAINT [FK_CommunityPosts_Patients]
+            FOREIGN KEY ([PatientID]) REFERENCES [dbo].[Patients]([PatientID]) ON DELETE CASCADE
+    );
+END
+
+IF OBJECT_ID(N'dbo.CommunityComments', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[CommunityComments](
+        [CommunityCommentId] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        [CommunityPostId]    INT NOT NULL,
+        [PatientID]          INT NOT NULL,
+        [Content]            NVARCHAR(1000) NOT NULL,
+        [CreatedAt]          DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+        CONSTRAINT [FK_CommunityComments_Posts]
+            FOREIGN KEY ([CommunityPostId]) REFERENCES [dbo].[CommunityPosts]([CommunityPostId]) ON DELETE CASCADE,
+        CONSTRAINT [FK_CommunityComments_Patients]
+            FOREIGN KEY ([PatientID]) REFERENCES [dbo].[Patients]([PatientID])
+    );
+END
+
+IF OBJECT_ID(N'dbo.CommunityLikes', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[CommunityLikes](
+        [CommunityLikeId]  INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        [CommunityPostId]  INT NOT NULL,
+        [PatientID]        INT NOT NULL,
+        [CreatedAt]        DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+        CONSTRAINT [FK_CommunityLikes_Posts]
+            FOREIGN KEY ([CommunityPostId]) REFERENCES [dbo].[CommunityPosts]([CommunityPostId]) ON DELETE CASCADE,
+        CONSTRAINT [FK_CommunityLikes_Patients]
+            FOREIGN KEY ([PatientID]) REFERENCES [dbo].[Patients]([PatientID]),
+        CONSTRAINT [UQ_CommunityLikes_PostPatient]
+            UNIQUE ([CommunityPostId], [PatientID])
+    );
 END");
 
                 await DataSeeder.SeedAsync(db);
