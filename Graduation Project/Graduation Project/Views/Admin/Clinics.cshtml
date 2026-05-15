@@ -1,0 +1,203 @@
+@model Graduation_Project.ViewModels.AdminClinicsViewModel
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="top-bar">
+  <div class="topbar-left">
+    <button class="sidebar-toggle" id="sidebarToggle">
+      <i class="fas fa-bars"></i>
+    </button>
+    <div>
+      <h1 class="page-title">Clinic Management</h1>
+      <p class="page-subtitle">Create, edit and delete clinics</p>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <a href="/Admin/AddClinic" class="btn-admin-primary">
+      <i class="fas fa-plus"></i> Add Clinic
+    </a>
+  </div>
+</div>
+
+<div class="page-content">
+
+  @if (TempData["AdminSuccess"] != null)
+  {
+    <div class="admin-alert admin-alert-success">
+      <i class="fas fa-check-circle"></i> @TempData["AdminSuccess"]
+    </div>
+  }
+  @if (TempData["AdminError"] != null)
+  {
+    <div class="admin-alert admin-alert-danger">
+      <i class="fas fa-exclamation-circle"></i> @TempData["AdminError"]
+    </div>
+  }
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr);">
+    <div class="kpi-card">
+      <div class="kpi-icon" style="background: rgba(124,58,237,0.12); color:#7c3aed;">
+        <i class="fas fa-hospital"></i>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-value">@Model.TotalClinics</span>
+        <span class="kpi-label">Total Clinics</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon" style="background: rgba(20,150,127,0.12); color:#14967f;">
+        <i class="fas fa-user-md"></i>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-value">@Model.TotalDoctorsAssigned</span>
+        <span class="kpi-label">Doctors Assigned</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon" style="background: rgba(59,130,246,0.12); color:#3b82f6;">
+        <i class="fas fa-user-nurse"></i>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-value">@Model.TotalAssistantsAssigned</span>
+        <span class="kpi-label">Assistants Assigned</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon" style="background: rgba(245,158,11,0.12); color:#f59e0b;">
+        <i class="fas fa-calendar-check"></i>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-value">@Model.TotalAppointments</span>
+        <span class="kpi-label">Total Appointments</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clinic Table -->
+  <div class="admin-card" style="margin-top:24px;">
+    <div class="admin-card-header">
+      <div>
+        <h2 class="admin-card-title"><i class="fas fa-list"></i> All Clinics</h2>
+        <p class="admin-card-subtitle">@Model.TotalClinics clinic(s) registered in the system</p>
+      </div>
+    </div>
+
+    @if (!Model.Clinics.Any())
+    {
+      <div class="admin-empty-state">
+        <i class="fas fa-hospital-alt"></i>
+        <p>No clinics found. Add your first clinic to get started.</p>
+        <a href="/Admin/AddClinic" class="btn-admin-primary" style="margin-top:12px;">
+          <i class="fas fa-plus"></i> Add Clinic
+        </a>
+      </div>
+    }
+    else
+    {
+      <div class="table-responsive">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Name</th>
+              <th>Location</th>
+              <th class="text-center">Doctors</th>
+              <th class="text-center">Assistants</th>
+              <th class="text-center">Appointments</th>
+              <th class="text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @{ int idx = 1; }
+            @foreach (var clinic in Model.Clinics)
+            {
+              <tr>
+                <td class="text-muted">@idx</td>
+                <td>
+                  <div class="user-name-cell">
+                    <div class="user-avatar-sm" style="background:rgba(124,58,237,0.1);color:#7c3aed;">
+                      <i class="fas fa-hospital"></i>
+                    </div>
+                    <span class="fw-semibold">@clinic.Name</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="text-muted"><i class="fas fa-map-marker-alt me-1" style="color:#7c3aed;"></i>@clinic.Location</span>
+                </td>
+                <td class="text-center">
+                  <span class="admin-badge admin-badge-teal">@clinic.DoctorCount</span>
+                </td>
+                <td class="text-center">
+                  <span class="admin-badge admin-badge-blue">@clinic.AssistantCount</span>
+                </td>
+                <td class="text-center">
+                  <span class="admin-badge admin-badge-amber">@clinic.AppointmentCount</span>
+                </td>
+                <td class="text-center">
+                  <div class="action-group">
+                    <a href="/Admin/EditClinic/@clinic.ClinicID"
+                       class="btn-action btn-action-edit" title="Edit">
+                      <i class="fas fa-edit"></i>
+                    </a>
+                    <button type="button"
+                            class="btn-action btn-action-delete"
+                            title="Delete"
+                            onclick="confirmDelete(@clinic.ClinicID, '@clinic.Name.Replace("'", "\\'")')">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              idx++;
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="admin-modal-overlay" id="deleteModal" style="display:none;">
+  <div class="admin-modal">
+    <div class="admin-modal-header danger">
+      <i class="fas fa-exclamation-triangle"></i>
+      <h3>Delete Clinic</h3>
+    </div>
+    <div class="admin-modal-body">
+      <p>Are you sure you want to delete <strong id="deleteClinicName"></strong>?</p>
+      <p class="text-muted" style="font-size:0.85rem;">This will also remove all clinic-doctor and clinic-assistant associations.</p>
+    </div>
+    <div class="admin-modal-footer">
+      <button class="btn-admin-ghost" onclick="closeDeleteModal()">Cancel</button>
+      <form id="deleteForm" method="post">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn-admin-danger">
+          <i class="fas fa-trash"></i> Delete
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+@section Scripts {
+<script>
+  function confirmDelete(id, name) {
+    document.getElementById('deleteClinicName').textContent = name;
+    document.getElementById('deleteForm').action = '/Admin/DeleteClinic';
+    const form = document.getElementById('deleteForm');
+    let inp = form.querySelector('input[name="clinicId"]');
+    if (!inp) { inp = document.createElement('input'); inp.type = 'hidden'; inp.name = 'clinicId'; form.appendChild(inp); }
+    inp.value = id;
+    document.getElementById('deleteModal').style.display = 'flex';
+  }
+  function closeDeleteModal() {
+    document.getElementById('deleteModal').style.display = 'none';
+  }
+  document.getElementById('deleteModal').addEventListener('click', function(e) {
+    if (e.target === this) closeDeleteModal();
+  });
+</script>
+}

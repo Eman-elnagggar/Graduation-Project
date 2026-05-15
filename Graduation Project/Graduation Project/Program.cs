@@ -78,6 +78,7 @@ namespace Graduation_Project
             builder.Services.AddScoped<IWeightTracking, WeightTrackingRepository>();
 
             // Register Services
+            builder.Services.AddScoped<IEmailService, EmailService>();
             builder.Services.AddScoped<AlertService>();
             builder.Services.AddScoped<AssistantScheduleService>();
             builder.Services.AddScoped<MedicationService>();
