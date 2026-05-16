@@ -15,6 +15,8 @@ build_property.EnforceExtendedAnalyzerRules =
 build_property.EnforceExtendedAnalyzerRules = 
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.TargetFrameworkIdentifier = .NETCoreApp
+build_property.TargetFrameworkVersion = v8.0
 build_property.RootNamespace = Graduation_Project
 build_property.RootNamespace = Graduation_Project
 build_property.ProjectDir = E:\Studing\Project\Graduation Project\Graduation Project\
@@ -46,6 +48,42 @@ build_metadata.AdditionalFiles.CssScope =
 
 [E:/Studing/Project/Graduation Project/Graduation Project/Views/Account/RegisterPatient.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWNjb3VudFxSZWdpc3RlclBhdGllbnQuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/Studing/Project/Graduation Project/Graduation Project/Views/Admin/Analytics.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cQW5hbHl0aWNzLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/Studing/Project/Graduation Project/Graduation Project/Views/Admin/ClinicForm.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cQ2xpbmljRm9ybS5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/Studing/Project/Graduation Project/Graduation Project/Views/Admin/Clinics.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cQ2xpbmljcy5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/Studing/Project/Graduation Project/Graduation Project/Views/Admin/DoctorDetail.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cRG9jdG9yRGV0YWlsLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/Studing/Project/Graduation Project/Graduation Project/Views/Admin/Doctors.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cRG9jdG9ycy5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/Studing/Project/Graduation Project/Graduation Project/Views/Admin/DoctorVerification.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cRG9jdG9yVmVyaWZpY2F0aW9uLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/Studing/Project/Graduation Project/Graduation Project/Views/Admin/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cSW5kZXguY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/Studing/Project/Graduation Project/Graduation Project/Views/Admin/Users.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cVXNlcnMuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/Studing/Project/Graduation Project/Graduation Project/Views/Admin/_DoctorVerificationCard.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cX0RvY3RvclZlcmlmaWNhdGlvbkNhcmQuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
 [E:/Studing/Project/Graduation Project/Graduation Project/Views/Assistant/Appointments.cshtml]
@@ -112,6 +150,10 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRG9jdG9yXFBhdGllbnREZXRhaWxzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
+[E:/Studing/Project/Graduation Project/Graduation Project/Views/Doctor/PatientMedicationSummary.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRG9jdG9yXFBhdGllbnRNZWRpY2F0aW9uU3VtbWFyeS5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
 [E:/Studing/Project/Graduation Project/Graduation Project/Views/Doctor/Patients.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRG9jdG9yXFBhdGllbnRzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
@@ -128,12 +170,28 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRG9jdG9yXFNjaGVkdWxlLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
+[E:/Studing/Project/Graduation Project/Graduation Project/Views/Doctor/UnderReview.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRG9jdG9yXFVuZGVyUmV2aWV3LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
 [E:/Studing/Project/Graduation Project/Graduation Project/Views/Home/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxJbmRleC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
 [E:/Studing/Project/Graduation Project/Graduation Project/Views/Home/Privacy.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxQcml2YWN5LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/Studing/Project/Graduation Project/Graduation Project/Views/PatientMedication/Add.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUGF0aWVudE1lZGljYXRpb25cQWRkLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/Studing/Project/Graduation Project/Graduation Project/Views/PatientMedication/Daily.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUGF0aWVudE1lZGljYXRpb25cRGFpbHkuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/Studing/Project/Graduation Project/Graduation Project/Views/PatientMedication/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUGF0aWVudE1lZGljYXRpb25cSW5kZXguY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
 [E:/Studing/Project/Graduation Project/Graduation Project/Views/PatientProfile/Index.cshtml]
@@ -172,6 +230,10 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUGF0aWVudFxUZXN0c1VwbG9hZC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
+[E:/Studing/Project/Graduation Project/Graduation Project/Views/Patient/UltrasoundHistory.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUGF0aWVudFxVbHRyYXNvdW5kSGlzdG9yeS5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
 [E:/Studing/Project/Graduation Project/Graduation Project/Views/Prescription/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUHJlc2NyaXB0aW9uXEluZGV4LmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
@@ -180,8 +242,20 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUHJvZHVjdFNjYW5cSW5kZXguY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
+[E:/Studing/Project/Graduation Project/Graduation Project/Views/PublicDoctor/Details.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUHVibGljRG9jdG9yXERldGFpbHMuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
 [E:/Studing/Project/Graduation Project/Graduation Project/Views/Shared/Error.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXEVycm9yLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/Studing/Project/Graduation Project/Graduation Project/Views/Shared/_AdminLayout.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9BZG1pbkxheW91dC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/Studing/Project/Graduation Project/Graduation Project/Views/Shared/_AdminSidebar.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9BZG1pblNpZGViYXIuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
 [E:/Studing/Project/Graduation Project/Graduation Project/Views/Shared/_AssistantLayout.cshtml]
@@ -210,6 +284,22 @@ build_metadata.AdditionalFiles.CssScope =
 
 [E:/Studing/Project/Graduation Project/Graduation Project/Views/Shared/_ValidationScriptsPartial.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9WYWxpZGF0aW9uU2NyaXB0c1BhcnRpYWwuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/Studing/Project/Graduation Project/Graduation Project/Views/Ultrasound/History.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVWx0cmFzb3VuZFxIaXN0b3J5LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/Studing/Project/Graduation Project/Graduation Project/Views/Ultrasound/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVWx0cmFzb3VuZFxJbmRleC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/Studing/Project/Graduation Project/Graduation Project/Views/Ultrasound/Result.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVWx0cmFzb3VuZFxSZXN1bHQuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/Studing/Project/Graduation Project/Graduation Project/Views/Ultrasound/Upload.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVWx0cmFzb3VuZFxVcGxvYWQuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
 [E:/Studing/Project/Graduation Project/Graduation Project/Views/_ViewImports.cshtml]

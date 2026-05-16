@@ -569,3 +569,7 @@ E:\Studing\Project\Graduation Project\Graduation Project\obj\Debug\net8.0\refint
 E:\Studing\Project\Graduation Project\Graduation Project\obj\Debug\net8.0\Graduation Project.pdb
 E:\Studing\Project\Graduation Project\Graduation Project\obj\Debug\net8.0\Graduation Project.genruntimeconfig.cache
 E:\Studing\Project\Graduation Project\Graduation Project\obj\Debug\net8.0\ref\Graduation Project.dll
+E:\Studing\Project\Graduation Project\Graduation Project\bin\Debug\net8.0\BouncyCastle.Cryptography.dll
+E:\Studing\Project\Graduation Project\Graduation Project\bin\Debug\net8.0\MailKit.dll
+E:\Studing\Project\Graduation Project\Graduation Project\bin\Debug\net8.0\MimeKit.dll
+E:\Studing\Project\Graduation Project\Graduation Project\obj\Debug\net8.0\swae.build.ex.cache

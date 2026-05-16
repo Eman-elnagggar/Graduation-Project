@@ -1,7 +1,9 @@
+wwwroot\css\admin-style.css
 wwwroot\css\assistant-availability.css
 wwwroot\css\assistant-style.css
 wwwroot\css\auth-style.css
 wwwroot\css\auth.css
+wwwroot\css\community.css
 wwwroot\css\design-system.css
 wwwroot\css\doctor-analytics.css
 wwwroot\css\doctor-clinic-team.css
@@ -14,17 +16,21 @@ wwwroot\css\doctor-schedule.css
 wwwroot\css\doctor-style.css
 wwwroot\css\home-index.css
 wwwroot\css\patient-style.css
+wwwroot\css\patient-ultrasound-history.css
 wwwroot\css\prescription-print.css
+wwwroot\css\public-doctor-profile.css
 wwwroot\css\shared.css
 wwwroot\css\site.css
 wwwroot\css\_AuthShared.css
 wwwroot\favicon.ico
+wwwroot\images\full logo.png
 wwwroot\images\logo.png
 wwwroot\js\assistant-appointments.js
 wwwroot\js\assistant-availability.js
 wwwroot\js\assistant-dashboard.js
 wwwroot\js\assistant-messages.js
 wwwroot\js\auth.js
+wwwroot\js\community.js
 wwwroot\js\doctor-analytics.js
 wwwroot\js\doctor-dashboard-demo.js
 wwwroot\js\doctor-messages.js
@@ -32,6 +38,7 @@ wwwroot\js\doctor-patient-profile.js
 wwwroot\js\doctor-profile.js
 wwwroot\js\doctor-schedule.js
 wwwroot\js\home-index.js
+wwwroot\js\patient-medications.js
 wwwroot\js\patient-messages.js
 wwwroot\js\patient-notifications.js
 wwwroot\js\patient-shared.js
