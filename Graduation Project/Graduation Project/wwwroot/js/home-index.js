@@ -1,242 +1,94 @@
-(() => {
-    const navbar = document.getElementById("navbar");
-    const mobileMenuBtn = document.getElementById("mobileMenuBtn");
-    const mobileMenu = document.getElementById("mobileMenu");
-    const scrollToTopBtn = document.getElementById("scrollToTop");
+// ── NAVBAR ──────────────────────────────────────────────
+const navbar = document.querySelector('.navbar');
+const hamburger = document.querySelector('.hamburger');
+const mobileMenu = document.querySelector('.mobile-menu');
 
-    const closeMobileMenu = () => {
-        if (!mobileMenu || !mobileMenuBtn) return;
+window.addEventListener('scroll', () => {
+    if (window.scrollY > 20) navbar.classList.add('scrolled');
+    else navbar.classList.remove('scrolled');
+});
 
-        mobileMenu.classList.remove("active");
-        const spans = mobileMenuBtn.querySelectorAll("span");
-        if (spans.length === 3) {
-            spans[0].style.transform = "";
-            spans[1].style.opacity = "";
-            spans[2].style.transform = "";
+hamburger.addEventListener('click', () => {
+    mobileMenu.classList.toggle('open');
+});
+
+// Close mobile menu on link click
+mobileMenu.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', () => mobileMenu.classList.remove('open'));
+});
+
+// ── SCROLL REVEAL ────────────────────────────────────────
+const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+        if (e.isIntersecting) {
+            e.target.classList.add('visible');
+            revealObserver.unobserve(e.target);
         }
-    };
+    });
+}, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
 
-    const openOrToggleMobileMenu = () => {
-        if (!mobileMenu || !mobileMenuBtn) return;
+document.querySelectorAll('.reveal, .reveal-left, .reveal-right').forEach(el => {
+    revealObserver.observe(el);
+});
 
-        mobileMenu.classList.toggle("active");
-        const spans = mobileMenuBtn.querySelectorAll("span");
-        if (spans.length !== 3) return;
-
-        const isActive = mobileMenu.classList.contains("active");
-        spans[0].style.transform = isActive ? "rotate(45deg) translate(5px, 5px)" : "";
-        spans[1].style.opacity = isActive ? "0" : "";
-        spans[2].style.transform = isActive ? "rotate(-45deg) translate(7px, -6px)" : "";
-    };
-
-    const scrollToSection = (sectionId) => {
-        const section = document.getElementById(sectionId);
-        if (!section) return;
-
-        const offset = 80;
-        const elementPosition = section.getBoundingClientRect().top;
-        const offsetPosition = elementPosition + window.pageYOffset - offset;
-        window.scrollTo({ top: offsetPosition, behavior: "smooth" });
-    };
-
-    const scrollToTop = () => {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-    };
-
-    window.scrollToSection = scrollToSection;
-    window.scrollToTop = scrollToTop;
-
-    const initNavbarScrollState = () => {
-        if (!navbar) return;
-        navbar.classList.toggle("scrolled", window.scrollY > 50);
-    };
-
-    const initMobileMenu = () => {
-        if (mobileMenuBtn) {
-            mobileMenuBtn.addEventListener("click", openOrToggleMobileMenu);
+// ── PROGRESS BARS (Solution Section) ─────────────────────
+const progressObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+        if (e.isIntersecting) {
+            e.target.querySelectorAll('.sol-progress-fill').forEach(bar => {
+                bar.style.width = bar.dataset.width;
+            });
+            progressObserver.unobserve(e.target);
         }
+    });
+}, { threshold: 0.3 });
 
-        document.querySelectorAll(".mobile-link").forEach((link) => {
-            link.addEventListener("click", closeMobileMenu);
-        });
+const solSection = document.querySelector('.solution-visual');
+if (solSection) progressObserver.observe(solSection);
 
-        document.addEventListener("keydown", (e) => {
-            if (e.key === "Escape" && mobileMenu?.classList.contains("active")) {
-                closeMobileMenu();
-            }
-        });
+// ── COUNTER ANIMATION ────────────────────────────────────
+function animateCounter(el, target, suffix = '') {
+    let start = 0;
+    const duration = 1800;
+    const step = (timestamp) => {
+        if (!start) start = timestamp;
+        const progress = Math.min((timestamp - start) / duration, 1);
+        const val = Math.floor(progress * target);
+        el.textContent = val.toLocaleString() + suffix;
+        if (progress < 1) requestAnimationFrame(step);
     };
+    requestAnimationFrame(step);
+}
 
-    const initAnchorSmoothScroll = () => {
-        document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
-            anchor.addEventListener("click", function (e) {
-                e.preventDefault();
-                const targetId = this.getAttribute("href")?.substring(1);
-                if (targetId) {
-                    scrollToSection(targetId);
-                }
+const counterObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+        if (e.isIntersecting) {
+            e.target.querySelectorAll('[data-count]').forEach(el => {
+                const target = parseInt(el.dataset.count);
+                const suffix = el.dataset.suffix || '';
+                animateCounter(el, target, suffix);
             });
-        });
-    };
-
-    const initParticles = () => {
-        const particlesContainer = document.getElementById("particles");
-        if (!particlesContainer) return;
-
-        for (let i = 0; i < 20; i++) {
-            const particle = document.createElement("div");
-            particle.style.position = "absolute";
-            particle.style.width = "8px";
-            particle.style.height = "8px";
-            particle.style.background = "rgba(27, 174, 190, 0.35)";
-            particle.style.borderRadius = "50%";
-            particle.style.left = `${Math.random() * 100}%`;
-            particle.style.top = `${Math.random() * 100}%`;
-
-            const duration = 3000 + Math.random() * 2000;
-            const delay = Math.random() * 2000;
-
-            particle.animate(
-                [
-                    { transform: "translateY(0px)", opacity: 0.2 },
-                    { transform: "translateY(-30px)", opacity: 0.5 },
-                    { transform: "translateY(0px)", opacity: 0.2 }
-                ],
-                {
-                    duration,
-                    delay,
-                    iterations: Infinity,
-                    easing: "ease-in-out"
-                }
-            );
-
-            particlesContainer.appendChild(particle);
+            counterObserver.unobserve(e.target);
         }
-    };
+    });
+}, { threshold: 0.4 });
 
-    const initSectionReveal = () => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) {
-                        entry.target.style.opacity = "1";
-                        entry.target.style.transform = "translateY(0)";
-                    }
-                });
-            },
-            { threshold: 0.1, rootMargin: "-50px" }
-        );
+document.querySelectorAll('.dash-stats, .clinic-stat-row').forEach(el => {
+    counterObserver.observe(el);
+});
 
-        document.querySelectorAll("section").forEach((section) => {
-            section.style.opacity = "0";
-            section.style.transform = "translateY(30px)";
-            section.style.transition = "opacity 0.6s ease, transform 0.6s ease";
-            observer.observe(section);
-        });
-    };
+// ── SMOOTH ACTIVE NAV ────────────────────────────────────
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('.navbar-links a[href^="#"]');
 
-    const initStatsCounter = () => {
-        const statNumbers = document.querySelectorAll(".stat-number");
-        if (!statNumbers.length) return;
+const sectionObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+        if (e.isIntersecting) {
+            navLinks.forEach(l => l.classList.remove('active'));
+            const active = document.querySelector(`.navbar-links a[href="#${e.target.id}"]`);
+            if (active) active.classList.add('active');
+        }
+    });
+}, { threshold: 0.4 });
 
-        const animateCounter = (element) => {
-            const target = parseInt(element.getAttribute("data-target") || "0", 10);
-            const duration = 2000;
-            const increment = target / (duration / 16);
-            let current = 0;
-
-            const updateCounter = () => {
-                current += increment;
-                if (current < target) {
-                    element.textContent = Math.floor(current).toString();
-                    requestAnimationFrame(updateCounter);
-                } else {
-                    element.textContent = target.toString();
-                }
-            };
-
-            updateCounter();
-        };
-
-        const statsObserver = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting && !entry.target.classList.contains("animated")) {
-                        entry.target.classList.add("animated");
-                        animateCounter(entry.target);
-                        statsObserver.unobserve(entry.target);
-                    }
-                });
-            },
-            { threshold: 0.5 }
-        );
-
-        statNumbers.forEach((stat) => statsObserver.observe(stat));
-    };
-
-    const initFaq = () => {
-        const faqItems = document.querySelectorAll(".faq-item");
-        faqItems.forEach((item) => {
-            const question = item.querySelector(".faq-question");
-            if (!question) return;
-
-            question.addEventListener("click", () => {
-                const isActive = item.classList.contains("active");
-                faqItems.forEach((otherItem) => {
-                    if (otherItem !== item) otherItem.classList.remove("active");
-                });
-
-                item.classList.toggle("active", !isActive);
-            });
-        });
-    };
-
-    const initScrollTopButton = () => {
-        if (!scrollToTopBtn) return;
-
-        window.addEventListener("scroll", () => {
-            scrollToTopBtn.classList.toggle("visible", window.scrollY > 300);
-        });
-
-        scrollToTopBtn.addEventListener("click", scrollToTop);
-    };
-
-    const initParallax = () => {
-        window.addEventListener("scroll", () => {
-            const scrolled = window.scrollY;
-            const heroContent = document.querySelector(".hero-content");
-            if (heroContent && scrolled < 500) {
-                heroContent.style.transform = `translateY(${scrolled * 0.3}px)`;
-                heroContent.style.opacity = String(1 - scrolled / 300);
-            }
-        });
-    };
-
-    const initHeroLoadAnimations = () => {
-        window.addEventListener("load", () => {
-            const heroElements = document.querySelectorAll(".fade-in, .fade-in-up");
-            heroElements.forEach((element, index) => {
-                setTimeout(() => {
-                    element.style.opacity = "1";
-                    element.style.transform = "translateY(0)";
-                }, index * 100);
-            });
-        });
-    };
-
-    initNavbarScrollState();
-    initMobileMenu();
-    initAnchorSmoothScroll();
-    initParticles();
-    initSectionReveal();
-    initStatsCounter();
-    initFaq();
-    initScrollTopButton();
-    initParallax();
-    initHeroLoadAnimations();
-
-    window.addEventListener("scroll", initNavbarScrollState);
-
-    console.log("%cMamaCare", "color: #1baebe; font-size: 22px; font-weight: 700;");
-    console.log("%cMaking maternal care safer and easier", "color: #64748b; font-size: 13px;");
-})();
+sections.forEach(s => sectionObserver.observe(s));
