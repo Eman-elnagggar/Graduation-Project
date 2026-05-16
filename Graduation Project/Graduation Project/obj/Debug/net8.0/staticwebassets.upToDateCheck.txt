@@ -102,3 +102,5 @@ wwwroot\lib\jquery\dist\jquery.js
 wwwroot\lib\jquery\dist\jquery.min.js
 wwwroot\lib\jquery\dist\jquery.min.map
 wwwroot\lib\jquery\LICENSE.txt
+wwwroot\uploads\lab-tests\1\9a3a9b1ca68c411997d537bf12fc2b03.jpg
+wwwroot\uploads\lab-tests\1\fa57c043a3b54ee489896ae56e5e20ca.webp
