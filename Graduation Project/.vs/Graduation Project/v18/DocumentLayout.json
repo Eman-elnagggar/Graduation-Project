@@ -7,6 +7,14 @@
       "RelativeMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|solutionrelative:graduation project\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
     },
     {
+      "AbsoluteMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|e:\\studing\\project\\graduation project\\graduation project\\views\\shared\\_adminlayout.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|solutionrelative:graduation project\\views\\shared\\_adminlayout.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|e:\\studing\\project\\graduation project\\graduation project\\views\\shared\\_adminsidebar.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|solutionrelative:graduation project\\views\\shared\\_adminsidebar.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|e:\\studing\\project\\graduation project\\graduation project\\data\\dataseeder.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|solutionrelative:graduation project\\data\\dataseeder.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
@@ -62,8 +70,34 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 7,
+          "SelectedChildIndex": 9,
           "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "_AdminLayout.cshtml",
+              "DocumentMoniker": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\Views\\Shared\\_AdminLayout.cshtml",
+              "RelativeDocumentMoniker": "Graduation Project\\Views\\Shared\\_AdminLayout.cshtml",
+              "ToolTip": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\Views\\Shared\\_AdminLayout.cshtml",
+              "RelativeToolTip": "Graduation Project\\Views\\Shared\\_AdminLayout.cshtml",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAIAAAAPAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-05-16T22:30:07.024Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "_AdminSidebar.cshtml",
+              "DocumentMoniker": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\Views\\Shared\\_AdminSidebar.cshtml",
+              "RelativeDocumentMoniker": "Graduation Project\\Views\\Shared\\_AdminSidebar.cshtml",
+              "ToolTip": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\Views\\Shared\\_AdminSidebar.cshtml",
+              "RelativeToolTip": "Graduation Project\\Views\\Shared\\_AdminSidebar.cshtml",
+              "ViewState": "AgIAABsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-05-16T22:30:01.381Z",
+              "EditorCaption": ""
+            },
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
@@ -86,7 +120,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 3,
               "Title": "DataSeeder.cs",
               "DocumentMoniker": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\Data\\DataSeeder.cs",
               "RelativeDocumentMoniker": "Graduation Project\\Data\\DataSeeder.cs",
@@ -94,12 +128,11 @@
               "RelativeToolTip": "Graduation Project\\Data\\DataSeeder.cs",
               "ViewState": "AgIAAGoAAAAAAAAAAAAywD0AAAC1AQAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-05-16T15:42:53.097Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-05-16T15:42:53.097Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 4,
               "Title": "DoctorController.cs",
               "DocumentMoniker": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\Controllers\\DoctorController.cs",
               "RelativeDocumentMoniker": "Graduation Project\\Controllers\\DoctorController.cs",
@@ -117,14 +150,14 @@
               "RelativeDocumentMoniker": "Graduation Project\\appsettings.json",
               "ToolTip": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\appsettings.json",
               "RelativeToolTip": "Graduation Project\\appsettings.json",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAABEAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAAWAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
               "WhenOpened": "2026-05-16T14:51:18.93Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 12,
+              "DocumentIndex": 14,
               "Title": "auth.css",
               "DocumentMoniker": "E:\\Studing\\Project\\Graduation Project\\wwwroot\\css\\auth.css",
               "RelativeDocumentMoniker": "wwwroot\\css\\auth.css",
@@ -136,7 +169,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 6,
               "Title": "auth.css",
               "DocumentMoniker": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\wwwroot\\css\\auth.css",
               "RelativeDocumentMoniker": "Graduation Project\\wwwroot\\css\\auth.css",
@@ -148,7 +181,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 5,
               "Title": "_AuthShared.css",
               "DocumentMoniker": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\wwwroot\\css\\_AuthShared.css",
               "RelativeDocumentMoniker": "Graduation Project\\wwwroot\\css\\_AuthShared.css",
@@ -160,7 +193,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 7,
               "Title": "RegisterPatient.cshtml",
               "DocumentMoniker": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\Views\\Account\\RegisterPatient.cshtml",
               "RelativeDocumentMoniker": "Graduation Project\\Views\\Account\\RegisterPatient.cshtml",
@@ -172,7 +205,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 8,
               "Title": "RegisterDoctor.cshtml",
               "DocumentMoniker": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\Views\\Account\\RegisterDoctor.cshtml",
               "RelativeDocumentMoniker": "Graduation Project\\Views\\Account\\RegisterDoctor.cshtml",
@@ -184,7 +217,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 9,
               "Title": "RegisterAssistant.cshtml",
               "DocumentMoniker": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\Views\\Account\\RegisterAssistant.cshtml",
               "RelativeDocumentMoniker": "Graduation Project\\Views\\Account\\RegisterAssistant.cshtml",
@@ -196,7 +229,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 11,
+              "DocumentIndex": 13,
               "Title": "Login.cshtml",
               "DocumentMoniker": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\Views\\Account\\Login.cshtml",
               "RelativeDocumentMoniker": "Graduation Project\\Views\\Account\\Login.cshtml",
@@ -208,7 +241,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 10,
               "Title": "home-index.js",
               "DocumentMoniker": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\wwwroot\\js\\home-index.js",
               "RelativeDocumentMoniker": "Graduation Project\\wwwroot\\js\\home-index.js",
@@ -220,7 +253,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 11,
               "Title": "home-index.css",
               "DocumentMoniker": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\wwwroot\\css\\home-index.css",
               "RelativeDocumentMoniker": "Graduation Project\\wwwroot\\css\\home-index.css",
@@ -232,7 +265,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
+              "DocumentIndex": 12,
               "Title": "Index.cshtml",
               "DocumentMoniker": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\Views\\Home\\Index.cshtml",
               "RelativeDocumentMoniker": "Graduation Project\\Views\\Home\\Index.cshtml",
