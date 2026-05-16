@@ -57,7 +57,9 @@ namespace Graduation_Project.Data
                     new ApplicationUser { FirstName = "Dina",    LastName = "Samir",   UserName = "dina.samir@nabd.com",     NormalizedUserName = "DINA.SAMIR@NABD.COM",     Email = "dina.samir@nabd.com",     NormalizedEmail = "DINA.SAMIR@NABD.COM",     EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01609876543", DateOfBirth = new DateTime(1992, 3, 17),  IsActive = true, CreatedDate = new DateTime(2024, 1, 11) },
                     new ApplicationUser { FirstName = "Noura",   LastName = "Youssef", UserName = "noura.youssef@nabd.com",  NormalizedUserName = "NOURA.YOUSSEF@NABD.COM",  Email = "noura.youssef@nabd.com",  NormalizedEmail = "NOURA.YOUSSEF@NABD.COM",  EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01612233445", DateOfBirth = new DateTime(1988, 7, 29),  IsActive = true, CreatedDate = new DateTime(2024, 1, 12) },
                     new ApplicationUser { FirstName = "Amira",   LastName = "Tarek",   UserName = "amira.tarek@nabd.com",    NormalizedUserName = "AMIRA.TAREK@NABD.COM",    Email = "amira.tarek@nabd.com",    NormalizedEmail = "AMIRA.TAREK@NABD.COM",    EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01622334456", DateOfBirth = new DateTime(1991, 5, 14),  IsActive = true, CreatedDate = new DateTime(2024, 1, 13) },
-                    new ApplicationUser { FirstName = "Heba",    LastName = "Adel",    UserName = "heba.adel@nabd.com",      NormalizedUserName = "HEBA.ADEL@NABD.COM",      Email = "heba.adel@nabd.com",      NormalizedEmail = "HEBA.ADEL@NABD.COM",      EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01632445567", DateOfBirth = new DateTime(1994, 10, 2),  IsActive = true, CreatedDate = new DateTime(2024, 1, 14) }
+                    new ApplicationUser { FirstName = "Heba",    LastName = "Adel",    UserName = "heba.adel@nabd.com",      NormalizedUserName = "HEBA.ADEL@NABD.COM",      Email = "heba.adel@nabd.com",      NormalizedEmail = "HEBA.ADEL@NABD.COM",      EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01632445567", DateOfBirth = new DateTime(1994, 10, 2),  IsActive = true, CreatedDate = new DateTime(2024, 1, 14) },
+                    // Admin
+                    new ApplicationUser { FirstName = "System",  LastName = "Admin",   UserName = "admin@nabd.com",           NormalizedUserName = "ADMIN@NABD.COM",           Email = "admin@nabd.com",           NormalizedEmail = "ADMIN@NABD.COM",           EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01000000000", DateOfBirth = new DateTime(1990, 1, 1),   IsActive = true, CreatedDate = new DateTime(2024, 1, 1)  }
                 );
                 await context.SaveChangesAsync();
             }
@@ -141,6 +143,8 @@ namespace Graduation_Project.Data
                             .Select(u => new IdentityUserRole<string> { UserId = u.Id, RoleId = rolePatient.Id }))
                         .Concat(appUsers.Where(u => (u.FirstName == "Layla" || u.FirstName == "Dina" || u.FirstName == "Noura" || u.FirstName == "Amira" || u.FirstName == "Heba"))
                             .Select(u => new IdentityUserRole<string> { UserId = u.Id, RoleId = roleAssistant.Id }))
+                        .Concat(appUsers.Where(u => u.Email == "admin@nabd.com")
+                            .Select(u => new IdentityUserRole<string> { UserId = u.Id, RoleId = context.Roles.First(r => r.Name == "Admin").Id }))
                         .ToList();
 
                 context.UserRoles.AddRange(identityUserRoles);

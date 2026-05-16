@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Graduation_Project.Models
@@ -16,6 +16,7 @@ namespace Graduation_Project.Models
         public string LicenseImagePath { get; set; }
         public string VerificationStatus { get; set; }
         public DateTime? VerificationDate { get; set; }
+        public string? RejectionNote { get; set; }
         public string Address { get; set; }
 
         // Navigation

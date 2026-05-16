@@ -183,6 +183,8 @@
         </div>
         <div class="pp-header-right">
             <a id="btnMessage" asp-controller="Doctor" asp-action="Messages" asp-route-id="@Model.Doctor.DoctorID" asp-route-patient="@p.PatientID" class="pp-btn pp-btn-secondary"><i class="fas fa-comment-medical"></i> Send Message</a>
+            <a asp-controller="Ultrasound" asp-action="History" asp-route-id="@Model.Doctor.DoctorID" asp-route-patientId="@p.PatientID" class="pp-btn pp-btn-secondary"><i class="fas fa-wave-square"></i> Ultrasound History</a>
+            <a asp-controller="Ultrasound" asp-action="Index" asp-route-patientId="@p.PatientID" class="pp-btn pp-btn-secondary"><i class="fas fa-plus"></i> New Scan</a>
             <button type="button" class="pp-btn pp-btn-secondary" id="btnWritePrescription"><i class="fas fa-prescription"></i> Write Prescription</button>
             <button type="button" class="pp-btn pp-btn-primary" id="btnAddNote"><i class="fas fa-notes-medical"></i> Add Note</button>
         </div>
