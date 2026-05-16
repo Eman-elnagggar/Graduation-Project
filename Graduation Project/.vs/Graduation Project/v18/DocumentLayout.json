@@ -1,0 +1,250 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "E:\\Studing\\Project\\Graduation Project\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|e:\\studing\\project\\graduation project\\graduation project\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|solutionrelative:graduation project\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|e:\\studing\\project\\graduation project\\graduation project\\data\\dataseeder.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|solutionrelative:graduation project\\data\\dataseeder.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|e:\\studing\\project\\graduation project\\graduation project\\controllers\\doctorcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|solutionrelative:graduation project\\controllers\\doctorcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|e:\\studing\\project\\graduation project\\graduation project\\wwwroot\\css\\_authshared.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|solutionrelative:graduation project\\wwwroot\\css\\_authshared.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|e:\\studing\\project\\graduation project\\graduation project\\wwwroot\\css\\auth.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|solutionrelative:graduation project\\wwwroot\\css\\auth.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|e:\\studing\\project\\graduation project\\graduation project\\views\\account\\registerpatient.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|solutionrelative:graduation project\\views\\account\\registerpatient.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|e:\\studing\\project\\graduation project\\graduation project\\views\\account\\registerdoctor.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|solutionrelative:graduation project\\views\\account\\registerdoctor.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|e:\\studing\\project\\graduation project\\graduation project\\views\\account\\registerassistant.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|solutionrelative:graduation project\\views\\account\\registerassistant.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|e:\\studing\\project\\graduation project\\graduation project\\wwwroot\\js\\home-index.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|solutionrelative:graduation project\\wwwroot\\js\\home-index.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|e:\\studing\\project\\graduation project\\graduation project\\wwwroot\\css\\home-index.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|solutionrelative:graduation project\\wwwroot\\css\\home-index.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|e:\\studing\\project\\graduation project\\graduation project\\views\\home\\index.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|solutionrelative:graduation project\\views\\home\\index.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|e:\\studing\\project\\graduation project\\graduation project\\views\\account\\login.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{765A9081-EFDC-4AFF-AF70-A58CE27DF6BD}|Graduation Project\\Graduation Project.csproj|solutionrelative:graduation project\\views\\account\\login.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\Studing\\Project\\Graduation Project\\wwwroot\\css\\auth.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:wwwroot\\css\\auth.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 7,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{40ea2e6b-2121-4bb8-a43e-c83c04b51041}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c64b9c2-e352-428e-a56d-0ace190b99a6}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{75188d03-9892-4ae2-abf1-207126247ce5}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "DataSeeder.cs",
+              "DocumentMoniker": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\Data\\DataSeeder.cs",
+              "RelativeDocumentMoniker": "Graduation Project\\Data\\DataSeeder.cs",
+              "ToolTip": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\Data\\DataSeeder.cs",
+              "RelativeToolTip": "Graduation Project\\Data\\DataSeeder.cs",
+              "ViewState": "AgIAAGoAAAAAAAAAAAAywD0AAAC1AQAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-16T15:42:53.097Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "DoctorController.cs",
+              "DocumentMoniker": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\Controllers\\DoctorController.cs",
+              "RelativeDocumentMoniker": "Graduation Project\\Controllers\\DoctorController.cs",
+              "ToolTip": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\Controllers\\DoctorController.cs",
+              "RelativeToolTip": "Graduation Project\\Controllers\\DoctorController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAAoAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-16T14:59:21.877Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\appsettings.json",
+              "RelativeDocumentMoniker": "Graduation Project\\appsettings.json",
+              "ToolTip": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\appsettings.json",
+              "RelativeToolTip": "Graduation Project\\appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAABEAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-05-16T14:51:18.93Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "auth.css",
+              "DocumentMoniker": "E:\\Studing\\Project\\Graduation Project\\wwwroot\\css\\auth.css",
+              "RelativeDocumentMoniker": "wwwroot\\css\\auth.css",
+              "ToolTip": "E:\\Studing\\Project\\Graduation Project\\wwwroot\\css\\auth.css",
+              "RelativeToolTip": "wwwroot\\css\\auth.css",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2026-05-16T14:46:07.604Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "auth.css",
+              "DocumentMoniker": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\wwwroot\\css\\auth.css",
+              "RelativeDocumentMoniker": "Graduation Project\\wwwroot\\css\\auth.css",
+              "ToolTip": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\wwwroot\\css\\auth.css",
+              "RelativeToolTip": "Graduation Project\\wwwroot\\css\\auth.css",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2026-05-16T14:31:18.004Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "_AuthShared.css",
+              "DocumentMoniker": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\wwwroot\\css\\_AuthShared.css",
+              "RelativeDocumentMoniker": "Graduation Project\\wwwroot\\css\\_AuthShared.css",
+              "ToolTip": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\wwwroot\\css\\_AuthShared.css",
+              "RelativeToolTip": "Graduation Project\\wwwroot\\css\\_AuthShared.css",
+              "ViewState": "AgIAAG8AAAAAAAAAAAAgwHsAAAAcAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2026-05-16T13:21:19.004Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "RegisterPatient.cshtml",
+              "DocumentMoniker": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\Views\\Account\\RegisterPatient.cshtml",
+              "RelativeDocumentMoniker": "Graduation Project\\Views\\Account\\RegisterPatient.cshtml",
+              "ToolTip": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\Views\\Account\\RegisterPatient.cshtml",
+              "RelativeToolTip": "Graduation Project\\Views\\Account\\RegisterPatient.cshtml",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA4AAAAGAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-05-16T13:20:08.354Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "RegisterDoctor.cshtml",
+              "DocumentMoniker": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\Views\\Account\\RegisterDoctor.cshtml",
+              "RelativeDocumentMoniker": "Graduation Project\\Views\\Account\\RegisterDoctor.cshtml",
+              "ToolTip": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\Views\\Account\\RegisterDoctor.cshtml",
+              "RelativeToolTip": "Graduation Project\\Views\\Account\\RegisterDoctor.cshtml",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAABYAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-05-16T13:20:02.802Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "RegisterAssistant.cshtml",
+              "DocumentMoniker": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\Views\\Account\\RegisterAssistant.cshtml",
+              "RelativeDocumentMoniker": "Graduation Project\\Views\\Account\\RegisterAssistant.cshtml",
+              "ToolTip": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\Views\\Account\\RegisterAssistant.cshtml",
+              "RelativeToolTip": "Graduation Project\\Views\\Account\\RegisterAssistant.cshtml",
+              "ViewState": "AgIAALMAAAAAAAAAAAAiwM8AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-05-16T13:19:48.98Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "Login.cshtml",
+              "DocumentMoniker": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\Views\\Account\\Login.cshtml",
+              "RelativeDocumentMoniker": "Graduation Project\\Views\\Account\\Login.cshtml",
+              "ToolTip": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\Views\\Account\\Login.cshtml",
+              "RelativeToolTip": "Graduation Project\\Views\\Account\\Login.cshtml",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAAGAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-05-16T13:14:55.93Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "home-index.js",
+              "DocumentMoniker": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\wwwroot\\js\\home-index.js",
+              "RelativeDocumentMoniker": "Graduation Project\\wwwroot\\js\\home-index.js",
+              "ToolTip": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\wwwroot\\js\\home-index.js",
+              "RelativeToolTip": "Graduation Project\\wwwroot\\js\\home-index.js",
+              "ViewState": "AgIAAEIAAAAAAAAAAAAiwF4AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2026-05-13T14:24:17.813Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "home-index.css",
+              "DocumentMoniker": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\wwwroot\\css\\home-index.css",
+              "RelativeDocumentMoniker": "Graduation Project\\wwwroot\\css\\home-index.css",
+              "ToolTip": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\wwwroot\\css\\home-index.css",
+              "RelativeToolTip": "Graduation Project\\wwwroot\\css\\home-index.css",
+              "ViewState": "AgIAAKsGAAAAAAAAAAAcwMgGAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2026-05-13T14:24:11.978Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "Index.cshtml",
+              "DocumentMoniker": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\Views\\Home\\Index.cshtml",
+              "RelativeDocumentMoniker": "Graduation Project\\Views\\Home\\Index.cshtml",
+              "ToolTip": "E:\\Studing\\Project\\Graduation Project\\Graduation Project\\Views\\Home\\Index.cshtml",
+              "RelativeToolTip": "Graduation Project\\Views\\Home\\Index.cshtml",
+              "ViewState": "AgIAAAADAAAAAAAAAAAiwBwDAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-05-13T14:23:57.484Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
