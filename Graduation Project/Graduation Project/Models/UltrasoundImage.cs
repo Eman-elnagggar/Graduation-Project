@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Graduation_Project.Models
@@ -17,16 +17,16 @@ namespace Graduation_Project.Models
         [ForeignKey("Doctor")]
         public int? DoctorID { get; set; }
 
-        public string ImagePath { get; set; }
-        public string OriginalImagePath { get; set; }
-        public string ResultImagePath { get; set; }
+        public string ImagePath { get; set; } = string.Empty;
+        public string OriginalImagePath { get; set; } = string.Empty;
+        public string ResultImagePath { get; set; } = string.Empty;
         public DateTime UploadDate { get; set; }
         public UltrasoundStatus Status { get; set; }
-        public string DetectedAnomaly { get; set; }
-        public string Prediction { get; set; }
+        public string DetectedAnomaly { get; set; } = string.Empty;
+        public string Prediction { get; set; } = string.Empty;
         public double? ConfidenceScore { get; set; }
-        public string DoctorComments { get; set; }
-        public string AI_Result_JSON { get; set; }
+        public string DoctorComments { get; set; } = string.Empty;
+        public string AI_Result_JSON { get; set; } = string.Empty;
         public double? Lymphocytes { get; set; } // Included based on diagram
 
         /// <summary>true = patient self-upload (no AI); false = doctor-submitted AI scan</summary>
