@@ -1,0 +1,187 @@
+@model Graduation_Project.ViewModels.AdminUserListViewModel
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "User Management";
+    ViewData["ActivePage"] = "Users";
+    ViewData["PageTitle"] = "User Management";
+    ViewData["PageSubtitle"] = "Manage all platform users — patients, doctors, and assistants";
+
+    Func<string,string,string,string> Opt = (val, lbl, cur) =>
+        string.Format("<option value=\"{0}\"{1}>{2}</option>", val,
+            cur == val ? " selected=\"selected\"" : "", lbl);
+}
+
+<div class="um-stats">
+    <div class="um-stat">
+        <div class="um-stat-ico purple"><i class="fas fa-users"></i></div>
+        <div>
+            <div class="um-stat-val">@Model.TotalCount</div>
+            <div class="um-stat-lbl">Total Users</div>
+        </div>
+    </div>
+    <div class="um-stat">
+        <div class="um-stat-ico green"><i class="fas fa-user-check"></i></div>
+        <div>
+            <div class="um-stat-val">@Model.ActiveCount</div>
+            <div class="um-stat-lbl">Active</div>
+        </div>
+    </div>
+    <div class="um-stat">
+        <div class="um-stat-ico red"><i class="fas fa-user-slash"></i></div>
+        <div>
+            <div class="um-stat-val">@Model.InactiveCount</div>
+            <div class="um-stat-lbl">Inactive</div>
+        </div>
+    </div>
+</div>
+
+<form method="get" action="/Admin/Users">
+    <div class="um-header">
+        <div class="um-search">
+            <i class="fas fa-search"></i>
+            <input type="text" name="search" value="@Model.SearchQuery" placeholder="Search by name or email..." />
+        </div>
+        <div class="um-filters">
+            <select class="um-select" name="role" onchange="this.form.submit()">
+                @Html.Raw(Opt("", "All Roles", Model.RoleFilter ?? ""))
+                @Html.Raw(Opt("Patient",   "Patient",   Model.RoleFilter ?? ""))
+                @Html.Raw(Opt("Doctor",    "Doctor",    Model.RoleFilter ?? ""))
+                @Html.Raw(Opt("Assistant", "Assistant", Model.RoleFilter ?? ""))
+                @Html.Raw(Opt("Admin",     "Admin",     Model.RoleFilter ?? ""))
+            </select>
+            <select class="um-select" name="status" onchange="this.form.submit()">
+                @Html.Raw(Opt("",         "All Status", Model.StatusFilter ?? ""))
+                @Html.Raw(Opt("active",   "Active",     Model.StatusFilter ?? ""))
+                @Html.Raw(Opt("inactive", "Inactive",   Model.StatusFilter ?? ""))
+            </select>
+            <button type="submit" class="um-select" style="cursor:pointer;background:var(--admin-primary);color:white;border-color:var(--admin-primary);font-weight:600;">
+                <i class="fas fa-filter"></i> Filter
+            </button>
+            @if (!string.IsNullOrWhiteSpace(Model.SearchQuery) || !string.IsNullOrWhiteSpace(Model.RoleFilter) || !string.IsNullOrWhiteSpace(Model.StatusFilter))
+            {
+                <a href="/Admin/Users" class="um-select" style="text-decoration:none;display:flex;align-items:center;gap:5px;color:var(--text-secondary);">
+                    <i class="fas fa-times"></i> Clear
+                </a>
+            }
+        </div>
+    </div>
+</form>
+
+<div class="users-table-wrap">
+    @if (Model.Users.Any())
+    {
+        <table class="users-table">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Phone</th>
+                    <th>Registered</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in Model.Users)
+                {
+                    var initials = string.Concat(
+                        (user.FullName ?? "U")
+                        .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                        .Take(2)
+                        .Select(s => char.ToUpperInvariant(s[0])));
+
+                    <tr>
+                        <td>
+                            <div class="user-name-cell">
+                                <div class="user-avatar">@initials</div>
+                                <div>
+                                    <div class="user-full-name">@user.FullName</div>
+                                    <div class="user-email-sub">@user.Email</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="role-badge @user.Role">
+                                @switch (user.Role)
+                                {
+                                    case "Doctor":    { <i class="fas fa-stethoscope"></i> break; }
+                                    case "Patient":   { <i class="fas fa-user-injured"></i> break; }
+                                    case "Assistant": { <i class="fas fa-user-nurse"></i> break; }
+                                    case "Admin":     { <i class="fas fa-shield-alt"></i> break; }
+                                    default:          { <i class="fas fa-user"></i> break; }
+                                }
+                                @user.Role
+                            </span>
+                        </td>
+                        <td>
+                            <span class="status-badge @(user.IsActive ? "active" : "inactive")">
+                                <span class="status-dot @(user.IsActive ? "active" : "inactive")"></span>
+                                @(user.IsActive ? "Active" : "Inactive")
+                            </span>
+                        </td>
+                        <td style="color:var(--text-secondary);font-size:0.82rem;">
+                            @(string.IsNullOrWhiteSpace(user.PhoneNumber) ? "—" : user.PhoneNumber)
+                        </td>
+                        <td style="color:var(--text-secondary);font-size:0.82rem;">
+                            @user.CreatedDate.ToString("MMM d, yyyy")
+                        </td>
+                        <td>
+                            <div class="action-btns">
+                                <form method="post" action="/Admin/ToggleUserStatus" style="display:inline"
+                                      onsubmit="return confirm('@(user.IsActive ? "Deactivate" : "Activate") this user?')">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="userId" value="@user.UserId" />
+                                    <button type="submit"
+                                            class="btn-action @(user.IsActive ? "deactivate" : "activate")"
+                                            title="@(user.IsActive ? "Deactivate" : "Activate")">
+                                        <i class="fas @(user.IsActive ? "fa-user-slash" : "fa-user-check")"></i>
+                                    </button>
+                                </form>
+
+                                <form method="post" action="/Admin/ResetPassword" style="display:inline"
+                                      onsubmit="return confirm('Reset password for this user?')">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="userId" value="@user.UserId" />
+                                    <button type="submit" class="btn-action reset" title="Reset Password">
+                                        <i class="fas fa-key"></i>
+                                    </button>
+                                </form>
+
+                                @if (user.Role != "Admin")
+                                {
+                                    <form method="post" action="/Admin/SoftDeleteUser" style="display:inline"
+                                          onsubmit="return confirm('Soft-delete this user? Their account will be deactivated.')">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="userId" value="@user.UserId" />
+                                        <button type="submit" class="btn-action delete" title="Soft Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+
+                                    <form method="post" action="/Admin/HardDeleteUser" style="display:inline"
+                                          onsubmit="return confirm('PERMANENTLY delete this user? This cannot be undone.')">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="userId" value="@user.UserId" />
+                                        <button type="submit"
+                                                class="btn-action delete"
+                                                title="Hard Delete (Permanent)"
+                                                style="background:rgba(220,38,38,0.2);color:#ef4444;border:1px solid rgba(220,38,38,0.3);">
+                                            <i class="fas fa-skull-crossbones"></i>
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <div class="empty-state">
+            <i class="fas fa-users"></i>
+            No users found matching your filters.
+        </div>
+    }
+</div>

@@ -95,11 +95,25 @@
                 <div class="nav-icon"><i class="fas fa-prescription-bottle-alt"></i></div>
                 <span>Prescriptions</span>
             </a>
+
+            <a href="/Patient/UltrasoundHistory/@patientId"
+                   class="nav-item @(activePage == "Ultrasound" ? "active" : "")"
+                   data-tooltip="Ultrasound History">
+                <div class="nav-icon"><i class="fas fa-wave-square"></i></div>
+                <span>Ultrasound History</span>
+            </a>
+
             <a href="/PatientAlerts/Alerts/@patientId"
                class="nav-item @(activePage == "Alerts" ? "active" : "")"
                data-tooltip="Alerts">
                 <div class="nav-icon"><i class="fas fa-bell"></i></div>
                 <span>Alerts</span>
+            </a>
+            <a href="/PatientMedication/Index/@patientId"
+               class="nav-item @(activePage == "Medications" ? "active" : "")"
+               data-tooltip="Medications">
+                <div class="nav-icon"><i class="fas fa-pills"></i></div>
+                <span>Medications</span>
             </a>
             <a href="/PatientProfile/Index/@patientId"
                class="nav-item @(activePage == "Profile" ? "active" : "")" data-tooltip="My Profile">

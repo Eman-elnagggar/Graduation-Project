@@ -72,9 +72,11 @@
                         <option value="">— Select Test Type —</option>
                         <option value="cbc">CBC (Complete Blood Count)</option>
                         <option value="urinalysis">Urinalysis</option>
-                        <option value="hba1c">HbA1c</option>
                         <option value="tsh">TSH (Thyroid)</option>
                         <option value="ferritin">Ferritin</option>
+                        <option value="fbg">Fasting Blood Glucose</option>
+                        <option value="hba1c">HbA1c (Sugar Test)</option>
+                        <option value="hcv">HCV (Hepatitis C)</option>
                         <option value="hbsag">HBsAg (Hepatitis B)</option>
                         <option value="bloodgroup">Blood Group</option>
                     </select>
@@ -213,58 +215,369 @@
 </section>
 
 <!-- ══════════════════════════════════════════
-     PREVIOUS TESTS
+     PREVIOUS TESTS — CLEAN TABLE WITH PAGINATION
 ══════════════════════════════════════════ -->
+@{
+    var testTypeNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        { "cbc",       "CBC" },
+        { "urinalysis","Urinalysis" },
+        { "tsh",       "TSH" },
+        { "ferritin",  "Ferritin" },
+        { "fbg",       "FBG" },
+        { "hba1c",     "HbA1c" },
+        { "hcv",       "HCV" },
+        { "hbsag",     "HBsAg" },
+        { "bloodgroup","Blood Group" }
+    };
+
+    var previousTests = ViewBag.PreviousTests as IEnumerable<Graduation_Project.Models.LabTest>
+                        ?? Enumerable.Empty<Graduation_Project.Models.LabTest>();
+
+    string GetStatusClass(string status) =>
+        (status ?? "").ToLower() switch
+        {
+            "reviewed"  => "reviewed",
+            "completed" => "reviewed",
+            "pending"   => "pending",
+            _           => "pending"
+        };
+
+    string GetResultClass(string result) =>
+        (result ?? "").ToLower() switch
+        {
+            "normal"                    => "normal",
+            "all values normal"         => "normal",
+            "abnormal"                  => "high",
+            "abnormal values detected"  => "high",
+            "attention"                 => "warning",
+            "some values below normal"  => "warning",
+            "requires attention"        => "warning",
+            _                           => "pending"
+        };
+
+    string ShortResult(string result) =>
+        (result ?? "").ToLower() switch
+        {
+            "all values normal"         => "Normal",
+            "abnormal values detected"  => "Abnormal",
+            "some values below normal"  => "Attention",
+            _ => string.IsNullOrWhiteSpace(result) ? "—" : result
+        };
+
+    string ShortStatus(string status) =>
+        (status ?? "").ToLower() switch
+        {
+            "completed"  => "Reviewed",
+            "reviewed"   => "Reviewed",
+            "processing" => "Processing",
+            "failed"     => "Failed",
+            _            => string.IsNullOrWhiteSpace(status) ? "Pending" : status
+        };
+
+    string ResolveName(string? testType, string? testName) =>
+        testTypeNames.TryGetValue(testType ?? "", out var rn) ? rn
+        : (!string.IsNullOrWhiteSpace(testName) ? testName! : testType ?? "Unknown");
+
+    var groupedSessions = previousTests
+        .Where(t => t.ReportID.HasValue)
+        .GroupBy(t => t.ReportID!.Value)
+        .Select(g =>
+        {
+            var sorted     = g.OrderBy(t => t.UploadDate).ToList();
+            var report     = sorted.Select(t => t.TestReport).FirstOrDefault(r => r != null);
+            var names      = sorted.Select(t => ResolveName(t.TestType, t.TestName)).ToList();
+            var viewTestId = sorted.FirstOrDefault(t => t.TestReport?.OverallStatus != null)?.LabTestID
+                             ?? sorted.Last().LabTestID;
+            var testImages  = sorted
+                .Where(t => !string.IsNullOrWhiteSpace(t.ImagePath))
+                .Select(t => new { Name = ResolveName(t.TestType, t.TestName), Path = t.ImagePath! })
+                .ToList();
+            return new
+            {
+                Date        = sorted.Max(t => t.UploadDate),
+                Names       = names,
+                Status      = report?.AnalysisStatus ?? sorted.Last().AnalysisStatus ?? "",
+                Overall     = report?.OverallStatus,
+                HasReport   = report?.OverallStatus != null,
+                ViewTestId  = viewTestId,
+                TestImages  = testImages
+            };
+        })
+        .OrderByDescending(g => g.Date)
+        .ToList();
+
+    var orphanTests = previousTests
+        .Where(t => !t.ReportID.HasValue)
+        .OrderByDescending(t => t.UploadDate)
+        .ToList();
+}
+
 <section class="tu-section">
     <div class="tu-card">
-        <div class="tu-card-header">
+        <div class="tu-card-header" style="padding: 1.25rem 1.5rem;">
             <div class="tu-card-title">
-                <div class="tu-card-icon-wrap tu-icon-history"><i class="fas fa-history"></i></div>
+                <div class="tu-card-icon-wrap tu-icon-history">
+                    <i class="fas fa-history"></i>
+                </div>
                 <div>
-                    <h3>Previous Tests</h3>
-                    <p>Your recent lab test history</p>
+                    <h3>Test History</h3>
+                    <p>View and manage your previous lab tests</p>
                 </div>
             </div>
-            <a href="#" class="tu-view-all">View All <i class="fas fa-arrow-right"></i></a>
+            @if (groupedSessions.Any() || orphanTests.Any())
+            {
+                <div class="tu-history-meta">
+                    <span class="tu-history-count">@((groupedSessions.Count() + orphanTests.Count())) tests</span>
+                </div>
+            }
         </div>
-        <div class="tu-table-wrap">
-            <table class="tu-table">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Test Type</th>
-                        <th>Status</th>
-                        <th>Result</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><span class="tu-date"><i class="fas fa-calendar-alt"></i> Mar 15, 2025</span></td>
-                        <td><span class="tu-test-name">CBC</span></td>
-                        <td><span class="tu-badge-status reviewed">Reviewed</span></td>
-                        <td><span class="tu-badge-status normal">Normal</span></td>
-                        <td><button class="tu-btn tu-btn-sm" type="button"><i class="fas fa-eye"></i> View</button></td>
-                    </tr>
-                    <tr>
-                        <td><span class="tu-date"><i class="fas fa-calendar-alt"></i> Mar 10, 2025</span></td>
-                        <td><span class="tu-test-name">Urinalysis</span></td>
-                        <td><span class="tu-badge-status reviewed">Reviewed</span></td>
-                        <td><span class="tu-badge-status warning">Attention</span></td>
-                        <td><button class="tu-btn tu-btn-sm" type="button"><i class="fas fa-eye"></i> View</button></td>
-                    </tr>
-                    <tr>
-                        <td><span class="tu-date"><i class="fas fa-calendar-alt"></i> Mar 01, 2025</span></td>
-                        <td><span class="tu-test-name">HbA1c</span></td>
-                        <td><span class="tu-badge-status reviewed">Reviewed</span></td>
-                        <td><span class="tu-badge-status normal">Normal</span></td>
-                        <td><button class="tu-btn tu-btn-sm" type="button"><i class="fas fa-eye"></i> View</button></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        
+        @if (!groupedSessions.Any() && !orphanTests.Any())
+        {
+            <div class="tu-empty-state">
+                <div class="tu-empty-icon">
+                    <i class="fas fa-flask"></i>
+                </div>
+                <h4>No Test History</h4>
+                <p>Your uploaded tests will appear here</p>
+            </div>
+        }
+        else
+        {
+            <!-- Filter & Search Bar -->
+            <div class="tu-history-toolbar">
+                <div class="tu-search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="historySearch" placeholder="Search tests..." />
+                </div>
+                <div class="tu-filter-group">
+                    <select id="statusFilter" class="tu-filter-select">
+                        <option value="">All Status</option>
+                        <option value="reviewed">Reviewed</option>
+                        <option value="pending">Pending</option>
+                    </select>
+                    <select id="resultFilter" class="tu-filter-select">
+                        <option value="">All Results</option>
+                        <option value="normal">Normal</option>
+                        <option value="warning">Attention</option>
+                        <option value="high">Abnormal</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="tu-history-table-wrap">
+                <table class="tu-history-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Test Type</th>
+                            <th>Status</th>
+                            <th>Result</th>
+                            <th class="tu-th-actions">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                        @foreach (var session in groupedSessions)
+                        {
+                            var statusClass  = GetStatusClass(session.Status);
+                            var resultText   = ShortResult(session.Overall);
+                            var resultClass  = GetResultClass(session.Overall);
+                            var joinedNames  = string.Join(", ", session.Names);
+                            var imagesJson   = session.TestImages.Any() ? System.Text.Json.JsonSerializer.Serialize(session.TestImages.Select(i => new { name = i.Name, path = i.Path })) : "";
+                            
+                            <tr class="tu-history-row" data-status="@statusClass" data-result="@resultClass" data-search="@joinedNames.ToLower() @session.Date.ToString("MMM dd, yyyy").ToLower()">
+                                <td>
+                                    <span class="tu-history-date">@session.Date.ToString("MMM dd, yyyy")</span>
+                                    <span class="tu-history-time">@session.Date.ToString("HH:mm")</span>
+                                </td>
+                                <td>
+                                    <div class="tu-test-type-cell">
+                                        @if (session.Names.Count == 1)
+                                        {
+                                            <span class="tu-test-type-single">@session.Names[0]</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="tu-test-type-main">@session.Names[0]</span>
+                                            <span class="tu-test-type-extra">+@(session.Names.Count - 1) more</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="tu-status-dot @statusClass"></span>
+                                    <span class="tu-status-text">@ShortStatus(session.Status)</span>
+                                </td>
+                                <td>
+                                    @if (session.HasReport)
+                                    {
+                                        <span class="tu-result-badge @resultClass">@resultText</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="tu-result-pending">—</span>
+                                    }
+                                </td>
+                                <td class="tu-actions-cell">
+                                    <div class="tu-action-btns">
+                                        @if (session.TestImages.Any())
+                                        {
+                                            <button class="tu-action-btn tu-btn-view-images"
+                                                    data-images="@imagesJson"
+                                                    data-test-name="@joinedNames"
+                                                    data-test-date="@session.Date.ToString("MMM dd, yyyy")"
+                                                    type="button"
+                                                    title="View Images">
+                                                <i class="fas fa-images"></i>
+                                            </button>
+                                        }
+                                        @if (session.HasReport)
+                                        {
+                                            <button class="tu-action-btn tu-action-primary tu-btn-view-report"
+                                                    data-test-id="@session.ViewTestId"
+                                                    data-test-name="@joinedNames"
+                                                    data-test-date="@session.Date.ToString("MMM dd, yyyy")"
+                                                    data-result="@resultText"
+                                                    data-result-class="@resultClass"
+                                                    type="button"
+                                                    title="View Report">
+                                                <i class="fas fa-file-medical-alt"></i>
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="tu-processing-badge">
+                                                <i class="fas fa-clock"></i>
+                                            </span>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+
+                        @foreach (var test in orphanTests)
+                        {
+                            var displayName = ResolveName(test.TestType, test.TestName);
+                            
+                            <tr class="tu-history-row" data-status="pending" data-result="pending" data-search="@displayName.ToLower() @test.UploadDate.ToString("MMM dd, yyyy").ToLower()">
+                                <td>
+                                    <span class="tu-history-date">@test.UploadDate.ToString("MMM dd, yyyy")</span>
+                                    <span class="tu-history-time">@test.UploadDate.ToString("HH:mm")</span>
+                                </td>
+                                <td>
+                                    <span class="tu-test-type-single">@displayName</span>
+                                </td>
+                                <td>
+                                    <span class="tu-status-dot pending"></span>
+                                    <span class="tu-status-text">@ShortStatus(test.AnalysisStatus)</span>
+                                </td>
+                                <td>
+                                    <span class="tu-result-pending">—</span>
+                                </td>
+                                <td class="tu-actions-cell">
+                                    <div class="tu-action-btns">
+                                        <span class="tu-processing-badge">
+                                            <i class="fas fa-clock"></i>
+                                        </span>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="tu-pagination" id="historyPagination">
+                <div class="tu-pagination-info">
+                    <span id="paginationInfo">Showing 1-10 of @((groupedSessions.Count() + orphanTests.Count()))</span>
+                </div>
+                <div class="tu-pagination-controls">
+                    <button class="tu-page-btn" id="prevPage" disabled>
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="tu-page-numbers" id="pageNumbers"></div>
+                    <button class="tu-page-btn" id="nextPage">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                <div class="tu-pagination-size">
+                    <select id="pageSize" class="tu-page-size-select">
+                        <option value="5">5 / page</option>
+                        <option value="10">10 / page</option>
+                        <option value="25">25 / page</option>
+                    </select>
+                </div>
+            </div>
+        }
     </div>
 </section>
+
+<!-- ══════════════════════════════════════════
+       IMAGE GALLERY MODAL
+  ══════════════════════════════════════════ -->
+  <div id="tuImageGallery" class="tu-gallery-overlay" role="dialog" aria-modal="true" aria-label="Test Images" style="display:none">
+      <div class="tu-gallery">
+          <div class="tu-gallery-hdr">
+              <div class="tu-gallery-hdr-left">
+                  <div class="tu-card-icon-wrap tu-icon-history"><i class="fas fa-images"></i></div>
+                  <div>
+                      <h4 id="tuGalleryTitle">Test Images</h4>
+                      <p id="tuGallerySubtitle" style="margin:0;font-size:.8rem;color:var(--tu-muted)"></p>
+                  </div>
+              </div>
+              <button id="tuGalleryClose" class="tu-modal-close" type="button" aria-label="Close"><i class="fas fa-times"></i></button>
+          </div>
+          <div class="tu-gallery-body">
+              <div id="tuGalleryGrid" class="tu-gallery-grid"></div>
+          </div>
+      </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+     REPORT MODAL
+══════════════════════════════════════════ -->
+<div id="tuReportModal" class="tu-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="tuModalTitle" style="display:none">
+    <div class="tu-modal">
+        <div class="tu-modal-hdr">
+            <div class="tu-modal-hdr-left">
+                <div class="tu-card-icon-wrap tu-icon-report"><i class="fas fa-file-medical-alt"></i></div>
+                <div>
+                    <h3 id="tuModalTitle">Test Report</h3>
+                    <p id="tuModalSubtitle">Loading report…</p>
+                </div>
+            </div>
+            <div class="tu-modal-hdr-right">
+                <span id="tuModalResultBadge" class="tu-badge-status" style="display:none"></span>
+                <button class="tu-modal-close-btn" id="tuModalClose" type="button" aria-label="Close"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+
+        <div class="tu-modal-body" id="tuModalBody">
+            <!-- Loading state -->
+            <div id="tuModalLoading" class="tu-modal-loading-wrap">
+                <div class="tu-report-spinner"><i class="fas fa-brain"></i></div>
+                <p>Fetching report from database…</p>
+            </div>
+            <!-- Report content -->
+            <div id="tuModalContent" style="display:none">
+                <div id="tuModalVerdictRow" class="tu-report-verdict-row" style="padding:1rem 1.5rem 0"></div>
+                <div id="tuModalReportContent"></div>
+            </div>
+            <!-- Error state -->
+            <div id="tuModalError" style="display:none;text-align:center;padding:3rem 1.5rem;color:var(--tu-muted)">
+                <i class="fas fa-exclamation-circle" style="font-size:2rem;display:block;margin-bottom:.75rem;color:#ef9a9a"></i>
+                <p id="tuModalErrorMsg">Could not load the report.</p>
+            </div>
+        </div>
+
+        <div class="tu-modal-footer">
+            <button class="tu-btn tu-btn-ghost" id="tuModalCloseFooter" type="button"><i class="fas fa-times"></i> Close</button>
+        </div>
+    </div>
+</div>
+
 
 @section Styles {
 <style>
@@ -705,27 +1018,456 @@
 .tu-badge-status.pending  { background: #fff3e0; color: #e65100;  border: 1px solid #ffcc80; }
 
 /* ════════════════════════════════════════════
-   PREVIOUS TESTS TABLE
+   TEST HISTORY — CLEAN TABLE DESIGN
 ════════════════════════════════════════════ */
-.tu-table-wrap { overflow-x: auto; }
-.tu-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
-.tu-table thead th {
-    padding: .75rem 1.2rem; text-align: left; font-size: .75rem; font-weight: 700;
-    text-transform: uppercase; letter-spacing: .05em; color: var(--tu-muted);
-    border-bottom: 1.5px solid var(--tu-border); background: #fafbfc; white-space: nowrap;
+
+/* History Meta */
+.tu-history-meta {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
 }
-.tu-table tbody tr { border-bottom: 1px solid var(--tu-border); transition: background .15s; }
-.tu-table tbody tr:last-child { border-bottom: none; }
-.tu-table tbody tr:hover { background: #f8fafc; }
-.tu-table tbody td { padding: .75rem 1.2rem; color: var(--tu-text); vertical-align: middle; }
-.tu-date { display: inline-flex; align-items: center; gap: .45rem; font-size: .83rem; color: var(--tu-muted); }
-.tu-date i { color: var(--tu-primary); }
-.tu-test-name { font-weight: 600; color: var(--tu-text); }
-.tu-view-all {
-    display: inline-flex; align-items: center; gap: .4rem; font-size: .8rem; font-weight: 700;
-    color: var(--tu-primary); text-decoration: none; transition: gap .2s; white-space: nowrap;
+
+.tu-history-count {
+    font-size: .82rem;
+    font-weight: 600;
+    color: var(--tu-muted);
+    padding: .3rem .75rem;
+    background: var(--tu-light);
+    border-radius: 20px;
+    border: 1px solid var(--tu-border);
 }
-.tu-view-all:hover { gap: .65rem; }
+
+/* Empty State */
+.tu-empty-state {
+    text-align: center;
+    padding: 3.5rem 2rem;
+    color: var(--tu-muted);
+}
+
+.tu-empty-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1rem;
+    border-radius: 50%;
+    background: var(--tu-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    color: var(--tu-primary);
+}
+
+.tu-empty-state h4 {
+    margin: 0 0 .4rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--tu-text);
+}
+
+.tu-empty-state p {
+    margin: 0;
+    font-size: .85rem;
+    color: var(--tu-muted);
+}
+
+/* Toolbar */
+.tu-history-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--tu-border);
+    background: #fafbfc;
+    flex-wrap: wrap;
+}
+
+.tu-search-box {
+    position: relative;
+    flex: 1;
+    min-width: 200px;
+    max-width: 320px;
+}
+
+.tu-search-box i {
+    position: absolute;
+    left: .85rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--tu-muted);
+    font-size: .8rem;
+}
+
+.tu-search-box input {
+    width: 100%;
+    padding: .55rem .85rem .55rem 2.5rem;
+    border: 1px solid var(--tu-border);
+    border-radius: 8px;
+    font-size: .85rem;
+    color: var(--tu-text);
+    background: #fff;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+}
+
+.tu-search-box input:focus {
+    border-color: var(--tu-primary);
+    box-shadow: 0 0 0 3px rgba(27,174,190,.08);
+}
+
+.tu-filter-group {
+    display: flex;
+    gap: .5rem;
+    flex-wrap: wrap;
+}
+
+.tu-filter-select {
+    padding: .55rem .85rem;
+    border: 1px solid var(--tu-border);
+    border-radius: 8px;
+    font-size: .82rem;
+    color: var(--tu-text);
+    background: #fff;
+    cursor: pointer;
+    outline: none;
+    transition: border-color .2s;
+}
+
+.tu-filter-select:focus {
+    border-color: var(--tu-primary);
+}
+
+/* Table */
+.tu-history-table-wrap {
+    overflow-x: auto;
+}
+
+.tu-history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .85rem;
+}
+
+.tu-history-table thead th {
+    padding: .85rem 1.2rem;
+    text-align: center;
+    font-size: .75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--tu-muted);
+    background: #fafbfc;
+    border-bottom: 2px solid var(--tu-border);
+    white-space: nowrap;
+}
+
+.tu-th-actions {
+    text-align: center;
+}
+
+.tu-history-table tbody tr {
+    border-bottom: 1px solid var(--tu-border);
+    transition: background .15s;
+}
+
+.tu-history-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.tu-history-table tbody tr:hover {
+    background: #fafbfc;
+}
+
+.tu-history-table tbody td {
+    padding: 1rem 1.2rem;
+    color: var(--tu-text);
+    vertical-align: middle;
+    text-align: center;
+}
+
+/* Date Column */
+.tu-history-date {
+    display: block;
+    font-size: .85rem;
+    font-weight: 600;
+    color: var(--tu-text);
+    margin-bottom: .1rem;
+}
+
+.tu-history-time {
+    display: block;
+    font-size: .75rem;
+    color: var(--tu-muted);
+}
+
+/* Test Type Column */
+.tu-test-type-cell {
+    display: flex;
+    flex-direction: column;
+    gap: .2rem;
+}
+
+.tu-test-type-single,
+.tu-test-type-main {
+    font-size: .85rem;
+    font-weight: 600;
+    color: var(--tu-text);
+}
+
+.tu-test-type-extra {
+    font-size: .75rem;
+    color: var(--tu-muted);
+}
+
+/* Status Column */
+.tu-status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: .5rem;
+    vertical-align: middle;
+}
+
+.tu-status-dot.reviewed {
+    background: var(--tu-primary);
+}
+
+.tu-status-dot.pending {
+    background: #f59e0b;
+}
+
+.tu-status-text {
+    font-size: .82rem;
+    font-weight: 500;
+    color: var(--tu-text);
+}
+
+/* Result Column */
+.tu-result-badge {
+    display: inline-block;
+    padding: .3rem .7rem;
+    border-radius: 6px;
+    font-size: .78rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.tu-result-badge.normal {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.tu-result-badge.warning {
+    background: #fff3e0;
+    color: #e65100;
+}
+
+.tu-result-badge.high {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.tu-result-pending {
+    color: var(--tu-muted);
+    font-size: .82rem;
+}
+
+/* Actions Column */
+.tu-actions-cell {
+    text-align: center;
+    width: 180px;
+}
+
+.tu-action-btns {
+    display: inline-flex;
+    gap: .4rem;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.tu-action-btn {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--tu-border);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--tu-muted);
+    font-size: .8rem;
+    cursor: pointer;
+    transition: all .2s;
+}
+
+.tu-action-btn:hover {
+    background: var(--tu-light);
+    border-color: var(--tu-primary);
+    color: var(--tu-primary);
+}
+
+.tu-action-primary {
+    border-color: var(--tu-primary);
+    color: var(--tu-primary);
+    background: rgba(27,174,190,.05);
+}
+
+.tu-action-primary:hover {
+    background: var(--tu-primary);
+    color: #fff;
+}
+
+.tu-processing-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    color: var(--tu-muted);
+    font-size: .75rem;
+}
+
+/* Pagination */
+.tu-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--tu-border);
+    background: #fafbfc;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.tu-pagination-info {
+    font-size: .8rem;
+    color: var(--tu-muted);
+}
+
+.tu-pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.tu-page-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--tu-border);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--tu-muted);
+    font-size: .75rem;
+    cursor: pointer;
+    transition: all .2s;
+}
+
+.tu-page-btn:hover:not(:disabled) {
+    background: var(--tu-primary);
+    border-color: var(--tu-primary);
+    color: #fff;
+}
+
+.tu-page-btn:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+}
+
+.tu-page-numbers {
+    display: flex;
+    gap: .3rem;
+}
+
+.tu-page-num {
+    min-width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 .5rem;
+    border: 1px solid var(--tu-border);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--tu-text);
+    font-size: .82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+}
+
+.tu-page-num:hover {
+    background: var(--tu-light);
+    border-color: var(--tu-primary);
+}
+
+.tu-page-num.active {
+    background: var(--tu-primary);
+    border-color: var(--tu-primary);
+    color: #fff;
+}
+
+.tu-pagination-size {
+    margin-left: auto;
+}
+
+.tu-page-size-select {
+    padding: .45rem .7rem;
+    border: 1px solid var(--tu-border);
+    border-radius: 6px;
+    font-size: .8rem;
+    color: var(--tu-text);
+    background: #fff;
+    cursor: pointer;
+    outline: none;
+}
+
+/* Responsive */
+@@media (max-width: 768px) {
+    .tu-history-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .tu-search-box {
+        max-width: none;
+    }
+    
+    .tu-filter-group {
+        width: 100%;
+    }
+    
+    .tu-filter-select {
+        flex: 1;
+    }
+    
+    .tu-pagination {
+        flex-direction: column;
+        gap: .75rem;
+    }
+    
+    .tu-pagination-info,
+    .tu-pagination-size {
+        margin: 0;
+        width: 100%;
+        text-align: center;
+    }
+    
+    .tu-history-table {
+        font-size: .8rem;
+    }
+    
+    .tu-history-table thead th,
+    .tu-history-table tbody td {
+        padding: .75rem .8rem;
+        text-align: center;
+    }
+}
 
 /* ════════════════════════════════════════════
    BUTTONS
@@ -762,11 +1504,193 @@
 .tu-btn-lg { padding: .72rem 1.6rem; font-size: .9rem; }
 
 /* ════════════════════════════════════════════
+   PERSONAL INFO GRID
+════════════════════════════════════════════ */
+.tu-pi-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: .7rem;
+}
+.tu-pi-card {
+    display: flex; align-items: center; gap: .7rem;
+    padding: .7rem .9rem; border-radius: 12px;
+    background: var(--tu-light); border: 1.5px solid var(--tu-border);
+    transition: box-shadow .2s, transform .2s;
+}
+.tu-pi-card:hover { box-shadow: var(--tu-shadow); transform: translateY(-1px); }
+.tu-pi-icon {
+    width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+    background: rgba(27,174,190,.1); color: var(--tu-primary);
+    display: flex; align-items: center; justify-content: center; font-size: .85rem;
+}
+.tu-pi-info { display: flex; flex-direction: column; min-width: 0; }
+.tu-pi-label { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--tu-muted); }
+.tu-pi-value { font-size: .92rem; font-weight: 700; color: var(--tu-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ════════════════════════════════════════════
+   RISK PREDICTION BANNER
+════════════════════════════════════════════ */
+.tu-risk-banner {
+    display: flex; align-items: center; gap: 1rem;
+    padding: 1rem 1.3rem; border-radius: 14px;
+    font-size: .95rem; font-weight: 600;
+}
+.tu-risk-banner i { font-size: 1.5rem; flex-shrink: 0; }
+.tu-risk-banner.safe    { background: #e8f5e9; color: #1b5e20; border: 1.5px solid #a5d6a7; }
+.tu-risk-banner.warning { background: #fff3e0; color: #b84700; border: 1.5px solid #ffcc80; }
+.tu-risk-banner.danger  { background: #ffebee; color: #b71c1c; border: 1.5px solid #ef9a9a; }
+.tu-risk-conf { display: block; font-size: .78rem; font-weight: 600; opacity: .8; margin-top: .15rem; }
+
+/* ════════════════════════════════════════════
+   AI MEDICAL REPORT TEXT
+════════════════════════════════════════════ */
+.tu-ai-report-section { background: rgba(27,174,190,.02); }
+.tu-ai-report-body { padding: .5rem 0; line-height: 1.7; }
+.tu-report-heading {
+    margin: 1rem 0 .4rem; font-size: .92rem; font-weight: 800; color: var(--tu-text);
+    padding-bottom: .3rem; border-bottom: 2px solid rgba(27,174,190,.2);
+}
+.tu-report-para { margin: 0 0 .6rem; font-size: .86rem; color: #334155; line-height: 1.7; }
+.tu-report-bullet {
+    display: flex; align-items: flex-start; gap: .5rem;
+    margin: 0 0 .4rem; font-size: .84rem; color: #334155; line-height: 1.6;
+    list-style: none; padding-left: .5rem;
+}
+.tu-report-bullet i { color: var(--tu-primary); margin-top: .22rem; flex-shrink: 0; font-size: .7rem; }
+
+/* ════════════════════════════════════════════
    ANIMATIONS
 ════════════════════════════════════════════ */
 @@keyframes tuFadeIn    { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @@keyframes tuPulse     { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.45; transform:scale(.75); } }
-@@keyframes tuSpinPulse { 0%,100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.07); opacity:.65; } }
+@@keyframes tuSpinPulse { 0%,100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.07); opacity:.65); } }
+
+/* ════════════════════════════════════════════
+   REPORT MODAL
+════════════════════════════════════════════ */
+.tu-modal-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(15,35,60,.65); backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 1rem; animation: tuFadeIn .2s ease;
+}
+.tu-modal {
+    background: #fff; border-radius: 20px;
+    width: 100%; max-width: 860px; max-height: 92vh;
+    display: flex; flex-direction: column;
+    box-shadow: 0 24px 80px rgba(0,0,0,.22);
+    overflow: hidden; animation: tuSlideUp .25s ease;
+}
+@@keyframes tuSlideUp { from { opacity:0; transform: translateY(24px); } to { opacity:1; transform: translateY(0); } }
+.tu-modal-hdr {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: .75rem; flex-wrap: wrap;
+    padding: 1.3rem 1.5rem; border-bottom: 1.5px solid var(--tu-border);
+    background: linear-gradient(135deg,#0f2942 0%,#1a4a6e 50%,#0d3d5c 100%);
+    flex-shrink: 0;
+}
+.tu-modal-hdr-left  { display: flex; align-items: flex-start; gap: .75rem; }
+.tu-modal-hdr-left h3 { margin:0 0 .1rem; font-size:1rem; font-weight:800; color:#f1f5f9; }
+.tu-modal-hdr-left p  { margin:0; font-size:.78rem; color:#94a3b8; }
+.tu-modal-hdr-right { display:flex; align-items:center; gap:.65rem; flex-wrap:wrap; }
+.tu-modal-close-btn {
+    width:34px; height:34px; border-radius:50%; border:1.5px solid rgba(255,255,255,.25);
+    background:rgba(255,255,255,.1); color:#e2e8f0; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-size:.85rem;
+    transition: background .2s;
+}
+.tu-modal-close-btn:hover { background:rgba(255,255,255,.22); }
+.tu-modal-hdr .tu-card-icon-wrap { background:rgba(27,174,190,.25); color:#7de8f4; flex-shrink:0; }
+
+.tu-modal-body {
+    overflow-y: auto; flex: 1;
+    scrollbar-width: thin; scrollbar-color: var(--tu-border) transparent;
+}
+.tu-modal-loading-wrap {
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:3.5rem 1.5rem; color:var(--tu-muted); gap:.85rem;
+}
+.tu-modal-loading-wrap .tu-report-spinner { animation:tuSpinPulse 1.4s ease-in-out infinite; font-size:2.4rem; color:var(--tu-primary); }
+.tu-modal-loading-wrap p { margin:0; font-size:.9rem; }
+.tu-modal-footer {
+    padding:.9rem 1.5rem; border-top:1.5px solid var(--tu-border);
+    background:#fafbfc; display:flex; align-items:center; justify-content:flex-end;
+    gap:.65rem; flex-shrink:0;
+}
+.tu-btn-view-report {
+    background:rgba(27,174,190,.08); color:var(--tu-primary);
+    border:1.5px solid rgba(27,174,190,.3); gap:.35rem;
+}
+.tu-btn-view-report:hover:not(:disabled) { background:rgba(27,174,190,.16); border-color:var(--tu-primary); }
+.tu-pending-label { font-size:.75rem; color:var(--tu-muted); display:inline-flex; align-items:center; gap:.3rem; }
+.tu-pending-label i { font-size:.7rem; }
+.tu-test-names-cell { display:flex; flex-wrap:wrap; gap:.3rem; align-items:center; }
+.tu-test-badge {
+    display:inline-flex; align-items:center;
+    padding:.18rem .6rem; border-radius:20px;
+    background:rgba(27,174,190,.08); border:1px solid rgba(27,174,190,.22);
+    color:var(--tu-primary); font-size:.75rem; font-weight:600; white-space:nowrap;
+}
+.tu-test-badge-js {
+    display:inline-flex; align-items:center;
+    padding:.18rem .6rem; border-radius:20px;
+    background:rgba(27,174,190,.08); border:1px solid rgba(27,174,190,.22);
+    color:var(--tu-primary); font-size:.75rem; font-weight:600; white-space:nowrap;
+}
+  .tu-action-cell { display:flex; flex-direction:row; gap:.45rem; align-items:center; justify-content:center; flex-wrap:wrap; }
+  .tu-btn-view-images {
+      background:rgba(120,80,200,.08); color:#7850c8;
+      border:1.5px solid rgba(120,80,200,.25); gap:.35rem;
+  }
+  .tu-btn-view-images:hover:not(:disabled) { background:rgba(120,80,200,.15); border-color:#7850c8; }
+  .tu-btn-view-images,
+  .tu-btn-view-report {
+      justify-content: center;
+  }
+  .tu-gallery-overlay {
+      position:fixed; inset:0; background:rgba(10,20,40,.55); backdrop-filter:blur(4px);
+      display:flex; align-items:center; justify-content:center; z-index:1100; padding:1rem;
+  }
+  .tu-gallery {
+      background:#fff; border-radius:1.2rem; width:100%; max-width:720px;
+      max-height:88vh; display:flex; flex-direction:column; overflow:hidden;
+      box-shadow:0 20px 60px rgba(10,20,40,.22);
+  }
+  .tu-gallery-hdr {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:1.1rem 1.4rem; border-bottom:1.5px solid var(--tu-border); flex-shrink:0;
+  }
+  .tu-gallery-hdr-left { display:flex; align-items:center; gap:.8rem; }
+  .tu-gallery-hdr-left h4 { margin:0; font-size:1rem; font-weight:700; color:var(--tu-dark); }
+  .tu-gallery-body { overflow-y:auto; padding:1.4rem; flex:1; }
+  .tu-gallery-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:1rem; }
+  .tu-gallery-item {
+      border-radius:.75rem; overflow:hidden; border:1.5px solid var(--tu-border);
+      background:#f8f9fb; transition:box-shadow .2s,transform .2s; cursor:pointer;
+  }
+  .tu-gallery-item:hover { box-shadow:0 6px 20px rgba(27,174,190,.18); transform:translateY(-2px); }
+  .tu-gallery-item a { display:flex; flex-direction:column; text-decoration:none; color:inherit; }
+  .tu-gallery-item img { width:100%; height:160px; object-fit:cover; display:block; }
+  .tu-gallery-item-name {
+      padding:.5rem .7rem; font-size:.78rem; font-weight:600;
+      color:var(--tu-dark); text-align:center; background:#fff;
+      border-top:1px solid var(--tu-border); white-space:nowrap;
+      overflow:hidden; text-overflow:ellipsis;
+  }
+  .tu-gallery-pdf {
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      padding:1.5rem 1rem; min-height:160px;
+  }
+  .tu-gallery-pdf a { display:flex; flex-direction:column; align-items:center; gap:.5rem; text-decoration:none; color:inherit; }
+  .tu-gallery-pdf .fa-file-pdf { font-size:3rem; color:#e63946; }
+  .tu-gallery-pdf .tu-gallery-item-name { border-top:none; background:transparent; }
+  .tu-gallery-hint { text-align:center; margin-top:.8rem; font-size:.78rem; color:var(--tu-muted); }
+  .tu-modal-close {
+      width:34px; height:34px; border-radius:50%; border:none;
+      background:var(--tu-light); color:var(--tu-text); cursor:pointer;
+      display:flex; align-items:center; justify-content:center; font-size:.85rem;
+      transition: background .2s;
+  }
+  .tu-modal-close:hover { background:#e2e8f0; }
+
 </style>
 }
 
@@ -784,113 +1708,228 @@
         cbc: {
             name: 'CBC (Complete Blood Count)',
             parameters: [
-                { key: 'hemoglobin',  name: 'Hemoglobin (HB)', unit: 'g/dL',         normalRange: '12–16'           },
-                { key: 'wbc',         name: 'WBC Count',        unit: '/µL',           normalRange: '4000–11000'      },
-                { key: 'rbc',         name: 'RBC Count',        unit: 'million/µL',    normalRange: '4.2–5.4'         },
-                { key: 'platelets',   name: 'Platelets',        unit: '/µL',           normalRange: '150000–400000'   },
-                { key: 'hematocrit',  name: 'Hematocrit',       unit: '%',             normalRange: '36–44'           }
+                { key: 'hb',              name: 'Hemoglobin (HB)', unit: 'g/dL',         normalRange: '12–16'           },
+                { key: 'wbc',             name: 'WBC Count',        unit: '/µL',           normalRange: '4000–11000'      },
+                { key: 'rbcs_count',      name: 'RBC Count',        unit: 'million/µL',    normalRange: '4.2–5.4'         },
+                { key: 'mcv',             name: 'MCV',              unit: 'fL',            normalRange: '80–100'          },
+                { key: 'mch',             name: 'MCH',              unit: 'pg',            normalRange: '27–33'           },
+                { key: 'mchc',            name: 'MCHC',             unit: 'g/dL',          normalRange: '32–36'           },
+                { key: 'lymphocytes',     name: 'Lymphocytes',      unit: '%',             normalRange: '20–40'           },
+                { key: 'platelet_count',  name: 'Platelets',        unit: '/µL',           normalRange: '150000–400000'   }
             ]
         },
         urinalysis: {
             name: 'Urinalysis',
             parameters: [
-                { key: 'ph',      name: 'pH',      unit: '',       normalRange: '4.5–8.0'  },
-                { key: 'protein', name: 'Protein', unit: 'mg/dL',  normalRange: '0–14'     },
-                { key: 'glucose', name: 'Glucose', unit: 'mg/dL',  normalRange: 'Negative' },
-                { key: 'ketones', name: 'Ketones', unit: '',        normalRange: 'Negative' },
-                { key: 'blood',   name: 'Blood',   unit: '',        normalRange: 'Negative' }
+                { key: 'color',            name: 'Color',            unit: '',        normalRange: 'Light Yellow'  },
+                { key: 'ph',               name: 'pH',               unit: '',        normalRange: '4.5–8.0'       },
+                { key: 'specific_gravity', name: 'Specific Gravity', unit: '',        normalRange: '1.005–1.030'   },
+                { key: 'protein',          name: 'Protein',          unit: '',        normalRange: 'Negative'      },
+                { key: 'glucose',          name: 'Glucose',          unit: '',        normalRange: 'Negative'      },
+                { key: 'ketones',          name: 'Ketones',          unit: '',        normalRange: 'Negative'      },
+                { key: 'blood',            name: 'Blood',            unit: '',        normalRange: 'Negative'      },
+                { key: 'rbcs',             name: 'RBCs',             unit: '/HPF',    normalRange: '0–5'           },
+                { key: 'leukocytes',       name: 'Leukocytes',       unit: '/HPF',    normalRange: '0–5'           },
+                { key: 'nitrite',          name: 'Nitrite',          unit: '',        normalRange: 'Negative'      }
             ]
         },
-        hba1c:     { name: 'HbA1c',               parameters: [{ key: 'hba1c',    name: 'HbA1c',      unit: '%',     normalRange: '4.0–5.6'  }] },
-        tsh:       { name: 'TSH (Thyroid)',         parameters: [
-            { key: 'tsh', name: 'TSH', unit: 'mIU/L', normalRange: '0.4–4.0' },
-            { key: 't3',  name: 'T3',  unit: 'ng/dL',  normalRange: '80–200'  },
-            { key: 't4',  name: 'T4',  unit: 'µg/dL',  normalRange: '5–12'    }
-        ]},
-        ferritin:  { name: 'Ferritin',              parameters: [{ key: 'ferritin',  name: 'Ferritin',   unit: 'ng/mL', normalRange: '12–150'   }] },
-        hbsag:     { name: 'HBsAg (Hepatitis B)',   parameters: [{ key: 'hbsag',    name: 'HBsAg',      unit: '',      normalRange: 'Negative' }] },
-        bloodgroup:{ name: 'Blood Group',            parameters: [
-            { key: 'bloodtype', name: 'Blood Type', unit: '', normalRange: 'A/B/AB/O' },
-            { key: 'rh',        name: 'Rh Factor',  unit: '', normalRange: '+/–'       }
-        ]}
+        tsh: {
+            name: 'TSH (Thyroid)',
+            parameters: [
+                { key: 'tsh', name: 'TSH', unit: 'mIU/L', normalRange: '0.4–4.0' }
+            ]
+        },
+        ferritin: {
+            name: 'Ferritin',
+            parameters: [
+                { key: 'ferritin_value', name: 'Ferritin', unit: 'ng/mL', normalRange: '12–150' }
+            ]
+        },
+        fbg: {
+            name: 'Fasting Blood Glucose',
+            parameters: [
+                { key: 'fbg', name: 'FBG', unit: 'mg/dL', normalRange: '70–100' }
+            ]
+        },
+        hba1c: {
+            name: 'HbA1c (Sugar Test)',
+            parameters: [
+                { key: 'hba1c', name: 'HbA1c', unit: '%', normalRange: '4.0–5.6' }
+            ]
+        },
+        hcv: {
+            name: 'HCV (Hepatitis C)',
+            parameters: [
+                { key: 'hcv', name: 'HCV', unit: '', normalRange: 'Non-Reactive' }
+            ]
+        },
+        hbsag: {
+            name: 'HBsAg (Hepatitis B)',
+            parameters: [
+                { key: 'hbsag', name: 'HBsAg', unit: '', normalRange: 'Non-Reactive' }
+            ]
+        },
+        bloodgroup: {
+            name: 'Blood Group',
+            parameters: [
+                { key: 'abo_group', name: 'ABO Group', unit: '', normalRange: 'A/B/AB/O' },
+                { key: 'rh_factor', name: 'Rh Factor', unit: '', normalRange: '+/–'       }
+            ]
+        }
     };
 
-    /* ══════════════════════════════════════════════════════
-       SIMULATED OCR EXTRACTION API
-       → Replace apiExtractValues() body with a real fetch() when the API is ready.
-    ══════════════════════════════════════════════════════ */
     async function apiExtractValues(testType, file) {
-        // Simulate network latency 1.2 – 2.2 s
-        await delay(1200 + Math.random() * 1000);
+        const formData = new FormData();
+        formData.append('patientId', document.body.dataset.patientId || '0');
+        formData.append('testType', testType);
+        formData.append('image', file);
+        formData.append('__RequestVerificationToken', TOKEN);
 
-        const r = (lo, hi, dec = 1) => +((Math.random() * (hi - lo) + lo).toFixed(dec));
-        const p = arr => arr[Math.floor(Math.random() * arr.length)];
+        const reportId = uploadedTests[0]?.reportId;
+        if (reportId) {
+            formData.append('reportId', reportId);
+        }
 
-        const fakeValues = {
-            cbc:       { hemoglobin: r(9.5, 17.5), wbc: r(3200, 13500, 0), rbc: r(3.5, 5.9), platelets: r(100000, 480000, 0), hematocrit: r(30, 48) },
-            urinalysis:{ ph: r(4.5, 8.5), protein: r(0, 40, 0), glucose: p(['Negative', 'Trace']), ketones: p(['Negative', 'Trace']), blood: p(['Negative', 'Trace']) },
-            hba1c:     { hba1c: r(4.0, 8.5) },
-            tsh:       { tsh: r(0.2, 6.0), t3: r(65, 230, 0), t4: r(4.0, 14.0) },
-            ferritin:  { ferritin: r(5, 200, 0) },
-            hbsag:     { hbsag: p(['Negative', 'Negative', 'Negative', 'Positive']) },
-            bloodgroup:{ bloodtype: p(['A+', 'A−', 'B+', 'B−', 'AB+', 'AB−', 'O+', 'O−']), rh: p(['+', '−']) }
-        };
+        const response = await fetchWithTimeout('/api/analysis', {
+            method: 'POST',
+            body: formData
+        }, 45000);
 
+        if (!response.ok) {
+            const error = await safeReadError(response);
+            throw new Error(error || 'Failed to extract values from the uploaded image.');
+        }
+
+        const data = await response.json();
         return {
+            id: data.labTestId,
+            reportId: data.reportId,
             testType,
-            testTypeName: testConfigurations[testType].name,
-            fileName:     file.name,
-            confidence:   r(87, 99, 1),
-            extractedValues: fakeValues[testType] || {}
+            testTypeName: data.testName || testConfigurations[testType].name,
+            fileName: file.name,
+            confidence: data.confidence ?? '—',
+            extractedValues: data.extractedValues || {}
         };
     }
 
-    /* ══════════════════════════════════════════════════════
-       SIMULATED ANALYSIS API
-       → Replace apiAnalyzeTests() body with a real fetch() when the API is ready.
-    ══════════════════════════════════════════════════════ */
     async function apiAnalyzeTests(tests) {
-        // Actual analysis delay is driven by the loading-steps animation in the caller.
-        // This function just returns the result object.
-        let hasHigh = false, hasLow = false;
-        tests.forEach(t => {
-            testConfigurations[t.testType].parameters.forEach(p => {
-                const s = getParamStatus(t.extractedValues[p.key], p.normalRange);
+        const confirmPromises = tests.map(test => {
+            const payload = { values: test.extractedValues };
+            return fetchWithTimeout(`/api/analysis/${test.id}/confirm`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': TOKEN
+            },
+                body: JSON.stringify(payload)
+            }, 45000).then(async response => {
+                if (!response.ok) {
+                    const error = await safeReadError(response);
+                    throw new Error(error || 'Failed to confirm test values.');
+                }
+                return response.json();
+            });
+        });
+
+        await Promise.all(confirmPromises);
+        const lastTest = tests[tests.length - 1];
+        return waitForAnalysisResult(lastTest.id);
+    }
+
+    async function waitForAnalysisResult(labTestId) {
+        const maxAttempts = 20;
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            const response = await fetchWithTimeout(`/api/analysis/${labTestId}`, {}, 15000);
+            if (!response.ok) {
+                const error = await safeReadError(response);
+                throw new Error(error || 'Failed to fetch analysis status.');
+            }
+            const data = await response.json();
+            if (data.status === 'Completed') {
+                return mapAnalysisResponse(data);
+            }
+            if (data.status === 'Failed') {
+                throw new Error('Analysis failed.');
+            }
+            await delay(2000);
+        }
+        throw new Error('Analysis is taking too long. Please try again later.');
+    }
+
+    async function fetchWithTimeout(url, options, timeoutMs) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            return await fetch(url, { ...options, signal: controller.signal });
+        } finally {
+            clearTimeout(timeout);
+        }
+    }
+
+    async function safeReadError(response) {
+        try {
+            const data = await response.json();
+            return data.error || data.message || null;
+        } catch {
+            return null;
+        }
+    }
+
+    function mapAnalysisResponse(data) {
+        const tests = data.tests || [];
+        let hasHigh = false;
+        let hasLow = false;
+        tests.forEach(test => {
+            const config = resolveTestConfig(test.test_name);
+            if (!config) return;
+            config.parameters.forEach(p => {
+                const s = getParamStatus(extractValue(test, p.key), p.normalRange);
                 if (s === 'high') hasHigh = true;
-                if (s === 'low')  hasLow  = true;
+                if (s === 'low') hasLow = true;
             });
         });
 
         const verdict = hasHigh ? 'danger' : hasLow ? 'warning' : 'safe';
         const overall = hasHigh ? 'Abnormal Values Detected'
-                      : hasLow  ? 'Some Values Below Normal'
-                      :           'All Values Normal';
+            : hasLow ? 'Some Values Below Normal'
+                : 'All Values Normal';
 
-        const recs = [
-            hasHigh ? 'One or more values are above the normal range — please consult your healthcare provider promptly.'
-          : hasLow  ? 'Some values are slightly below normal — discuss dietary or supplemental adjustments with your doctor.'
-          :           'All critical pregnancy markers are within safe ranges.',
-            'Schedule a follow-up with your OB/GYN to review these results in full.',
-            'Maintain a balanced pregnancy diet rich in iron, folic acid, and calcium.',
-            'Stay hydrated — at least 8 glasses of water per day is recommended.',
-            'Continue all scheduled prenatal checkups without interruption.',
-            'Do not adjust any medications or supplements without consulting your doctor.'
-        ];
+        // Extract risk from result_3 (can be object or array)
+        const riskRaw = data.riskPrediction;
+        let riskObj = {};
+        if (riskRaw && typeof riskRaw === 'object' && !Array.isArray(riskRaw)) {
+            riskObj = riskRaw;
+        } else if (Array.isArray(riskRaw)) {
+            for (let i = riskRaw.length - 1; i >= 0; i--) {
+                if (riskRaw[i] && typeof riskRaw[i] === 'object' && Object.keys(riskRaw[i]).length > 0) { riskObj = riskRaw[i]; break; }
+            }
+        }
 
         return {
             verdict,
             overall,
-            confidence: (Math.random() * 4 + 93).toFixed(1),
-            recommendations: recs
+            personalInfo: data.personalInfo || null,
+            confidence: riskObj.confidence ?? '—',
+            diabetesStatus: riskObj.diabetes_status || null,
+            recommendations: data.alerts || [],
+            tests,
+            riskLevel: riskObj.risk_level || null,
+            report: data.report || null
         };
+    }
+
+    function resolveTestConfig(testName) {
+        if (!testName) return null;
+        const normalized = testName.toLowerCase();
+        return Object.values(testConfigurations).find(cfg => cfg.name.toLowerCase() === normalized)
+            || Object.values(testConfigurations).find(cfg => normalized.includes(cfg.name.toLowerCase()));
     }
 
     /* ══════════════════════════════════════════════════════
        STATE
     ══════════════════════════════════════════════════════ */
     let queuedFiles  = [];   // { file, testType }
-    let uploadedTests = [];  // extracted + { id, approved }
-    let nextId = 1;
+    let uploadedTests = [];  // extracted + { id, approved, reportId }
 
     /* ══════════════════════════════════════════════════════
        DOM REFS
@@ -1007,6 +2046,10 @@
     ══════════════════════════════════════════════════════ */
     sendToAIBtn.addEventListener('click', async () => {
         if (!queuedFiles.length) return;
+        if (!document.body.dataset.patientId || document.body.dataset.patientId === '0') {
+            notify('Patient profile not found. Please refresh and try again.', 'error');
+            return;
+        }
         const batch = [...queuedFiles];
         queuedFiles = [];
         renderQueue();
@@ -1026,13 +2069,15 @@
             extractionBarFill.style.width = pct + '%';
             extractionStatus.textContent  = 'Reading "' + batch[i].file.name + '" (' + (i + 1) + ' of ' + batch.length + ')…';
 
-            // ↓ Replace this call with a real API request when ready ↓
-            const result = await apiExtractValues(batch[i].testType, batch[i].file);
+            try {
+                const result = await apiExtractValues(batch[i].testType, batch[i].file);
 
-            result.id       = nextId++;
-            result.approved = false;
-            uploadedTests.push(result);
-            renderTestCard(result);
+                result.approved = false;
+                uploadedTests.push(result);
+                renderTestCard(result);
+            } catch (err) {
+                notify(err?.message || 'Failed to extract values.', 'error');
+            }
         }
 
         extractionBarFill.style.width = '100%';
@@ -1058,7 +2103,7 @@
 
         let rows = '';
         cfg.parameters.forEach(param => {
-            const val    = testData.extractedValues[param.key] ?? '';
+            const val    = extractValue(testData.extractedValues, param.key) ?? '';
             const status = getParamStatus(val, param.normalRange);
             rows += '<tr>'
                 + '<td style="font-weight:600">' + escHtml(param.name) + '</td>'
@@ -1169,7 +2214,7 @@
         if (!uploadedTests.every(t => t.approved)) return;
 
         comprehensiveResults.style.display = 'block';
-        reportLoading.style.display        = 'flex';
+        reportLoading.style.display        = 'block';
         reportReady.style.display          = 'none';
         overallConfidence.style.display    = 'none';
         comprehensiveResults.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1177,42 +2222,26 @@
         submitAllBtn.disabled  = true;
         submitAllBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing…';
 
-        const steps = [
-            'Uploading approved test values to analysis engine…',
-            'Cross-referencing against pregnancy-safe reference ranges…',
-            'Evaluating blood count and metabolic markers…',
-            'Scanning for critical flags requiring immediate attention…',
-            'Generating personalised clinical recommendations…',
-            'Compiling final comprehensive report…'
-        ];
-
-        loadingStepsEl.innerHTML = steps.map((s, i) =>
-            '<div class="tu-loading-step" id="ls' + i + '"><i class="fas fa-circle"></i> ' + s + '</div>'
-        ).join('');
-
-        for (let i = 0; i < steps.length; i++) {
-            if (i > 0) {
-                const prev = document.getElementById('ls' + (i - 1));
-                if (prev) { prev.classList.remove('active'); prev.classList.add('done'); prev.querySelector('i').className = 'fas fa-check-circle'; }
-            }
-            const cur = document.getElementById('ls' + i);
-            if (cur) { cur.classList.add('active'); cur.querySelector('i').className = 'fas fa-spinner fa-spin'; }
-            reportBarFill.style.width = Math.round(((i + 1) / steps.length) * 95) + '%';
-            await delay(550 + Math.random() * 550);
-        }
-        const last = document.getElementById('ls' + (steps.length - 1));
-        if (last) { last.classList.remove('active'); last.classList.add('done'); last.querySelector('i').className = 'fas fa-check-circle'; }
-        reportBarFill.style.width = '100%';
-        await delay(500);
+        loadingStepsEl.innerHTML = '';
+        reportBarFill.style.width = '0%';
 
         // ↓ Replace this call with a real API request when ready ↓
-        const analysis = await apiAnalyzeTests(uploadedTests);
+        let analysis;
+        try {
+            analysis = await apiAnalyzeTests(uploadedTests);
+        } catch (err) {
+            notify(err?.message || 'Failed to analyze tests.', 'error');
+            reportLoading.style.display = 'none';
+            reportReady.style.display = 'none';
+            overallConfidence.style.display = 'none';
+            submitAllBtn.disabled = false;
+            submitAllBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit All Tests for Comprehensive Analysis';
+            return;
+        }
 
         generateComprehensiveReport(analysis);
-        reportLoading.style.display     = 'none';
-        reportReady.style.display       = 'block';
-        overallConfidence.style.display = 'inline-flex';
-        overallConfidence.innerHTML     = '<i class="fas fa-brain"></i> Confidence: ' + analysis.confidence + '%';
+        overallConfidence.innerHTML = '<i class="fas fa-brain"></i> Confidence: ' + analysis.confidence + '%';
+        refreshPreviousTests();
 
         document.getElementById('reportSubtitle').textContent =
             uploadedTests.length + ' test(s) · ' + new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
@@ -1222,55 +2251,113 @@
        GENERATE REPORT HTML
     ══════════════════════════════════════════════════════ */
     function generateComprehensiveReport(analysis) {
-        const iconMap  = { safe: 'fa-check-circle', warning: 'fa-exclamation-circle', danger: 'fa-exclamation-triangle' };
+        const iconMap = { safe: 'fa-check-circle', warning: 'fa-exclamation-circle', danger: 'fa-exclamation-triangle' };
 
-        // Verdict row
         reportVerdictRow.innerHTML =
             '<span class="tu-verdict-badge ' + analysis.verdict + '">'
             + '<i class="fas ' + iconMap[analysis.verdict] + '"></i> ' + escHtml(analysis.overall)
             + '</span>'
-            + '<p class="tu-verdict-summary">' + uploadedTests.length + ' test(s) analyzed &mdash; see detailed breakdown below</p>';
+            + '<p class="tu-verdict-summary">' + uploadedTests.length + ' test(s) analyzed &mdash; ' + escHtml(analysis.riskLevel || 'see detailed breakdown below') + '</p>';
 
-        // Report body
-        let html =
-            '<div class="tu-report-summary">'
+        let html = '';
+
+        // ── Personal Information (result_1) ──
+        if (analysis.personalInfo) {
+            const pi = analysis.personalInfo;
+            const piFields = [
+                { label: 'Name', value: pi.name, icon: 'fa-user' },
+                { label: 'Age', value: pi.age, icon: 'fa-birthday-cake', suffix: ' years' },
+                { label: 'Trimester', value: pi.trimester, icon: 'fa-baby' },
+                { label: 'Week', value: pi.week, icon: 'fa-calendar-week' },
+                { label: 'Baby Gender', value: pi.baby_gender, icon: 'fa-venus-mars' },
+                { label: 'Height', value: pi.height, icon: 'fa-ruler-vertical', suffix: ' cm' },
+                { label: 'Weight', value: pi.weight, icon: 'fa-weight', suffix: ' kg' },
+                { label: 'RBS Avg', value: pi.rbs_avg, icon: 'fa-tint', suffix: ' mg/dL' },
+                { label: 'BP', value: (pi.avg_systolic && pi.avg_diastolic) ? pi.avg_systolic + '/' + pi.avg_diastolic : null, icon: 'fa-heartbeat', suffix: ' mmHg' },
+                { label: 'Parity', value: pi.parity, icon: 'fa-child' },
+                { label: 'DG State', value: pi.dg_state, icon: 'fa-notes-medical' },
+                { label: 'Risk State', value: pi.risk_state, icon: 'fa-shield-alt' }
+            ];
+            let piCards = '';
+            piFields.forEach(f => {
+                if (f.value == null || f.value === '') return;
+                piCards += '<div class="tu-pi-card">'
+                    + '<div class="tu-pi-icon"><i class="fas ' + f.icon + '"></i></div>'
+                    + '<div class="tu-pi-info"><span class="tu-pi-label">' + escHtml(f.label) + '</span>'
+                    + '<span class="tu-pi-value">' + escHtml(String(f.value)) + (f.suffix || '') + '</span></div></div>';
+            });
+            html += '<div class="tu-report-section"><h5><i class="fas fa-id-card"></i> Patient Information</h5>'
+                + '<div class="tu-pi-grid">' + piCards + '</div></div>';
+        }
+
+        // ── Analysis Summary ──
+        html += '<div class="tu-report-summary">'
             + '<h4><i class="fas fa-chart-line"></i> Analysis Summary</h4>'
-            + '<p>Based on <strong>' + uploadedTests.length + '</strong> approved test(s). Review each section below for individual parameter findings.</p>'
-            + '</div>';
+            + '<p>Based on <strong>' + (analysis.tests?.length || uploadedTests.length) + '</strong> approved test(s). Review each section below.</p></div>';
 
-        uploadedTests.forEach(test => {
-            const cfg = testConfigurations[test.testType];
+        // ── Test Results (result_2) ──
+        const reportTests = analysis.tests && analysis.tests.length
+            ? analysis.tests.map(t => ({ testTypeName: t.test_name, extractedValues: t }))
+            : uploadedTests;
+        reportTests.forEach(test => {
+            const cfg = testConfigurations[test.testType] || resolveTestConfig(test.testTypeName);
+            if (!cfg) return;
+            const confVal = test.extractedValues?.confidence;
             let cards = '';
             cfg.parameters.forEach(p => {
-                const val    = test.extractedValues[p.key] ?? '—';
+                const val = extractValue(test.extractedValues, p.key) ?? '—';
                 const status = getParamStatus(val, p.normalRange);
-                cards +=
-                    '<div class="tu-insight-card ' + status + '">'
+                cards += '<div class="tu-insight-card ' + status + '">'
                     + '<div class="tu-insight-label">' + escHtml(p.name) + '</div>'
-                    + '<div class="tu-insight-value"><span class="tu-insight-dot"></span>'
-                    + escHtml(String(val))
-                    + (p.unit ? '<span class="tu-insight-unit">' + escHtml(p.unit) + '</span>' : '')
-                    + '</div>'
-                    + '<div class="tu-insight-range">Normal: ' + escHtml(p.normalRange) + (p.unit ? ' ' + p.unit : '') + '</div>'
-                    + '</div>';
+                    + '<div class="tu-insight-value"><span class="tu-insight-dot"></span>' + escHtml(String(val))
+                    + (p.unit ? '<span class="tu-insight-unit">' + escHtml(p.unit) + '</span>' : '') + '</div>'
+                    + '<div class="tu-insight-range">Normal: ' + escHtml(p.normalRange) + (p.unit ? ' ' + p.unit : '') + '</div></div>';
             });
-            html +=
-                '<div class="tu-report-section">'
-                + '<h5><i class="fas fa-vial"></i> ' + escHtml(test.testTypeName) + '</h5>'
-                + '<div class="tu-insight-grid">' + cards + '</div>'
-                + '</div>';
+            html += '<div class="tu-report-section"><h5><i class="fas fa-vial"></i> ' + escHtml(test.testTypeName || cfg.name)
+                + (confVal ? '<span class="tu-confidence-pill" style="margin-left:.75rem"><i class="fas fa-brain"></i> ' + (parseFloat(confVal) * 100).toFixed(0) + '% confidence</span>' : '')
+                + '</h5><div class="tu-insight-grid">' + cards + '</div></div>';
         });
 
-        html +=
-            '<div class="tu-recommendations">'
-            + '<h4><i class="fas fa-lightbulb"></i> Clinical Recommendations</h4>'
-            + '<ul class="tu-rec-list">'
-            + analysis.recommendations.map(r =>
-                '<li><i class="fas fa-check-circle"></i> ' + escHtml(r) + '</li>'
-            ).join('')
-            + '</ul></div>';
+        // ── Risk Prediction (result_3) ──
+        if (analysis.riskLevel || analysis.diabetesStatus) {
+            const rl = (analysis.riskLevel || '').toLowerCase();
+            const rc = rl.includes('high') ? 'danger' : rl.includes('moderate') ? 'warning' : 'safe';
+            const ri = rc === 'danger' ? 'fa-exclamation-triangle' : rc === 'warning' ? 'fa-exclamation-circle' : 'fa-shield-alt';
+            html += '<div class="tu-report-section"><h5><i class="fas fa-chart-pie"></i> Risk Prediction</h5>'
+                + '<div class="tu-risk-banner ' + rc + '"><i class="fas ' + ri + '"></i>'
+                + '<div><strong>' + escHtml(analysis.riskLevel || 'N/A') + '</strong>'
+                + (analysis.confidence !== '—' ? '<span class="tu-risk-conf">' + analysis.confidence + '% confidence</span>' : '')
+                + (analysis.diabetesStatus ? '<span class="tu-risk-conf">Diabetes: ' + escHtml(analysis.diabetesStatus) + '</span>' : '')
+                + '</div></div></div>';
+        }
+
+        // ── AI Medical Report (result_4) ──
+        if (analysis.report) {
+            html += '<div class="tu-report-section tu-ai-report-section"><h5><i class="fas fa-file-medical-alt"></i> AI Medical Report</h5>'
+                + '<div class="tu-ai-report-body">' + formatReportText(analysis.report) + '</div></div>';
+        }
+
+        // ── Clinical Recommendations (result_5) ──
+        if (analysis.recommendations && analysis.recommendations.length) {
+            html += '<div class="tu-recommendations"><h4><i class="fas fa-lightbulb"></i> Clinical Recommendations</h4>'
+                + '<ul class="tu-rec-list">' + analysis.recommendations.map(r => '<li><i class="fas fa-check-circle"></i> ' + escHtml(r) + '</li>').join('') + '</ul></div>';
+        }
 
         reportContent.innerHTML = html;
+        reportLoading.style.display = 'none';
+        reportReady.style.display = 'block';
+        overallConfidence.style.display = 'inline-flex';
+    }
+
+    function formatReportText(text) {
+        if (!text) return '';
+        return text.split('\n').map(line => {
+            line = line.trim();
+            if (!line) return '';
+            if (line.startsWith('*')) return '<li class="tu-report-bullet"><i class="fas fa-angle-right"></i>' + escHtml(line.replace(/^\*\s*/, '')) + '</li>';
+            if (line.endsWith(':') && line.length < 120) return '<h6 class="tu-report-heading">' + escHtml(line) + '</h6>';
+            return '<p class="tu-report-para">' + escHtml(line) + '</p>';
+        }).join('');
     }
 
     /* ══════════════════════════════════════════════════════
@@ -1285,6 +2372,100 @@
         setStep(1);
         document.getElementById('section-upload').scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
+
+    /* ══════════════════════════════════════════════════════
+       REFRESH PREVIOUS TESTS TABLE
+    ══════════════════════════════════════════════════════ */
+    const testTypeDisplayNames = {
+        cbc:       'CBC (Complete Blood Count)',
+        urinalysis:'Urinalysis',
+        tsh:       'TSH (Thyroid)',
+        ferritin:  'Ferritin',
+        fbg:       'Fasting Blood Glucose',
+        hba1c:     'HbA1c (Sugar Test)',
+        hcv:       'HCV (Hepatitis C)',
+        hbsag:     'HBsAg (Hepatitis B)',
+        bloodgroup:'Blood Group'
+    };
+
+    function getStatusClass(s) {
+        const l = (s || '').toLowerCase();
+        if (l === 'completed' || l === 'reviewed') return 'reviewed';
+        return 'pending';
+    }
+
+    function getResultLabel(r) {
+        const l = (r || '').toLowerCase();
+        if (l === 'all values normal')        return { text: 'Normal',   cls: 'normal'  };
+        if (l === 'normal')                   return { text: 'Normal',   cls: 'normal'  };
+        if (l === 'abnormal values detected') return { text: 'Abnormal', cls: 'high'    };
+        if (l === 'abnormal')                 return { text: 'Abnormal', cls: 'high'    };
+        if (l === 'some values below normal') return { text: 'Attention',cls: 'warning' };
+        if (l === 'requires attention')       return { text: 'Attention',cls: 'warning' };
+        if (l === 'attention')                return { text: 'Attention',cls: 'warning' };
+        if (!r) return { text: '—', cls: 'pending' };
+        return { text: r, cls: 'pending' };
+    }
+
+    async function refreshPreviousTests() {
+        const patientId = document.body.dataset.patientId || '0';
+        if (patientId === '0') return;
+        try {
+            const resp = await fetch('/api/analysis/patient/' + patientId + '/tests');
+            if (!resp.ok) return;
+            const sessions = await resp.json();
+            const tbody = document.getElementById('previousTestsBody');
+            if (!tbody) return;
+
+            if (!sessions.length) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--tu-muted);">'
+                    + '<i class="fas fa-flask" style="font-size:1.6rem;display:block;margin-bottom:.5rem;opacity:.4;"></i>'
+                    + 'No previous tests found.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = sessions.map(t => {
+                const names     = Array.isArray(t.testNames) && t.testNames.length ? t.testNames : [t.displayName || 'Unknown'];
+                const badgesHtml = '<div class="tu-test-names-cell">'
+                    + names.map(n => '<span class="tu-test-badge-js">' + escHtml(n) + '</span>').join('')
+                    + '</div>';
+
+                const stCls = getStatusClass(t.status);
+                const stTxt = (t.status === 'Completed') ? 'Reviewed' : (t.status || 'Pending');
+                const res   = getResultLabel(t.overallStatus);
+
+                const images = Array.isArray(t.images) ? t.images : [];
+                  const imagesBtn = images.length
+                      ? '<button class="tu-btn tu-btn-sm tu-btn-view-images"'
+                        + ' data-images="' + escHtml(JSON.stringify(images)) + '"'
+                        + ' data-test-name="' + escHtml(t.displayName || names.join(' · ')) + '"'
+                        + ' data-test-date="' + escHtml(t.uploadDate) + '"'
+                        + ' type="button"><i class="fas fa-images"></i> Images'
+                        + (images.length > 1 ? ' (' + images.length + ')' : '')
+                        + '</button>'
+                      : '';
+                  const reportBtn = t.hasReport && t.labTestId
+                      ? '<button class="tu-btn tu-btn-sm tu-btn-view-report"'
+                        + ' data-test-id="' + t.labTestId + '"'
+                        + ' data-test-name="' + escHtml(t.displayName || names.join(' · ')) + '"'
+                        + ' data-test-date="' + escHtml(t.uploadDate) + '"'
+                        + ' data-result="' + escHtml(res.text) + '"'
+                        + ' data-result-class="' + res.cls + '"'
+                        + ' type="button"><i class="fas fa-eye"></i> Report</button>'
+                      : '<span class="tu-pending-label"><i class="fas fa-clock"></i> Pending</span>';
+
+                  return '<tr>'
+                      + '<td><span class="tu-date"><i class="fas fa-calendar-alt"></i> ' + escHtml(t.uploadDate) + '</span></td>'
+                      + '<td>' + badgesHtml + '</td>'
+                      + '<td><span class="tu-badge-status ' + stCls + '">' + escHtml(stTxt) + '</span></td>'
+                      + '<td><span class="tu-badge-status ' + res.cls + '">' + escHtml(res.text) + '</span></td>'
+                      + '<td style="text-align:center"><div class="tu-action-cell">' + imagesBtn + reportBtn + '</div></td>'
+                      + '</tr>';
+            }).join('');
+        } catch (e) {
+            // silently ignore refresh errors
+        }
+    }
 
     /* ══════════════════════════════════════════════════════
        HELPERS
@@ -1304,6 +2485,16 @@
         return 'normal';
     }
 
+    function extractValue(source, key) {
+        if (!source) return null;
+        const match = Object.keys(source).find(k => k.toLowerCase() === key.toLowerCase());
+        const value = match ? source[match] : null;
+        if (Array.isArray(value)) {
+            return value[0] ?? null;
+        }
+        return value;
+    }
+
     function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
     function notify(msg, type) {
@@ -1319,6 +2510,14 @@
             .replace(/"/g, '&quot;');
     }
 
+    function normalizeAssetUrl(path) {
+        const raw = String(path ?? '').trim();
+        if (!raw) return '';
+        if (/^https?:\/\//i.test(raw) || raw.startsWith('data:') || raw.startsWith('blob:')) return raw;
+        const normalized = raw.replace(/\\/g, '/');
+        return normalized.startsWith('/') ? normalized : ('/' + normalized);
+    }
+
     /* ══════════════════════════════════════════════════════
        PUBLIC HOOKS  (called by your ASP.NET controller callbacks)
        
@@ -1327,31 +2526,461 @@
          window.tuHideProcessingIndicator()            — hides the extraction bar
          window.tuGenerateReport(analysisObject)       — renders the final report
     ══════════════════════════════════════════════════════ */
-    window.tuHideProcessingIndicator = function () {
-        extractionProgress.style.display = 'none';
-        setTimeout(() => {
-            if (uploadedTestsSection.style.display !== 'none')
-                uploadedTestsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 300);
-    };
 
-    window.tuRenderUploadedTest = function (testData) {
-        testData.id       = nextId++;
-        testData.approved = false;
-        uploadedTests.push(testData);
-        renderTestCard(testData);
-        updateApprovalCounter();
-        submitRow.style.display = 'flex';
-    };
 
-    window.tuGenerateReport = function (analysisData) {
-        generateComprehensiveReport(analysisData);
-        reportLoading.style.display     = 'none';
-        reportReady.style.display       = 'block';
-        overallConfidence.style.display = 'inline-flex';
-        overallConfidence.innerHTML     = '<i class="fas fa-brain"></i> Confidence: ' + analysisData.confidence + '%';
-    };
+    /* ══════════════════════════════════════════════════════
+       REPORT MODAL LOGIC
+    ══════════════════════════════════════════════════════ */
+    const tuModal          = document.getElementById('tuReportModal');
+    const tuModalClose     = document.getElementById('tuModalClose');
+    const tuModalCloseFooter = document.getElementById('tuModalCloseFooter');
+    const tuModalTitle     = document.getElementById('tuModalTitle');
+    const tuModalSubtitle  = document.getElementById('tuModalSubtitle');
+    const tuModalResultBadge = document.getElementById('tuModalResultBadge');
+    const tuModalLoading   = document.getElementById('tuModalLoading');
+    const tuModalContent   = document.getElementById('tuModalContent');
+    const tuModalError     = document.getElementById('tuModalError');
+    const tuModalErrorMsg  = document.getElementById('tuModalErrorMsg');
+    const tuModalVerdictRow = document.getElementById('tuModalVerdictRow');
+    const tuModalReportContent = document.getElementById('tuModalReportContent');
 
+    function openModal() {
+        tuModal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        requestAnimationFrame(() => tuModal.querySelector('.tu-modal').focus?.());
+    }
+
+    function closeModal() {
+        tuModal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    function showModalLoading() {
+        tuModalLoading.style.display  = 'flex';
+        tuModalContent.style.display  = 'none';
+        tuModalError.style.display    = 'none';
+    }
+
+    function showModalContent() {
+        tuModalLoading.style.display  = 'none';
+        tuModalContent.style.display  = 'block';
+        tuModalError.style.display    = 'none';
+    }
+
+    function showModalError(msg) {
+        tuModalLoading.style.display  = 'none';
+        tuModalContent.style.display  = 'none';
+        tuModalError.style.display    = 'block';
+        tuModalErrorMsg.textContent   = msg || 'Could not load the report.';
+    }
+
+    function renderReportInModal(analysis) {
+        const iconMap = { safe: 'fa-check-circle', warning: 'fa-exclamation-circle', danger: 'fa-exclamation-triangle' };
+
+        tuModalVerdictRow.innerHTML =
+            '<span class="tu-verdict-badge ' + analysis.verdict + '">'
+            + '<i class="fas ' + iconMap[analysis.verdict] + '"></i> ' + escHtml(analysis.overall) + '</span>'
+            + '<p class="tu-verdict-summary" style="margin:.5rem 0 0">'
+            + escHtml(analysis.riskLevel || 'See detailed breakdown below') + '</p>';
+
+        let html = '';
+
+        // Personal Info
+        if (analysis.personalInfo) {
+            const pi = analysis.personalInfo;
+            const piFields = [
+                { label: 'Name',     value: pi.name,    icon: 'fa-user' },
+                { label: 'Age',      value: pi.age,     icon: 'fa-birthday-cake', suffix: ' yrs' },
+                { label: 'Trimester',value: pi.trimester,icon:'fa-baby' },
+                { label: 'Week',     value: pi.week,    icon: 'fa-calendar-week' },
+                { label: 'Gender',   value: pi.baby_gender, icon:'fa-venus-mars' },
+                { label: 'Height',   value: pi.height,  icon: 'fa-ruler-vertical', suffix: ' cm' },
+                { label: 'Weight',   value: pi.weight,  icon: 'fa-weight', suffix: ' kg' },
+                { label: 'RBS Avg',  value: pi.rbs_avg, icon: 'fa-tint', suffix: ' mg/dL' },
+                { label: 'BP',       value: (pi.avg_systolic && pi.avg_diastolic) ? pi.avg_systolic + '/' + pi.avg_diastolic : null, icon: 'fa-heartbeat', suffix: ' mmHg' },
+                { label: 'Risk',     value: pi.risk_state, icon: 'fa-shield-alt' }
+            ];
+            let cards = '';
+            piFields.forEach(f => {
+                if (f.value == null || f.value === '') return;
+                cards += '<div class="tu-pi-card"><div class="tu-pi-icon"><i class="fas ' + f.icon + '"></i></div>'
+                    + '<div class="tu-pi-info"><span class="tu-pi-label">' + escHtml(f.label) + '</span>'
+                    + '<span class="tu-pi-value">' + escHtml(String(f.value)) + (f.suffix || '') + '</span></div></div>';
+            });
+            if (cards) html += '<div class="tu-report-section"><h5><i class="fas fa-id-card"></i> Patient Information</h5>'
+                + '<div class="tu-pi-grid">' + cards + '</div></div>';
+        }
+
+        // Test Results
+        if (analysis.tests && analysis.tests.length) {
+            analysis.tests.forEach(test => {
+                const cfg = resolveTestConfig(test.test_name);
+                if (!cfg) return;
+                const confVal = test.confidence;
+                let cards = '';
+                cfg.parameters.forEach(p => {
+                    const val = extractValue(test, p.key) ?? '—';
+                    const status = getParamStatus(val, p.normalRange);
+                    cards += '<div class="tu-insight-card ' + status + '">'
+                        + '<div class="tu-insight-label">' + escHtml(p.name) + '</div>'
+                        + '<div class="tu-insight-value"><span class="tu-insight-dot"></span>' + escHtml(String(val))
+                        + (p.unit ? '<span class="tu-insight-unit">' + escHtml(p.unit) + '</span>' : '') + '</div>'
+                        + '<div class="tu-insight-range">Normal: ' + escHtml(p.normalRange) + (p.unit ? ' ' + p.unit : '') + '</div></div>';
+                });
+                html += '<div class="tu-report-section"><h5><i class="fas fa-vial"></i> ' + escHtml(test.test_name || cfg.name)
+                    + (confVal ? '<span class="tu-confidence-pill" style="margin-left:.75rem"><i class="fas fa-brain"></i> '
+                        + (parseFloat(confVal) * 100).toFixed(0) + '% confidence</span>' : '')
+                    + '</h5><div class="tu-insight-grid">' + cards + '</div></div>';
+            });
+        }
+
+        // Risk Prediction
+        if (analysis.riskLevel || analysis.diabetesStatus) {
+            const rl = (analysis.riskLevel || '').toLowerCase();
+            const rc = rl.includes('high') ? 'danger' : rl.includes('moderate') ? 'warning' : 'safe';
+            const ri = rc === 'danger' ? 'fa-exclamation-triangle' : rc === 'warning' ? 'fa-exclamation-circle' : 'fa-shield-alt';
+            html += '<div class="tu-report-section"><h5><i class="fas fa-chart-pie"></i> Risk Prediction</h5>'
+                + '<div class="tu-risk-banner ' + rc + '"><i class="fas ' + ri + '"></i>'
+                + '<div><strong>' + escHtml(analysis.riskLevel || 'N/A') + '</strong>'
+                + (analysis.confidence !== '—' ? '<span class="tu-risk-conf">' + analysis.confidence + '% confidence</span>' : '')
+                + (analysis.diabetesStatus ? '<span class="tu-risk-conf">Diabetes: ' + escHtml(analysis.diabetesStatus) + '</span>' : '')
+                + '</div></div></div>';
+        }
+
+        // AI Medical Report
+        if (analysis.report) {
+            html += '<div class="tu-report-section tu-ai-report-section"><h5><i class="fas fa-file-medical-alt"></i> AI Medical Report</h5>'
+                + '<div class="tu-ai-report-body">' + formatReportText(analysis.report) + '</div></div>';
+        }
+
+        // Clinical Recommendations
+        if (analysis.recommendations && analysis.recommendations.length) {
+            html += '<div class="tu-recommendations"><h4><i class="fas fa-lightbulb"></i> Clinical Recommendations</h4>'
+                + '<ul class="tu-rec-list">' + analysis.recommendations.map(r =>
+                    '<li><i class="fas fa-check-circle"></i> ' + escHtml(r) + '</li>').join('') + '</ul></div>';
+        }
+
+        tuModalReportContent.innerHTML = html || '<p style="padding:1.5rem;color:var(--tu-muted)">No detailed data available for this report.</p>';
+        showModalContent();
+    }
+
+    async function loadAndShowReport(labTestId, testName, uploadDate, resultText, resultClass) {
+        tuModalTitle.textContent    = testName || 'Test Report';
+        tuModalSubtitle.textContent = uploadDate || '';
+        if (resultText && resultText !== '—') {
+            tuModalResultBadge.className = 'tu-badge-status ' + (resultClass || 'pending');
+            tuModalResultBadge.textContent = resultText;
+            tuModalResultBadge.style.display = 'inline-flex';
+        } else {
+            tuModalResultBadge.style.display = 'none';
+        }
+        showModalLoading();
+        openModal();
+
+        try {
+            const resp = await fetchWithTimeout('/api/analysis/' + labTestId, {}, 15000);
+            if (!resp.ok) { showModalError('Report not found or not yet ready.'); return; }
+            const data = await resp.json();
+            if (data.status !== 'Completed') {
+                showModalError('This report is still being processed (' + data.status + '). Please try again shortly.');
+                return;
+            }
+            const analysis = mapAnalysisResponse(data);
+            renderReportInModal(analysis);
+        } catch (err) {
+            showModalError(err?.message || 'Failed to load report.');
+        }
+    }
+
+    // ── Event Delegation: View Report buttons ──
+    document.addEventListener('click', e => {
+        const btn = e.target.closest('.tu-btn-view-report');
+        if (btn) {
+            const id          = btn.dataset.testId;
+            const testName    = btn.dataset.testName;
+            const testDate    = btn.dataset.testDate;
+            const resultText  = btn.dataset.result;
+            const resultClass = btn.dataset.resultClass;
+            if (id) loadAndShowReport(parseInt(id), testName, testDate, resultText, resultClass);
+        }
+    });
+
+    // ── Close modal handlers ──
+    tuModalClose.addEventListener('click', closeModal);
+    tuModalCloseFooter.addEventListener('click', closeModal);
+    tuModal.addEventListener('click', e => { if (e.target === tuModal) closeModal(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && tuModal.style.display !== 'none') closeModal(); });
+
+      /* ══════════════════════════════════════════════════════
+         IMAGE GALLERY MODAL
+      ══════════════════════════════════════════════════════ */
+      const tuGallery         = document.getElementById('tuImageGallery');
+      const tuGalleryClose    = document.getElementById('tuGalleryClose');
+      const tuGalleryTitle    = document.getElementById('tuGalleryTitle');
+      const tuGallerySubtitle = document.getElementById('tuGallerySubtitle');
+      const tuGalleryGrid     = document.getElementById('tuGalleryGrid');
+
+      function openGallery(images, testName, date) {
+          tuGalleryTitle.textContent    = testName || 'Test Images';
+          tuGallerySubtitle.textContent = date || '';
+          document.querySelectorAll('.tu-gallery-hint-extra').forEach(el => el.remove());
+
+          if (!images || !images.length) {
+              tuGalleryGrid.innerHTML = '<p class="tu-gallery-hint">No images stored for this session.</p>';
+          } else {
+              tuGalleryGrid.innerHTML = images.map((img, i) => {
+                  const safeUrl = normalizeAssetUrl(img.path);
+                  const ext = (safeUrl || '').split('.').pop().toLowerCase();
+                  const label = escHtml(img.testName || img.name || ('Image ' + (i + 1)));
+                  if (ext === 'pdf') {
+                      return '<div class="tu-gallery-item tu-gallery-pdf">'
+                          + '<a href="' + escHtml(safeUrl) + '" target="_blank" rel="noopener noreferrer">'
+                          + '<i class="fas fa-file-pdf"></i>'
+                          + '<span class="tu-gallery-item-name">' + label + '</span>'
+                          + '</a></div>';
+                  }
+                  return '<div class="tu-gallery-item">'
+                      + '<a href="' + escHtml(safeUrl) + '" target="_blank" rel="noopener noreferrer">'
+                      + '<img src="' + escHtml(safeUrl) + '" alt="' + label + '" loading="lazy" referrerpolicy="no-referrer">'
+                      + '<span class="tu-gallery-item-name">' + label + '</span>'
+                      + '</a></div>';
+              }).join('');
+              if (images.length > 1) {
+                  tuGalleryGrid.insertAdjacentHTML('afterend', '<p class="tu-gallery-hint tu-gallery-hint-extra"><i class="fas fa-external-link-alt"></i> Click any image to open full size</p>');
+              }
+          }
+          tuGallery.style.display    = 'flex';
+          document.body.style.overflow = 'hidden';
+      }
+
+      function closeGallery() {
+          tuGallery.style.display    = 'none';
+          document.body.style.overflow = '';
+      }
+
+      if (tuGalleryClose) tuGalleryClose.addEventListener('click', closeGallery);
+      if (tuGallery)      tuGallery.addEventListener('click', e => { if (e.target === tuGallery) closeGallery(); });
+
+      document.addEventListener('keydown', e => {
+          if (e.key === 'Escape' && tuGallery?.style.display === 'flex') closeGallery();
+      });
+
+      /* View Images handler (delegated; works across table variants) */
+      document.addEventListener('click', e => {
+          const btn = e.target.closest('.tu-btn-view-images');
+          if (!btn) return;
+          try {
+              const images   = JSON.parse(btn.dataset.images || '[]');
+              const testName = btn.dataset.testName || 'Test Images';
+              const date     = btn.dataset.testDate || '';
+              openGallery(images, testName, date);
+          } catch (_) {
+              notify('Could not load images.', 'error');
+          }
+      });
+
+    /* ══════════════════════════════════════════════════════
+       TEST HISTORY — SEARCH, FILTER & PAGINATION
+    ══════════════════════════════════════════════════════ */
+    const historyTableBody = document.getElementById('historyTableBody');
+    if (historyTableBody) {
+        const searchInput = document.getElementById('historySearch');
+        const statusFilter = document.getElementById('statusFilter');
+        const resultFilter = document.getElementById('resultFilter');
+        const pageSizeSelect = document.getElementById('pageSize');
+        const prevPageBtn = document.getElementById('prevPage');
+        const nextPageBtn = document.getElementById('nextPage');
+        const pageNumbersContainer = document.getElementById('pageNumbers');
+        const paginationInfo = document.getElementById('paginationInfo');
+
+        let currentPage = 1;
+        let pageSize = 10;
+        let allRows = Array.from(historyTableBody.querySelectorAll('.tu-history-row'));
+
+        function getFilteredRows() {
+            const searchTerm = searchInput?.value.toLowerCase() || '';
+            const statusValue = statusFilter?.value || '';
+            const resultValue = resultFilter?.value || '';
+
+            return allRows.filter(row => {
+                const matchSearch = !searchTerm || (row.dataset.search || '').includes(searchTerm);
+                const matchStatus = !statusValue || row.dataset.status === statusValue;
+                const matchResult = !resultValue || row.dataset.result === resultValue;
+                return matchSearch && matchStatus && matchResult;
+            });
+        }
+
+        function renderPagination() {
+            const filteredRows = getFilteredRows();
+            const totalRows = filteredRows.length;
+            const totalPages = Math.ceil(totalRows / pageSize);
+
+            // Hide all rows first
+            allRows.forEach(row => row.style.display = 'none');
+
+            // Show current page rows
+            const startIdx = (currentPage - 1) * pageSize;
+            const endIdx = Math.min(startIdx + pageSize, totalRows);
+            filteredRows.slice(startIdx, endIdx).forEach(row => row.style.display = '');
+
+            // Update pagination info
+            if (paginationInfo) {
+                if (totalRows === 0) {
+                    paginationInfo.textContent = 'No results found';
+                } else {
+                    paginationInfo.textContent = `Showing ${startIdx + 1}-${endIdx} of ${totalRows}`;
+                }
+            }
+
+            // Update buttons
+            if (prevPageBtn) prevPageBtn.disabled = currentPage === 1;
+            if (nextPageBtn) nextPageBtn.disabled = currentPage >= totalPages;
+
+            // Render page numbers
+            if (pageNumbersContainer) {
+                pageNumbersContainer.innerHTML = '';
+                const maxVisiblePages = 5;
+                let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+                let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+                
+                if (endPage - startPage < maxVisiblePages - 1) {
+                    startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                }
+
+                for (let i = startPage; i <= endPage; i++) {
+                    const pageBtn = document.createElement('button');
+                    pageBtn.className = 'tu-page-num' + (i === currentPage ? ' active' : '');
+                    pageBtn.textContent = i;
+                    pageBtn.addEventListener('click', () => {
+                        currentPage = i;
+                        renderPagination();
+                    });
+                    pageNumbersContainer.appendChild(pageBtn);
+                }
+            }
+        }
+
+        function applyFilters() {
+            currentPage = 1;
+            renderPagination();
+        }
+
+        // Event listeners
+        if (searchInput) {
+            searchInput.addEventListener('input', applyFilters);
+        }
+
+        if (statusFilter) {
+            statusFilter.addEventListener('change', applyFilters);
+        }
+
+        if (resultFilter) {
+            resultFilter.addEventListener('change', applyFilters);
+        }
+
+        if (pageSizeSelect) {
+            pageSizeSelect.addEventListener('change', e => {
+                pageSize = parseInt(e.target.value);
+                currentPage = 1;
+                renderPagination();
+            });
+        }
+
+        if (prevPageBtn) {
+            prevPageBtn.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderPagination();
+                }
+            });
+        }
+
+        if (nextPageBtn) {
+            nextPageBtn.addEventListener('click', () => {
+                const totalPages = Math.ceil(getFilteredRows().length / pageSize);
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    renderPagination();
+                }
+            });
+        }
+
+        // Initial render
+        renderPagination();
+    }
 }());
-</script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const rows = Array.from(document.querySelectorAll("#historyTableBody .tu-history-row"));
+    const pageSizeSelect = document.getElementById("pageSize");
+    const pageNumbersContainer = document.getElementById("pageNumbers");
+    const prevBtn = document.getElementById("prevPage");
+    const nextBtn = document.getElementById("nextPage");
+    const info = document.getElementById("paginationInfo");
+
+    let currentPage = 1;
+    let pageSize = parseInt(pageSizeSelect.value);
+
+    function renderTable() {
+        const total = rows.length;
+        const totalPages = Math.ceil(total / pageSize);
+
+        // hide all
+        rows.forEach(r => r.style.display = "none");
+
+        // show only current page
+        const start = (currentPage - 1) * pageSize;
+        const end = start + pageSize;
+
+        rows.slice(start, end).forEach(r => r.style.display = "");
+
+        // update info
+        info.textContent = `Showing ${start + 1}-${Math.min(end, total)} of ${total}`;
+
+        // buttons state
+        prevBtn.disabled = currentPage === 1;
+        nextBtn.disabled = currentPage === totalPages;
+
+        renderPageNumbers(totalPages);
+    }
+
+    function renderPageNumbers(totalPages) {
+        pageNumbersContainer.innerHTML = "";
+
+        for (let i = 1; i <= totalPages; i++) {
+            const btn = document.createElement("button");
+            btn.className = "tu-page-num" + (i === currentPage ? " active" : "");
+            btn.textContent = i;
+
+            btn.addEventListener("click", () => {
+                currentPage = i;
+                renderTable();
+            });
+
+            pageNumbersContainer.appendChild(btn);
+        }
+    }
+
+    // events
+    prevBtn.addEventListener("click", () => {
+        currentPage--;
+        renderTable();
+    });
+
+    nextBtn.addEventListener("click", () => {
+        currentPage++;
+        renderTable();
+    });
+
+    pageSizeSelect.addEventListener("change", () => {
+        pageSize = parseInt(pageSizeSelect.value);
+        currentPage = 1;
+        renderTable();
+    });
+
+    // initial render
+    renderTable();
+});
+  </script>
 }

@@ -1964,6 +1964,14 @@
   color: #6b7280;
 }
 
+.privacy-notice-success {
+  border-left-color: var(--success);
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+}
+
+.privacy-notice-success i { color: #16a34a; }
+.privacy-notice-success p { color: #166534; }
+
 .privacy-notice-warning {
   border-left-color: var(--warning);
 }
@@ -1974,7 +1982,11 @@
 
 .privacy-notice-danger {
   border-left-color: var(--danger);
+  background: linear-gradient(135deg, #fef2f2, #fee2e2);
 }
+
+.privacy-notice-danger i { color: var(--danger); }
+.privacy-notice-danger p { color: #991b1b; }
 
 .text-warning {
   color: var(--warning) !important;
@@ -2344,4 +2356,199 @@
 
 .main-content .btn-primary:hover {
   box-shadow: 0 8px 20px rgba(124, 58, 237, 0.35);
+}
+
+/* ================================
+   Invitation Cards
+   (ClinicInvitations page)
+================================ */
+.invitation-header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  background: var(--assistant-surface-mid);
+  color: var(--assistant-primary);
+  border: 1px solid var(--assistant-border-tint);
+}
+
+.invitation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.invitation-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.invitation-card:hover {
+  box-shadow: 0 8px 24px rgba(15, 28, 46, 0.1);
+  transform: translateY(-2px);
+}
+
+.invitation-card--pending {
+  display: flex;
+}
+
+.invitation-accent {
+  width: 5px;
+  flex-shrink: 0;
+  background: linear-gradient(180deg, #f59e0b, #d97706);
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+}
+
+.invitation-body {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.invitation-avatar img {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  border: 2px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.invitation-avatar--sm img {
+  width: 42px;
+  height: 42px;
+}
+
+.invitation-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.invitation-info h4 {
+  font-size: 1rem;
+  font-weight: 650;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+}
+
+.invitation-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.invitation-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.invitation-meta span i {
+  color: var(--assistant-primary);
+  font-size: 0.75rem;
+  width: 12px;
+  text-align: center;
+}
+
+.invitation-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.invitation-status {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.btn-outline-danger {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.btn-outline-danger:hover {
+  background: #fff1f2;
+  border-color: var(--danger);
+}
+
+/* ================================
+   Patient List Utilities
+   (Patients & PatientDetails pages)
+================================ */
+.section-spacing-sm {
+  margin-bottom: 0.75rem;
+}
+
+.mb-12 {
+  margin-bottom: 12px;
+}
+
+.appointment-row-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0;
+  list-style: none;
+}
+
+.appointment-doctor-meta {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.request-header-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.request-header-line h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+/* ================================
+   Patients page — details accordion
+================================ */
+details.card > summary {
+  list-style: none;
+  padding: 16px 20px;
+  border-radius: var(--radius-lg);
+  transition: background 0.15s;
+}
+
+details.card > summary::-webkit-details-marker {
+  display: none;
+}
+
+details.card > summary:hover {
+  background: var(--assistant-surface);
+}
+
+details.card[open] > summary {
+  border-bottom: 1px solid var(--border-color);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+details.card > .request-list {
+  padding: 16px 20px;
 }

@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Graduation_Project.Models
@@ -28,6 +28,10 @@ namespace Graduation_Project.Models
         public bool BloodPressureIssue { get; set; }
         public bool Smoking { get; set; }
         public bool AlcoholUse { get; set; }
+
+        // AI analysis state (updated from result_3 after each submission)
+        public string? DgState { get; set; }
+        public string? RiskState { get; set; }
 
         // Navigation
         public virtual ApplicationUser User { get; set; }

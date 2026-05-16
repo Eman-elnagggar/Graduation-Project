@@ -1,0 +1,144 @@
+@model Graduation_Project.ViewModels.AdminDoctorVerificationRow
+@{
+    var initials = string.Concat(
+        (Model.FullName ?? "D")
+        .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+        .Take(2)
+        .Select(s => char.ToUpperInvariant(s[0])));
+
+    var hasFile = !string.IsNullOrWhiteSpace(Model.LicenseImagePath);
+    var fileExt = hasFile ? System.IO.Path.GetExtension(Model.LicenseImagePath).ToLowerInvariant() : "";
+    var isPdf = fileExt == ".pdf";
+}
+
+<div class="doctor-card">
+    <div class="doctor-card-header">
+        <div class="doc-avatar">@initials</div>
+        <div style="flex:1;min-width:0;">
+            <div class="doc-name">Dr. @Model.FullName</div>
+            <div class="doc-spec">@Model.Specialization</div>
+        </div>
+        <span class="doc-status-badge @Model.VerificationStatus">@Model.VerificationStatus</span>
+    </div>
+
+    <div class="doctor-card-body">
+        <div class="doc-info-row">
+            <i class="fas fa-envelope"></i>
+            <span>@Model.Email</span>
+        </div>
+        <div class="doc-info-row">
+            <i class="fas fa-id-card"></i>
+            <span>License: @(string.IsNullOrWhiteSpace(Model.LicenseNumber) ? "Not provided" : Model.LicenseNumber)</span>
+        </div>
+        <div class="doc-info-row">
+            <i class="fas fa-map-marker-alt"></i>
+            <span>@(string.IsNullOrWhiteSpace(Model.Address) ? "No address" : Model.Address)</span>
+        </div>
+        <div class="doc-info-row">
+            <i class="fas fa-calendar"></i>
+            <span>Registered: @Model.CreatedDate.ToString("MMM d, yyyy")</span>
+        </div>
+        @if (Model.VerificationDate.HasValue)
+        {
+            <div class="doc-info-row">
+                <i class="fas fa-check-circle"></i>
+                <span>Verified: @Model.VerificationDate.Value.ToString("MMM d, yyyy")</span>
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(Model.RejectionNote))
+        {
+            <div style="margin:10px 0;padding:10px 14px;background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.2);border-radius:8px;">
+                <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#f87171;margin-bottom:5px;">
+                    <i class="fas fa-exclamation-circle" style="margin-right:4px;"></i>Rejection Note
+                </div>
+                <div style="font-size:0.83rem;color:var(--text-primary);line-height:1.5;">@Model.RejectionNote</div>
+            </div>
+        }
+
+        @if (hasFile)
+        {
+            <div style="margin:10px 0;">
+                @if (isPdf)
+                {
+                    <a href="@Model.LicenseImagePath" target="_blank"
+                       style="display:flex;align-items:center;gap:8px;padding:9px 14px;background:rgba(79,142,247,0.1);border:1px solid rgba(79,142,247,0.2);border-radius:8px;text-decoration:none;color:#4f8ef7;font-size:0.83rem;font-weight:600;transition:all 0.15s;">
+                        <i class="fas fa-file-pdf" style="font-size:1.1rem;color:#f87171;"></i>
+                        View License (PDF)
+                        <i class="fas fa-external-link-alt" style="margin-left:auto;font-size:0.7rem;opacity:0.7;"></i>
+                    </a>
+                }
+                else
+                {
+                    <a href="@Model.LicenseImagePath" target="_blank"
+                       style="display:block;text-decoration:none;" title="Click to open full size">
+                        <div class="license-img-wrap" style="position:relative;cursor:pointer;">
+                            <img src="@Model.LicenseImagePath" alt="License"
+                                 onerror="this.parentElement.innerHTML='<div class=\'license-placeholder\'><i class=\'fas fa-image\' style=\'margin-right:6px;\'></i>License image not available</div>'" />
+                            <div style="position:absolute;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.2s;border-radius:6px;"
+                                 onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0'">
+                                <span style="color:white;font-size:0.82rem;font-weight:600;background:rgba(0,0,0,0.6);padding:6px 12px;border-radius:20px;">
+                                    <i class="fas fa-expand-alt" style="margin-right:5px;"></i>Open Full Size
+                                </span>
+                            </div>
+                        </div>
+                    </a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="license-placeholder" style="margin:8px 0;border-radius:6px;border:1px solid var(--border-color);">
+                <i class="fas fa-file-medical" style="margin-right:6px;"></i>No license file uploaded
+            </div>
+        }
+
+        @if (Model.ClinicNames.Any())
+        {
+            <div class="doc-clinics" style="margin-top:8px;">
+                @foreach (var clinic in Model.ClinicNames)
+                {
+                    if (!string.IsNullOrWhiteSpace(clinic))
+                    {
+                        <span class="clinic-tag"><i class="fas fa-clinic-medical" style="margin-right:3px;"></i>@clinic</span>
+                    }
+                }
+            </div>
+        }
+        else
+        {
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:8px;">
+                <i class="fas fa-clinic-medical" style="margin-right:4px;opacity:0.5;"></i>Not assigned to any clinic
+            </div>
+        }
+    </div>
+
+    <div class="doctor-card-footer">
+        @if (Model.VerificationStatus != "Approved")
+        {
+            <form method="post" action="/Admin/ApproveDoctor" style="flex:1;" onsubmit="return confirm('Approve Dr. @Model.FullName?')">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="doctorId" value="@Model.DoctorId" />
+                <button type="submit" class="btn-approve" style="width:100%;">
+                    <i class="fas fa-check"></i> Approve
+                </button>
+            </form>
+        }
+
+        @if (Model.VerificationStatus != "Rejected")
+        {
+            <button type="button"
+                    class="btn-reject"
+                    style="flex:1;"
+                    onclick="openRejectModal(@Model.DoctorId, '@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.FullName).Trim('"'))')">
+                <i class="fas fa-times"></i> Reject
+            </button>
+        }
+
+        <button type="button"
+                class="btn-assign-clinic"
+                onclick="openAssignModal(@Model.DoctorId, '@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.FullName).Trim('"'))') ">
+            <i class="fas fa-clinic-medical"></i> Assign Clinic
+        </button>
+    </div>
+</div>

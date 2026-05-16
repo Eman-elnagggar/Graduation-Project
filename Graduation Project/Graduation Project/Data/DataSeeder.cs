@@ -57,7 +57,9 @@ namespace Graduation_Project.Data
                     new ApplicationUser { FirstName = "Dina",    LastName = "Samir",   UserName = "dina.samir@nabd.com",     NormalizedUserName = "DINA.SAMIR@NABD.COM",     Email = "dina.samir@nabd.com",     NormalizedEmail = "DINA.SAMIR@NABD.COM",     EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01609876543", DateOfBirth = new DateTime(1992, 3, 17),  IsActive = true, CreatedDate = new DateTime(2024, 1, 11) },
                     new ApplicationUser { FirstName = "Noura",   LastName = "Youssef", UserName = "noura.youssef@nabd.com",  NormalizedUserName = "NOURA.YOUSSEF@NABD.COM",  Email = "noura.youssef@nabd.com",  NormalizedEmail = "NOURA.YOUSSEF@NABD.COM",  EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01612233445", DateOfBirth = new DateTime(1988, 7, 29),  IsActive = true, CreatedDate = new DateTime(2024, 1, 12) },
                     new ApplicationUser { FirstName = "Amira",   LastName = "Tarek",   UserName = "amira.tarek@nabd.com",    NormalizedUserName = "AMIRA.TAREK@NABD.COM",    Email = "amira.tarek@nabd.com",    NormalizedEmail = "AMIRA.TAREK@NABD.COM",    EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01622334456", DateOfBirth = new DateTime(1991, 5, 14),  IsActive = true, CreatedDate = new DateTime(2024, 1, 13) },
-                    new ApplicationUser { FirstName = "Heba",    LastName = "Adel",    UserName = "heba.adel@nabd.com",      NormalizedUserName = "HEBA.ADEL@NABD.COM",      Email = "heba.adel@nabd.com",      NormalizedEmail = "HEBA.ADEL@NABD.COM",      EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01632445567", DateOfBirth = new DateTime(1994, 10, 2),  IsActive = true, CreatedDate = new DateTime(2024, 1, 14) }
+                    new ApplicationUser { FirstName = "Heba",    LastName = "Adel",    UserName = "heba.adel@nabd.com",      NormalizedUserName = "HEBA.ADEL@NABD.COM",      Email = "heba.adel@nabd.com",      NormalizedEmail = "HEBA.ADEL@NABD.COM",      EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01632445567", DateOfBirth = new DateTime(1994, 10, 2),  IsActive = true, CreatedDate = new DateTime(2024, 1, 14) },
+                    // Admin
+                    new ApplicationUser { FirstName = "System",  LastName = "Admin",   UserName = "admin@nabd.com",           NormalizedUserName = "ADMIN@NABD.COM",           Email = "admin@nabd.com",           NormalizedEmail = "ADMIN@NABD.COM",           EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01000000000", DateOfBirth = new DateTime(1990, 1, 1),   IsActive = true, CreatedDate = new DateTime(2024, 1, 1)  }
                 );
                 await context.SaveChangesAsync();
             }
@@ -141,6 +143,8 @@ namespace Graduation_Project.Data
                             .Select(u => new IdentityUserRole<string> { UserId = u.Id, RoleId = rolePatient.Id }))
                         .Concat(appUsers.Where(u => (u.FirstName == "Layla" || u.FirstName == "Dina" || u.FirstName == "Noura" || u.FirstName == "Amira" || u.FirstName == "Heba"))
                             .Select(u => new IdentityUserRole<string> { UserId = u.Id, RoleId = roleAssistant.Id }))
+                        .Concat(appUsers.Where(u => u.Email == "admin@nabd.com")
+                            .Select(u => new IdentityUserRole<string> { UserId = u.Id, RoleId = context.Roles.First(r => r.Name == "Admin").Id }))
                         .ToList();
 
                 context.UserRoles.AddRange(identityUserRoles);
@@ -511,11 +515,11 @@ namespace Graduation_Project.Data
             if (!context.CBC_Tests.Any())
             {
                 context.CBC_Tests.AddRange(
-                    new CBC_Test { LabTestID = cbcTests[0].LabTestID, HB = 10.8, MCV = 78.0, MCHC = 31.5, MCH = 25.0, RBC_Count = 3.9, WBC_Count = 8500,  Platelet_Count = 230000, Lymphocytes = 32.0 },
-                    new CBC_Test { LabTestID = cbcTests[1].LabTestID, HB = 11.5, MCV = 85.0, MCHC = 33.0, MCH = 27.0, RBC_Count = 4.1, WBC_Count = 12000, Platelet_Count = 210000, Lymphocytes = 28.0 },
-                    new CBC_Test { LabTestID = cbcTests[2].LabTestID, HB = 12.2, MCV = 88.0, MCHC = 34.0, MCH = 29.0, RBC_Count = 4.3, WBC_Count = 7800,  Platelet_Count = 250000, Lymphocytes = 35.0 },
-                    new CBC_Test { LabTestID = cbcTests[3].LabTestID, HB = 9.5,  MCV = 72.0, MCHC = 29.0, MCH = 22.0, RBC_Count = 3.5, WBC_Count = 9200,  Platelet_Count = 180000, Lymphocytes = 30.0 },
-                    new CBC_Test { LabTestID = cbcTests[4].LabTestID, HB = 11.8, MCV = 86.0, MCHC = 33.5, MCH = 28.0, RBC_Count = 4.0, WBC_Count = 8000,  Platelet_Count = 220000, Lymphocytes = 33.0 }
+                    new CBC_Test { LabTestID = cbcTests[0].LabTestID, HB = 10.8f, RBCs_Count = 3.9f, MCV = 78.0f, MCH = 25.0f, MCHC = 31.5f, WBC = 8500f, lymphocytes = 32.0f, platelet_count = 230000f },
+                    new CBC_Test { LabTestID = cbcTests[1].LabTestID, HB = 11.5f, RBCs_Count = 4.1f, MCV = 85.0f, MCH = 27.0f, MCHC = 33.0f, WBC = 12000f, lymphocytes = 28.0f, platelet_count = 210000f },
+                    new CBC_Test { LabTestID = cbcTests[2].LabTestID, HB = 12.2f, RBCs_Count = 4.3f, MCV = 88.0f, MCH = 29.0f, MCHC = 34.0f, WBC = 7800f, lymphocytes = 35.0f, platelet_count = 250000f },
+                    new CBC_Test { LabTestID = cbcTests[3].LabTestID, HB = 9.5f, RBCs_Count = 3.5f, MCV = 72.0f, MCH = 22.0f, MCHC = 29.0f, WBC = 9200f, lymphocytes = 30.0f, platelet_count = 180000f },
+                    new CBC_Test { LabTestID = cbcTests[4].LabTestID, HB = 11.8f, RBCs_Count = 4.0f, MCV = 86.0f, MCH = 28.0f, MCHC = 33.5f, WBC = 8000f, lymphocytes = 33.0f, platelet_count = 220000f }
                 );
                 await context.SaveChangesAsync();
             }

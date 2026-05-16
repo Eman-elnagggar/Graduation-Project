@@ -59,6 +59,9 @@ namespace Graduation_Project
             builder.Services.AddScoped<IHCV_Test, HCV_TestRepository>();
             builder.Services.AddScoped<ILabTest, LabTestRepository>();
             builder.Services.AddScoped<IMedicalHistory, MedicalHistoryRepository>();
+            builder.Services.AddScoped<IMedication, MedicationRepository>();
+            builder.Services.AddScoped<IMedicationLog, MedicationLogRepository>();
+            builder.Services.AddScoped<IMedicationSchedule, MedicationScheduleRepository>();
             builder.Services.AddScoped<INote, NoteRepository>();
             builder.Services.AddScoped<IPatient, PatientRepository>();
             builder.Services.AddScoped<IPatientBloodPressure, PatientBloodPressureRepository>();
@@ -75,22 +78,57 @@ namespace Graduation_Project
             builder.Services.AddScoped<IWeightTracking, WeightTrackingRepository>();
 
             // Register Services
+            builder.Services.AddScoped<IEmailService, EmailService>();
             builder.Services.AddScoped<AlertService>();
             builder.Services.AddScoped<AssistantScheduleService>();
+            builder.Services.AddScoped<MedicationService>();
+            builder.Services.AddScoped<MedicationAdherenceService>();
+            builder.Services.AddScoped<MedicationReminderService>();
             builder.Services.AddSingleton<IChatMessageCrypto, ChatMessageCrypto>();
+            builder.Services.AddHostedService<MedicationReminderHostedService>();
+            builder.Services.AddScoped<IAnalysisService, AnalysisService>();
+            builder.Services.AddScoped<AnalysisBackgroundJob>();
+            builder.Services.AddSingleton<IBackgroundJobScheduler, HangfireBackgroundJobScheduler>();
+            builder.Services.AddScoped<UltrasoundImageStorage>();
 
-            // ?? Product OCR ????????????????????????????????????????????????
+
+
+            builder.Services.AddHttpClient<IUltrasoundAIService, UltrasoundAIService>(client =>
+            {
+                client.BaseAddress = new Uri("https://eman123yasser-fetal-abnormalities.hf.space/");
+                client.Timeout = TimeSpan.FromSeconds(60);
+            });
+
+
+            //  Product OCR 
             builder.Services.AddHttpClient("ProductOcr", client =>
             {
                 client.BaseAddress = new Uri("https://eman123yasser-product-ocr.hf.space/");
                 client.Timeout = TimeSpan.FromSeconds(60);
             });
             builder.Services.AddScoped<ProductOcrClient>();
-            // ??????????????????????????????????????????????????????????????
+
+            builder.Services.AddHttpClient("AnalysisOcr", client =>
+            {
+                client.BaseAddress = new Uri("https://eman123yasser-tests-ocr.hf.space/");
+                client.Timeout = TimeSpan.FromSeconds(60);
+            });
+            builder.Services.AddHttpClient("AnalysisConfirm", client =>
+            {
+                client.BaseAddress = new Uri("https://eman123yasser-tests-ocr.hf.space/");
+                client.Timeout = TimeSpan.FromSeconds(60);
+            });
+            builder.Services.AddHttpClient("AnalysisSubmit", client =>
+            {
+                client.BaseAddress = new Uri("https://eman123yasser-submit-api.hf.space/");
+                client.Timeout = TimeSpan.FromSeconds(60);
+            });
+            builder.Services.AddScoped<AnalysisOcrClient>();
+            builder.Services.AddScoped<AnalysisSubmitClient>();
 
             var app = builder.Build();
 
-            // ?? Seed the database ????????????????????????????????????????
+            // Seed the database
             using (var scope = app.Services.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -122,7 +160,6 @@ END");
 
                 await DataSeeder.SeedAsync(db);
             }
-            // ????????????????????????????????????????????????????????????
 
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())

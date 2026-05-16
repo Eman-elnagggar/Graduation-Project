@@ -1,0 +1,784 @@
+@model Graduation_Project.ViewModels.Ultrasound.UltrasoundHistoryViewModel
+@{
+    Layout = "~/Views/Shared/_DoctorLayout.cshtml";
+    ViewData["Title"] = "Ultrasound History";
+    ViewData["ActivePage"] = "Ultrasound";
+    ViewData["PageTitle"] = "Ultrasound History";
+    ViewData["PageSubtitle"] = Model.PatientName;
+
+    var analyzed = Model.Scans.Where(s => s.Status == Graduation_Project.Models.UltrasoundStatus.Completed && !string.IsNullOrWhiteSpace(s.ResultImagePath)).ToList();
+    var noteOnly = Model.Scans.Where(s => s.Status == Graduation_Project.Models.UltrasoundStatus.Completed && string.IsNullOrWhiteSpace(s.ResultImagePath)).ToList();
+    var failed   = Model.Scans.Where(s => s.Status == Graduation_Project.Models.UltrasoundStatus.Failed).ToList();
+
+    string successMsg = ViewData["SuccessMessage"] as string ?? string.Empty;
+}
+
+@section Styles {
+<style>
+:root {
+    --h-p: #14967f; --h-p-dk: #0e7a68; --h-p-mid: #1aad94;
+    --h-p-lt: #e6f5f2; --h-p-xlt: #f0faf8;
+    --h-navy: #0b1f35; --h-navy-mid: #152d47;
+    --h-text: #0f1c2e; --h-text-2: #4a5568; --h-text-3: #8896ab;
+    --h-border: #e4eaf2; --h-bg: #f3f6fb; --h-white: #fff;
+    --h-danger: #e53e3e; --h-warning: #d97706; --h-success: #16a34a;
+    --h-info: #2563eb;
+    --h-r: 10px; --h-r-lg: 16px; --h-r-xl: 22px;
+    --h-shadow-sm: 0 1px 4px rgba(15,28,46,.06);
+    --h-shadow: 0 4px 16px rgba(15,28,46,.08);
+}
+
+.uh-wrap { display: flex; flex-direction: column; gap: 20px; }
+
+/* ── Hero ── */
+.uh-hero {
+    background: linear-gradient(130deg, var(--h-navy) 0%, var(--h-navy-mid) 55%, #1a3d5c 100%);
+    border-radius: var(--h-r-xl);
+    padding: 24px 28px;
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 20px; flex-wrap: wrap;
+}
+.uh-hero-left { display: flex; align-items: center; gap: 18px; }
+.uh-hero-icon {
+    width: 56px; height: 56px; flex-shrink: 0;
+    background: rgba(255,255,255,.1); border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem; color: var(--h-p-mid);
+}
+.uh-hero-name { font-size: 1.35rem; font-weight: 700; color: #f1f5f9; margin: 0 0 4px; }
+.uh-hero-sub { font-size: .85rem; color: #94a3b8; margin: 0; display: flex; align-items: center; gap: 8px; }
+.uh-hero-sub i { font-size: .7rem; color: var(--h-p-mid); }
+.uh-hero-stats { display: flex; gap: 20px; flex-shrink: 0; }
+.uh-stat { text-align: center; }
+.uh-stat-num { display: block; font-size: 1.75rem; font-weight: 800; color: #f1f5f9; }
+.uh-stat-lbl { font-size: .72rem; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; }
+
+/* ── Alert toast ── */
+.uh-success-alert {
+    display: flex; align-items: center; gap: 10px;
+    background: #f0fdf4; border: 1px solid #bbf7d0;
+    border-radius: var(--h-r-lg); padding: 14px 18px;
+    color: #15803d; font-size: .88rem; font-weight: 600;
+}
+.uh-success-alert i { font-size: 1.1rem; }
+
+/* ── Toolbar ── */
+.uh-toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap;
+}
+.uh-toolbar-left { display: flex; align-items: center; gap: 8px; }
+.uh-tab {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: 20px;
+    font-size: .82rem; font-weight: 700; border: 1.5px solid var(--h-border);
+    background: var(--h-white); color: var(--h-text-2); cursor: pointer;
+    transition: all .2s;
+}
+.uh-tab.active, .uh-tab:hover {
+    border-color: var(--h-p); background: var(--h-p-xlt); color: var(--h-p);
+}
+.uh-tab-count {
+    background: var(--h-border); color: var(--h-text-2);
+    border-radius: 999px; padding: 1px 7px; font-size: .72rem; font-weight: 800;
+}
+.uh-tab.active .uh-tab-count {
+    background: var(--h-p); color: #fff;
+}
+.uh-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 16px; border-radius: var(--h-r); border: none;
+    font: inherit; font-size: .86rem; font-weight: 700; cursor: pointer;
+    transition: all .2s; text-decoration: none;
+}
+.uh-btn:hover { transform: translateY(-1px); }
+.uh-btn-primary {
+    background: linear-gradient(135deg, var(--h-p), var(--h-p-mid)); color: #fff;
+}
+.uh-btn-primary:hover { background: linear-gradient(135deg, var(--h-p-dk), var(--h-p)); }
+.uh-btn-secondary {
+    background: var(--h-bg); color: var(--h-text-2);
+    border: 1.5px solid var(--h-border);
+}
+.uh-btn-secondary:hover { border-color: var(--h-p); color: var(--h-p); }
+
+/* ── Section ── */
+.uh-section { display: none; }
+.uh-section.visible { display: block; }
+
+/* ── Scan grid ── */
+.uh-scan-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+}
+
+/* ── Scan card ── */
+.uh-scan-card {
+    background: var(--h-white);
+    border: 1px solid var(--h-border);
+    border-radius: var(--h-r-lg);
+    box-shadow: var(--h-shadow-sm);
+    overflow: hidden;
+    transition: box-shadow .2s, transform .2s;
+    display: flex; flex-direction: column;
+}
+.uh-scan-card:hover {
+    box-shadow: var(--h-shadow);
+    transform: translateY(-2px);
+}
+
+/* Status stripe */
+.uh-scan-stripe {
+    height: 4px;
+}
+.uh-scan-stripe.analyzed  { background: linear-gradient(90deg, var(--h-p), var(--h-p-mid)); }
+.uh-scan-stripe.note-only { background: linear-gradient(90deg, #d97706, #fbbf24); }
+.uh-scan-stripe.failed    { background: linear-gradient(90deg, var(--h-danger), #f87171); }
+
+/* Images row */
+.uh-images {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+    border-bottom: 1px solid var(--h-border);
+}
+.uh-images.single { grid-template-columns: 1fr; }
+.uh-img-wrap {
+    position: relative; aspect-ratio: 4/3; overflow: hidden;
+    background: #f0f4f8;
+    cursor: zoom-in;
+}
+.uh-img-wrap + .uh-img-wrap { border-left: 1px solid var(--h-border); }
+.uh-img-wrap img {
+    width: 100%; height: 100%; object-fit: cover;
+    transition: transform .3s;
+}
+.uh-scan-card:hover .uh-img-wrap img { transform: scale(1.03); }
+.uh-img-label {
+    position: absolute; bottom: 6px; left: 6px;
+    background: rgba(0,0,0,.55); color: #fff;
+    font-size: .66rem; font-weight: 700; padding: 2px 7px; border-radius: 999px;
+    text-transform: uppercase; letter-spacing: .04em;
+}
+.uh-img-placeholder {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: var(--h-text-3); gap: 6px; font-size: .8rem;
+}
+.uh-img-placeholder i { font-size: 1.8rem; }
+
+/* Card body */
+.uh-scan-body { padding: 14px 16px; flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.uh-scan-date {
+    font-size: .78rem; color: var(--h-text-3); font-weight: 600;
+    display: flex; align-items: center; gap: 5px;
+}
+.uh-scan-date i { color: var(--h-p); font-size: .72rem; }
+
+/* Prediction chip */
+.uh-prediction {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--h-p-lt); color: var(--h-p);
+    border-radius: 999px; padding: 4px 12px;
+    font-size: .78rem; font-weight: 700;
+    border: 1px solid rgba(20,150,127,.2);
+    align-self: flex-start;
+}
+.uh-prediction.failed { background: #fef2f2; color: var(--h-danger); border-color: #fecaca; }
+
+/* Confidence bar */
+.uh-confidence { margin-top: 2px; }
+.uh-confidence-head {
+    display: flex; justify-content: space-between;
+    font-size: .72rem; color: var(--h-text-3); font-weight: 600; margin-bottom: 4px;
+}
+.uh-confidence-track { height: 5px; background: var(--h-border); border-radius: 4px; overflow: hidden; }
+.uh-confidence-fill  { height: 100%; background: linear-gradient(90deg, var(--h-p), var(--h-p-mid)); border-radius: 4px; transition: width .6s ease; }
+
+/* Note */
+.uh-note {
+    font-size: .8rem; color: var(--h-text-2);
+    background: #fffbeb; border: 1px solid #fde68a;
+    border-radius: var(--h-r); padding: 8px 10px;
+    display: flex; align-items: flex-start; gap: 7px;
+}
+.uh-note i { color: #d97706; flex-shrink: 0; margin-top: 1px; }
+
+/* Card footer */
+.uh-scan-footer {
+    padding: 10px 16px; border-top: 1px solid var(--h-border);
+    display: flex; gap: 8px; justify-content: flex-end;
+}
+.uh-action-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 7px 13px; border-radius: 8px; border: none;
+    font: inherit; font-size: .78rem; font-weight: 700;
+    cursor: pointer; transition: all .2s; text-decoration: none;
+}
+.uh-action-btn.primary {
+    background: var(--h-p-lt); color: var(--h-p);
+    border: 1px solid rgba(20,150,127,.2);
+}
+.uh-action-btn.primary:hover { background: var(--h-p); color: #fff; }
+.uh-action-btn.ghost {
+    background: var(--h-bg); color: var(--h-text-2);
+    border: 1px solid var(--h-border);
+}
+.uh-action-btn.ghost:hover { border-color: var(--h-p); color: var(--h-p); }
+.uh-action-btn.danger {
+    background: #fef2f2;
+    color: var(--h-danger);
+    border: 1px solid #fecaca;
+}
+.uh-action-btn.danger:hover { background: #fee2e2; }
+
+/* Empty state */
+.uh-empty {
+    padding: 48px 24px;
+    text-align: center;
+    background: var(--h-white);
+    border: 1px solid var(--h-border);
+    border-radius: var(--h-r-lg);
+}
+.uh-empty-icon { font-size: 2.5rem; color: var(--h-border); margin-bottom: 12px; }
+.uh-empty-title { font-size: 1rem; font-weight: 700; color: var(--h-text-2); margin-bottom: 6px; }
+.uh-empty-sub { font-size: .84rem; color: var(--h-text-3); margin-bottom: 16px; }
+
+/* Note-only card layout */
+.uh-note-list { display: flex; flex-direction: column; gap: 12px; }
+.uh-note-card {
+    background: var(--h-white);
+    border: 1px solid var(--h-border);
+    border-left: 4px solid #d97706;
+    border-radius: var(--h-r-lg);
+    box-shadow: var(--h-shadow-sm);
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 14px 16px;
+    transition: box-shadow .2s;
+}
+.uh-note-card:hover { box-shadow: var(--h-shadow); }
+.uh-note-actions { margin-left: auto; }
+.uh-note-thumb {
+    width: 70px; height: 70px; border-radius: 8px;
+    object-fit: cover; flex-shrink: 0;
+    border: 1px solid var(--h-border);
+    cursor: zoom-in;
+}
+.uh-note-thumb-placeholder {
+    width: 70px; height: 70px; border-radius: 8px; flex-shrink: 0;
+    background: var(--h-bg); display: flex; align-items: center; justify-content: center;
+    color: var(--h-text-3); font-size: 1.4rem; border: 1px solid var(--h-border);
+}
+.uh-note-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.uh-note-date { font-size: .76rem; color: var(--h-text-3); font-weight: 600; display: flex; align-items: center; gap: 5px; }
+.uh-note-date i { color: #d97706; font-size: .7rem; }
+.uh-note-tag {
+    display: inline-flex; align-items: center; gap: 5px; align-self: flex-start;
+    background: #fffbeb; color: #d97706; border: 1px solid #fde68a;
+    border-radius: 999px; padding: 2px 10px; font-size: .72rem; font-weight: 700;
+}
+.uh-note-text { font-size: .83rem; color: var(--h-text-2); line-height: 1.5; }
+.uh-note-no-text { font-size: .8rem; color: var(--h-text-3); font-style: italic; }
+
+/* Lightbox */
+.uh-lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 28, 46, 0.8);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+    padding: 20px;
+}
+
+.uh-lightbox.show { display: flex; }
+
+.uh-lightbox-card {
+    max-width: 90vw;
+    max-height: 90vh;
+    position: relative;
+}
+
+.uh-lightbox-card img {
+    max-width: 90vw;
+    max-height: 90vh;
+    border-radius: 12px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+}
+
+.uh-lightbox-close {
+    position: absolute;
+    top: -12px;
+    right: -12px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: none;
+    background: #fff;
+    color: var(--h-text);
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(0,0,0,.25);
+}
+
+.uh-lightbox-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,.9);
+    color: var(--h-text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 22px rgba(0,0,0,.2);
+}
+
+.uh-lightbox-nav.prev { left: -60px; }
+.uh-lightbox-nav.next { right: -60px; }
+
+.uh-clickable {
+    cursor: zoom-in;
+}
+
+@@media (max-width: 640px) {
+    .uh-scan-grid { grid-template-columns: 1fr; }
+    .uh-hero { flex-direction: column; }
+    .uh-hero-stats { justify-content: flex-start; }
+}
+</style>
+}
+
+<div class="uh-wrap">
+
+    @* ── Success Message ── *@
+    @if (!string.IsNullOrWhiteSpace(successMsg))
+    {
+        <div class="uh-success-alert">
+            <i class="fas fa-check-circle"></i>
+            @successMsg
+        </div>
+    }
+
+    @* ── Hero ── *@
+    <div class="uh-hero">
+        <div class="uh-hero-left">
+            <div class="uh-hero-icon"><i class="fas fa-wave-square"></i></div>
+            <div>
+                <div class="uh-hero-name">@Model.PatientName</div>
+                <div class="uh-hero-sub">
+                    <i class="fas fa-circle"></i>
+                    Ultrasound Scan History
+                    <i class="fas fa-circle"></i>
+                    Doctor view
+                </div>
+
+<div class="uh-lightbox" id="uhLightbox" aria-hidden="true">
+    <div class="uh-lightbox-card">
+        <button class="uh-lightbox-close" type="button" id="uhLightboxClose"><i class="fas fa-times"></i></button>
+        <button class="uh-lightbox-nav prev" type="button" id="uhLightboxPrev"><i class="fas fa-chevron-left"></i></button>
+        <img id="uhLightboxImage" src="" alt="Ultrasound image" />
+        <button class="uh-lightbox-nav next" type="button" id="uhLightboxNext"><i class="fas fa-chevron-right"></i></button>
+    </div>
+</div>
+            </div>
+        </div>
+        <div class="uh-hero-stats">
+            <div class="uh-stat">
+                <span class="uh-stat-num">@Model.Scans.Count</span>
+                <span class="uh-stat-lbl">Total Scans</span>
+            </div>
+            <div class="uh-stat">
+                <span class="uh-stat-num">@analyzed.Count</span>
+                <span class="uh-stat-lbl">AI Analyzed</span>
+            </div>
+            <div class="uh-stat">
+                <span class="uh-stat-num">@noteOnly.Count</span>
+                <span class="uh-stat-lbl">Notes Only</span>
+            </div>
+        </div>
+    </div>
+
+    @* ── Toolbar ── *@
+    <div class="uh-toolbar">
+        <div class="uh-toolbar-left">
+            <button class="uh-tab active" onclick="showTab('all', this)">
+                All <span class="uh-tab-count">@Model.Scans.Count</span>
+            </button>
+            <button class="uh-tab" onclick="showTab('analyzed', this)">
+                <i class="fas fa-microchip"></i> AI Analyzed
+                <span class="uh-tab-count">@analyzed.Count</span>
+            </button>
+            <button class="uh-tab" onclick="showTab('note', this)">
+                <i class="fas fa-sticky-note"></i> Notes Only
+                <span class="uh-tab-count">@noteOnly.Count</span>
+            </button>
+            @if (failed.Any())
+            {
+                <button class="uh-tab" onclick="showTab('failed', this)">
+                    <i class="fas fa-exclamation-triangle"></i> Failed
+                    <span class="uh-tab-count">@failed.Count</span>
+                </button>
+            }
+        </div>
+        <a asp-action="Upload"
+           asp-route-id="@Model.DoctorId"
+           asp-route-patientId="@Model.Patient.PatientID"
+           class="uh-btn uh-btn-primary">
+            <i class="fas fa-plus"></i> New Scan
+        </a>
+    </div>
+
+    @* ── ALL tab (shows analyzed + note-only together sorted by date) ── *@
+    <div class="uh-section visible" id="tab-all">
+        @if (!Model.Scans.Any())
+        {
+            <div class="uh-empty">
+                <div class="uh-empty-icon"><i class="fas fa-wave-square"></i></div>
+                <div class="uh-empty-title">No ultrasound scans yet</div>
+                <div class="uh-empty-sub">Upload the first scan for @Model.PatientName to begin tracking their ultrasound history.</div>
+                <a asp-action="Upload" asp-route-id="@Model.DoctorId"
+                   asp-route-patientId="@Model.Patient.PatientID"
+                   class="uh-btn uh-btn-primary" style="display:inline-flex;">
+                    <i class="fas fa-plus"></i> Upload First Scan
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="uh-scan-grid">
+                @foreach (var scan in Model.Scans.OrderByDescending(s => s.UploadDate))
+                {
+                    bool hasResult = !string.IsNullOrWhiteSpace(scan.ResultImagePath);
+                    bool hasPred   = !string.IsNullOrWhiteSpace(scan.Prediction);
+                    bool hasNote   = !string.IsNullOrWhiteSpace(scan.DoctorComments);
+                    double conf    = scan.ConfidenceScore ?? 0;
+                    string stripeClass = hasResult ? "analyzed" : scan.Status == Graduation_Project.Models.UltrasoundStatus.Failed ? "failed" : "note-only";
+
+                    <div class="uh-scan-card">
+                        <div class="uh-scan-stripe @stripeClass"></div>
+
+                        <div class="uh-images @(hasResult ? "" : "single")">
+                            <div class="uh-img-wrap">
+                                @if (!string.IsNullOrWhiteSpace(scan.OriginalImagePath))
+                                {
+                                    <img src="@scan.OriginalImagePath" alt="Original" />
+                                    <span class="uh-img-label">Original</span>
+                                }
+                                else
+                                {
+                                    <div class="uh-img-placeholder">
+                                        <i class="fas fa-image"></i>
+                                        <span>No image</span>
+                                    </div>
+                                }
+                            </div>
+                            @if (hasResult)
+                            {
+                                <div class="uh-img-wrap">
+                                    <img src="@scan.ResultImagePath" alt="AI Result" />
+                                    <span class="uh-img-label">AI Result</span>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="uh-scan-body">
+                            <div class="uh-scan-date">
+                                <i class="fas fa-calendar-alt"></i>
+                                @scan.UploadDate.ToString("MMM dd, yyyy · h:mm tt")
+                            </div>
+
+                            @if (hasPred)
+                            {
+                                <span class="uh-prediction">
+                                    <i class="fas fa-brain"></i>
+                                    @scan.Prediction
+                                </span>
+                            }
+                            else if (scan.Status == Graduation_Project.Models.UltrasoundStatus.Failed)
+                            {
+                                <span class="uh-prediction failed">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    Analysis Failed
+                                </span>
+                            }
+                            else if (!hasResult)
+                            {
+                                <span class="uh-prediction" style="background:#fffbeb;color:#d97706;border-color:#fde68a;">
+                                    <i class="fas fa-sticky-note"></i>
+                                    Note Only
+                                </span>
+                            }
+
+                            @if (conf > 0)
+                            {
+                                <div class="uh-confidence">
+                                    <div class="uh-confidence-head">
+                                        <span>AI Confidence</span>
+                                        <span>@conf.ToString("0.#")%</span>
+                                    </div>
+                                    <div class="uh-confidence-track">
+                                        <div class="uh-confidence-fill" style="width:@Math.Min(conf,100)%"></div>
+                                    </div>
+                                </div>
+                            }
+
+                            @if (hasNote)
+                            {
+                                <div class="uh-note">
+                                    <i class="fas fa-notes-medical"></i>
+                                    @scan.DoctorComments
+                                </div>
+                            }
+                        </div>
+
+                        <div class="uh-scan-footer">
+                            @if (hasResult)
+                            {
+                                <a asp-action="Result" asp-route-id="@scan.ImageID"
+                                   class="uh-action-btn primary">
+                                    <i class="fas fa-search"></i> Full Result
+                                </a>
+                            }
+                            <form asp-action="Delete" asp-route-id="@scan.ImageID" method="post" style="display:inline;">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="uh-action-btn danger" onclick="return confirm('Delete this scan?');">
+                                    <i class="fas fa-trash-alt"></i> Delete
+                                </button>
+                            </form>
+                            <a asp-action="Upload" asp-route-id="@Model.DoctorId"
+                               asp-route-patientId="@Model.Patient.PatientID"
+                               class="uh-action-btn ghost">
+                                <i class="fas fa-plus"></i> New Scan
+                            </a>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    @* ── ANALYZED tab ── *@
+    <div class="uh-section" id="tab-analyzed">
+        @if (!analyzed.Any())
+        {
+            <div class="uh-empty">
+                <div class="uh-empty-icon"><i class="fas fa-microchip"></i></div>
+                <div class="uh-empty-title">No AI-analyzed scans yet</div>
+                <div class="uh-empty-sub">Upload a scan and choose "Analyze with AI" to run fetal detection.</div>
+            </div>
+        }
+        else
+        {
+            <div class="uh-scan-grid">
+                @foreach (var scan in analyzed.OrderByDescending(s => s.UploadDate))
+                {
+                    double conf = scan.ConfidenceScore ?? 0;
+                    bool hasNote = !string.IsNullOrWhiteSpace(scan.DoctorComments);
+                    <div class="uh-scan-card">
+                        <div class="uh-scan-stripe analyzed"></div>
+                        <div class="uh-images">
+                            <div class="uh-img-wrap">
+                                @if (!string.IsNullOrWhiteSpace(scan.OriginalImagePath))
+                                { <img src="@scan.OriginalImagePath" alt="Original" /><span class="uh-img-label">Original</span> }
+                                else { <div class="uh-img-placeholder"><i class="fas fa-image"></i></div> }
+                            </div>
+                            <div class="uh-img-wrap">
+                                <img src="@scan.ResultImagePath" alt="AI Result" />
+                                <span class="uh-img-label">AI Result</span>
+                            </div>
+                        </div>
+                        <div class="uh-scan-body">
+                            <div class="uh-scan-date"><i class="fas fa-calendar-alt"></i> @scan.UploadDate.ToString("MMM dd, yyyy · h:mm tt")</div>
+                            @if (!string.IsNullOrWhiteSpace(scan.Prediction))
+                            {
+                                <span class="uh-prediction"><i class="fas fa-brain"></i> @scan.Prediction</span>
+                            }
+                            @if (conf > 0)
+                            {
+                                <div class="uh-confidence">
+                                    <div class="uh-confidence-head"><span>Confidence</span><span>@conf.ToString("0.#")%</span></div>
+                                    <div class="uh-confidence-track"><div class="uh-confidence-fill" style="width:@Math.Min(conf,100)%"></div></div>
+                                </div>
+                            }
+                            @if (hasNote)
+                            {
+                                <div class="uh-note"><i class="fas fa-notes-medical"></i> @scan.DoctorComments</div>
+                            }
+                        </div>
+                        <div class="uh-scan-footer">
+                            <a asp-action="Result" asp-route-id="@scan.ImageID" class="uh-action-btn primary">
+                                <i class="fas fa-search"></i> Full Result
+                            </a>
+                            <form asp-action="Delete" asp-route-id="@scan.ImageID" method="post" style="display:inline;">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="uh-action-btn danger" onclick="return confirm('Delete this scan?');">
+                                    <i class="fas fa-trash-alt"></i> Delete
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    @* ── NOTES ONLY tab ── *@
+    <div class="uh-section" id="tab-note">
+        @if (!noteOnly.Any())
+        {
+            <div class="uh-empty">
+                <div class="uh-empty-icon"><i class="fas fa-sticky-note"></i></div>
+                <div class="uh-empty-title">No note-only uploads yet</div>
+                <div class="uh-empty-sub">Upload a scan and choose "Save with Note" to store images without AI analysis.</div>
+            </div>
+        }
+        else
+        {
+            <div class="uh-note-list">
+                @foreach (var scan in noteOnly.OrderByDescending(s => s.UploadDate))
+                {
+                    bool hasNote = !string.IsNullOrWhiteSpace(scan.DoctorComments);
+                    <div class="uh-note-card">
+                        @if (!string.IsNullOrWhiteSpace(scan.OriginalImagePath))
+                        {
+                            <img class="uh-note-thumb" src="@scan.OriginalImagePath" alt="Scan" />
+                        }
+                        else
+                        {
+                            <div class="uh-note-thumb-placeholder"><i class="fas fa-image"></i></div>
+                        }
+                        <div class="uh-note-info">
+                            <div class="uh-note-date"><i class="fas fa-calendar-alt"></i> @scan.UploadDate.ToString("MMM dd, yyyy · h:mm tt")</div>
+                            <span class="uh-note-tag"><i class="fas fa-sticky-note"></i> Doctor Note</span>
+                            @if (hasNote)
+                            { <div class="uh-note-text">@scan.DoctorComments</div> }
+                            else
+                            { <div class="uh-note-no-text">No note added</div> }
+                        </div>
+                        <div class="uh-note-actions">
+                            <form asp-action="Delete" asp-route-id="@scan.ImageID" method="post" style="display:inline;">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="uh-action-btn danger" onclick="return confirm('Delete this scan?');">
+                                    <i class="fas fa-trash-alt"></i> Delete
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    @* ── FAILED tab ── *@
+    @if (failed.Any())
+    {
+        <div class="uh-section" id="tab-failed">
+            <div class="uh-scan-grid">
+                @foreach (var scan in failed.OrderByDescending(s => s.UploadDate))
+                {
+                    <div class="uh-scan-card">
+                        <div class="uh-scan-stripe failed"></div>
+                        <div class="uh-images single">
+                            <div class="uh-img-wrap">
+                                @if (!string.IsNullOrWhiteSpace(scan.OriginalImagePath))
+                                { <img src="@scan.OriginalImagePath" alt="Original" /><span class="uh-img-label">Original</span> }
+                                else
+                                { <div class="uh-img-placeholder"><i class="fas fa-image"></i></div> }
+                            </div>
+                        </div>
+                        <div class="uh-scan-body">
+                            <div class="uh-scan-date"><i class="fas fa-calendar-alt"></i> @scan.UploadDate.ToString("MMM dd, yyyy · h:mm tt")</div>
+                            <span class="uh-prediction failed"><i class="fas fa-exclamation-triangle"></i> Analysis Failed</span>
+                        </div>
+                        <div class="uh-scan-footer">
+                            <a asp-action="Upload" asp-route-id="@Model.DoctorId"
+                               asp-route-patientId="@Model.Patient.PatientID"
+                               class="uh-action-btn primary">
+                                <i class="fas fa-redo"></i> Retry Upload
+                            </a>
+                            <form asp-action="Delete" asp-route-id="@scan.ImageID" method="post" style="display:inline;">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="uh-action-btn danger" onclick="return confirm('Delete this scan?');">
+                                    <i class="fas fa-trash-alt"></i> Delete
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+</div>
+
+@section Scripts {
+<script>
+function showTab(name, btn) {
+    document.querySelectorAll('.uh-section').forEach(s => s.classList.remove('visible'));
+    document.querySelectorAll('.uh-tab').forEach(t => t.classList.remove('active'));
+    const section = document.getElementById('tab-' + name);
+    if (section) section.classList.add('visible');
+    btn.classList.add('active');
+}
+
+(function () {
+    const lightbox = document.getElementById('uhLightbox');
+    const lightboxImage = document.getElementById('uhLightboxImage');
+    const closeBtn = document.getElementById('uhLightboxClose');
+    const prevBtn = document.getElementById('uhLightboxPrev');
+    const nextBtn = document.getElementById('uhLightboxNext');
+    if (!lightbox || !lightboxImage || !closeBtn || !prevBtn || !nextBtn) return;
+
+    const imageSources = Array.from(document.querySelectorAll('.uh-img-wrap, .uh-note-thumb'))
+        .map(el => el.tagName === 'IMG' ? el.getAttribute('src') : el.querySelector('img')?.getAttribute('src'))
+        .filter(Boolean);
+    const imageElements = Array.from(document.querySelectorAll('.uh-img-wrap, .uh-note-thumb'))
+        .filter(el => el.tagName === 'IMG' ? el.getAttribute('src') : el.querySelector('img')?.getAttribute('src'));
+    let currentIndex = 0;
+
+    function setIndex(index) {
+        if (!imageSources.length) return;
+        currentIndex = (index + imageSources.length) % imageSources.length;
+        lightboxImage.src = imageSources[currentIndex];
+    }
+
+    function openLightbox(src) {
+        const index = imageSources.indexOf(src);
+        setIndex(index >= 0 ? index : 0);
+        lightbox.classList.add('show');
+        lightbox.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeLightbox() {
+        lightbox.classList.remove('show');
+        lightbox.setAttribute('aria-hidden', 'true');
+    }
+
+    imageElements.forEach(el => {
+        el.classList.add('uh-clickable');
+        el.addEventListener('click', () => {
+            const src = el.tagName === 'IMG' ? el.getAttribute('src') : el.querySelector('img')?.getAttribute('src');
+            if (src) openLightbox(src);
+        });
+    });
+
+    closeBtn.addEventListener('click', closeLightbox);
+    lightbox.addEventListener('click', e => {
+        if (e.target === lightbox) closeLightbox();
+    });
+    prevBtn.addEventListener('click', () => setIndex(currentIndex - 1));
+    nextBtn.addEventListener('click', () => setIndex(currentIndex + 1));
+    document.addEventListener('keydown', e => {
+        if (!lightbox.classList.contains('show')) return;
+        if (e.key === 'Escape') closeLightbox();
+        if (e.key === 'ArrowLeft') setIndex(currentIndex - 1);
+        if (e.key === 'ArrowRight') setIndex(currentIndex + 1);
+    });
+})();
+</script>
+}

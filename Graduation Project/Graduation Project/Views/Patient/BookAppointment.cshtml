@@ -146,12 +146,18 @@
                                      data-clinics="@clinicsJson"
                                      data-availability="@avail">
                                     <div class="doctor-avatar">
-                                        <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(d.FullName)&background=1BAEBE&color=fff&size=80"
-                                             alt="@d.FullName" />
+                                        <a href="@Url.Action("Details", "PublicDoctor", new { doctorId = d.DoctorID, patientId = patientId })" style="display:block;">
+                                            <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(d.FullName)&background=1BAEBE&color=fff&size=80"
+                                                 alt="@d.FullName" />
+                                        </a>
                                         <span class="online-status@(d.NextAvailableDate.HasValue ? "" : " offline")"></span>
                                     </div>
                                     <div class="doctor-details">
-                                        <h4>@d.FullName</h4>
+                                        <h4>
+                                            <a href="@Url.Action("Details", "PublicDoctor", new { doctorId = d.DoctorID, patientId = patientId })" style="text-decoration:none; color:inherit;">
+                                                @d.FullName
+                                            </a>
+                                        </h4>
                                         <p class="specialty">
                                             <i class="fas fa-stethoscope"></i> @d.Specialization
                                         </p>

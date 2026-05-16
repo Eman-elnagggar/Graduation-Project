@@ -22,6 +22,7 @@ namespace Graduation_Project.Controllers
         private readonly IPatientDoctor _patientDoctorRepository;
         private readonly IAlert _alertRepository;
         private readonly AlertService _alertService;
+        private readonly MedicationReminderService _medicationReminderService;
         private readonly AppDbContext _context;
         private readonly IChatMessageCrypto _chatMessageCrypto;
 
@@ -35,6 +36,7 @@ namespace Graduation_Project.Controllers
             IPatientDoctor patientDoctorRepository,
             IAlert alertRepository,
             AlertService alertService,
+            MedicationReminderService medicationReminderService,
             AppDbContext context,
             IChatMessageCrypto chatMessageCrypto)
         {
@@ -47,8 +49,33 @@ namespace Graduation_Project.Controllers
             _patientDoctorRepository = patientDoctorRepository;
             _alertRepository = alertRepository;
             _alertService = alertService;
+            _medicationReminderService = medicationReminderService;
             _context = context;
             _chatMessageCrypto = chatMessageCrypto;
+        }
+
+        [HttpGet]
+        public IActionResult UltrasoundHistory(int id)
+        {
+            var (patient, failure) = AuthorizePatientAccess(id);
+            if (failure != null)
+                return failure;
+
+            var scans = _ultrasoundImage.GetUltrasoundsByPatientId(id).ToList();
+
+            var patientName = patient?.User != null
+                ? $"{patient.User.FirstName} {patient.User.LastName}".Trim()
+                : "Patient";
+
+            var vm = new ViewModels.Ultrasound.PatientUltrasoundHistoryViewModel
+            {
+                Patient = patient!,
+                PatientName = patientName,
+                DoctorScans = scans.Where(s => !s.IsPatientUploaded).ToList(),
+                SelfScans = scans.Where(s => s.IsPatientUploaded).ToList()
+            };
+
+            return View(vm);
         }
 
         public IActionResult Index(int id)
@@ -101,6 +128,7 @@ namespace Graduation_Project.Controllers
             // Pass ALL recent readings so every abnormal value generates an alert,
             // not just whichever reading happens to be "last".
             _alertService.EvaluateAndSaveAlerts(id, patient, recentBPReadings, recentBSReadings, lastLab, nextAppt);
+            _medicationReminderService.EvaluateReminders(DateTime.Today);
 
             // Load unread alerts for the dashboard (most recent 5)
             var unreadAlerts = _alertRepository

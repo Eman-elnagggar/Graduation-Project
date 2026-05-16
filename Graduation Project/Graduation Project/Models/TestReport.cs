@@ -12,21 +12,32 @@ namespace Graduation_Project.Models
         public int PatientID { get; set; }
 
         [ForeignKey("Doctor")]
-        public int DoctorID { get; set; }
+        public int? DoctorID { get; set; }
 
         public DateTime ReportDate { get; set; }
 
+        public string? AnalysisStatus { get; set; }
+
         // Overall AI verdict e.g. "Normal", "Abnormal", "Requires Attention"
-        public string OverallStatus { get; set; }
+        public string? OverallStatus { get; set; }
 
         // AI confidence score e.g. 96.5
         public double? ConfidenceScore { get; set; }
 
         // AI-generated narrative summary shown in the "Analysis Summary" section
-        public string AISummary { get; set; }
+        public string? AISummary { get; set; }
+
+        // Stores result_1 from the submit API — patient personal info
+        public string? PersonalInfoJson { get; set; }
+
+        public string? AiResultJson { get; set; }
+
+        public string? RiskJson { get; set; }
+
+        public string? AlertsJson { get; set; }
 
         // Optional doctor interpretation / remarks
-        public string DoctorInterpretation { get; set; }
+        public string? DoctorInterpretation { get; set; }
 
         // Navigation
         public virtual Patient Patient { get; set; }

@@ -47,9 +47,117 @@
         .ToList();
     var historyPreview = historyTimeline.Take(5).ToList();
     var prescriptions = Model.Prescriptions ?? new List<Graduation_Project.Models.Prescription>();
+
+    var labTests = Model.LabTests ?? new List<Graduation_Project.Models.LabTest>();
+    var testTypeNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        { "cbc", "CBC" },
+        { "urinalysis", "Urinalysis" },
+        { "tsh", "TSH" },
+        { "ferritin", "Ferritin" },
+        { "fbg", "FBG" },
+        { "hba1c", "HbA1c" },
+        { "hcv", "HCV" },
+        { "hbsag", "HBsAg" },
+        { "bloodgroup", "Blood Group" }
+    };
+
+    string ResolveTestName(string? testType, string? testName) =>
+        testTypeNames.TryGetValue(testType ?? "", out var rn) ? rn
+        : (!string.IsNullOrWhiteSpace(testName) ? testName! : testType ?? "Unknown");
+
+    string FormatTestTitle(string name) => string.IsNullOrWhiteSpace(name) ? "Test" : $"{name} Test";
+
+    string LabStatusText(string? status) =>
+        (status ?? "").ToLowerInvariant() switch
+        {
+            "completed" => "Reviewed",
+            "reviewed" => "Reviewed",
+            "processing" => "Processing",
+            "failed" => "Failed",
+            "waitingforconfirmation" => "Pending",
+            _ => string.IsNullOrWhiteSpace(status) ? "Pending" : status
+        };
+
+    string LabStatusClass(string? status) =>
+        (status ?? "").ToLowerInvariant() switch
+        {
+            "completed" => "normal",
+            "reviewed" => "normal",
+            "processing" => "warning",
+            "failed" => "high",
+            _ => "pending"
+        };
+
+    string ResultText(string? overall) =>
+        (overall ?? "").ToLowerInvariant() switch
+        {
+            "all values normal" => "Normal",
+            "abnormal values detected" => "Abnormal",
+            "some values below normal" => "Attention",
+            "abnormal" => "Abnormal",
+            "attention" => "Attention",
+            _ => string.IsNullOrWhiteSpace(overall) ? "Pending" : overall
+        };
+
+    string ResultClass(string? overall) =>
+        (overall ?? "").ToLowerInvariant() switch
+        {
+            "all values normal" => "normal",
+            "abnormal values detected" => "high",
+            "some values below normal" => "warning",
+            "abnormal" => "high",
+            "attention" => "warning",
+            _ => "pending"
+        };
+
+    var labSessions = labTests
+        .Where(t => t.ReportID.HasValue)
+        .GroupBy(t => t.ReportID!.Value)
+        .Select(g =>
+        {
+            var sorted = g.OrderBy(t => t.UploadDate).ToList();
+            var report = sorted.Select(t => t.TestReport).FirstOrDefault(r => r != null);
+            var names = sorted
+                .Select(t => ResolveTestName(t.TestType, t.TestName))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            var images = sorted
+                .Where(t => !string.IsNullOrWhiteSpace(t.ImagePath))
+                .Select(t => new { name = ResolveTestName(t.TestType, t.TestName), path = t.ImagePath! })
+                .ToList();
+            var viewTestId = sorted.FirstOrDefault(t => t.TestReport?.OverallStatus != null)?.LabTestID
+                ?? sorted.Last().LabTestID;
+            return new
+            {
+                Date = sorted.Max(t => t.UploadDate),
+                Names = names,
+                Status = report?.AnalysisStatus ?? sorted.Last().AnalysisStatus ?? "",
+                Overall = report?.OverallStatus,
+                HasReport = report?.OverallStatus != null,
+                ViewTestId = viewTestId,
+                Images = images
+            };
+        })
+        .OrderByDescending(s => s.Date)
+        .ToList();
+
+    var labOrphans = labTests
+        .Where(t => !t.ReportID.HasValue)
+        .OrderByDescending(t => t.UploadDate)
+        .ToList();
 }
 
 <div class="pp-wrap" data-patient-profile>
+    @if (TempData["PatientDetailsSuccess"] is string successMessage && !string.IsNullOrWhiteSpace(successMessage))
+    {
+        <div class="alert alert-success" style="margin-bottom:1rem; border-radius:10px;">@successMessage</div>
+    }
+    @if (TempData["PatientDetailsError"] is string errorMessage && !string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger" style="margin-bottom:1rem; border-radius:10px;">@errorMessage</div>
+    }
+
     <div class="pp-header">
         <div class="pp-header-left">
             <a asp-controller="Doctor" asp-action="Patients" asp-route-id="@Model.Doctor.DoctorID" class="pp-back"><i class="fas fa-arrow-left"></i> Back to Patients</a>
@@ -75,6 +183,8 @@
         </div>
         <div class="pp-header-right">
             <a id="btnMessage" asp-controller="Doctor" asp-action="Messages" asp-route-id="@Model.Doctor.DoctorID" asp-route-patient="@p.PatientID" class="pp-btn pp-btn-secondary"><i class="fas fa-comment-medical"></i> Send Message</a>
+            <a asp-controller="Ultrasound" asp-action="History" asp-route-id="@Model.Doctor.DoctorID" asp-route-patientId="@p.PatientID" class="pp-btn pp-btn-secondary"><i class="fas fa-wave-square"></i> Ultrasound History</a>
+            <a asp-controller="Ultrasound" asp-action="Index" asp-route-patientId="@p.PatientID" class="pp-btn pp-btn-secondary"><i class="fas fa-plus"></i> New Scan</a>
             <button type="button" class="pp-btn pp-btn-secondary" id="btnWritePrescription"><i class="fas fa-prescription"></i> Write Prescription</button>
             <button type="button" class="pp-btn pp-btn-primary" id="btnAddNote"><i class="fas fa-notes-medical"></i> Add Note</button>
         </div>
@@ -161,6 +271,54 @@
                         <div class="pp-info-item"><div class="pp-info-label"><i class="fas fa-calendar-check"></i> Gestational Age</div><div class="pp-info-value">@gestationalWeeks weeks</div></div>
                         <div class="pp-info-item"><div class="pp-info-label"><i class="fas fa-calendar-star"></i> Expected Due Date</div><div class="pp-info-value">@(dueDate?.ToString("MMMM dd, yyyy") ?? "Not available")</div></div>
                         <div class="pp-info-item"><div class="pp-info-label"><i class="fas fa-calendar-plus"></i> Last Pregnancy Start</div><div class="pp-info-value">@(p.LastPregnancyStartedAt?.ToString("MMMM dd, yyyy") ?? p.DateOfPregnancy?.ToString("MMMM dd, yyyy") ?? "Not available")</div></div>
+                        <div class="pp-info-item">
+                            <div class="pp-info-label"><i class="fas fa-venus-mars"></i> Baby Gender</div>
+                            <div class="pp-inline-edit">
+                                <div class="pp-info-value" id="babyGenderValue">@(string.IsNullOrWhiteSpace(Model.BabyGender) ? "Not specified" : Model.BabyGender)</div>
+                                <button type="button" class="pp-inline-edit-btn" id="editBabyGenderBtn" title="Edit baby gender">
+                                    <i class="fas fa-pen"></i>
+                                </button>
+                            </div>
+                            <form asp-controller="Doctor" asp-action="SavePatientBabyGender" method="post" id="babyGenderForm" class="pp-inline-edit-form" style="display:none;">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@Model.Doctor.DoctorID" />
+                                <input type="hidden" name="patientId" value="@p.PatientID" />
+                                <select name="babyGender" class="pp-form-input" style="max-width:220px;">
+                                    @if (string.IsNullOrWhiteSpace(Model.BabyGender) || Model.BabyGender == "Unknown")
+                                    {
+                                        <option value="Unknown" selected>Unknown</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="Unknown">Unknown</option>
+                                    }
+
+                                    @if (Model.BabyGender == "Male")
+                                    {
+                                        <option value="Male" selected>Male</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="Male">Male</option>
+                                    }
+
+                                    @if (Model.BabyGender == "Female")
+                                    {
+                                        <option value="Female" selected>Female</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="Female">Female</option>
+                                    }
+                                </select>
+                                <button type="submit" class="pp-btn pp-btn-secondary" style="padding:.45rem .75rem;">
+                                    <i class="fas fa-save"></i> Save
+                                </button>
+                                <button type="button" class="pp-btn pp-btn-secondary" id="cancelBabyGenderEdit" style="padding:.45rem .75rem;">
+                                    <i class="fas fa-times"></i> Cancel
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -188,9 +346,16 @@
                                         ? "warning"
                                         : "normal";
 
+                                var previewTitle = entry.Title;
+                                if (string.Equals(entry.EventType, "lab-test", StringComparison.OrdinalIgnoreCase) && entry.LabTest != null)
+                                {
+                                    var labName = ResolveTestName(entry.LabTest.TestType, entry.LabTest.TestName);
+                                    previewTitle = $"{labName} Test";
+                                }
+
                                 <div class="pp-history-timeline-item @entryClass">
                                     <div class="pp-history-timeline-main">
-                                        <div class="pp-history-timeline-title">@entry.Title</div>
+                                        <div class="pp-history-timeline-title">@previewTitle</div>
                                         @if (!string.IsNullOrWhiteSpace(entry.SubTitle))
                                         {
                                             <div class="pp-history-timeline-sub">@entry.SubTitle</div>
@@ -285,6 +450,7 @@
                     <div class="pp-card-links-group">
                         <button type="button" class="pp-card-link pp-card-link-soft" data-open-modal="prescriptionModal"><i class="fas fa-plus"></i> Write New</button>
                         <button type="button" class="pp-card-link pp-card-link-soft" id="btnViewAllPrescriptions"><i class="fas fa-external-link-alt"></i> View All</button>
+                        <a class="pp-card-link pp-card-link-soft" asp-controller="Doctor" asp-action="PatientMedicationSummary" asp-route-id="@Model.Doctor.DoctorID" asp-route-patientId="@p.PatientID"><i class="fas fa-pills"></i> Medication Summary</a>
                     </div>
                 </div>
                 <div class="pp-card-body">
@@ -502,12 +668,12 @@
                 </div>
                 <div class="pp-card-body">
                     <div class="pp-lab-list">
-                        @if (Model.LabTests.Any())
+                        @if (labTests.Any())
                         {
-                            @foreach (var test in Model.LabTests.Take(4))
+                            @foreach (var test in labTests.Take(4))
                             {
                                 <div class="pp-lab-item">
-                                    <div class="pp-lab-name">@test.TestType</div>
+                                    <div class="pp-lab-name">@FormatTestTitle(ResolveTestName(test.TestType, test.TestName))</div>
                                     <div class="pp-lab-value">@test.UploadDate.ToString("MMM dd")</div>
                                     <div class="pp-lab-status normal"><i class="fas fa-check-circle"></i> Uploaded</div>
                                 </div>
@@ -864,12 +1030,58 @@
                                         ? "warning"
                                         : "normal";
 
+                                var lab = entry.LabTest;
+                                var canShowLabActions = string.Equals(entry.EventType, "lab-test", StringComparison.OrdinalIgnoreCase) && lab != null;
+                                var historyTestName = canShowLabActions ? ResolveTestName(lab!.TestType, lab.TestName) : string.Empty;
+                                var historyResultText = canShowLabActions ? ResultText(lab!.TestReport?.OverallStatus) : string.Empty;
+                                var historyResultClass = canShowLabActions ? ResultClass(lab!.TestReport?.OverallStatus) : string.Empty;
+                                var historyImagesJson = canShowLabActions && !string.IsNullOrWhiteSpace(lab!.ImagePath)
+                                    ? System.Text.Json.JsonSerializer.Serialize(new[] { new { name = historyTestName, path = lab.ImagePath! } })
+                                    : "";
+
+                                var historyTitle = entry.Title;
+                                if (canShowLabActions)
+                                {
+                                    historyTitle = $"{historyTestName} Test";
+                                }
+
                                 <div class="pp-history-timeline-item @entryClass">
                                     <div class="pp-history-timeline-main">
-                                        <div class="pp-history-timeline-title">@entry.Title</div>
+                                        <div class="pp-history-timeline-title">@historyTitle</div>
                                         @if (!string.IsNullOrWhiteSpace(entry.SubTitle))
                                         {
                                             <div class="pp-history-timeline-sub">@entry.SubTitle</div>
+                                        }
+                                        @if (canShowLabActions)
+                                        {
+                                            <div class="pp-history-actions">
+                                                @if (!string.IsNullOrWhiteSpace(lab!.ImagePath))
+                                                {
+                                                    <button type="button"
+                                                            class="pp-lab-action-btn pp-lab-view-images"
+                                                            data-images="@historyImagesJson"
+                                                            data-test-name="@historyTestName"
+                                                            data-test-date="@entry.DateTime.ToString("MMM dd, yyyy")">
+                                                        <i class="fas fa-images"></i> Images
+                                                    </button>
+                                                }
+                                                @if (lab!.TestReport?.OverallStatus != null)
+                                                {
+                                                    <button type="button"
+                                                            class="pp-lab-action-btn primary pp-lab-view-report"
+                                                            data-test-id="@lab.LabTestID"
+                                                            data-test-name="@historyTestName"
+                                                            data-test-date="@entry.DateTime.ToString("MMM dd, yyyy")"
+                                                            data-result="@historyResultText"
+                                                            data-result-class="@historyResultClass">
+                                                        <i class="fas fa-file-medical-alt"></i> Report
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <span class="pp-lab-pending"><i class="fas fa-clock"></i> Pending</span>
+                                                }
+                                            </div>
                                         }
                                     </div>
                                     <div class="pp-history-timeline-time">@entry.DateTime.ToString("h:mm tt")</div>
@@ -906,24 +1118,75 @@
                                 <th>Test Name</th>
                                 <th>Date</th>
                                 <th>Status</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @if (Model.LabTests.Any())
+                            @if (labSessions.Any() || labOrphans.Any())
                             {
-                                @foreach (var test in Model.LabTests)
+                                @foreach (var session in labSessions)
                                 {
+                                    var displayName = string.Join(" - ", session.Names.Select(n => FormatTestTitle(n)));
+                                    var statusText = LabStatusText(session.Status);
+                                    var statusClass = LabStatusClass(session.Status);
+                                    var resultText = ResultText(session.Overall);
+                                    var resultClass = ResultClass(session.Overall);
+                                    var imagesJson = session.Images.Any()
+                                        ? System.Text.Json.JsonSerializer.Serialize(session.Images.Select(i => new { name = i.name, path = i.path }))
+                                        : "";
                                     <tr>
-                                        <td><strong>@test.TestType</strong></td>
+                                        <td><strong>@displayName</strong></td>
+                                        <td>@session.Date.ToString("MMM dd, yyyy")</td>
+                                        <td><span class="pp-lab-badge @statusClass"><i class="fas fa-check-circle"></i> @statusText</span></td>
+                                        <td>
+                                            <div class="pp-lab-actions">
+                                                @if (session.Images.Any())
+                                                {
+                                                    <button type="button"
+                                                            class="pp-lab-action-btn pp-lab-view-images"
+                                                            data-images="@imagesJson"
+                                                            data-test-name="@displayName"
+                                                            data-test-date="@session.Date.ToString("MMM dd, yyyy")">
+                                                        <i class="fas fa-images"></i> Images
+                                                    </button>
+                                                }
+                                                @if (session.HasReport)
+                                                {
+                                                    <button type="button"
+                                                            class="pp-lab-action-btn primary pp-lab-view-report"
+                                                            data-test-id="@session.ViewTestId"
+                                                            data-test-name="@displayName"
+                                                            data-test-date="@session.Date.ToString("MMM dd, yyyy")"
+                                                            data-result="@resultText"
+                                                            data-result-class="@resultClass">
+                                                        <i class="fas fa-file-medical-alt"></i> Report
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <span class="pp-lab-pending"><i class="fas fa-clock"></i> Pending</span>
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                                @foreach (var test in labOrphans)
+                                {
+                                    var displayName = FormatTestTitle(ResolveTestName(test.TestType, test.TestName));
+                                    var statusText = LabStatusText(test.AnalysisStatus);
+                                    var statusClass = LabStatusClass(test.AnalysisStatus);
+                                    <tr>
+                                        <td><strong>@displayName</strong></td>
                                         <td>@test.UploadDate.ToString("MMM dd, yyyy")</td>
-                                        <td><span class="pp-lab-badge normal"><i class="fas fa-check-circle"></i> Uploaded</span></td>
+                                        <td><span class="pp-lab-badge @statusClass"><i class="fas fa-check-circle"></i> @statusText</span></td>
+                                        <td><span class="pp-lab-pending"><i class="fas fa-clock"></i> Pending</span></td>
                                     </tr>
                                 }
                             }
                             else
                             {
                                 <tr>
-                                    <td colspan="3">No lab tests available.</td>
+                                    <td colspan="4">No lab tests available.</td>
                                 </tr>
                             }
                         </tbody>
@@ -934,6 +1197,56 @@
         <div class="pp-modal-footer">
             <button class="pp-btn pp-btn-secondary" onclick="window.print()"><i class="fas fa-print"></i> Print Results</button>
             <button class="pp-btn pp-btn-primary" data-modal="labTestsModal">Close</button>
+        </div>
+    </div>
+</div>
+
+<div class="pp-modal" id="labReportModal">
+    <div class="pp-modal-overlay"></div>
+    <div class="pp-modal-content pp-modal-large">
+        <div class="pp-modal-header">
+            <h2><i class="fas fa-file-medical-alt"></i> Lab Report</h2>
+            <button class="pp-modal-close" data-modal="labReportModal"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="pp-modal-body">
+            <div class="pp-report-loading" id="labReportLoading">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>Loading report...</span>
+            </div>
+            <div class="pp-report-error" id="labReportError" style="display:none;">
+                <i class="fas fa-circle-exclamation"></i>
+                <p id="labReportErrorMsg">Could not load the report.</p>
+            </div>
+            <div id="labReportContent" style="display:none;">
+                <div class="pp-report-meta">
+                    <div>
+                        <div class="pp-report-title" id="labReportTitle">Lab Report</div>
+                        <div class="pp-report-subtitle" id="labReportSubtitle"></div>
+                    </div>
+                    <span class="pp-report-badge" id="labReportBadge" style="display:none;"></span>
+                </div>
+                <div id="labReportBody"></div>
+            </div>
+        </div>
+        <div class="pp-modal-footer">
+            <button class="pp-btn pp-btn-primary" data-modal="labReportModal">Close</button>
+        </div>
+    </div>
+</div>
+
+<div class="pp-modal" id="labImagesModal">
+    <div class="pp-modal-overlay"></div>
+    <div class="pp-modal-content pp-modal-large">
+        <div class="pp-modal-header">
+            <h2><i class="fas fa-images"></i> <span id="labImagesTitle">Lab Images</span></h2>
+            <button class="pp-modal-close" data-modal="labImagesModal"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="pp-modal-body">
+            <div class="pp-report-subtitle" id="labImagesSubtitle"></div>
+            <div class="pp-image-grid" id="labImagesGrid"></div>
+        </div>
+        <div class="pp-modal-footer">
+            <button class="pp-btn pp-btn-primary" data-modal="labImagesModal">Close</button>
         </div>
     </div>
 </div>
@@ -949,7 +1262,8 @@
             doctorId: @Model.Doctor.DoctorID,
             patientId: @p.PatientID,
             patientName: '@patientName',
-            createPrescriptionUrl: '@Url.Action("CreatePrescription", "Doctor", new { id = Model.Doctor.DoctorID })'
+            createPrescriptionUrl: '@Url.Action("CreatePrescription", "Doctor", new { id = Model.Doctor.DoctorID })',
+            labReportUrl: '@Url.Action("LabReport", "Doctor", new { id = Model.Doctor.DoctorID })'
         };
     </script>
     <script src="~/js/doctor-patient-profile.js" asp-append-version="true"></script>

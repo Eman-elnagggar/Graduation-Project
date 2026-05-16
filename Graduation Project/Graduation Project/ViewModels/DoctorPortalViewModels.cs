@@ -192,6 +192,7 @@ namespace Graduation_Project.ViewModels
         public Patient Patient { get; set; } = null!;
 
         public string? RiskLevel { get; set; }
+        public string? BabyGender { get; set; }
         public DateTime? ExpectedDeliveryDate { get; set; }
 
         public string? LastBloodPressure { get; set; }
