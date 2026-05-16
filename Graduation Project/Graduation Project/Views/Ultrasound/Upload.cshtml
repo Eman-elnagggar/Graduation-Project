@@ -1,0 +1,415 @@
+@model Graduation_Project.ViewModels.Ultrasound.UltrasoundUploadViewModel
+@{
+    Layout = "~/Views/Shared/_DoctorLayout.cshtml";
+    ViewData["Title"] = "Upload Ultrasound";
+    ViewData["ActivePage"] = "Ultrasound";
+    ViewData["PageTitle"] = "Ultrasound Upload";
+    ViewData["PageSubtitle"] = "Upload and optionally analyze a patient ultrasound scan";
+}
+
+@section Styles {
+<style>
+:root {
+    --us-p: #14967f;
+    --us-p-dk: #0e7a68;
+    --us-p-mid: #1aad94;
+    --us-p-lt: #e6f5f2;
+    --us-p-xlt: #f0faf8;
+    --us-navy: #0b1f35;
+    --us-text: #0f1c2e;
+    --us-text-2: #4a5568;
+    --us-text-3: #8896ab;
+    --us-border: #e4eaf2;
+    --us-bg: #f3f6fb;
+    --us-white: #fff;
+    --us-r: 10px;
+    --us-r-lg: 16px;
+    --us-r-xl: 22px;
+    --us-shadow-sm: 0 1px 4px rgba(15,28,46,.06);
+    --us-shadow: 0 4px 16px rgba(15,28,46,.08);
+}
+
+.us-upload-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 860px;
+    margin: 0 auto;
+}
+
+/* Hero banner */
+.us-hero {
+    background: linear-gradient(130deg, var(--us-navy) 0%, #152d47 60%, #1a3d5c 100%);
+    border-radius: var(--us-r-xl);
+    padding: 24px 28px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+.us-hero-icon {
+    width: 56px; height: 56px;
+    background: rgba(255,255,255,.1);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem; color: var(--us-p-mid); flex-shrink: 0;
+}
+.us-hero-title { font-size: 1.35rem; font-weight: 700; color: #f1f5f9; margin: 0 0 4px; }
+.us-hero-sub { font-size: .85rem; color: #94a3b8; margin: 0; }
+
+/* Card */
+.us-card {
+    background: var(--us-white);
+    border: 1px solid var(--us-border);
+    border-radius: var(--us-r-lg);
+    box-shadow: var(--us-shadow-sm);
+    overflow: hidden;
+}
+.us-card-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--us-border);
+}
+.us-card-icon {
+    width: 34px; height: 34px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .9rem;
+}
+.us-card-icon.teal { background: var(--us-p-lt); color: var(--us-p); }
+.us-card-icon.amber { background: #fffbeb; color: #d97706; }
+.us-card-icon.blue  { background: #eff6ff; color: #2563eb; }
+.us-card-title { font-size: .9rem; font-weight: 700; color: var(--us-text); }
+.us-card-sub   { font-size: .72rem; color: var(--us-text-3); }
+.us-card-body  { padding: 20px; }
+
+/* Mode toggle */
+.us-mode-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.us-mode-option {
+    position: relative;
+    cursor: pointer;
+}
+.us-mode-option input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+.us-mode-label {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 14px 16px;
+    border: 2px solid var(--us-border);
+    border-radius: var(--us-r-lg);
+    background: var(--us-bg);
+    cursor: pointer;
+    transition: all .2s ease;
+}
+.us-mode-option input[type="radio"]:checked + .us-mode-label {
+    border-color: var(--us-p);
+    background: var(--us-p-xlt);
+}
+.us-mode-label-icon {
+    width: 36px; height: 36px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; flex-shrink: 0;
+    background: var(--us-border); color: var(--us-text-2);
+    transition: all .2s ease;
+}
+.us-mode-option input[type="radio"]:checked + .us-mode-label .us-mode-label-icon {
+    background: var(--us-p); color: #fff;
+}
+.us-mode-label-text strong { display: block; font-size: .88rem; color: var(--us-text); font-weight: 700; }
+.us-mode-label-text span   { font-size: .76rem; color: var(--us-text-3); line-height: 1.4; }
+
+/* Form fields */
+.us-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.us-form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.us-form-group label {
+    font-size: .82rem; font-weight: 700; color: var(--us-text-2);
+    display: flex; align-items: center; gap: 5px;
+}
+.us-form-group label i { color: var(--us-p); font-size: .78rem; }
+.us-form-input,
+.us-form-select,
+.us-form-textarea {
+    width: 100%;
+    padding: 10px 13px;
+    border: 1.5px solid var(--us-border);
+    border-radius: var(--us-r);
+    font: inherit; font-size: .88rem;
+    color: var(--us-text);
+    background: #fff;
+    transition: border-color .2s;
+    outline: none;
+}
+.us-form-input:focus,
+.us-form-select:focus,
+.us-form-textarea:focus { border-color: var(--us-p); box-shadow: 0 0 0 3px rgba(20,150,127,.12); }
+.us-form-textarea { min-height: 90px; resize: vertical; }
+
+/* File drop zone */
+.us-dropzone {
+    border: 2px dashed var(--us-border);
+    border-radius: var(--us-r-lg);
+    padding: 28px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .2s ease;
+    background: var(--us-bg);
+    position: relative;
+}
+.us-dropzone:hover, .us-dropzone.drag-over {
+    border-color: var(--us-p);
+    background: var(--us-p-xlt);
+}
+.us-dropzone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer;
+}
+.us-dropzone-icon { font-size: 2rem; color: var(--us-p-mid); margin-bottom: 10px; }
+.us-dropzone-title { font-size: .92rem; font-weight: 700; color: var(--us-text); margin-bottom: 4px; }
+.us-dropzone-sub { font-size: .78rem; color: var(--us-text-3); }
+.us-dropzone-preview {
+    display: none; flex-direction: column; align-items: center; gap: 8px;
+}
+.us-dropzone-preview img {
+    max-height: 140px; border-radius: 8px; border: 1px solid var(--us-border);
+}
+.us-dropzone-preview-name { font-size: .8rem; color: var(--us-text-2); font-weight: 600; }
+
+/* Note field — shown/hidden by mode */
+.us-note-section { display: none; }
+.us-note-section.visible { display: block; }
+
+/* AI badge on note section */
+.us-mode-hint {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: .74rem; font-weight: 600;
+    padding: 4px 10px; border-radius: 20px;
+    margin-bottom: 10px;
+}
+.us-mode-hint.ai   { background: rgba(37,99,235,.08); color: #2563eb; border: 1px solid rgba(37,99,235,.18); }
+.us-mode-hint.note { background: var(--us-p-lt); color: var(--us-p); border: 1px solid rgba(20,150,127,.2); }
+
+/* Actions */
+.us-actions {
+    display: flex; align-items: center; gap: 10px;
+    padding-top: 4px;
+}
+.us-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 11px 20px; border-radius: var(--us-r); border: none;
+    font: inherit; font-size: .9rem; font-weight: 700; cursor: pointer;
+    transition: all .2s ease; text-decoration: none;
+}
+.us-btn:hover { transform: translateY(-1px); }
+.us-btn-primary {
+    background: linear-gradient(135deg, var(--us-p), var(--us-p-mid));
+    color: #fff;
+}
+.us-btn-primary:hover { background: linear-gradient(135deg, var(--us-p-dk), var(--us-p)); }
+.us-btn-secondary {
+    background: var(--us-bg); color: var(--us-text-2);
+    border: 1.5px solid var(--us-border);
+}
+.us-btn-secondary:hover { border-color: var(--us-p); color: var(--us-p); }
+
+/* Validation */
+.us-validation { font-size: .78rem; color: #dc2626; margin-top: 4px; }
+
+@@media (max-width: 640px) {
+    .us-mode-toggle { grid-template-columns: 1fr; }
+    .us-form-row    { grid-template-columns: 1fr; }
+}
+</style>
+}
+
+<div class="us-upload-wrap">
+
+    <!-- Hero -->
+    <div class="us-hero">
+        <div class="us-hero-icon"><i class="fas fa-wave-square"></i></div>
+        <div>
+            <div class="us-hero-title">Upload Ultrasound Scan</div>
+            <div class="us-hero-sub">Choose a patient, upload an image, and select your workflow — AI analysis or save with a note.</div>
+        </div>
+    </div>
+
+    <form asp-action="Upload" method="post" enctype="multipart/form-data" id="uploadForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="DoctorId" />
+
+        <!-- Patient + Mode -->
+        <div class="us-card">
+            <div class="us-card-header">
+                <div class="us-card-icon teal"><i class="fas fa-user"></i></div>
+                <div>
+                    <div class="us-card-title">Step 1 — Select Patient</div>
+                    <div class="us-card-sub">Choose which patient this scan belongs to</div>
+                </div>
+            </div>
+            <div class="us-card-body">
+                <div class="us-form-group">
+                    <label asp-for="PatientId"><i class="fas fa-user-injured"></i> Patient</label>
+                    <select asp-for="PatientId" class="us-form-select">
+                        <option value="">— Select a patient —</option>
+                        @foreach (var patient in Model.Patients)
+                        {
+                            <option value="@patient.PatientID">@patient.User?.FirstName @patient.User?.LastName</option>
+                        }
+                    </select>
+                    <span asp-validation-for="PatientId" class="us-validation"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upload Mode -->
+        <div class="us-card">
+            <div class="us-card-header">
+                <div class="us-card-icon blue"><i class="fas fa-sliders-h"></i></div>
+                <div>
+                    <div class="us-card-title">Step 2 — Choose Workflow</div>
+                    <div class="us-card-sub">Analyze with AI or save the image with a note only</div>
+                </div>
+            </div>
+            <div class="us-card-body">
+                <div class="us-mode-toggle">
+                    <label class="us-mode-option">
+                        <input type="radio" name="AnalyzeWithAI" value="true" id="modeAI" checked />
+                        <span class="us-mode-label">
+                            <span class="us-mode-label-icon"><i class="fas fa-microchip"></i></span>
+                            <span class="us-mode-label-text">
+                                <strong>Analyze with AI</strong>
+                                <span>Upload the image and run fetal AI detection automatically</span>
+                            </span>
+                        </span>
+                    </label>
+                    <label class="us-mode-option">
+                        <input type="radio" name="AnalyzeWithAI" value="false" id="modeNote" />
+                        <span class="us-mode-label">
+                            <span class="us-mode-label-icon"><i class="fas fa-sticky-note"></i></span>
+                            <span class="us-mode-label-text">
+                                <strong>Save with Note</strong>
+                                <span>Store the image with your clinical observation only</span>
+                            </span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Image + Note -->
+        <div class="us-card">
+            <div class="us-card-header">
+                <div class="us-card-icon amber"><i class="fas fa-image"></i></div>
+                <div>
+                    <div class="us-card-title">Step 3 — Upload Image &amp; Add Note</div>
+                    <div class="us-card-sub">JPG or PNG, max 10 MB</div>
+                </div>
+            </div>
+            <div class="us-card-body">
+
+                <div id="modeHint" class="us-mode-hint ai">
+                    <i class="fas fa-microchip"></i> AI analysis will run automatically after upload
+                </div>
+
+                <!-- Drop zone -->
+                <div class="us-dropzone" id="dropzone">
+                    <input asp-for="ImageFile" type="file" accept=".jpg,.jpeg,.png" id="fileInput" />
+                    <div id="dropzoneDefault">
+                        <div class="us-dropzone-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                        <div class="us-dropzone-title">Drag &amp; drop your image here</div>
+                        <div class="us-dropzone-sub">or click to browse &nbsp;·&nbsp; JPG, PNG &nbsp;·&nbsp; Max 10 MB</div>
+                    </div>
+                    <div class="us-dropzone-preview" id="dropzonePreview">
+                        <img id="previewImg" src="" alt="Preview" />
+                        <div class="us-dropzone-preview-name" id="previewName"></div>
+                    </div>
+                </div>
+                <span asp-validation-for="ImageFile" class="us-validation"></span>
+
+                <!-- Note field — always visible for "save with note", optional for AI mode -->
+                <div class="us-form-group us-note-section @(Model.AnalyzeWithAI ? "" : "visible")" id="noteSection" style="margin-top:14px;">
+                    <label asp-for="DoctorNote"><i class="fas fa-notes-medical"></i> Clinical Note</label>
+                    <textarea asp-for="DoctorNote" class="us-form-textarea"
+                              placeholder="E.g. Week 24 scan, fetal position normal, no visible anomalies…"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="us-actions">
+            <button type="submit" class="us-btn us-btn-primary" id="submitBtn">
+                <i class="fas fa-microchip" id="submitIcon"></i>
+                <span id="submitLabel">Upload &amp; Analyze</span>
+            </button>
+            @if (Model.PatientId > 0)
+            {
+                <a asp-action="History" asp-route-id="@Model.DoctorId"
+                   asp-route-patientId="@Model.PatientId"
+                   class="us-btn us-btn-secondary">
+                    <i class="fas fa-history"></i> View History
+                </a>
+            }
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    const modeAI   = document.getElementById('modeAI');
+    const modeNote = document.getElementById('modeNote');
+    const noteSection = document.getElementById('noteSection');
+    const submitIcon  = document.getElementById('submitIcon');
+    const submitLabel = document.getElementById('submitLabel');
+    const modeHint    = document.getElementById('modeHint');
+    const dropzone    = document.getElementById('dropzone');
+    const fileInput   = document.getElementById('fileInput');
+    const previewImg  = document.getElementById('previewImg');
+    const previewName = document.getElementById('previewName');
+
+    function updateMode() {
+        const isAI = modeAI.checked;
+        noteSection.classList.toggle('visible', !isAI);
+        if (isAI) {
+            submitIcon.className  = 'fas fa-microchip';
+            submitLabel.textContent = 'Upload & Analyze';
+            modeHint.className = 'us-mode-hint ai';
+            modeHint.innerHTML = '<i class="fas fa-microchip"></i> AI analysis will run automatically after upload';
+        } else {
+            submitIcon.className  = 'fas fa-save';
+            submitLabel.textContent = 'Save with Note';
+            modeHint.className = 'us-mode-hint note';
+            modeHint.innerHTML = '<i class="fas fa-sticky-note"></i> Image will be saved with your note — no AI analysis';
+        }
+    }
+    modeAI.addEventListener('change', updateMode);
+    modeNote.addEventListener('change', updateMode);
+
+    function showPreview(file) {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            previewImg.src = e.target.result;
+            previewName.textContent = file.name;
+            document.getElementById('dropzoneDefault').style.display = 'none';
+            document.getElementById('dropzonePreview').style.display = 'flex';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    fileInput.addEventListener('change', e => showPreview(e.target.files[0]));
+
+    dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+    dropzone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropzone.classList.remove('drag-over');
+        if (e.dataTransfer.files.length) {
+            const dt = new DataTransfer();
+            dt.items.add(e.dataTransfer.files[0]);
+            fileInput.files = dt.files;
+            showPreview(e.dataTransfer.files[0]);
+        }
+    });
+})();
+</script>
+}

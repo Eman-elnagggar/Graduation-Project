@@ -1,0 +1,358 @@
+@model Graduation_Project.ViewModels.Ultrasound.PatientUltrasoundHistoryViewModel
+@{
+    Layout = "~/Views/Shared/_PatientLayout.cshtml";
+    ViewData["Title"] = "Ultrasound History";
+    ViewData["ActivePage"] = "Ultrasound";
+    ViewData["PatientId"] = Model.Patient.PatientID;
+    var patientId = Model.Patient.PatientID;
+}
+
+@section Styles {
+<link rel="stylesheet" href="~/css/patient-ultrasound-history.css" />
+}
+
+<div class="pu-container">
+
+    @* ── Hero ── *@
+    <div class="pu-hero">
+        <div class="pu-hero-left">
+            <div class="pu-hero-icon"><i class="fas fa-wave-square"></i></div>
+            <div>
+                <div class="pu-hero-title">My Ultrasound Records</div>
+                <div class="pu-hero-sub">
+                    <i class="fas fa-circle"></i>
+                    Doctor scans &amp; personal uploads
+                </div>
+            </div>
+        </div>
+        <div class="pu-hero-stats">
+            <div class="pu-hero-stat">
+                <span class="pu-hero-num">@Model.DoctorScans.Count</span>
+                <span class="pu-hero-lbl">Doctor Scans</span>
+            </div>
+            <div class="pu-hero-stat">
+                <span class="pu-hero-num">@Model.SelfScans.Count</span>
+                <span class="pu-hero-lbl">My Uploads</span>
+            </div>
+        </div>
+    </div>
+
+    @* ── Tab toolbar ── *@
+    <div class="pu-toolbar">
+        <button class="pu-tab active" onclick="puShowTab('doctor', this)">
+            <i class="fas fa-user-md"></i> Doctor Scans
+            <span class="pu-tab-count">@Model.DoctorScans.Count</span>
+        </button>
+        <button class="pu-tab" onclick="puShowTab('self', this)">
+            <i class="fas fa-upload"></i> My Uploads
+            <span class="pu-tab-count">@Model.SelfScans.Count</span>
+        </button>
+    </div>
+
+    @* ── DOCTOR SCANS tab ── *@
+    <div class="pu-section visible" id="pu-tab-doctor">
+        @if (!Model.DoctorScans.Any())
+        {
+            <div class="pu-empty">
+                <div class="pu-empty-icon"><i class="fas fa-wave-square"></i></div>
+                <div class="pu-empty-title">No doctor scans yet</div>
+                <div class="pu-empty-sub">Your doctor hasn't uploaded any ultrasound scans yet. They will appear here once uploaded.</div>
+            </div>
+        }
+        else
+        {
+            <div class="pu-scan-grid">
+                @foreach (var scan in Model.DoctorScans.OrderByDescending(s => s.UploadDate))
+                {
+                    bool hasResult = !string.IsNullOrWhiteSpace(scan.ResultImagePath);
+                    bool hasPred   = !string.IsNullOrWhiteSpace(scan.Prediction);
+                    double conf    = scan.ConfidenceScore ?? 0;
+                    int confWidth  = (int)Math.Round(Math.Min(conf, 100));
+                    string drName  = scan.Doctor?.User != null
+                        ? $"Dr. {scan.Doctor.User.FirstName} {scan.Doctor.User.LastName}".Trim()
+                        : "Your doctor";
+
+                    <div class="pu-scan-card">
+                        <div class="pu-scan-stripe"></div>
+                        <div class="pu-images @(hasResult ? "" : "single")">
+                            <div class="pu-img-wrap">
+                                @if (!string.IsNullOrWhiteSpace(scan.OriginalImagePath))
+                                {
+                                    <img src="@scan.OriginalImagePath" alt="Original scan" />
+                                    <span class="pu-img-label">Original</span>
+                                }
+                                else
+                                {
+                                    <div class="pu-img-placeholder"><i class="fas fa-image"></i><span>No image</span></div>
+                                }
+                            </div>
+                            @if (hasResult)
+                            {
+                                <div class="pu-img-wrap">
+                                    <img src="@scan.ResultImagePath" alt="AI result" />
+                                    <span class="pu-img-label">AI Result</span>
+                                </div>
+                            }
+                        </div>
+                        <div class="pu-scan-body">
+                            <div class="pu-scan-date"><i class="fas fa-calendar-alt"></i> @scan.UploadDate.ToString("MMM dd, yyyy · h:mm tt")</div>
+                            <div class="pu-scan-doctor"><i class="fas fa-user-md"></i> @drName</div>
+                            @if (hasPred)
+                            {
+                                <span class="pu-prediction"><i class="fas fa-brain"></i> @scan.Prediction</span>
+                            }
+                            @if (conf > 0)
+                            {
+                                <div class="pu-confidence">
+                                    <div class="pu-confidence-head"><span>AI Confidence</span><span>@conf.ToString("0.#")%</span></div>
+                                    <div class="pu-confidence-track"><div class="pu-confidence-fill w-@confWidth"></div></div>
+                                </div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(scan.DoctorComments))
+                            {
+                                <div class="pu-doctor-comment">
+                                    <i class="fas fa-notes-medical"></i>
+                                    <span>@scan.DoctorComments</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    @* ── MY UPLOADS tab ── *@
+    <div class="pu-section" id="pu-tab-self">
+
+        @* Upload form *@
+        <div class="pu-upload-panel">
+            <div class="pu-upload-header">
+                <div class="pu-upload-hicon"><i class="fas fa-cloud-upload-alt"></i></div>
+                <div>
+                    <div class="pu-upload-htitle">Save a New Ultrasound Image</div>
+                    <div class="pu-upload-hsub">JPG or PNG, max 10 MB · Add an optional comment</div>
+                </div>
+            </div>
+            <div class="pu-upload-body">
+                <form class="pu-upload-form" id="selfUploadForm" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <div class="pu-form-row">
+                        <div class="pu-form-group">
+                            <label for="selfImageFile"><i class="fas fa-image"></i> Image File</label>
+                            <input type="file" id="selfImageFile" name="ImageFile"
+                                   accept=".jpg,.jpeg,.png" class="pu-form-file" required />
+                        </div>
+                        <div class="pu-form-group">
+                            <label for="selfComment"><i class="fas fa-comment-medical"></i> Comment (optional)</label>
+                            <textarea id="selfComment" name="Comment" class="pu-form-textarea"
+                                      placeholder="E.g. Week 20 scan taken at City Hospital…"></textarea>
+                        </div>
+                    </div>
+                    <button type="submit" class="pu-submit-btn" id="selfUploadBtn">
+                        <i class="fas fa-cloud-upload-alt"></i> Save Image
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        @* Existing self-uploads *@
+        <div class="pu-section-title">
+            <div class="pu-section-title-icon blue"><i class="fas fa-folder-open"></i></div>
+            <h2>Saved Uploads</h2>
+            <span class="pu-section-badge">@Model.SelfScans.Count upload@(Model.SelfScans.Count != 1 ? "s" : "")</span>
+        </div>
+
+        <div class="pu-self-list" id="selfScanList">
+            @if (!Model.SelfScans.Any())
+            {
+                <div class="pu-empty" id="selfEmptyState">
+                    <div class="pu-empty-icon"><i class="fas fa-folder-open"></i></div>
+                    <div class="pu-empty-title">No personal uploads yet</div>
+                    <div class="pu-empty-sub">Use the form above to save your first ultrasound image.</div>
+                </div>
+            }
+            else
+            {
+                @foreach (var scan in Model.SelfScans.OrderByDescending(s => s.UploadDate))
+                {
+                    <div class="pu-self-item" id="selfItem-@scan.ImageID">
+                        @if (!string.IsNullOrWhiteSpace(scan.OriginalImagePath))
+                        {
+                            <img class="pu-self-thumb" src="@scan.OriginalImagePath" alt="My upload" />
+                        }
+                        else
+                        {
+                            <div class="pu-self-thumb-placeholder"><i class="fas fa-image"></i></div>
+                        }
+                        <div class="pu-self-info">
+                            <div class="pu-self-date"><i class="fas fa-clock"></i> @scan.UploadDate.ToString("MMM dd, yyyy · h:mm tt")</div>
+                            @if (!string.IsNullOrWhiteSpace(scan.DoctorComments))
+                            {
+                                <div class="pu-self-comment">@scan.DoctorComments</div>
+                            }
+                            else
+                            {
+                                <div class="pu-self-no-comment">No comment added</div>
+                            }
+                        </div>
+                        <button class="pu-self-delete" title="Delete image"
+                                onclick="puDeleteSelf(@scan.ImageID)">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+</div>
+
+<div class="pu-toast" id="puToast"></div>
+
+<div class="pu-lightbox" id="puLightbox" aria-hidden="true">
+    <div class="pu-lightbox-card">
+        <button class="pu-lightbox-close" type="button" id="puLightboxClose"><i class="fas fa-times"></i></button>
+        <button class="pu-lightbox-nav prev" type="button" id="puLightboxPrev"><i class="fas fa-chevron-left"></i></button>
+        <img id="puLightboxImage" src="" alt="Ultrasound image" />
+        <button class="pu-lightbox-nav next" type="button" id="puLightboxNext"><i class="fas fa-chevron-right"></i></button>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function(){
+    const PATIENT_ID = @patientId;
+    const TOKEN = document.querySelector('#selfUploadForm input[name="__RequestVerificationToken"]')?.value ?? "";
+
+    // Tab switching
+    window.puShowTab = function(name, btn) {
+        document.querySelectorAll('.pu-section').forEach(s => s.classList.remove('visible'));
+        document.querySelectorAll('.pu-tab').forEach(t => t.classList.remove('active'));
+        const el = document.getElementById('pu-tab-' + name);
+        if (el) el.classList.add('visible');
+        btn.classList.add('active');
+    };
+
+    // Toast
+    function toast(msg, type = 'success') {
+        const t = document.getElementById('puToast');
+        t.textContent = msg; t.className = 'pu-toast ' + type + ' show';
+        setTimeout(() => t.classList.remove('show'), 3500);
+    }
+
+    (function () {
+        const lightbox = document.getElementById('puLightbox');
+        const lightboxImage = document.getElementById('puLightboxImage');
+        const closeBtn = document.getElementById('puLightboxClose');
+        const prevBtn = document.getElementById('puLightboxPrev');
+        const nextBtn = document.getElementById('puLightboxNext');
+        const imageElements = Array.from(document.querySelectorAll('.pu-img-wrap img, .pu-self-thumb'));
+        const images = imageElements.map(img => img.getAttribute('src')).filter(Boolean);
+        let currentIndex = 0;
+
+        if (!lightbox || !lightboxImage || !imageElements.length) return;
+
+        function setIndex(index) {
+            currentIndex = (index + images.length) % images.length;
+            lightboxImage.src = images[currentIndex];
+        }
+
+        function openLightbox(src) {
+            const index = images.indexOf(src);
+            setIndex(index >= 0 ? index : 0);
+            lightbox.classList.add('show');
+            lightbox.setAttribute('aria-hidden', 'false');
+        }
+
+        function closeLightbox() {
+            lightbox.classList.remove('show');
+            lightbox.setAttribute('aria-hidden', 'true');
+        }
+
+        imageElements.forEach(img => {
+            img.classList.add('pu-clickable');
+            img.addEventListener('click', () => openLightbox(img.getAttribute('src')));
+        });
+
+        closeBtn.addEventListener('click', closeLightbox);
+        lightbox.addEventListener('click', e => {
+            if (e.target === lightbox) closeLightbox();
+        });
+        prevBtn.addEventListener('click', () => setIndex(currentIndex - 1));
+        nextBtn.addEventListener('click', () => setIndex(currentIndex + 1));
+        document.addEventListener('keydown', e => {
+            if (!lightbox.classList.contains('show')) return;
+            if (e.key === 'Escape') closeLightbox();
+            if (e.key === 'ArrowLeft') setIndex(currentIndex - 1);
+            if (e.key === 'ArrowRight') setIndex(currentIndex + 1);
+        });
+    })();
+
+    // Upload form
+    document.getElementById('selfUploadForm').addEventListener('submit', async e => {
+        e.preventDefault();
+        const btn = document.getElementById('selfUploadBtn');
+        const fi  = document.getElementById('selfImageFile');
+        if (!fi.files.length) { toast('Please select an image file.', 'error'); return; }
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+        const fd = new FormData();
+        fd.append('ImageFile', fi.files[0]);
+        fd.append('Comment', document.getElementById('selfComment').value.trim());
+        try {
+            const res  = await fetch('/PatientUltrasound/Upload/' + PATIENT_ID, {
+                method: 'POST', headers: { 'RequestVerificationToken': TOKEN }, body: fd
+            });
+            const data = await res.json();
+            if (data.success) {
+                toast('Image saved successfully!');
+                fi.value = ''; document.getElementById('selfComment').value = '';
+                document.getElementById('selfEmptyState')?.remove();
+                const list = document.getElementById('selfScanList');
+                const div  = document.createElement('div');
+                div.className = 'pu-self-item'; div.id = 'selfItem-' + data.imageId;
+                div.innerHTML = (data.imagePath
+                    ? '<img class="pu-self-thumb" src="' + data.imagePath + '" alt="My upload"/>'
+                    : '<div class="pu-self-thumb-placeholder"><i class="fas fa-image"></i></div>') +
+                    '<div class="pu-self-info">' +
+                    '<div class="pu-self-date"><i class="fas fa-clock"></i> ' + data.uploadDate + '</div>' +
+                    (data.comment ? '<div class="pu-self-comment">' + esc(data.comment) + '</div>' : '<div class="pu-self-no-comment">No comment added</div>') +
+                    '</div>' +
+                    '<button class="pu-self-delete" title="Delete" onclick="puDeleteSelf(' + data.imageId + ')"><i class="fas fa-trash-alt"></i></button>';
+                list.prepend(div);
+            } else {
+                toast(data.message || 'Upload failed.', 'error');
+            }
+        } catch { toast('Network error. Please try again.', 'error'); }
+        finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Save Image'; }
+    });
+
+    // Delete
+    window.puDeleteSelf = async function(imageId) {
+        if (!confirm('Delete this uploaded image?')) return;
+        try {
+            const res  = await fetch('/PatientUltrasound/DeleteSelfUpload/' + PATIENT_ID + '?imageId=' + imageId, {
+                method: 'POST',
+                headers: { 'RequestVerificationToken': TOKEN }
+            });
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('selfItem-' + imageId)?.remove();
+                toast('Image deleted.');
+                if (!document.querySelector('.pu-self-item')) {
+                    document.getElementById('selfScanList').innerHTML =
+                        '<div class="pu-empty" id="selfEmptyState">' +
+                        '<div class="pu-empty-icon"><i class="fas fa-folder-open"></i></div>' +
+                        '<div class="pu-empty-title">No personal uploads yet</div>' +
+                        '<div class="pu-empty-sub">Use the form above to save your first ultrasound image.</div>' +
+                        '</div>';
+                }
+            } else { toast(data.message || 'Delete failed.', 'error'); }
+        } catch { toast('Network error.', 'error'); }
+    };
+
+    function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+})();
+</script>
+}
