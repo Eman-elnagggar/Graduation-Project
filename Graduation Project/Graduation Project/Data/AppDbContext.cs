@@ -55,6 +55,10 @@ namespace Graduation_Project.Data
         public DbSet<WeightTracking> WeightTrackings { get; set; }
         public DbSet<ChatMessage> ChatMessages { get; set; }
         public DbSet<ClinicInvitation> ClinicInvitations { get; set; }
+        public DbSet<CommunityPost> CommunityPosts { get; set; }
+        public DbSet<CommunityComment> CommunityComments { get; set; }
+        public DbSet<CommunityLike> CommunityLikes { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -835,6 +839,52 @@ namespace Graduation_Project.Data
 
                 entity.HasIndex(e => new { e.DoctorID, e.ClinicID, e.AssistantID, e.Status });
             });
+
+
+            // ============================================================
+            // COMMUNITY
+            // ============================================================
+            modelBuilder.Entity<CommunityPost>(entity =>
+            {
+                entity.HasKey(e => e.CommunityPostId);
+                entity.Property(e => e.Title).HasMaxLength(150).IsRequired();
+                entity.Property(e => e.Content).HasMaxLength(2000).IsRequired();
+                entity.Property(e => e.Category).HasMaxLength(60);
+                entity.HasOne(e => e.Patient)
+                    .WithMany()
+                    .HasForeignKey(e => e.PatientID)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<CommunityComment>(entity =>
+            {
+                entity.HasKey(e => e.CommunityCommentId);
+                entity.Property(e => e.Content).HasMaxLength(1000).IsRequired();
+                entity.HasOne(e => e.Post)
+                    .WithMany(p => p.Comments)
+                    .HasForeignKey(e => e.CommunityPostId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.Patient)
+                    .WithMany()
+                    .HasForeignKey(e => e.PatientID)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<CommunityLike>(entity =>
+            {
+                entity.HasKey(e => e.CommunityLikeId);
+                entity.HasIndex(e => new { e.CommunityPostId, e.PatientID }).IsUnique();
+                entity.HasOne(e => e.Post)
+                    .WithMany(p => p.Likes)
+                    .HasForeignKey(e => e.CommunityPostId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.Patient)
+                    .WithMany()
+                    .HasForeignKey(e => e.PatientID)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+
         }
     }
 }
