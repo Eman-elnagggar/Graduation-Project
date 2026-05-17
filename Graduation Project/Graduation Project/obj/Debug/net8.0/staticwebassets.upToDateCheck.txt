@@ -14,7 +14,6 @@ wwwroot\css\doctor-patient-profile.css
 wwwroot\css\doctor-profile.css
 wwwroot\css\doctor-schedule.css
 wwwroot\css\doctor-style.css
-wwwroot\css\home-index.css
 wwwroot\css\patient-style.css
 wwwroot\css\patient-ultrasound-history.css
 wwwroot\css\prescription-print.css
@@ -104,3 +103,6 @@ wwwroot\lib\jquery\dist\jquery.min.map
 wwwroot\lib\jquery\LICENSE.txt
 wwwroot\uploads\lab-tests\1\9a3a9b1ca68c411997d537bf12fc2b03.jpg
 wwwroot\uploads\lab-tests\1\fa57c043a3b54ee489896ae56e5e20ca.webp
+wwwroot\uploads\ultrasound\original\4d00e66b-579e-466d-b167-6ec347b2e998.jpg
+wwwroot\uploads\ultrasound\results\8307dbc9-8202-4936-b39b-e7d40e804743.png
+wwwroot\css\home-index.css
