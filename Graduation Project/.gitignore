@@ -13,6 +13,11 @@
 .vs/
 **/.vs/
 
+# Visual Studio local workspace state
+*.dbcache.v2
+*.futdcache.v2
+DocumentLayout*.json
+
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/
