@@ -1,1 +1,7 @@
 .env
+*.rar
+*.zip
+~$*
+*.png
+*.jpg
+*.jpeg
