@@ -17,6 +17,7 @@ class diagnose:
         self.__GDM_API_URL="https://mennnaa-gestational-diabetes.hf.space/predict"
         self.__Risk_API_URL="https://mariamelnemrawy25-risk-api.hf.space/predict"
         self.__CBC_API_URL="https://mennnaa-cbc.hf.space/predict"
+        self.__URINE_API_URL="https://mennnaa-urine.hf.space/predict"
 
     def __read_data(self):
         with open(self.__path, "r", encoding="utf-8") as f:
@@ -58,6 +59,16 @@ class diagnose:
                 return {"error": f"Request failed with status code {response.status_code}"}
         except Exception as e:
             return f"Connection Error: {str(e)}"
+        
+    def __call_URINE_model(self,data_to_send):
+        try:
+            response=requests.post(self.__URINE_API_URL, json=data_to_send)
+            if response.status_code == 200:
+                return response.json()
+            else:
+                return {"error": f"Request failed with status code {response.status_code}"}
+        except Exception as e:
+            return f"Connection Error: {str(e)}"
     
     def __data_to_send(self,test_names:list)->list:
         GDM_data={
@@ -86,8 +97,10 @@ class diagnose:
         risk_flag=0
         if 'Urinalysis' in test_names:
             urinalysis = next((item for item in self.__data["results"] if item["test_name"] == "Urinalysis"), None)
-            GDM_data["proteinuria"] = urinalysis.get("Protein", 0) if urinalysis else 0
-            Risk_data["proteinuria"] = urinalysis.get("Protein", 0) if urinalysis else 0
+            protien_value= urinalysis.get("Protein", 0) if urinalysis else 0
+            protien_value=self.__preprocess_object.map_protein_to_ordinal(protien_value)
+            GDM_data["proteinuria"] =protien_value
+            Risk_data["proteinuria"] = protien_value
         else:
             GDM_data["proteinuria"] = 0
             Risk_data["proteinuria"] = 0
@@ -126,7 +139,12 @@ class diagnose:
         del result['confidence']
 
         if result['test_name']=='Urinalysis':
-            return {"None":"None"}, "None"
+            model_data=self.__preprocess_object.urine_model_data(result)
+            model_result=self.__call_URINE_model(model_data)
+            urine_result,urine_alerts=self.__preprocess_object.urine_result_preprocess(model_result,result)
+            return urine_result,urine_alerts
+        
+        
         elif result['test_name']=='CBC (Complete Blood Count)':
             cbc_result,model_result=self.__preprocess_object.CBC_preprocessing_before(result,self.__data["personal_information"]["age"])
             result.update(cbc_result)
@@ -141,7 +159,7 @@ class diagnose:
             return HbA1c_pipeline.evaluate_HbA1c(result)
         
         elif result['test_name']=='Ferritin':
-            return Ferritin_pipeline.evaluate_Ferritin(result)
+            return Ferritin_pipeline.evaluate_ferritin(result)
         
         elif result['test_name']=='TSH (Thyroid)':
             return tsh_pipeline.evaluate_tsh(result,self.__data["personal_information"]["trimester"])
@@ -154,11 +172,11 @@ class diagnose:
         
         elif result['test_name']=='HBsAg (Hepatitis B)':
             return {'test_name': result['test_name'],
-                    'HBsAg': [result['HBsAg'], None]}, "None"
+                    'HBsAg': [result['HBsAg'], None]}, None
         
         elif result['test_name']=='HCV (Hepatitis C)':
             return {'test_name': result['test_name'],
-                    'HCV': [result['HCV'], None]}, "None"
+                    'HCV': [result['HCV'], None]}, None
         
 
     def diagnose_function(self):
@@ -174,11 +192,13 @@ class diagnose:
             # print(alert)
 
             tests_diagnose_results.append(diagnose_and_reason)
-            self.__alerts_results.append(alert)
+            if alert:
+                self.__alerts_results.append(alert)
 
         Models_diagnose=self.__data_to_send(test_names)
         if Models_diagnose[0]:
             GDM_result=self.__call_GDM_model(Models_diagnose[0])
+            print(GDM_result)
             self.__alerts_results.append("GDM "+GDM_result['recommendation'])
             Final_GDM_Result={
                 "prediction_result": GDM_result['prediction_result'],
@@ -192,7 +212,7 @@ class diagnose:
             self.__alerts_results.append(Risk_result['alert'])
             Final_Risk_Result={
                 "risk_level": Risk_result['risk_level'],
-                "report":f"Depend on Nabd AI Model, We classify current state as a {Risk_result['risk_level']} risk for pregnancy complications, with confidence {Risk_result['confidence']}%."
+                "report":f"Depend on Nabd AI Model For measure the risk based on CBC and Urine tests, We classify current state as a {Risk_result['risk_level']} risk for pregnancy complications, with confidence {Risk_result['confidence']}%."
             }
             model_diagnose_results.append(Final_Risk_Result)
         else:

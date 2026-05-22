@@ -1,22 +1,22 @@
 from difflib import SequenceMatcher
-def map_protein_to_ordinal(value):
-    value = str(value).lower().strip()
-    # 0: Negative
-    if value in ['negative', 'neg', 'nil', 'none', '0']:
-        return 0
-    # 1: Trace
-    elif value in ['trace', 'tr']:
-        return 1
-    # 2: +1 or Small
-    elif value in ['1','+1', '1+', 'positive', 'pos', 'small', 'present']:
-        return 2
-    # 3: +2 or Moderate
-    elif value in ['2','+2', '2+', '++', 'moderate']:
-        return 3
-    # 4: +3 or +4 or Large
-    elif value in ['3','+3', '3+', '+++', '+4', '4+', '++++', 'large']:
-        return 4 
-    return 0 # Default
+# def map_protein_to_ordinal(value):
+#     value = str(value).lower().strip()
+#     # 0: Negative
+#     if value in ['negative', 'neg', 'nil', 'none', '0']:
+#         return 0
+#     # 1: Trace
+#     elif value in ['trace', 'tr']:
+#         return 1
+#     # 2: +1 or Small
+#     elif value in ['1','+1', '1+', 'positive', 'pos', 'small', 'present']:
+#         return 2
+#     # 3: +2 or Moderate
+#     elif value in ['2','+2', '2+', '++', 'moderate']:
+#         return 3
+#     # 4: +3 or +4 or Large
+#     elif value in ['3','+3', '3+', '+++', '+4', '4+', '++++', 'large']:
+#         return 4 
+#     return 0 # Default
 
 
 def consistancy_data(values)->dict:
@@ -38,13 +38,11 @@ def consistancy_data(values)->dict:
     
     for key in compared_group:
         user_value = values[key].lower()
-        if key =='Protein':
-            values[key]=map_protein_to_ordinal(user_value)
-        else:
-            if user_value in positive_values:
-                values[key] = 'positive'
-            elif user_value in negative_values:
-                values[key] = 'negative'
+    
+        if user_value in positive_values:
+            values[key] = 'positive'
+        elif user_value in negative_values:
+            values[key] = 'negative'
 
     return values
     

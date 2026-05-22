@@ -1,0 +1,45 @@
+{
+    "personal_information": {
+        "name": "Sara Ahmed",
+        "age": 28,
+        "trimester": 2,
+        "week": 24,
+        "baby_gender": "Female",
+        "height": 165,
+        "weight": 80,
+        "rbs_avg": 145,
+        "avg_systolic": 125,
+        "avg_diastolic": 80,
+        "parity": 1,
+        "dg_state": "Stable",
+        "risk_state": "Low"
+    },
+    "results": [
+        {
+            "test_name": "TSH (Thyroid)",
+            "confidence": "0.94",
+            "TSH": 10.1
+        },
+        {
+            "test_name": "Ferritin",
+            "confidence": "0.94",
+            "Ferritin_value": 365
+        },
+        {
+            "test_name": "Blood Group",
+            "confidence": "0.95",
+            "ABO_Group": "B",
+            "RH_Factor": "positive"
+        },
+        {
+            "test_name": "HBsAg (Hepatitis B)",
+            "confidence": "0.95",
+            "HBsAg": "positive"
+        },
+        {
+            "test_name": "HCV (Hepatitis C)",
+            "confidence": "0.94",
+            "HCV": "non-reactive"
+        }
+    ]
+}

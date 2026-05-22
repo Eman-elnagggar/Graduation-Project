@@ -1,3 +1,4 @@
+import copy
 class Preprocessing:
     def __init__(self):
         pass
@@ -118,3 +119,76 @@ class Preprocessing:
             cbc_data[k][1]=reason
             
         return cbc_data,cbc_result['final_report']['message']
+    
+    def urine_model_data(self,urine_data):
+        print(urine_data)
+        if urine_data['Specific_Gravity']>=1000:
+            urine_data['Specific_Gravity']=urine_data['Specific_Gravity']/1000
+        model_data={
+            "color": urine_data['Color'],
+            "ph": urine_data['PH'],
+            "specific_gravity": urine_data['Specific_Gravity'],
+            "protein": urine_data['Protein'],
+            "glucose": urine_data['Glucose'],
+            "ketones": urine_data['Ketones'],
+            "blood": urine_data['Blood'],
+            "rbcs": urine_data['RBCs'],
+            "leukocytes": urine_data['Leukocytes'],
+            "nitrite": str(urine_data['Nitrite'])
+        }
+
+        return model_data
+    
+    def urine_result_preprocess(self,model_result,original_data):
+        normal_range={
+            "color": "Pale Yellow to Amber",
+            "ph": "4.6 – 8.0",
+            "specific_gravity": "1.005 – 1.025",
+            "protein": "Negative",
+            "glucose": "Negative",
+            "ketones": "Negative",
+            "blood": "Negative",
+            "rbcs": "0 – 2",
+            "leukocytes": "0 – 5",
+            "nitrite":"Negative"
+        }
+        alerts="According to urine test you need to "
+        diagnose_data=copy.deepcopy(original_data)
+        
+        print(model_result)
+        for k,v in model_result.items():
+            str1="";str2=k.title()
+            if k=='PH': str2=k
+            if k=='RBCS':str2='RBCs'
+            if (type(v)==list) and (k!='additional_result'):
+                if v[0]=='Normal':
+                    str1=f'The value {original_data[str2]} within the normal range {normal_range[k.lower()]}'
+                else:
+                    alerts+=(v[1]+"\n"+" ")
+                    str1=f'The value {original_data[str2]} not in the normal range {normal_range[k.lower()]}'
+                diagnose_data[str2]=[v[0],str1]
+            if k=='additional_result':
+                diagnose_data['other_diagnoses']=v
+
+        
+        return diagnose_data,alerts
+    
+    def map_protein_to_ordinal(self,value):
+        value = str(value).lower().strip()
+        # 0: Negative
+        if value in ['negative', 'neg', 'nil', 'none', '0']:
+            return 0
+        # 1: Trace
+        elif value in ['trace', 'tr']:
+            return 1
+        # 2: +1 or Small
+        elif value in ['1','+1', '1+', 'positive', 'pos', 'small', 'present']:
+            return 2
+        # 3: +2 or Moderate
+        elif value in ['2','+2', '2+', '++', 'moderate']:
+            return 3
+        # 4: +3 or +4 or Large
+        elif value in ['3','+3', '3+', '+++', '+4', '4+', '++++', 'large']:
+            return 4 
+        return 0 # Defaul
+        
