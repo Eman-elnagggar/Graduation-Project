@@ -11,10 +11,11 @@ class compare_ingredients:
         }
 
     def analyze_ingredients(self):
+        print(self.__text)
         for index,row in self.__df.iterrows():
             ingredient_name=row['Products']
             status=row['status']
-            score = fuzz.token_set_ratio(ingredient_name, self.__text)
+            score = fuzz.partial_ratio(ingredient_name, self.__text)
             if score >= 90:
               self.__found_ingredients[status]['ingredients'].append(ingredient_name)
               self.__found_ingredients[status]['match_score'].append(str(score))
