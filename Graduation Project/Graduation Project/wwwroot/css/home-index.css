@@ -386,6 +386,7 @@ ul {
 
     .mobile-menu.open {
         display: flex;
+        z-index: 1000;
     }
 
 /* ── HERO ───────────────────────────────────────────────── */
@@ -427,7 +428,7 @@ ul {
     display: grid;
     grid-template-columns: 1fr 1fr;
     align-items: center;
-    gap: 60px;
+    gap: 150px;
     padding: 80px 0;
 }
 
