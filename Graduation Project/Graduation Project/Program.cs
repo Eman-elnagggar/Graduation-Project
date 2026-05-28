@@ -120,7 +120,7 @@ namespace Graduation_Project
             });
             builder.Services.AddHttpClient("AnalysisSubmit", client =>
             {
-                client.BaseAddress = new Uri("https://eman123yasser-submit-api.hf.space/");
+                client.BaseAddress = new Uri("https://eman123yasser-submit-api-2.hf.space/");
                 client.Timeout = TimeSpan.FromSeconds(60);
             });
             builder.Services.AddScoped<AnalysisOcrClient>();

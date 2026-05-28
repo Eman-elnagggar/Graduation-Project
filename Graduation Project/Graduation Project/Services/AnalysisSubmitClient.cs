@@ -27,7 +27,7 @@ namespace Graduation_Project.Services
                 try
                 {
                     var client = _httpClientFactory.CreateClient("AnalysisSubmit");
-                    var json = JsonSerializer.Serialize(request);
+                    var json = JsonSerializer.Serialize(request, SubmitJsonOptions());
                     _logger.LogInformation("Submitting analysis payload: {Payload}", json);
                     using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
@@ -69,6 +69,12 @@ namespace Graduation_Project.Services
         private static JsonSerializerOptions JsonOptions() => new()
         {
             PropertyNameCaseInsensitive = true
+        };
+
+        private static JsonSerializerOptions SubmitJsonOptions() => new()
+        {
+            PropertyNameCaseInsensitive = true,
+            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
         };
     }
 }
