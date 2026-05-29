@@ -55,50 +55,7 @@ body {
   background: var(--bg-secondary);
 }
 
-/* Sidebar Toggle Button */
-.sidebar-toggle {
-  position: fixed;
-  left: var(--sidebar-width);
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 28px;
-  height: 28px;
-  background: #1e293b;
-  border: 2px solid rgba(27, 174, 190, 0.3);
-  border-radius: 50%;
-  cursor: pointer;
-  z-index: 1001;
-  display: flex !important;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-}
 
-.sidebar-toggle:hover {
-  background: var(--primary);
-  border-color: var(--primary);
-  transform: translate(-50%, -50%) scale(1.15);
-  box-shadow: 0 4px 16px rgba(27, 174, 190, 0.4);
-}
-
-.sidebar-toggle i {
-  font-size: 0.7rem;
-  color: var(--primary);
-  transition: all 0.3s ease;
-}
-
-.sidebar-toggle:hover i {
-  color: white;
-}
-
-.sidebar-toggle.collapsed {
-  left: var(--sidebar-collapsed-width);
-}
-
-.sidebar-toggle.collapsed i {
-  transform: rotate(180deg);
-}
 
 /* Collapsed Sidebar Styles */
 .sidebar.collapsed {
@@ -181,24 +138,10 @@ body {
 }
 
 @media (max-width: 768px) {
-  .sidebar {
-    transform: translateX(-100%);
-  }
-
-  .sidebar.open {
-    transform: translateX(0);
-  }
-
-  .sidebar-close {
-    display: block;
-  }
-
-  .sidebar-toggle {
-    display: none;
-  }
-
+  /* shared.css handles sidebar slide-in/out via left:-100% + .mobile-open;
+     doctor-style overrides only the color-specific elements */
   .sidebar.collapsed {
-    width: 260px;
+    width: var(--sidebar-width);
   }
 }
 
@@ -949,7 +892,7 @@ body {
   height: 100vh;
   background: var(--bg-white);
   box-shadow: var(--shadow-lg);
-  z-index: 200;
+  z-index: 1300;
   transition: right 0.3s ease;
   display: flex;
   flex-direction: column;

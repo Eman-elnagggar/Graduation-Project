@@ -1,12 +1,14 @@
 /* Phase 2 foundation: shared design system primitives */
 :root {
-  --ds-font-sans: "Inter", "Segoe UI", Roboto, Arial, sans-serif;
+  /* ── Typography ──────────────────────────────────────── */
+  --ds-font-sans: "Inter", "DM Sans", "Segoe UI", Roboto, Arial, sans-serif;
   --ds-font-size-100: 0.75rem;
   --ds-font-size-200: 0.875rem;
   --ds-font-size-300: 1rem;
   --ds-font-size-400: 1.125rem;
   --ds-font-size-500: 1.25rem;
 
+  /* ── Spacing ─────────────────────────────────────────── */
   --ds-space-1: 0.25rem;
   --ds-space-2: 0.5rem;
   --ds-space-3: 0.75rem;
@@ -15,22 +17,40 @@
   --ds-space-6: 1.5rem;
   --ds-space-8: 2rem;
 
+  /* ── Radii ───────────────────────────────────────────── */
   --ds-radius-sm: 6px;
   --ds-radius-md: 10px;
   --ds-radius-lg: 16px;
 
+  /* ── Shadows ─────────────────────────────────────────── */
   --ds-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --ds-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
 
-  --role-primary: #1baebe;
+  /* ── Brand / role colours (canonical source of truth) ── */
+  --role-primary:      #1baebe;
   --role-primary-dark: #158a97;
-  --role-accent: #00b4d8;
+  --role-accent:       #00b4d8;
 
+  /* Aliases — keeps both naming conventions working ────── */
+  --primary:      var(--role-primary);
+  --primary-dark: var(--role-primary-dark);
+  --accent:       var(--role-accent);
+  --secondary:    #0077b6;
+
+  /* ── Semantic status colours ─────────────────────────── */
+  /* FIX: these were referenced (e.g. var(--danger) in .icon-btn .dot)
+     but never defined in this file — causing transparent badges.      */
+  --danger:  #f44336;
+  --warning: #ff9800;
+  --success: #4caf50;
+  --info:    #2196f3;
+
+  /* ── Surface / text / border tokens ─────────────────── */
   --surface-page: #f8fafc;
   --surface-card: #ffffff;
-  --text-strong: #1e293b;
-  --text-muted: #64748b;
-  --border-subtle: #e2e8f0;
+  --text-strong:  #1e293b;
+  --text-muted:   #64748b;
+  --border-subtle:#e2e8f0;
 }
 
 body {

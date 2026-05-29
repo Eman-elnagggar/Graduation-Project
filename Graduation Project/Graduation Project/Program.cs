@@ -7,6 +7,8 @@ using Graduation_Project.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System;
+using Microsoft.AspNetCore.DataProtection;
+
 
 namespace Graduation_Project
 {
@@ -126,7 +128,12 @@ namespace Graduation_Project
             builder.Services.AddScoped<AnalysisOcrClient>();
             builder.Services.AddScoped<AnalysisSubmitClient>();
 
-            var app = builder.Build();
+            // Persist Data Protection keys so sessions survive app restarts
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new System.IO.DirectoryInfo(
+        System.IO.Path.Combine(builder.Environment.ContentRootPath, ".dpkeys")));
+
+var app = builder.Build();
 
             // Seed the database
             using (var scope = app.Services.CreateScope())

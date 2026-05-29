@@ -444,10 +444,123 @@ async function initAssistantTopbarBadge() {
 }
 
 // ================================
+// Top-Bar Search
+// ================================
+function initTopbarSearch() {
+  const btn = document.getElementById('topbarSearchBtn');
+  if (!btn || btn.dataset.searchInitialized === 'true') return;
+  btn.dataset.searchInitialized = 'true';
+
+  // Inject overlay HTML once
+  const overlay = document.createElement('div');
+  overlay.id = 'topbarSearchOverlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', 'Search');
+  overlay.innerHTML = `
+    <div id="topbarSearchBox">
+      <i class="fas fa-search" style="color:var(--primary,#1baebe);font-size:.95rem;flex-shrink:0"></i>
+      <input id="topbarSearchInput" type="search" placeholder="Search on this page…" autocomplete="off" spellcheck="false" />
+      <span id="topbarSearchCount" style="font-size:.75rem;color:var(--text-muted,#64748b);white-space:nowrap"></span>
+      <button id="topbarSearchClose" type="button" aria-label="Close search"><i class="fas fa-times"></i></button>
+    </div>`;
+
+  // Inject styles once
+  if (!document.getElementById('topbarSearchStyles')) {
+    const s = document.createElement('style');
+    s.id = 'topbarSearchStyles';
+    s.textContent = `
+      #topbarSearchOverlay{position:fixed;inset:0;z-index:9900;background:rgba(15,23,42,.45);backdrop-filter:blur(2px);display:none;align-items:flex-start;justify-content:center;padding-top:100px}
+      #topbarSearchOverlay.open{display:flex}
+      #topbarSearchBox{display:flex;align-items:center;gap:10px;width:min(600px,90vw);background:#fff;border-radius:14px;padding:12px 16px;box-shadow:0 20px 60px rgba(15,23,42,.22);border:1px solid var(--border-subtle,#e2e8f0)}
+      #topbarSearchInput{flex:1;border:none;outline:none;font-size:1rem;font-family:inherit;color:var(--text-strong,#1e293b);background:transparent}
+      #topbarSearchInput::placeholder{color:var(--text-muted,#94a3b8)}
+      #topbarSearchClose{background:none;border:none;cursor:pointer;color:var(--text-muted,#64748b);font-size:.9rem;padding:2px 4px;border-radius:4px;transition:color .15s}
+      #topbarSearchClose:hover{color:var(--danger,#f44336)}
+      mark.topbar-highlight{background:rgba(27,174,190,.25);color:inherit;border-radius:2px;padding:0 1px}
+      mark.topbar-highlight-current{background:rgba(27,174,190,.6);outline:2px solid var(--primary,#1baebe);border-radius:2px}`;
+    document.head.appendChild(s);
+  }
+
+  document.body.appendChild(overlay);
+
+  const input   = document.getElementById('topbarSearchInput');
+  const counter = document.getElementById('topbarSearchCount');
+  const closeBtn= document.getElementById('topbarSearchClose');
+  let marks = [], currentIdx = 0;
+
+  function open() {
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    input.value = '';
+    counter.textContent = '';
+    clearMarks();
+    setTimeout(() => input.focus(), 50);
+  }
+
+  function close() {
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+    clearMarks();
+  }
+
+  function clearMarks() {
+    marks.forEach(m => {
+      const parent = m.parentNode;
+      if (parent) { parent.replaceChild(document.createTextNode(m.textContent), m); parent.normalize(); }
+    });
+    marks = []; currentIdx = 0;
+  }
+
+  function doSearch(term) {
+    clearMarks();
+    if (!term.trim()) { counter.textContent = ''; return; }
+    const walker = document.createTreeWalker(
+      document.body, NodeFilter.SHOW_TEXT,
+      { acceptNode: n => (n.parentElement.closest('#topbarSearchOverlay,script,style,noscript') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT) }
+    );
+    const regex = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'gi');
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(node => {
+      let m, last = 0; const text = node.textContent, frag = document.createDocumentFragment();
+      while ((m = regex.exec(text)) !== null) {
+        frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+        const mark = document.createElement('mark');
+        mark.className = 'topbar-highlight'; mark.textContent = m[0];
+        frag.appendChild(mark); marks.push(mark); last = regex.lastIndex;
+      }
+      if (marks.length && last < text.length) { frag.appendChild(document.createTextNode(text.slice(last))); node.parentNode.replaceChild(frag, node); }
+    });
+    if (marks.length) { marks[0].className = 'topbar-highlight topbar-highlight-current'; marks[0].scrollIntoView({block:'center',behavior:'smooth'}); }
+    counter.textContent = marks.length ? `1 / ${marks.length}` : 'No results';
+  }
+
+  input.addEventListener('input', () => doSearch(input.value));
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && marks.length) {
+      marks[currentIdx].className = 'topbar-highlight';
+      currentIdx = (currentIdx + 1) % marks.length;
+      marks[currentIdx].className = 'topbar-highlight topbar-highlight-current';
+      marks[currentIdx].scrollIntoView({block:'center',behavior:'smooth'});
+      counter.textContent = `${currentIdx + 1} / ${marks.length}`;
+    }
+  });
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+  closeBtn.addEventListener('click', close);
+  btn.addEventListener('click', open);
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); overlay.classList.contains('open') ? close() : open(); }
+    if (e.key === 'Escape' && overlay.classList.contains('open')) close();
+  });
+}
+
+// ================================
 // Initialize on DOM Ready
 // ================================
 document.addEventListener("DOMContentLoaded", function () {
   initSharedSidebar();
   initTopbarNotifications();
   initAssistantTopbarBadge();
+  initTopbarSearch();
 });
