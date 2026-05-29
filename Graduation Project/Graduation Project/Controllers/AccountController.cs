@@ -1,5 +1,7 @@
 using Graduation_Project.Data;
 using Graduation_Project.Models;
+using Graduation_Project.ViewModels;
+using Graduation_Project.Services;
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Text;
@@ -18,19 +20,22 @@ namespace Graduation_Project.Controllers
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _environment;
+        private readonly IEmailService _emailService;
 
         public AccountController(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
             RoleManager<IdentityRole> roleManager,
             AppDbContext context,
-            IWebHostEnvironment environment)
+            IWebHostEnvironment environment,
+            IEmailService emailService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _roleManager = roleManager;
             _context = context;
             _environment = environment;
+            _emailService = emailService;
         }
 
         private static string? NormalizeBabyGender(string? value)
@@ -96,6 +101,13 @@ namespace Graduation_Project.Controllers
             if (!user.IsActive)
             {
                 TempData["AuthError"] = "Your account is inactive. Please contact support.";
+                return View();
+            }
+
+            if (!await _userManager.IsEmailConfirmedAsync(user))
+            {
+                await SendEmailConfirmationAsync(user);
+                TempData["AuthError"] = "Please confirm your email address before signing in. A new confirmation link has been sent.";
                 return View();
             }
 
@@ -331,6 +343,9 @@ namespace Graduation_Project.Controllers
 
             await _signInManager.SignInAsync(user, isPersistent: false);
             return await RedirectToRoleLandingAsync(user);
+            await SendEmailConfirmationAsync(user);
+            TempData["AuthSuccess"] = "Account created. Please confirm your email to sign in.";
+            return RedirectToAction(nameof(Login));
         }
 
         [HttpGet]
@@ -409,6 +424,8 @@ namespace Graduation_Project.Controllers
             await _context.SaveChangesAsync();
 
             TempData["AuthSuccess"] = "Doctor account created. Please sign in.";
+            await SendEmailConfirmationAsync(user);
+            TempData["AuthSuccess"] = "Doctor account created. Please confirm your email to sign in.";
             return RedirectToAction(nameof(Login));
         }
 
@@ -501,13 +518,153 @@ namespace Graduation_Project.Controllers
 
             await _signInManager.SignInAsync(user, isPersistent: false);
             return await RedirectToRoleLandingAsync(user);
+            await SendEmailConfirmationAsync(user);
+            TempData["AuthSuccess"] = "Assistant account created. Please confirm your email to sign in.";
+            return RedirectToAction(nameof(Login));
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> ConfirmEmail(string userId, string code)
+        {
+            if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(code))
+            {
+                TempData["AuthError"] = "Invalid confirmation request.";
+                return RedirectToAction(nameof(Login));
+            }
+
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                TempData["AuthError"] = "Invalid confirmation request.";
+                return RedirectToAction(nameof(Login));
+            }
+
+            var result = await _userManager.ConfirmEmailAsync(user, code);
+            TempData["AuthSuccess"] = result.Succeeded
+                ? "Email confirmed. You can now sign in."
+                : "Email confirmation failed. Please request a new link.";
+
+            return RedirectToAction(nameof(Login));
         }
 
         [HttpGet]
         [AllowAnonymous]
         public IActionResult ForgotPassword()
         {
-            return RedirectToAction(nameof(Login));
+            return View();
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                var user = await _userManager.FindByEmailAsync(model.Email);
+                if (user != null && user.IsActive)
+                {
+                    var code = await _userManager.GeneratePasswordResetTokenAsync(user);
+                    var callbackUrl = Url.Action("ResetPassword", "Account", new { code = code }, protocol: HttpContext.Request.Scheme);
+
+                    string htmlMessage = $@"<!doctype html>
+<html>
+<head>
+    <meta charset='utf-8'/>
+    <style>
+        body{{margin:0;padding:0;background:#0d1117;font-family:'Segoe UI',Arial,sans-serif;}}
+        .wrap{{max-width:580px;margin:40px auto;background:#161b22;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);}}
+        .header{{padding:36px 40px 28px;text-align:center;background:linear-gradient(135deg,#0a1628 0%,#1e3a8a 60%,#1d4ed8 100%);}}
+        .body{{padding:8px 40px 36px;}}
+        .footer{{padding:20px 40px;background:#0d1117;text-align:center;font-size:12px;color:#6e7681;}}
+        h1{{margin:0 0 6px;font-size:22px;font-weight:700;color:#e6edf3;}}
+        p{{margin:12px 0;font-size:15px;line-height:1.65;color:#c9d1d9;}}
+        .btn{{display:inline-block;padding:13px 36px;border-radius:999px;font-size:15px;font-weight:700;text-decoration:none;margin-top:8px;background:linear-gradient(135deg,#2563eb 0%,#3b82f6 55%,#60a5fa 100%);color:#ffffff !important;box-shadow:0 12px 24px rgba(37,99,235,0.35),0 2px 6px rgba(0,0,0,0.2);}}
+        .divider{{border:none;border-top:1px solid rgba(255,255,255,0.07);margin:24px 0;}}
+    </style>
+</head>
+<body>
+<div class='wrap'>
+    <div class='header'>
+        <div style='margin-bottom:16px;'>
+            <img src='cid:nabd-logo' alt='NABD نبض' style='max-width:120px;height:auto;display:block;margin:0 auto;'/>
+        </div>
+        <h1>Reset your password</h1>
+        <p style='color:#93c5fd;font-size:14px;margin:0;'>NABD نبض · Account Security</p>
+    </div>
+    <div class='body'>
+        <p>Hello <strong style='color:#e6edf3;'>{user.FirstName} {user.LastName}</strong>,</p>
+        <p>We received a request to reset your password. Click the button below to continue.</p>
+        <p><a class='btn' href='{callbackUrl}'>Reset Password</a></p>
+        <hr class='divider'/>
+        <p style='font-size:13px;color:#8b949e;'>If you did not request a password reset, you can safely ignore this email.</p>
+    </div>
+    <div class='footer'>© {DateTime.UtcNow.Year} NABD نبض · Healthcare Management Platform</div>
+</div>
+</body>
+</html>";
+
+                    await _emailService.SendAsync(model.Email, $"{user.FirstName} {user.LastName}", "Reset Password", htmlMessage);
+                }
+
+                // Don't reveal that the user does not exist or is inactive
+                return RedirectToAction(nameof(ForgotPasswordConfirmation));
+            }
+
+            return View(model);
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult ForgotPasswordConfirmation()
+        {
+            return View();
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult ResetPassword(string code = null)
+        {
+            return code == null ? View("Error") : View(new ResetPasswordViewModel { Code = code });
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user == null)
+            {
+                // Don't reveal that the user does not exist
+                return RedirectToAction(nameof(ResetPasswordConfirmation));
+            }
+
+            var result = await _userManager.ResetPasswordAsync(user, model.Code, model.Password);
+            if (result.Succeeded)
+            {
+                return RedirectToAction(nameof(ResetPasswordConfirmation));
+            }
+
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Description);
+            }
+
+            return View(model);
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult ResetPasswordConfirmation()
+        {
+            return View();
         }
 
         [HttpGet]
@@ -718,6 +875,67 @@ namespace Graduation_Project.Controllers
             {
                 await _roleManager.CreateAsync(new IdentityRole(roleName));
             }
+        }
+
+        private async Task SendEmailConfirmationAsync(ApplicationUser user)
+        {
+            if (user == null || string.IsNullOrWhiteSpace(user.Email))
+            {
+                return;
+            }
+
+            var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            var callbackUrl = Url.Action(nameof(ConfirmEmail), "Account", new { userId = user.Id, code }, protocol: HttpContext.Request.Scheme);
+
+            if (string.IsNullOrWhiteSpace(callbackUrl))
+            {
+                return;
+            }
+
+            var displayName = string.Join(' ', new[] { user.FirstName, user.LastName }.Where(n => !string.IsNullOrWhiteSpace(n))).Trim();
+            if (string.IsNullOrWhiteSpace(displayName))
+            {
+                displayName = "there";
+            }
+
+            string htmlMessage = $@"<!doctype html>
+<html>
+<head>
+    <meta charset='utf-8'/>
+    <style>
+        body{{margin:0;padding:0;background:#0d1117;font-family:'Segoe UI',Arial,sans-serif;}}
+        .wrap{{max-width:580px;margin:40px auto;background:#161b22;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);}}
+        .header{{padding:36px 40px 28px;text-align:center;background:linear-gradient(135deg,#0a1628 0%,#1e3a8a 60%,#1d4ed8 100%);}}
+        .body{{padding:8px 40px 36px;}}
+        .footer{{padding:20px 40px;background:#0d1117;text-align:center;font-size:12px;color:#6e7681;}}
+        h1{{margin:0 0 6px;font-size:22px;font-weight:700;color:#e6edf3;}}
+        p{{margin:12px 0;font-size:15px;line-height:1.65;color:#c9d1d9;}}
+        .btn{{display:inline-block;padding:13px 36px;border-radius:999px;font-size:15px;font-weight:700;text-decoration:none;margin-top:8px;background:linear-gradient(135deg,#2563eb 0%,#3b82f6 55%,#60a5fa 100%);color:#ffffff !important;box-shadow:0 12px 24px rgba(37,99,235,0.35),0 2px 6px rgba(0,0,0,0.2);}}
+        .divider{{border:none;border-top:1px solid rgba(255,255,255,0.07);margin:24px 0;}}
+    </style>
+</head>
+<body>
+<div class='wrap'>
+    <div class='header'>
+        <div style='margin-bottom:16px;'>
+            <img src='cid:nabd-logo' alt='NABD نبض' style='max-width:120px;height:auto;display:block;margin:0 auto;'/>
+        </div>
+        <h1>Confirm your email</h1>
+        <p style='color:#93c5fd;font-size:14px;margin:0;'>NABD نبض · Account Security</p>
+    </div>
+    <div class='body'>
+        <p>Hello <strong style='color:#e6edf3;'>{displayName}</strong>,</p>
+        <p>Please confirm your email address to activate your account.</p>
+        <p><a class='btn' href='{callbackUrl}'>Confirm Email</a></p>
+        <hr class='divider'/>
+        <p style='font-size:13px;color:#8b949e;'>If you did not create this account, you can safely ignore this email.</p>
+    </div>
+    <div class='footer'>© {DateTime.UtcNow.Year} NABD نبض · Healthcare Management Platform</div>
+</div>
+</body>
+</html>";
+
+            await _emailService.SendAsync(user.Email, displayName, "Confirm your email", htmlMessage);
         }
 
         private async Task<string> SaveDoctorLicenseAsync(IFormFile? file)
