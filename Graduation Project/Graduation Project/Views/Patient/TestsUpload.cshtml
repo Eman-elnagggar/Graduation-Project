@@ -1,4 +1,4 @@
-@{
+﻿@{
     Layout = "~/Views/Shared/_PatientLayout.cshtml";
     ViewData["Title"] = "Tests Upload";
     ViewData["ActivePage"] = "Tests";
@@ -891,9 +891,7 @@
     padding: .28rem .72rem; background: var(--tu-light); border: 1px solid var(--tu-border); border-radius: 20px;
 }
 
-/* ════════════════════════════════════════════
-   REPORT — LOADING STATE
-════════════════════════════════════════════ */
+/* REPORT - LOADING STATE */
 .tu-report-loading { padding: 3rem 1.5rem; display: flex; justify-content: center; }
 .tu-report-loading-inner { text-align: center; max-width: 400px; width: 100%; }
 .tu-report-spinner {
@@ -963,6 +961,7 @@
 .tu-insight-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: .8rem; }
 .tu-insight-card {
     padding: .8rem 1rem; border-radius: 12px; border: 1.5px solid var(--tu-border);
+    display: flex; flex-direction: column;
     transition: box-shadow .2s, transform .2s;
 }
 .tu-insight-card:hover { box-shadow: var(--tu-shadow-hov); transform: translateY(-2px); }
@@ -971,13 +970,14 @@
 .tu-insight-card.high    { border-color: #ef9a9a; background: #fff8f8; }
 .tu-insight-card.low     { border-color: #90caf9; background: #f0f8ff; }
 .tu-insight-label { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--tu-muted); margin-bottom: .28rem; }
-.tu-insight-value { font-size: 1.18rem; font-weight: 800; line-height: 1; margin-bottom: .2rem; }
+.tu-insight-value { font-size: 1.02rem; font-weight: 800; line-height: 1.25; margin-bottom: .2rem; }
 .tu-insight-value .tu-insight-unit { font-size: .68em; font-weight: 600; margin-left: .18rem; }
 .tu-insight-card.normal  .tu-insight-value { color: #1b5e20; }
 .tu-insight-card.warning .tu-insight-value { color: #b84700; }
 .tu-insight-card.high    .tu-insight-value { color: #b71c1c; }
 .tu-insight-card.low     .tu-insight-value { color: #1565c0; }
 .tu-insight-range { font-size: .7rem; color: var(--tu-muted); }
+.tu-insight-detail { margin-top: .35rem; font-size: .74rem; color: #475569; line-height: 1.45; }
 .tu-insight-dot {
     display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: .3rem; vertical-align: middle;
 }
@@ -1713,6 +1713,7 @@
                 { key: 'rbcs_count',      name: 'RBC Count',        unit: 'million/µL',    normalRange: '4.2–5.4'         },
                 { key: 'mcv',             name: 'MCV',              unit: 'fL',            normalRange: '80–100'          },
                 { key: 'mch',             name: 'MCH',              unit: 'pg',            normalRange: '27–33'           },
+                { key: 'rdw',             name: 'RDW',              unit: '%',             normalRange: '11.5–15'         },
                 { key: 'mchc',            name: 'MCHC',             unit: 'g/dL',          normalRange: '32–36'           },
                 { key: 'lymphocytes',     name: 'Lymphocytes',      unit: '%',             normalRange: '20–40'           },
                 { key: 'platelet_count',  name: 'Platelets',        unit: '/µL',           normalRange: '150000–400000'   }
@@ -1801,9 +1802,14 @@
         }
 
         const data = await response.json();
+        const labTestId = data.labTestId ?? data.LabTestId;
+        if (labTestId == null) {
+            throw new Error('Server did not return a lab test id.');
+        }
+
         return {
-            id: data.labTestId,
-            reportId: data.reportId,
+            id: labTestId,
+            reportId: data.reportId ?? data.ReportId,
             testType,
             testTypeName: data.testName || testConfigurations[testType].name,
             fileName: file.name,
@@ -1849,7 +1855,7 @@
                 return mapAnalysisResponse(data);
             }
             if (data.status === 'Failed') {
-                throw new Error('Analysis failed.');
+                throw new Error(data.error || data.message || 'Analysis failed. Check that CBC includes RDW and all values match your lab report.');
             }
             await delay(2000);
         }
@@ -1880,19 +1886,16 @@
         let hasHigh = false;
         let hasLow = false;
         tests.forEach(test => {
-            const config = resolveTestConfig(test.test_name);
-            if (!config) return;
-            config.parameters.forEach(p => {
-                const s = getParamStatus(extractValue(test, p.key), p.normalRange);
-                if (s === 'high') hasHigh = true;
-                if (s === 'low') hasLow = true;
-            });
+            if (hasSubmitDiagnosisResults(test)) {
+                Object.keys(test).forEach(key => {
+                    if (isMetadataKey(key)) return;
+                    if (key.toLowerCase() === 'other_diagnoses') return; // handled separately
+                    const cls = getSubmitDiagnosisClass(getSubmitDiagnosisStatus(test[key]));
+                    if (cls === 'high') hasHigh = true;
+                    if (cls === 'warning') hasLow = true;
+                });
+            }
         });
-
-        const verdict = hasHigh ? 'danger' : hasLow ? 'warning' : 'safe';
-        const overall = hasHigh ? 'Abnormal Values Detected'
-            : hasLow ? 'Some Values Below Normal'
-                : 'All Values Normal';
 
         // Extract risk from result_3 (can be object or array)
         const riskRaw = data.riskPrediction;
@@ -1904,6 +1907,15 @@
                 if (riskRaw[i] && typeof riskRaw[i] === 'object' && Object.keys(riskRaw[i]).length > 0) { riskObj = riskRaw[i]; break; }
             }
         }
+
+        const riskText = String(riskObj.risk_level || '').toLowerCase();
+        if (riskText.includes('high')) hasHigh = true;
+        if (riskText.includes('moderate') || riskText.includes('medium')) hasLow = true;
+
+        const verdict = hasHigh ? 'danger' : hasLow ? 'warning' : 'safe';
+        const overall = hasHigh ? 'Abnormal Values Detected'
+            : hasLow ? 'Some Values Below Normal'
+                : 'All Values Normal';
 
         return {
             verdict,
@@ -2095,24 +2107,30 @@
        RENDER REVIEW CARD
     ══════════════════════════════════════════════════════ */
     function renderTestCard(testData) {
+        if (testData.id == null || testData.id === '') {
+            notify('This test has no id from the server. Please upload the image again.', 'error');
+            return;
+        }
+
         document.getElementById('test-' + testData.id)?.remove();
         const cfg  = testConfigurations[testData.testType];
+        if (!cfg) {
+            notify('Unknown test type "' + (testData.testType || '') + '".', 'error');
+            return;
+        }
         const card = document.createElement('div');
         card.className = 'tu-test-card' + (testData.approved ? ' approved' : '');
         card.id = 'test-' + testData.id;
 
         let rows = '';
         cfg.parameters.forEach(param => {
-            const val    = extractValue(testData.extractedValues, param.key) ?? '';
-            const status = getParamStatus(val, param.normalRange);
+            const val = extractValue(testData.extractedValues, param.key) ?? '';
             rows += '<tr>'
                 + '<td style="font-weight:600">' + escHtml(param.name) + '</td>'
                 + '<td><input class="tu-value-input" type="text" data-param="' + escHtml(param.key) + '"'
                 + ' value="' + escHtml(String(val)) + '"'
                 + (testData.approved ? ' disabled' : '') + '>'
                 + '<span class="tu-value-unit">' + escHtml(param.unit) + '</span></td>'
-                + '<td style="font-size:.82rem;color:var(--tu-muted)">' + escHtml(param.normalRange) + (param.unit ? ' ' + param.unit : '') + '</td>'
-                + '<td><span class="tu-badge-status ' + status + '">' + status + '</span></td>'
                 + '</tr>';
         });
 
@@ -2123,7 +2141,7 @@
         const footerBtns = testData.approved
             ? '<button class="tu-btn tu-btn-sm" data-action="unapprove" type="button"><i class="fas fa-undo"></i> Edit Again</button>'
             : '<button class="tu-btn tu-btn-sm" data-action="edit" type="button"><i class="fas fa-edit"></i> Edit Values</button>'
-              + '<button class="tu-btn tu-btn-sm approve" data-action="approve" type="button"><i class="fas fa-check"></i> Approve &amp; Confirm</button>';
+              + '<button class="tu-btn tu-btn-sm approve" data-action="approve" type="button"><i class="fas fa-check"></i> Approve</button>';
 
         card.innerHTML =
             '<div class="tu-test-card-header">'
@@ -2136,33 +2154,45 @@
             + '<button class="tu-btn tu-btn-sm" data-action="remove" title="Remove" type="button" style="color:#c62828;border-color:#ef9a9a"><i class="fas fa-trash"></i></button>'
             + '</div></div>'
             + '<div class="tu-values-table-wrap"><table class="tu-values-table">'
-            + '<thead><tr><th>Parameter</th><th>Extracted Value</th><th>Normal Range</th><th>Status</th></tr></thead>'
+            + '<thead><tr><th>Parameter</th><th>Value</th></tr></thead>'
             + '<tbody>' + rows + '</tbody></table></div>'
             + '<div class="tu-test-card-footer">' + footerBtns + '</div>';
-
-        card.querySelectorAll('[data-action]').forEach(btn =>
-            btn.addEventListener('click', () => handleCardAction(btn.dataset.action, testData.id))
-        );
 
         uploadedTestsList.appendChild(card);
     }
 
+    function findUploadedTest(testId) {
+        const id = String(testId);
+        return uploadedTests.find(t => String(t.id) === id) || null;
+    }
+
     function handleCardAction(action, testId) {
-        const test = uploadedTests.find(t => t.id === testId);
-        if (!test) return;
+        const test = findUploadedTest(testId);
+        if (!test) {
+            notify('Could not find this test. Please refresh the page and try again.', 'error');
+            return;
+        }
+
+        const cardRoot = document.getElementById('test-' + test.id);
+        const cardId = cardRoot ? ('test-' + test.id) : null;
 
         if (action === 'edit') {
-            document.querySelectorAll('#test-' + testId + ' .tu-value-input').forEach(i => i.disabled = false);
-            notify('Values unlocked — edit then click "Approve & Confirm".', 'info');
+            if (cardId) {
+                document.querySelectorAll('#' + cardId + ' .tu-value-input').forEach(i => i.disabled = false);
+            }
+            notify('Values unlocked — edit them, then click Approve.', 'info');
             return;
         }
         if (action === 'approve') {
-            document.querySelectorAll('#test-' + testId + ' .tu-value-input').forEach(input => {
-                test.extractedValues[input.dataset.param] = input.value;
-            });
+            if (cardId) {
+                document.querySelectorAll('#' + cardId + ' .tu-value-input').forEach(input => {
+                    test.extractedValues[input.dataset.param] = input.value;
+                });
+            }
             test.approved = true;
             renderTestCard(test);
             updateApprovalCounter();
+            notify(test.testTypeName + ' approved. Approve all tests, then submit for analysis.', 'success');
             return;
         }
         if (action === 'unapprove') {
@@ -2173,14 +2203,25 @@
         }
         if (action === 'remove') {
             if (!confirm('Remove this test?')) return;
-            uploadedTests = uploadedTests.filter(t => t.id !== testId);
-            document.getElementById('test-' + testId)?.remove();
+            uploadedTests = uploadedTests.filter(t => String(t.id) !== String(testId));
+            document.getElementById('test-' + test.id)?.remove();
             updateApprovalCounter();
             if (!uploadedTests.length) {
                 submitRow.style.display            = 'none';
                 uploadedTestsSection.style.display = 'none';
             }
         }
+    }
+
+    if (uploadedTestsList) {
+        uploadedTestsList.addEventListener('click', e => {
+            const btn = e.target.closest('[data-action]');
+            if (!btn || !uploadedTestsList.contains(btn)) return;
+            const card = btn.closest('.tu-test-card');
+            if (!card || !card.id.startsWith('test-')) return;
+            const testId = card.id.slice('test-'.length);
+            handleCardAction(btn.dataset.action, testId);
+        });
     }
 
     function updateApprovalCounter() {
@@ -2301,19 +2342,21 @@
             : uploadedTests;
         reportTests.forEach(test => {
             const cfg = testConfigurations[test.testType] || resolveTestConfig(test.testTypeName);
-            if (!cfg) return;
+            if (!cfg && !hasSubmitDiagnosisResults(test.extractedValues)) return;
             const confVal = test.extractedValues?.confidence;
             let cards = '';
+            if (hasSubmitDiagnosisResults(test.extractedValues)) {
+                cards = renderSubmitDiagnosisCards(test.extractedValues);
+            } else {
             cfg.parameters.forEach(p => {
                 const val = extractValue(test.extractedValues, p.key) ?? '—';
-                const status = getParamStatus(val, p.normalRange);
-                cards += '<div class="tu-insight-card ' + status + '">'
+                cards += '<div class="tu-insight-card normal">'
                     + '<div class="tu-insight-label">' + escHtml(p.name) + '</div>'
                     + '<div class="tu-insight-value"><span class="tu-insight-dot"></span>' + escHtml(String(val))
-                    + (p.unit ? '<span class="tu-insight-unit">' + escHtml(p.unit) + '</span>' : '') + '</div>'
-                    + '<div class="tu-insight-range">Normal: ' + escHtml(p.normalRange) + (p.unit ? ' ' + p.unit : '') + '</div></div>';
+                    + (p.unit ? '<span class="tu-insight-unit">' + escHtml(p.unit) + '</span>' : '') + '</div></div>';
             });
-            html += '<div class="tu-report-section"><h5><i class="fas fa-vial"></i> ' + escHtml(test.testTypeName || cfg.name)
+            }
+            html += '<div class="tu-report-section"><h5><i class="fas fa-vial"></i> ' + escHtml(test.testTypeName || cfg?.name || 'Lab Test')
                 + (confVal ? '<span class="tu-confidence-pill" style="margin-left:.75rem"><i class="fas fa-brain"></i> ' + (parseFloat(confVal) * 100).toFixed(0) + '% confidence</span>' : '')
                 + '</h5><div class="tu-insight-grid">' + cards + '</div></div>';
         });
@@ -2470,19 +2513,123 @@
     /* ══════════════════════════════════════════════════════
        HELPERS
     ══════════════════════════════════════════════════════ */
-    function getParamStatus(value, normalRange) {
-        const s = String(value ?? '').trim().toLowerCase();
-        if (!s || s === 'negative' || s === '—') return 'normal';
-        if (s === 'positive') return 'high';
-        const num = parseFloat(s.replace(/,/g, ''));
-        const m   = normalRange.replace(/,/g, '').match(/([\d.]+)[–\-]([\d.]+)/);
-        if (!isNaN(num) && m) {
-            const lo = parseFloat(m[1]), hi = parseFloat(m[2]);
-            if (num < lo) return 'low';
-            if (num > hi) return 'high';
-            return 'normal';
+    function renderLegacyInsightCards(values, cfg) {
+        let cards = '';
+        cfg.parameters.forEach(p => {
+            const val = extractValue(values, p.key) ?? '-';
+            cards += '<div class="tu-insight-card normal">'
+                + '<div class="tu-insight-label">' + escHtml(p.name) + '</div>'
+                + '<div class="tu-insight-value"><span class="tu-insight-dot"></span>' + escHtml(String(val))
+                + (p.unit ? '<span class="tu-insight-unit">' + escHtml(p.unit) + '</span>' : '') + '</div></div>';
+        });
+        return cards;
+    }
+
+    function renderSubmitDiagnosisCards(test) {
+        // Collect any other_diagnoses entries first for a special section at the bottom
+        const diagnosisEntries = [];
+        const fieldKeys = Object.keys(test || {}).filter(key => {
+            if (isMetadataKey(key)) return false;
+            if (key.toLowerCase() === 'other_diagnoses') {
+                // Collect diagnoses to render separately
+                const val = test[key];
+                if (Array.isArray(val)) val.forEach(d => { if (d) diagnosisEntries.push(String(d)); });
+                else if (val) diagnosisEntries.push(String(val));
+                return false;
+            }
+            return true;
+        });
+
+        let cards = fieldKeys.map(key => {
+            const value = test[key];
+            const status = getSubmitDiagnosisStatus(value);
+            const detail = getSubmitDiagnosisDetail(value);
+            const cls = getSubmitDiagnosisClass(status);
+            // Extract normal range and measured value from the API detail string
+            const normalRange = extractNormalRangeFromDetail(detail);
+            const measuredVal = extractMeasuredValueFromDetail(detail);
+            return '<div class="tu-insight-card ' + cls + '">'
+                + '<div class="tu-insight-label">' + escHtml(toDisplayLabel(key)) + '</div>'
+                + '<div class="tu-insight-value"><span class="tu-insight-dot"></span>' + escHtml(status || 'Normal')
+                + (measuredVal ? '<span class="tu-insight-unit" style="margin-left:.3rem;opacity:.75">' + escHtml(measuredVal) + '</span>' : '')
+                + '</div>'
+                + (normalRange ? '<div class="tu-insight-range">Normal: ' + escHtml(normalRange) + '</div>' : (detail ? '<div class="tu-insight-detail">' + escHtml(detail) + '</div>' : ''))
+                + '</div>';
+        }).join('');
+
+        // Render other_diagnoses as a highlighted banner
+        if (diagnosisEntries.length) {
+            cards += '<div class="tu-insight-card high" style="grid-column:1/-1;flex-direction:row;align-items:flex-start;gap:.7rem;">'
+                + '<div style="flex-shrink:0;margin-top:.1rem"><i class="fas fa-exclamation-triangle" style="color:#c62828"></i></div>'
+                + '<div><div class="tu-insight-label">Additional Diagnoses</div>'
+                + diagnosisEntries.map(d => '<div class="tu-insight-value" style="margin-top:.25rem"><span class="tu-insight-dot"></span>' + escHtml(d) + '</div>').join('')
+                + '</div></div>';
         }
-        return 'normal';
+
+        return cards;
+    }
+
+    function hasSubmitDiagnosisResults(test) {
+        return Object.keys(test || {}).some(key => !isMetadataKey(key) && Array.isArray(test[key]));
+    }
+
+    function getSubmitDiagnosisStatus(value) {
+        return Array.isArray(value) ? String(value[0] ?? '') : String(value ?? '');
+    }
+
+    function getSubmitDiagnosisDetail(value) {
+        if (!Array.isArray(value)) return '';
+        if (value.length === 1 && Array.isArray(value[0])) return value[0].join(', ');
+        return value.slice(1).flat().filter(Boolean).join(' ');
+    }
+
+    /**
+     * Extracts the normal range from an API detail string.
+     * e.g. "The value 12.5 is within the normal range 12-15 g/dl" → "12-15 g/dl"
+     * e.g. "The value 5 not in the normal range 4.6 – 8.0" → "4.6 – 8.0"
+     */
+    function extractNormalRangeFromDetail(detail) {
+        if (!detail) return '';
+        const m = detail.match(/normal\s+range\s+([^\n]+?)(?:\s*$)/i);
+        return m ? m[1].trim() : '';
+    }
+
+    /**
+     * Extracts the measured value from an API detail string.
+     * e.g. "The value 12.5 is within..." → "12.5"
+     * e.g. "The value amber yellow within..." → "amber yellow"
+     */
+    function extractMeasuredValueFromDetail(detail) {
+        if (!detail) return '';
+        const m = detail.match(/^The value\s+(.+?)\s+(?:is\s+)?(?:within|not in)/i);
+        return m ? m[1].trim() : '';
+    }
+
+    function getSubmitDiagnosisClass(status) {
+        const s = String(status || '').toLowerCase();
+        if (!s || s === 'normal') return 'normal';
+        // Warnings / mild abnormalities
+        if (s.includes('trace') || s.includes('elevated') || s.includes('mild') ||
+            s.includes('moderate') || s.includes('borderline') || s.includes('low specific')) return 'warning';
+        // Low / below
+        if (s.includes('low') || s.includes('below') || s.includes('deficiency') ||
+            s.includes('anemia') || s.includes('acidic') || s.includes('alkaline')) return 'warning';
+        // Severe / high / positive / infection
+        if (s.includes('high') || s.includes('positive') || s.includes('detected') ||
+            s.includes('infection') || s.includes('hematuria') || s.includes('thrombocytopenia') ||
+            s.includes('concentrated') || s.includes('leukocyt') || s.includes('bacteriuria') ||
+            s.includes('abnormal')) return 'high';
+        return 'high'; // Default unknown abnormal to high
+    }
+
+    function isMetadataKey(key) {
+        return ['test_name', 'confidence'].includes(String(key || '').toLowerCase());
+    }
+
+    function toDisplayLabel(key) {
+        return String(key || '')
+            .replace(/_/g, ' ')
+            .replace(/\b\w/g, c => c.toUpperCase());
     }
 
     function extractValue(source, key) {
@@ -2498,8 +2645,15 @@
     function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
     function notify(msg, type) {
-        if (typeof window.showNotification === 'function') window.showNotification(msg, type);
-        else console.warn('[notify]', msg);
+        if (typeof window.showNotification === 'function') {
+            window.showNotification(msg, type);
+            return;
+        }
+        if (type === 'error') {
+            alert(msg);
+            return;
+        }
+        console.log('[notify]', type || 'info', msg);
     }
 
     function escHtml(str) {
@@ -2615,19 +2769,21 @@
         if (analysis.tests && analysis.tests.length) {
             analysis.tests.forEach(test => {
                 const cfg = resolveTestConfig(test.test_name);
-                if (!cfg) return;
+                if (!cfg && !hasSubmitDiagnosisResults(test)) return;
                 const confVal = test.confidence;
                 let cards = '';
+                if (hasSubmitDiagnosisResults(test)) {
+                    cards = renderSubmitDiagnosisCards(test);
+                } else {
                 cfg.parameters.forEach(p => {
                     const val = extractValue(test, p.key) ?? '—';
-                    const status = getParamStatus(val, p.normalRange);
-                    cards += '<div class="tu-insight-card ' + status + '">'
+                    cards += '<div class="tu-insight-card normal">'
                         + '<div class="tu-insight-label">' + escHtml(p.name) + '</div>'
                         + '<div class="tu-insight-value"><span class="tu-insight-dot"></span>' + escHtml(String(val))
-                        + (p.unit ? '<span class="tu-insight-unit">' + escHtml(p.unit) + '</span>' : '') + '</div>'
-                        + '<div class="tu-insight-range">Normal: ' + escHtml(p.normalRange) + (p.unit ? ' ' + p.unit : '') + '</div></div>';
+                        + (p.unit ? '<span class="tu-insight-unit">' + escHtml(p.unit) + '</span>' : '') + '</div></div>';
                 });
-                html += '<div class="tu-report-section"><h5><i class="fas fa-vial"></i> ' + escHtml(test.test_name || cfg.name)
+                }
+                html += '<div class="tu-report-section"><h5><i class="fas fa-vial"></i> ' + escHtml(test.test_name || cfg?.name || 'Lab Test')
                     + (confVal ? '<span class="tu-confidence-pill" style="margin-left:.75rem"><i class="fas fa-brain"></i> '
                         + (parseFloat(confVal) * 100).toFixed(0) + '% confidence</span>' : '')
                     + '</h5><div class="tu-insight-grid">' + cards + '</div></div>';

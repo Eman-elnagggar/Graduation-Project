@@ -54,6 +54,7 @@ namespace Graduation_Project.Data
         public DbSet<CommunityPost> CommunityPosts { get; set; }
         public DbSet<CommunityComment> CommunityComments { get; set; }
         public DbSet<CommunityLike> CommunityLikes { get; set; }
+        public DbSet<ChatbotMessage> ChatbotMessages { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -215,6 +216,35 @@ namespace Graduation_Project.Data
                     .HasForeignKey(d => d.DoctorID)
                     .IsRequired(false)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // ============================================================
+            // CHATBOT MESSAGES (Patient conversation history)
+            // ============================================================
+            modelBuilder.Entity<ChatbotMessage>(entity =>
+            {
+                entity.HasKey(e => e.ChatbotMessageId);
+
+                entity.Property(e => e.Role)
+                    .HasMaxLength(10)
+                    .IsRequired();
+
+                entity.Property(e => e.Message)
+                    .HasMaxLength(2000)
+                    .IsRequired();
+
+                entity.Property(e => e.RiskLevel)
+                    .HasMaxLength(20);
+
+                entity.Property(e => e.Recommendation)
+                    .HasMaxLength(2000);
+
+                entity.HasIndex(e => new { e.PatientID, e.SentAtUtc });
+
+                entity.HasOne(e => e.Patient)
+                    .WithMany()
+                    .HasForeignKey(e => e.PatientID)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<TestReport>(entity =>

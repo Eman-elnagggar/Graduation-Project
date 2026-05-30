@@ -15,6 +15,15 @@ namespace Graduation_Project.Services
         private readonly AnalysisSubmitClient _submitClient;
         private readonly ILogger<AnalysisService> _logger;
         private readonly IWebHostEnvironment _env;
+        private const string SubmitCbcNameNormalized = "cbc (complete blood count)";
+        private const string SubmitUrinalysisNameNormalized = "urinalysis";
+        private const string SubmitFbgNameNormalized = "fasting blood glucose";
+        private static readonly HashSet<string> PairableSubmitNames = new(StringComparer.OrdinalIgnoreCase)
+        {
+            SubmitCbcNameNormalized,
+            SubmitUrinalysisNameNormalized,
+            SubmitFbgNameNormalized
+        };
 
         public AnalysisService(
             AppDbContext context,
@@ -174,11 +183,11 @@ namespace Graduation_Project.Services
                 }
             }
 
-            var testName = MapTestNameForSubmit(labTest.TestName ?? labTest.TestType);
+            var testName = ResolveSubmitTestName(labTest);
             var confirmPayload = BuildConfirmPayload(labTest, request.Values);
             var confirmResponse = await _ocrClient.ConfirmAsync(testName, confirmPayload, cancellationToken);
 
-            var confirmedValues = confirmResponse ?? confirmPayload;
+            var confirmedValues = MergeConfirmValues(confirmResponse, confirmPayload);
             confirmedValues = RemoveMetadataKeys(confirmedValues);
             confirmedValues = NormalizeDictionaryValues(confirmedValues);
 
@@ -191,7 +200,7 @@ namespace Graduation_Project.Services
                 LabTestId = labTest.LabTestID,
                 ReportId = labTest.ReportID,
                 Status = labTest.AnalysisStatus ?? AnalysisStatus.Processing,
-                TestName = labTest.TestName ?? labTest.TestType,
+                TestName = ResolveSubmitTestName(labTest),
                 Confidence = null,
                 ExtractedValues = confirmedValues
             };
@@ -228,6 +237,10 @@ namespace Graduation_Project.Services
                     throw new InvalidOperationException("Patient not found.");
 
                 var results = new List<Dictionary<string, object>>();
+                var testSources = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                var uploadedTestNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var uploadedPairables = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var fallbackAddedNames = new List<string>();
                 var reportTests = (report.LabTests ?? new List<LabTest>())
                     .Where(t => !string.IsNullOrWhiteSpace(t.ConfirmedJson))
                     .ToList();
@@ -237,11 +250,50 @@ namespace Graduation_Project.Services
 
                 foreach (var test in reportTests)
                 {
-                    var confirmedValues = DeserializeDictionary(test.ConfirmedJson) ?? new Dictionary<string, object>();
-                    var normalizedValues = NormalizeDictionaryValues(confirmedValues);
+                    var normalizedValues = GetNormalizedConfirmedValues(test);
                     test.ConfirmedJson = JsonSerializer.Serialize(normalizedValues);
-                    results.Add(BuildResultPayload(test, normalizedValues));
+                    if (TryAddResultPayload(test, normalizedValues, results, testSources, "upload", out var normalizedName))
+                    {
+                        if (!string.IsNullOrWhiteSpace(normalizedName))
+                        {
+                            uploadedTestNames.Add(normalizedName);
+                            if (PairableSubmitNames.Contains(normalizedName))
+                                uploadedPairables.Add(normalizedName);
+                        }
+                    }
                 }
+
+                LogUploadedTests(report.ReportID, uploadedTestNames);
+
+                var missingTargets = GetPairingTargets(uploadedPairables);
+                if (missingTargets.Count > 0)
+                {
+                    var fallbackTests = await GetLatestFallbackTestsAsync(patient.PatientID, cancellationToken);
+                    foreach (var target in missingTargets)
+                    {
+                        if (!fallbackTests.TryGetValue(target, out var fallbackTest) || fallbackTest == null)
+                            continue;
+
+                        var normalizedValues = GetNormalizedConfirmedValues(fallbackTest);
+                        if (TryAddResultPayload(fallbackTest, normalizedValues, results, testSources, "database", out var normalizedName))
+                        {
+                            if (!string.IsNullOrWhiteSpace(normalizedName))
+                                fallbackAddedNames.Add(normalizedName);
+                        }
+                    }
+
+                    LogFallbackTests(report.ReportID, fallbackAddedNames, missingTargets);
+                }
+                else
+                {
+                    LogPairingSkipped(report.ReportID, uploadedTestNames, uploadedPairables);
+                }
+
+                if (uploadedPairables.Count > 0)
+                    LogPairSources(report.ReportID, testSources);
+
+                if (results.Count == 0)
+                    throw new InvalidOperationException("No supported tests to submit. The current submit API accepts CBC, Urinalysis, TSH, Ferritin, Fasting Blood Glucose, HbA1c, Blood Group, HBsAg, and HCV.");
 
                 var submitRequest = new AnalysisSubmitRequest
                 {
@@ -249,8 +301,8 @@ namespace Graduation_Project.Services
                     Results = results
                 };
 
-                var payloadJson = JsonSerializer.Serialize(submitRequest);
-                _logger.LogDebug("Submit payload for report {ReportId}: {Payload}", report.ReportID, payloadJson);
+                var payloadJson = JsonSerializer.Serialize(submitRequest, SubmitJsonOptions());
+                _logger.LogWarning("Submit payload for report {ReportId}: {Payload}", report.ReportID, payloadJson);
 
                 var analysisResponse = await _submitClient.SubmitAsync(submitRequest, cancellationToken);
 
@@ -544,18 +596,352 @@ namespace Graduation_Project.Services
         {
             var payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
             {
-                ["test_name"] = MapTestNameForSubmit(labTest.TestName ?? labTest.TestType)
+                ["test_name"] = ResolveSubmitTestName(labTest)
             };
 
             var confidence = ExtractConfidence(labTest.OcrRawJson);
-            if (!string.IsNullOrWhiteSpace(confidence))
-            {
-                payload["confidence"] = confidence;
-            }
+            payload["confidence"] = FormatSubmitConfidence(confidence);
 
+            var submitKeyMap = GetSubmitKeyMap(labTest);
             foreach (var kvp in confirmedValues)
             {
-                payload[kvp.Key] = kvp.Value;
+                var normalizedKey = NormalizeKey(kvp.Key);
+                var targetKey = submitKeyMap.TryGetValue(normalizedKey, out var mappedKey) ? mappedKey : kvp.Key;
+                if (!IsSubmitFieldAllowed(payload["test_name"].ToString(), targetKey))
+                    continue;
+
+                var submitValue = NormalizeSubmitValue(payload["test_name"].ToString(), targetKey, kvp.Value);
+                if (ShouldOmitSubmitValue(submitValue))
+                    continue;
+
+                payload[targetKey] = submitValue;
+            }
+
+            return FinalizeSubmitPayload(payload);
+        }
+
+        private static Dictionary<string, string> GetSubmitKeyMap(LabTest labTest) =>
+            GetConfirmKeyMap(labTest.TestType, labTest.TestName);
+
+        private static Dictionary<string, object> GetNormalizedConfirmedValues(LabTest test)
+        {
+            var confirmedValues = DeserializeDictionary(test.ConfirmedJson) ?? new Dictionary<string, object>();
+            return NormalizeDictionaryValues(confirmedValues);
+        }
+
+        private static string NormalizeSubmitTestName(string? testName) => (testName ?? string.Empty).Trim().ToLowerInvariant();
+
+        private static string ResolveNormalizedSubmitTestName(LabTest labTest) =>
+            NormalizeSubmitTestName(ResolveSubmitTestName(labTest));
+
+        private static bool TryAddResultPayload(
+            LabTest test,
+            Dictionary<string, object> normalizedValues,
+            List<Dictionary<string, object>> results,
+            Dictionary<string, string> testSources,
+            string sourceLabel,
+            out string? normalizedName)
+        {
+            normalizedName = null;
+            if (!IsSupportedSubmitTest(test))
+                return false;
+
+            var payload = BuildResultPayload(test, normalizedValues);
+            normalizedName = NormalizeSubmitTestName(payload.TryGetValue("test_name", out var name)
+                ? name?.ToString()
+                : ResolveSubmitTestName(test));
+
+            if (!string.IsNullOrWhiteSpace(normalizedName)
+                && PairableSubmitNames.Contains(normalizedName)
+                && testSources.ContainsKey(normalizedName))
+                return false;
+
+            results.Add(payload);
+
+            if (!string.IsNullOrWhiteSpace(normalizedName))
+                testSources[normalizedName] = sourceLabel;
+
+            return true;
+        }
+
+        private static List<string> GetPairingTargets(IReadOnlyCollection<string> uploadedPairables)
+        {
+            if (uploadedPairables == null || uploadedPairables.Count == 0)
+                return new List<string>();
+
+            var hasUrinalysis = uploadedPairables.Contains(SubmitUrinalysisNameNormalized);
+            var hasCbc = uploadedPairables.Contains(SubmitCbcNameNormalized);
+            var hasFbg = uploadedPairables.Contains(SubmitFbgNameNormalized);
+
+            var missing = new List<string>();
+            if (hasUrinalysis)
+            {
+                if (!hasCbc)
+                    missing.Add(SubmitCbcNameNormalized);
+                if (!hasFbg)
+                    missing.Add(SubmitFbgNameNormalized);
+            }
+            else if (hasCbc || hasFbg)
+            {
+                missing.Add(SubmitUrinalysisNameNormalized);
+            }
+
+            return missing;
+        }
+
+        private async Task<Dictionary<string, LabTest>> GetLatestFallbackTestsAsync(int patientId, CancellationToken cancellationToken)
+        {
+            var candidates = await _context.LabTests
+                .AsNoTracking()
+                .Where(t => t.PatientID == patientId && !string.IsNullOrWhiteSpace(t.ConfirmedJson))
+                .OrderByDescending(t => t.UploadDate)
+                .ToListAsync(cancellationToken);
+
+            var fallback = new Dictionary<string, LabTest>(StringComparer.OrdinalIgnoreCase);
+            foreach (var test in candidates)
+            {
+                if (!IsSupportedSubmitTest(test))
+                    continue;
+
+                var normalizedName = ResolveNormalizedSubmitTestName(test);
+                if (!PairableSubmitNames.Contains(normalizedName))
+                    continue;
+
+                if (!fallback.ContainsKey(normalizedName))
+                    fallback[normalizedName] = test;
+
+                if (fallback.Count == PairableSubmitNames.Count)
+                    break;
+            }
+
+            return fallback;
+        }
+
+        private void LogPairSources(int reportId, IReadOnlyDictionary<string, string> testSources)
+        {
+            LogSingleSource(reportId, "CBC", SubmitCbcNameNormalized, testSources);
+            LogSingleSource(reportId, "Urinalysis", SubmitUrinalysisNameNormalized, testSources);
+            LogSingleSource(reportId, "FBG", SubmitFbgNameNormalized, testSources);
+        }
+
+        private void LogUploadedTests(int reportId, IReadOnlyCollection<string> uploadedTests)
+        {
+            var summary = uploadedTests.Count == 0
+                ? "none"
+                : string.Join(", ", uploadedTests.OrderBy(name => name, StringComparer.OrdinalIgnoreCase));
+            _logger.LogInformation("Uploaded tests for report {ReportId}: {Tests}", reportId, summary);
+        }
+
+        private void LogFallbackTests(int reportId, IReadOnlyCollection<string> fallbackTests, IReadOnlyCollection<string> missingTargets)
+        {
+            if (fallbackTests.Count == 0)
+            {
+                var missing = missingTargets.Count == 0
+                    ? "none"
+                    : string.Join(", ", missingTargets.OrderBy(name => name, StringComparer.OrdinalIgnoreCase));
+                _logger.LogInformation("No fallback tests found for report {ReportId}. Missing targets: {MissingTargets}", reportId, missing);
+                return;
+            }
+
+            var summary = string.Join(", ", fallbackTests.OrderBy(name => name, StringComparer.OrdinalIgnoreCase));
+            _logger.LogInformation("Fallback tests added for report {ReportId}: {Tests}", reportId, summary);
+        }
+
+        private void LogPairingSkipped(int reportId, IReadOnlyCollection<string> uploadedTests, IReadOnlyCollection<string> uploadedPairables)
+        {
+            if (uploadedPairables.Count > 0)
+                return;
+
+            var summary = uploadedTests.Count == 0
+                ? "none"
+                : string.Join(", ", uploadedTests.OrderBy(name => name, StringComparer.OrdinalIgnoreCase));
+            _logger.LogInformation("Pairing skipped for report {ReportId}. Standalone tests: {Tests}", reportId, summary);
+        }
+
+        private void LogSingleSource(int reportId, string label, string key, IReadOnlyDictionary<string, string> testSources)
+        {
+            if (testSources.TryGetValue(key, out var source))
+            {
+                _logger.LogInformation("{TestName} source for report {ReportId}: {Source}", label, reportId, source);
+            }
+            else
+            {
+                _logger.LogInformation("{TestName} source for report {ReportId}: missing", label, reportId);
+            }
+        }
+
+        private static bool IsSubmitFieldAllowed(string? testName, string key)
+        {
+            var testNormalized = (testName ?? string.Empty).Trim().ToLowerInvariant();
+            var allowed = testNormalized switch
+            {
+                "cbc (complete blood count)" => new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "HB", "RBCs_Count", "MCV", "MCH", "RDW", "WBC", "lymphocytes", "platelet_count"
+                },
+                "urinalysis" => new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "Color", "PH", "Specific_Gravity", "Protein", "Glucose", "Ketones", "Blood", "RBCs", "Leukocytes", "Nitrite"
+                },
+                "tsh (thyroid)" => new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "TSH" },
+                "ferritin" => new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Ferritin_value" },
+                "fasting blood glucose" => new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "FBG" },
+                "hba1c (sugar test)" => new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "HbA1c" },
+                "blood group" => new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "ABO_Group", "RH_Factor" },
+                "hbsag (hepatitis b)" => new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "HBsAg" },
+                "hcv (hepatitis c)" => new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "HCV" },
+                _ => null
+            };
+
+            return allowed?.Contains(key) == true;
+        }
+
+        private static bool ShouldOmitSubmitValue(object? value)
+        {
+            if (value == null)
+                return true;
+
+            if (value is string text)
+            {
+                var trimmed = text.Trim();
+                return string.IsNullOrWhiteSpace(trimmed)
+                    || trimmed.Equals("none", StringComparison.OrdinalIgnoreCase)
+                    || trimmed.Equals("null", StringComparison.OrdinalIgnoreCase);
+            }
+
+            if (value is decimal dec)
+                return dec < 0;
+            if (value is double dbl)
+                return dbl < 0;
+            if (value is float flt)
+                return flt < 0;
+            if (value is int i)
+                return i < 0;
+            if (value is long l)
+                return l < 0;
+
+            return false;
+        }
+
+        private static object NormalizeSubmitValue(string? testName, string key, object? value)
+        {
+            if (value is JsonElement element)
+                value = AnalysisOcrClientJsonElementToObject(element);
+
+            var keyNormalized = NormalizeKey(key);
+            var testNormalized = (testName ?? string.Empty).Trim().ToLowerInvariant();
+
+            if (value is string text)
+            {
+                var trimmed = text.Trim();
+                if (trimmed == "+")
+                    return "positive";
+                if (trimmed == "-")
+                    return MapReactiveResult(testNormalized, keyNormalized, "negative");
+                if (trimmed.Equals("not extracted", StringComparison.OrdinalIgnoreCase))
+                    return "Not Extracted";
+                if (decimal.TryParse(trimmed.Replace(",", string.Empty), out var numeric))
+                    return NormalizeSubmitNumber(testNormalized, keyNormalized, numeric);
+                return MapReactiveResult(testNormalized, keyNormalized, trimmed);
+            }
+
+            if (value is double dbl)
+                return NormalizeSubmitNumber(testNormalized, keyNormalized, Convert.ToDecimal(dbl));
+            if (value is float flt)
+                return NormalizeSubmitNumber(testNormalized, keyNormalized, Convert.ToDecimal(flt));
+            if (value is decimal dec)
+                return NormalizeSubmitNumber(testNormalized, keyNormalized, dec);
+            if (value is int or long)
+                return NormalizeSubmitNumber(testNormalized, keyNormalized, Convert.ToDecimal(value));
+
+            return value ?? string.Empty;
+        }
+
+        private static object NormalizeSubmitNumber(string testName, string key, decimal value)
+        {
+            if (testName == "cbc (complete blood count)")
+                value = NormalizeCbcNumber(key, value);
+
+            if (testName == "urinalysis")
+            {
+                if (key is "specific_gravity" && value > 0 && value < 10)
+                    value *= 1000;
+
+                if (key is "protein" or "glucose" or "ketones" or "nitrite")
+                    return value == 0 ? "negative" : value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+                if (key == "blood" && value == 0.01m)
+                    return "trace";
+            }
+
+            if (key is "rh_factor" or "hbsag")
+            {
+                if (value == 1) return "positive";
+                if (value == 0) return "negative";
+            }
+
+            if (key == "hcv")
+            {
+                if (value == 1) return "positive";
+                if (value == 0) return "non-reactive";
+            }
+
+            return decimal.Truncate(value) == value
+                ? (object)(int)value
+                : value;
+        }
+
+        private static decimal NormalizeCbcNumber(string key, decimal value)
+        {
+            return key switch
+            {
+                "hb" when value > 25m && value <= 200m => value / 10m,
+                "mchc" when value > 50m && value <= 500m => value / 10m,
+                "wbc" when value > 0m && value < 100m => value * 1000m,
+                "platelet_count" when value > 0m && value < 1000m => value * 1000m,
+                "lymphocytes" when value > 0m && value < 10m => value * 10m,
+                _ => value
+            };
+        }
+
+        private static string MapReactiveResult(string testName, string key, string value)
+        {
+            if (testName == "hcv (hepatitis c)" && key == "hcv"
+                && value.Equals("negative", StringComparison.OrdinalIgnoreCase))
+                return "non-reactive";
+
+            return value;
+        }
+
+        private static string FormatSubmitConfidence(string? confidence)
+        {
+            if (string.IsNullOrWhiteSpace(confidence))
+                return "0";
+
+            if (!decimal.TryParse(confidence.Replace(",", string.Empty), System.Globalization.NumberStyles.Any,
+                    System.Globalization.CultureInfo.InvariantCulture, out var parsed))
+                return confidence;
+
+            if (parsed > 1m)
+                parsed /= 100m;
+
+            if (parsed < 0m)
+                parsed = 0m;
+
+            return parsed.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        private static Dictionary<string, object> FinalizeSubmitPayload(Dictionary<string, object> payload)
+        {
+            var testName = payload.TryGetValue("test_name", out var name)
+                ? name?.ToString() ?? string.Empty
+                : string.Empty;
+
+            if (testName.Equals("CBC (Complete Blood Count)", StringComparison.OrdinalIgnoreCase)
+                && !payload.ContainsKey("RDW"))
+            {
+                throw new InvalidOperationException(
+                    "CBC analysis requires an RDW value. Please add RDW from your lab report in the review step.");
             }
 
             return payload;
@@ -596,6 +982,7 @@ namespace Graduation_Project.Services
                     ["mcv"] = "MCV",
                     ["mch"] = "MCH",
                     ["mchc"] = "MCHC",
+                    ["rdw"] = "RDW",
                     ["lymphocytes"] = "lymphocytes",
                     ["platelet_count"] = "platelet_count"
                 },
@@ -649,6 +1036,36 @@ namespace Graduation_Project.Services
             };
         }
 
+        private static Dictionary<string, object> MergeConfirmValues(
+            Dictionary<string, object>? apiValues,
+            Dictionary<string, object> userPayload)
+        {
+            var merged = apiValues != null
+                ? new Dictionary<string, object>(apiValues, StringComparer.OrdinalIgnoreCase)
+                : new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var kvp in userPayload)
+            {
+                if (IsUsableConfirmValue(kvp.Value))
+                    merged[kvp.Key] = kvp.Value;
+            }
+
+            return merged;
+        }
+
+        private static bool IsUsableConfirmValue(object? value)
+        {
+            if (value == null)
+                return false;
+
+            var text = value.ToString()?.Trim();
+            if (string.IsNullOrWhiteSpace(text))
+                return false;
+
+            return text != "-1"
+                && !text.Equals("none", StringComparison.OrdinalIgnoreCase);
+        }
+
         private static Dictionary<string, object> RemoveMetadataKeys(Dictionary<string, object> values)
         {
             var cleaned = new Dictionary<string, object>(values, StringComparer.OrdinalIgnoreCase);
@@ -688,10 +1105,51 @@ namespace Graduation_Project.Services
                 }
             }
 
+            if (response.TestResults != null)
+            {
+                var hasAbnormal = response.TestResults.Any(test =>
+                    test.Any(kvp =>
+                        !kvp.Key.Equals("test_name", StringComparison.OrdinalIgnoreCase) &&
+                        !kvp.Key.Equals("confidence", StringComparison.OrdinalIgnoreCase) &&
+                        IsAbnormalSubmitResult(kvp.Value)));
+
+                if (hasAbnormal)
+                    return "Abnormal Values Detected";
+            }
+
             if (response.Alerts != null && response.Alerts.Count > 0)
                 return "Some Values Below Normal";
 
             return "All Values Normal";
+        }
+
+        private static bool IsAbnormalSubmitResult(object? value)
+        {
+            if (value is JsonElement element)
+            {
+                if (element.ValueKind == JsonValueKind.Array)
+                {
+                    var first = element.EnumerateArray().FirstOrDefault();
+                    return first.ValueKind == JsonValueKind.String && !IsNormalSubmitStatus(first.GetString());
+                }
+
+                if (element.ValueKind == JsonValueKind.String)
+                    return !IsNormalSubmitStatus(element.GetString());
+            }
+
+            if (value is IEnumerable<object> items)
+            {
+                var first = items.FirstOrDefault()?.ToString();
+                return !IsNormalSubmitStatus(first);
+            }
+
+            return false;
+        }
+
+        private static bool IsNormalSubmitStatus(string? status)
+        {
+            return string.IsNullOrWhiteSpace(status)
+                || status.Trim().Equals("Normal", StringComparison.OrdinalIgnoreCase);
         }
 
 
@@ -719,6 +1177,33 @@ namespace Graduation_Project.Services
                 "hcv" => "HCV (Hepatitis C)",
                 _ => testName
             };
+        }
+
+        private static string ResolveSubmitTestName(LabTest labTest)
+        {
+            var rawName = !string.IsNullOrWhiteSpace(labTest.TestName)
+                ? labTest.TestName
+                : labTest.TestType;
+
+            return MapTestNameForSubmit(rawName ?? string.Empty);
+        }
+
+        private static bool IsSupportedSubmitTest(LabTest labTest)
+        {
+            if (string.IsNullOrWhiteSpace(labTest.TestName) && string.IsNullOrWhiteSpace(labTest.TestType))
+                return false;
+
+            var normalized = ResolveSubmitTestName(labTest).Trim().ToLowerInvariant();
+            return normalized is
+                "cbc (complete blood count)" or
+                "urinalysis" or
+                "tsh (thyroid)" or
+                "ferritin" or
+                "fasting blood glucose" or
+                "hba1c (sugar test)" or
+                "blood group" or
+                "hbsag (hepatitis b)" or
+                "hcv (hepatitis c)";
         }
 
         private static string? ExtractConfidence(string? ocrRawJson)
@@ -760,6 +1245,12 @@ namespace Graduation_Project.Services
         private static JsonSerializerOptions JsonOptions() => new()
         {
             PropertyNameCaseInsensitive = true
+        };
+
+        private static JsonSerializerOptions SubmitJsonOptions() => new()
+        {
+            PropertyNameCaseInsensitive = true,
+            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
         };
     }
 }

@@ -1518,6 +1518,10 @@
   border-color: #fecaca;
   background: #fef2f2;
 }
+.pp-report-metric.warning {
+  border-color: #fde68a;
+  background: #fffdf5;
+}
 .pp-report-metric.low {
   border-color: #fde68a;
   background: #fffbeb;
@@ -1537,6 +1541,12 @@
   margin-top: 4px;
   font-size: 0.7rem;
   color: var(--text-3);
+}
+.pp-report-metric-detail {
+  margin-top: 6px;
+  font-size: 0.75rem;
+  color: var(--text-2);
+  line-height: 1.45;
 }
 
 .pp-report-text p {

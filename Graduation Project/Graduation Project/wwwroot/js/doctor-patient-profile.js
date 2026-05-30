@@ -589,6 +589,38 @@
     return value;
   }
 
+  function hasSubmitDiagnosisResults(test) {
+    return Object.keys(test || {}).some(
+      (key) => !isMetadataKey(key) && Array.isArray(test[key]),
+    );
+  }
+
+  function isMetadataKey(key) {
+    return ["test_name", "confidence"].includes(String(key || "").toLowerCase());
+  }
+
+  function getSubmitDiagnosisStatus(value) {
+    return Array.isArray(value) ? String(value[0] ?? "") : String(value ?? "");
+  }
+
+  function getSubmitDiagnosisDetail(value) {
+    if (!Array.isArray(value)) return "";
+    if (value.length === 1 && Array.isArray(value[0])) return value[0].join(", ");
+    return value.slice(1).flat().filter(Boolean).join(" ");
+  }
+
+  function getSubmitDiagnosisClass(status) {
+    const s = String(status || "").toLowerCase();
+    if (!s || s === "normal") return "normal";
+    if (s.includes("low") || s.includes("below")) return "low";
+    if (s.includes("moderate") || s.includes("trace")) return "warning";
+    return "high";
+  }
+
+  function toDisplayLabel(key) {
+    return String(key || "").replace(/_/g, " ");
+  }
+
   function getParamStatus(value, normalRange) {
     const s = String(value ?? "")
       .trim()
@@ -634,21 +666,24 @@
     let hasLow = false;
 
     tests.forEach((test) => {
-      const cfg = resolveTestConfig(test.test_name);
-      if (!cfg) return;
-      cfg.parameters.forEach((p) => {
-        const s = getParamStatus(extractValue(test, p.key), p.normalRange);
-        if (s === "high") hasHigh = true;
-        if (s === "low") hasLow = true;
-      });
+      if (hasSubmitDiagnosisResults(test)) {
+        Object.keys(test).forEach((key) => {
+          if (isMetadataKey(key)) return;
+          const cls = getSubmitDiagnosisClass(getSubmitDiagnosisStatus(test[key]));
+          if (cls === "high") hasHigh = true;
+          if (cls === "warning") hasLow = true;
+          if (cls === "low") hasLow = true;
+        });
+      } else {
+        const cfg = resolveTestConfig(test.test_name);
+        if (!cfg) return;
+        cfg.parameters.forEach((p) => {
+          const s = getParamStatus(extractValue(test, p.key), p.normalRange);
+          if (s === "high") hasHigh = true;
+          if (s === "low") hasLow = true;
+        });
+      }
     });
-
-    const verdict = hasHigh ? "danger" : hasLow ? "warning" : "safe";
-    const overall = hasHigh
-      ? "Abnormal Values Detected"
-      : hasLow
-        ? "Some Values Below Normal"
-        : "All Values Normal";
 
     const riskRaw = data.riskPrediction;
     let riskObj = {};
@@ -666,6 +701,17 @@
         }
       }
     }
+
+    const riskText = String(riskObj.risk_level || "").toLowerCase();
+    if (riskText.includes("high")) hasHigh = true;
+    if (riskText.includes("moderate") || riskText.includes("medium")) hasLow = true;
+
+    const verdict = hasHigh ? "danger" : hasLow ? "warning" : "safe";
+    const overall = hasHigh
+      ? "Abnormal Values Detected"
+      : hasLow
+        ? "Some Values Below Normal"
+        : "All Values Normal";
 
     return {
       verdict,
@@ -799,33 +845,61 @@
       if (analysis.tests && analysis.tests.length) {
         analysis.tests.forEach((test) => {
           const cfg = resolveTestConfig(test.test_name);
-          if (!cfg) return;
+          if (!cfg && !hasSubmitDiagnosisResults(test)) return;
           const confVal = parseFloat(test.confidence || "");
           let metrics = "";
-          cfg.parameters.forEach((p) => {
-            const val = extractValue(test, p.key) ?? "-";
-            const status = getParamStatus(val, p.normalRange);
-            metrics +=
-              '<div class="pp-report-metric ' +
-              status +
-              '">' +
-              '<div class="pp-report-metric-label">' +
-              escHtml(p.name) +
-              "</div>" +
-              '<div class="pp-report-metric-value">' +
-              escHtml(String(val)) +
-              (p.unit ? " <span>" + escHtml(p.unit) + "</span>" : "") +
-              "</div>" +
-              '<div class="pp-report-metric-range">Normal: ' +
-              escHtml(p.normalRange) +
-              (p.unit ? " " + escHtml(p.unit) : "") +
-              "</div></div>";
-          });
+          if (hasSubmitDiagnosisResults(test)) {
+            metrics = Object.keys(test)
+              .filter((key) => !isMetadataKey(key))
+              .map((key) => {
+                const status = getSubmitDiagnosisStatus(test[key]);
+                const detail = getSubmitDiagnosisDetail(test[key]);
+                const cls = getSubmitDiagnosisClass(status);
+                return (
+                  '<div class="pp-report-metric ' +
+                  cls +
+                  '">' +
+                  '<div class="pp-report-metric-label">' +
+                  escHtml(toDisplayLabel(key)) +
+                  "</div>" +
+                  '<div class="pp-report-metric-value">' +
+                  escHtml(status || "Normal") +
+                  "</div>" +
+                  (detail
+                    ? '<div class="pp-report-metric-detail">' +
+                      escHtml(detail) +
+                      "</div>"
+                    : "") +
+                  "</div>"
+                );
+              })
+              .join("");
+          } else {
+            cfg.parameters.forEach((p) => {
+              const val = extractValue(test, p.key) ?? "-";
+              const status = getParamStatus(val, p.normalRange);
+              metrics +=
+                '<div class="pp-report-metric ' +
+                status +
+                '">' +
+                '<div class="pp-report-metric-label">' +
+                escHtml(p.name) +
+                "</div>" +
+                '<div class="pp-report-metric-value">' +
+                escHtml(String(val)) +
+                (p.unit ? " <span>" + escHtml(p.unit) + "</span>" : "") +
+                "</div>" +
+                '<div class="pp-report-metric-range">Normal: ' +
+                escHtml(p.normalRange) +
+                (p.unit ? " " + escHtml(p.unit) : "") +
+                "</div></div>";
+            });
+          }
 
           html +=
             '<div class="pp-report-section"><div class="pp-report-test">' +
             '<div class="pp-report-test-title">' +
-            escHtml(test.test_name || cfg.name) +
+            escHtml(test.test_name || cfg?.name || "Lab Test") +
             (!isNaN(confVal)
               ? '<span class="pp-report-pill">' +
                 Math.round(confVal * 100) +
