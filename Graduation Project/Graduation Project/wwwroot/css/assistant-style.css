@@ -1,4 +1,4 @@
-/* ================================
+ï»¿/* ================================
    Assistant Portal - Style Overrides
    Imports shared styles and adds assistant-specific styling
 ================================ */
@@ -24,7 +24,7 @@
   --assistant-surface-mid:  #f3e8ff;
   --assistant-border-tint:  rgba(124, 58, 237, 0.18);
 
-  /* Status palette — richer shades */
+  /* Status palette ï¿½ richer shades */
   --status-confirmed-bg:    #dcfce7;
   --status-confirmed-text:  #15803d;
   --status-confirmed-icon:  #16a34a;
@@ -947,7 +947,7 @@
   height: 100vh;
   background: var(--bg-white);
   box-shadow: var(--shadow-lg);
-  z-index: 200;
+  z-index: 1300;
   transition: right 0.3s ease;
   display: flex;
   flex-direction: column;

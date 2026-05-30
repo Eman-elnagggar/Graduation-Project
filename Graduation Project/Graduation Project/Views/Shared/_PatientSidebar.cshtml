@@ -1,6 +1,24 @@
+@using System.Security.Claims
+@using System.Globalization
 @{
     var patientId = ViewData["PatientId"] as int? ?? 0;
     var activePage = ViewData["ActivePage"] as string ?? "";
+
+    // Resolve the patient's display name from ViewData or claims
+    var sidebarRawName = ViewData["UserName"] as string
+        ?? User?.FindFirstValue(ClaimTypes.GivenName)
+        ?? User?.Identity?.Name
+        ?? "Patient";
+
+    var sidebarDisplayName = sidebarRawName;
+    if (sidebarDisplayName.Contains('@'))
+    {
+        var localPart = sidebarDisplayName.Split('@', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? sidebarDisplayName;
+        var firstToken = localPart.Split(new[] { '.', '_', '-' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        if (!string.IsNullOrWhiteSpace(firstToken))
+            sidebarDisplayName = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(firstToken.ToLowerInvariant());
+    }
+    var sidebarFirstName = sidebarDisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? sidebarDisplayName;
 }
 
 <aside class="sidebar">
@@ -22,12 +40,11 @@
     <!-- User Profile Card -->
     <div class="sidebar-profile">
         <div class="profile-avatar">
-            <img src="https://ui-avatars.com/api/?name=Patient&background=1baebe&color=fff&size=80" alt="Patient Avatar" />
-            <span class="online-dot"></span>
+            <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(sidebarDisplayName)&background=1baebe&color=fff&size=80" alt="@sidebarFirstName" />
         </div>
         <div class="profile-info">
-            <span class="profile-name">My Account</span>
-            <span class="profile-role">Patient #@patientId</span>
+            <span class="profile-name">@sidebarFirstName</span>
+            <span class="profile-role">@(patientId > 0 ? $"Patient #{patientId}" : "Patient")</span>
         </div>
     </div>
 
@@ -36,31 +53,33 @@
         <!-- Main Section -->
         <div class="nav-section">
             <span class="nav-section-label">Main</span>
-            <a href="/Patient/Index/@patientId"
+            <a href="@Url.Action("Index", "Patient", new { id = patientId })"
                class="nav-item @(activePage == "Dashboard" ? "active" : "")"
                data-tooltip="Dashboard">
                 <div class="nav-icon"><i class="fas fa-home"></i></div>
                 <span>Dashboard</span>
             </a>
-            <a href="/PatientTests/TestsUpload/@patientId" class="nav-item @(activePage == "Tests" ? "active" : "")" data-tooltip="Tests Upload">
+            <a href="@Url.Action("TestsUpload", "PatientTests", new { id = patientId })"
+               class="nav-item @(activePage == "Tests" ? "active" : "")" data-tooltip="Tests Upload">
                 <div class="nav-icon"><i class="fas fa-flask"></i></div>
                 <span>Tests Upload</span>
             </a>
-            <a href="/ProductScan/Index/@patientId" class="nav-item @(activePage == "Products" ? "active" : "")" data-tooltip="Product Safety">
+            <a href="@Url.Action("Index", "ProductScan", new { id = patientId })"
+               class="nav-item @(activePage == "Products" ? "active" : "")" data-tooltip="Product Safety">
                 <div class="nav-icon"><i class="fas fa-shield-alt"></i></div>
                 <span>Product Safety</span>
             </a>
-            <a href="/PatientPlaces/Places/@patientId"
+            <a href="@Url.Action("Places", "PatientPlaces", new { id = patientId })"
                class="nav-item @(activePage == "Places" ? "active" : "")" data-tooltip="My Places">
                 <div class="nav-icon"><i class="fas fa-map-marker-alt"></i></div>
                 <span>My Places</span>
             </a>
-            <a href="/PatientAppointments/Appointments/@patientId"
+            <a href="@Url.Action("Appointments", "PatientAppointments", new { id = patientId })"
                class="nav-item @(activePage == "Appointments" ? "active" : "")" data-tooltip="Appointments">
                 <div class="nav-icon"><i class="fas fa-calendar-check"></i></div>
                 <span>Appointments</span>
             </a>
-            <a href="/Patient/Messages/@patientId"
+            <a href="@Url.Action("Messages", "Patient", new { id = patientId })"
                class="nav-item @(activePage == "Messages" ? "active" : "")" data-tooltip="Messages">
                 <div class="nav-icon"><i class="fas fa-comments"></i></div>
                 <span>Messages</span>
@@ -70,11 +89,13 @@
         <!-- Health & Community Section -->
         <div class="nav-section">
             <span class="nav-section-label">Health & Community</span>
-            <a href="/Chatbot/Index/@patientId" class="nav-item @(activePage == "Chatbot" ? "active" : "")" data-tooltip="Chatbot">
+            <a href="@Url.Action("Index", "Chatbot", new { id = patientId })"
+               class="nav-item @(activePage == "Chatbot" ? "active" : "")" data-tooltip="Chatbot">
                 <div class="nav-icon"><i class="fas fa-robot"></i></div>
                 <span>Chatbot</span>
             </a>
-            <a href="/Community/Index/@patientId" class="nav-item @(activePage == "Community" ? "active" : "")" data-tooltip="Community">
+            <a href="@Url.Action("Index", "Community", new { id = patientId })"
+               class="nav-item @(activePage == "Community" ? "active" : "")" data-tooltip="Community">
                 <div class="nav-icon"><i class="fas fa-users"></i></div>
                 <span>Community</span>
             </a>
@@ -83,39 +104,37 @@
         <!-- Records Section -->
         <div class="nav-section">
             <span class="nav-section-label">Records</span>
-            <a href="/PatientMedicalHistory/MedicalHistory/@patientId"
+            <a href="@Url.Action("MedicalHistory", "PatientMedicalHistory", new { id = patientId })"
                class="nav-item @(activePage == "MedicalHistory" ? "active" : "")"
                data-tooltip="Medical History">
                 <div class="nav-icon"><i class="fas fa-file-medical"></i></div>
                 <span>Medical History</span>
             </a>
-            <a href="/Prescription/Index/@patientId"
+            <a href="@Url.Action("Index", "Prescription", new { id = patientId })"
                class="nav-item @(activePage == "Prescriptions" ? "active" : "")"
                data-tooltip="Prescriptions">
                 <div class="nav-icon"><i class="fas fa-prescription-bottle-alt"></i></div>
                 <span>Prescriptions</span>
             </a>
-
-            <a href="/Patient/UltrasoundHistory/@patientId"
-                   class="nav-item @(activePage == "Ultrasound" ? "active" : "")"
-                   data-tooltip="Ultrasound History">
+            <a href="@Url.Action("UltrasoundHistory", "Patient", new { id = patientId })"
+               class="nav-item @(activePage == "Ultrasound" ? "active" : "")"
+               data-tooltip="Ultrasound History">
                 <div class="nav-icon"><i class="fas fa-wave-square"></i></div>
                 <span>Ultrasound History</span>
             </a>
-
-            <a href="/PatientAlerts/Alerts/@patientId"
+            <a href="@Url.Action("Alerts", "PatientAlerts", new { id = patientId })"
                class="nav-item @(activePage == "Alerts" ? "active" : "")"
                data-tooltip="Alerts">
                 <div class="nav-icon"><i class="fas fa-bell"></i></div>
                 <span>Alerts</span>
             </a>
-            <a href="/PatientMedication/Index/@patientId"
+            <a href="@Url.Action("Index", "PatientMedication", new { id = patientId })"
                class="nav-item @(activePage == "Medications" ? "active" : "")"
                data-tooltip="Medications">
                 <div class="nav-icon"><i class="fas fa-pills"></i></div>
                 <span>Medications</span>
             </a>
-            <a href="/PatientProfile/Index/@patientId"
+            <a href="@Url.Action("Index", "PatientProfile", new { id = patientId })"
                class="nav-item @(activePage == "Profile" ? "active" : "")" data-tooltip="My Profile">
                 <div class="nav-icon"><i class="fas fa-user-circle"></i></div>
                 <span>My Profile</span>

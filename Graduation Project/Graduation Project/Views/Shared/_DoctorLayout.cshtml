@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="~/css/doctor-style.css" asp-append-version="true" />
   @await RenderSectionAsync("Head", required: false)
   @await RenderSectionAsync("Styles", required: false)
+    <link rel="stylesheet" href="~/css/responsive-fixes.css" asp-append-version="true" />
 </head>
 @{
   var layoutDoctorId = ViewData["DoctorId"] as int? ?? 0;
@@ -59,10 +60,10 @@
 
         <button class="icon-btn" id="notificationBtn" title="Notifications" type="button">
           <i class="fas fa-bell"></i>
-          <span class="dot" id="notificationBadge" style="display:none">0</span>
+          <span class="dot" id="notificationBadge" hidden>0</span>
         </button>
 
-        <button class="icon-btn" title="Search" type="button">
+        <button class="icon-btn" id="topbarSearchBtn" title="Search (Ctrl+K)" type="button" aria-label="Open search">
           <i class="fas fa-search"></i>
         </button>
 

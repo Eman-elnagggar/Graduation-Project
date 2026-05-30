@@ -1,5 +1,5 @@
 /**
- * MamaCare — Auth Pages Shared JavaScript
+ * NABD نبض — Auth Pages Shared JavaScript
  */
 
 function showToast(message, type = 'info') {

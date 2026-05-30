@@ -25,6 +25,9 @@ namespace Graduation_Project.Services
 <style>{BaseStyle}</style></head><body>
 <div class='wrap'>
   <div class='header' style='background:linear-gradient(135deg,#0a1628 0%,#1e3a8a 60%,#1d4ed8 100%);'>
+    <div style='margin-bottom:18px;'>
+      <img src='cid:nabd-logo' alt='NABD نبض' style='max-width:130px;height:auto;display:block;margin:0 auto;'/>
+    </div>
     <div style='font-size:40px;margin-bottom:10px;'>✅</div>
     <h1 style='color:#e6edf3;'>Registration Approved!</h1>
     <p style='color:#93c5fd;font-size:14px;margin:0;'>NABD نبض · Doctor Portal</p>
@@ -54,6 +57,9 @@ namespace Graduation_Project.Services
 <style>{BaseStyle}</style></head><body>
 <div class='wrap'>
   <div class='header' style='background:linear-gradient(135deg,#1a0a0a 0%,#450a0a 60%,#7f1d1d 100%);'>
+    <div style='margin-bottom:18px;'>
+      <img src='cid:nabd-logo' alt='NABD نبض' style='max-width:130px;height:auto;display:block;margin:0 auto;'/>
+    </div>
     <div style='font-size:40px;margin-bottom:10px;'>⚠️</div>
     <h1 style='color:#e6edf3;'>Registration Not Approved</h1>
     <p style='color:#fca5a5;font-size:14px;margin:0;'>NABD نبض · Doctor Portal</p>

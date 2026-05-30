@@ -15,6 +15,8 @@
   <link rel="stylesheet" href="~/css/admin-style.css" asp-append-version="true" />
   @await RenderSectionAsync("Head", required: false)
   @await RenderSectionAsync("Styles", required: false)
+  @* responsive-fixes LAST so it always wins over any page @section Styles *@
+  <link rel="stylesheet" href="~/css/responsive-fixes.css" asp-append-version="true" />
 </head>
 @{
   var adminName = ViewData["AdminName"] as string ?? User?.Identity?.Name ?? "Admin";
@@ -57,14 +59,14 @@
     <div class="page-content">
       @if (TempData["AdminSuccess"] != null)
       {
-        <div class="admin-toast success" id="adminToast">
+        <div class="admin-toast success" id="adminToastSuccess">
           <i class="fas fa-check-circle"></i>
           <span>@TempData["AdminSuccess"]</span>
         </div>
       }
       @if (TempData["AdminError"] != null)
       {
-        <div class="admin-toast error" id="adminToast">
+        <div class="admin-toast error" id="adminToastError">
           <i class="fas fa-exclamation-circle"></i>
           <span>@TempData["AdminError"]</span>
         </div>
@@ -79,14 +81,19 @@
 
 <script src="~/js/shared.js" asp-append-version="true"></script>
 <script>
-  // Auto-dismiss toast
+  // Auto-dismiss toasts — handles success and error independently
   (function() {
-    var toast = document.getElementById('adminToast');
-    if (toast) setTimeout(function() {
-      toast.style.transition = 'opacity 0.4s';
-      toast.style.opacity = '0';
-      setTimeout(function() { toast.remove(); }, 400);
-    }, 4000);
+    function dismissToast(id) {
+      var toast = document.getElementById(id);
+      if (!toast) return;
+      setTimeout(function() {
+        toast.style.transition = 'opacity 0.4s';
+        toast.style.opacity = '0';
+        setTimeout(function() { toast.remove(); }, 400);
+      }, 4000);
+    }
+    dismissToast('adminToastSuccess');
+    dismissToast('adminToastError');
   })();
 </script>
 @await RenderSectionAsync("Scripts", required: false)

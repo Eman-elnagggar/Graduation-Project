@@ -3,19 +3,23 @@ const navbar = document.querySelector('.navbar');
 const hamburger = document.querySelector('.hamburger');
 const mobileMenu = document.querySelector('.mobile-menu');
 
-window.addEventListener('scroll', () => {
-    if (window.scrollY > 20) navbar.classList.add('scrolled');
-    else navbar.classList.remove('scrolled');
-});
+if (navbar) {
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 20) navbar.classList.add('scrolled');
+        else navbar.classList.remove('scrolled');
+    });
+}
 
-hamburger.addEventListener('click', () => {
-    mobileMenu.classList.toggle('open');
-});
+if (hamburger && mobileMenu) {
+    hamburger.addEventListener('click', () => {
+        mobileMenu.classList.toggle('open');
+    });
 
-// Close mobile menu on link click
-mobileMenu.querySelectorAll('a').forEach(a => {
-    a.addEventListener('click', () => mobileMenu.classList.remove('open'));
-});
+    // Close mobile menu on link click
+    mobileMenu.querySelectorAll('a').forEach(a => {
+        a.addEventListener('click', () => mobileMenu.classList.remove('open'));
+    });
+}
 
 // ── SCROLL REVEAL ────────────────────────────────────────
 const revealObserver = new IntersectionObserver((entries) => {

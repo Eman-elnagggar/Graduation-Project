@@ -384,6 +384,19 @@
     modeAI.addEventListener('change', updateMode);
     modeNote.addEventListener('change', updateMode);
 
+    // Show loading state on submit to prevent double-submits and give feedback
+    const uploadForm = document.getElementById('uploadForm');
+    const submitBtn  = document.getElementById('submitBtn');
+    if (uploadForm && submitBtn) {
+        uploadForm.addEventListener('submit', function() {
+            submitBtn.disabled = true;
+            const icon  = document.getElementById('submitIcon');
+            const label = document.getElementById('submitLabel');
+            if (icon)  icon.className   = 'fas fa-spinner fa-spin';
+            if (label) label.textContent = 'Uploading…';
+        });
+    }
+
     function showPreview(file) {
         if (!file) return;
         const reader = new FileReader();

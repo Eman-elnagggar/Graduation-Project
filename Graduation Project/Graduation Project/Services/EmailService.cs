@@ -1,6 +1,7 @@
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
+using MimeKit.Utils;
 
 namespace Graduation_Project.Services
 {
@@ -19,11 +20,13 @@ namespace Graduation_Project.Services
     {
         private readonly EmailSettings _settings;
         private readonly ILogger<EmailService> _logger;
+        private readonly IWebHostEnvironment _environment;
 
-        public EmailService(IConfiguration config, ILogger<EmailService> logger)
+        public EmailService(IConfiguration config, ILogger<EmailService> logger, IWebHostEnvironment environment)
         {
             _settings = config.GetSection("Email").Get<EmailSettings>() ?? new EmailSettings();
             _logger = logger;
+            _environment = environment;
         }
 
         public async Task SendAsync(string toEmail, string toName, string subject, string htmlBody)
@@ -42,7 +45,19 @@ namespace Graduation_Project.Services
                 message.From.Add(new MailboxAddress(_settings.FromName, _settings.FromAddress));
                 message.To.Add(new MailboxAddress(toName, toEmail));
                 message.Subject = subject;
-                message.Body = new BodyBuilder { HtmlBody = htmlBody }.ToMessageBody();
+
+                var builder = new BodyBuilder();
+                var logoPath = Path.Combine(_environment.WebRootPath ?? string.Empty, "images", "logo.png");
+                var logoContentId = "nabd-logo";
+                if (File.Exists(logoPath))
+                {
+                    var logo = builder.LinkedResources.Add(logoPath);
+                    logo.ContentId = logoContentId;
+                    htmlBody = InjectLogo(htmlBody, logoContentId);
+                }
+
+                builder.HtmlBody = htmlBody;
+                message.Body = builder.ToMessageBody();
 
                 using var client = new SmtpClient();
                 var socketOptions = _settings.UseSsl
@@ -60,6 +75,28 @@ namespace Graduation_Project.Services
             {
                 _logger.LogError(ex, "Failed to send email to {Email}: {Subject}", toEmail, subject);
             }
+
+        }
+
+        private static string InjectLogo(string htmlBody, string logoContentId)
+        {
+            if (string.IsNullOrWhiteSpace(htmlBody) || htmlBody.Contains($"cid:{logoContentId}", StringComparison.OrdinalIgnoreCase))
+            {
+                return htmlBody;
+            }
+
+            var logoHtml = $"<div style='text-align:center;padding:24px 0 0;'><img src='cid:{logoContentId}' alt='NABD نبض' style='max-width:140px;height:auto;'/></div>";
+            var bodyIndex = htmlBody.IndexOf("<body", StringComparison.OrdinalIgnoreCase);
+            if (bodyIndex >= 0)
+            {
+                var insertIndex = htmlBody.IndexOf('>', bodyIndex);
+                if (insertIndex >= 0)
+                {
+                    return htmlBody.Insert(insertIndex + 1, logoHtml);
+                }
+            }
+
+            return logoHtml + htmlBody;
         }
     }
 }

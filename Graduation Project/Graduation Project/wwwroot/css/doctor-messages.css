@@ -332,6 +332,29 @@
   gap: 12px;
 }
 
+.chat-back-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background: var(--gray-100);
+  color: var(--text-primary);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.chat-back-btn:hover {
+  background: var(--gray-200);
+  border-color: var(--gray-300);
+  transform: translateY(-1px);
+}
+
+.chat-back-btn:active {
+  transform: translateY(0);
+}
+
 .user-avatar img {
   width: 42px;
   height: 42px;
@@ -485,25 +508,150 @@
 .toast.error { border-left: 3px solid var(--danger); }
 .toast.success { border-left: 3px solid var(--success); }
 
+/* ================================================================
+   RESPONSIVE — Mobile Chat (panel switcher pattern)
+   On ≤992px: show list OR chat, never both at once.
+   On >992px: side-by-side layout (no changes needed).
+================================================================ */
+
 @media (max-width: 992px) {
-  .chat-app { height: calc(100vh - 140px); min-height: 540px; }
+  /* Overall app: relative container for absolute panels */
+  .chat-app {
+    position: relative;
+    height: calc(100dvh - 200px);
+    min-height: 480px;
+    flex-direction: row; /* keep flex row — panels are absolute */
+    overflow: hidden;
+    border-radius: var(--radius-md);
+  }
+
+  /* ── Conversations panel (left) ──
+     Full size by default; hidden when a chat is open */
   .chat-sidebar {
-    position: fixed;
-    z-index: 200;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    transform: translateX(-100%);
-    transition: transform .25s ease;
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    transform: none !important;
+    z-index: 2;
+    border-right: none;
+    display: flex;
+    flex-direction: column;
+    transition: none;
+    box-shadow: none;
   }
-  .chat-sidebar.show { transform: translateX(0); }
-  .sidebar-close { display: block; }
-  .sidebar-overlay {
+
+  /* Hide sidebar when chat is active */
+  .chat-sidebar.hidden-mobile {
+    display: none !important;
+  }
+
+  /* ── Chat panel (right) ──
+     Hidden by default; shown when a conversation is selected */
+  .chat-main {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
     display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, .45);
-    z-index: 150;
+    flex-direction: column;
+    z-index: 2;
   }
-  .sidebar-overlay.show { display: block; }
+
+  /* Show chat panel when active */
+  .chat-main.active-mobile {
+    display: flex !important;
+  }
+
+  /* No overlay needed — panels handle switching */
+  .sidebar-overlay { display: none !important; }
+
+  /* Mobile top bar: hide since sidebar now shows full-panel by default */
+  .chat-mobile-bar {
+    display: none !important;
+  }
+
+  /* Close button inside sidebar is not needed (tap a convo to navigate) */
+  .sidebar-close { display: none; }
+
+  /* Back button in chat header: always show on mobile */
+  .chat-back-btn {
+    display: inline-flex !important;
+  }
+}
+
+/* ── Small phones (≤ 480px) ─────────────────────────── */
+@media (max-width: 480px) {
+  .chat-app {
+    height: calc(100dvh - 170px);
+    min-height: 400px;
+  }
+
+  .dm-chat-messages {
+    padding: 10px 12px;
+    gap: 2px;
+  }
+
+  .message-wrapper {
+    max-width: 90%;
+  }
+
+  .message-bubble {
+    padding: 9px 12px;
+    font-size: 0.88rem;
+  }
+
+  .dm-chat-input-area {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .dm-send-btn {
+    width: 38px;
+    height: 38px;
+  }
+
+  .sidebar-filters {
+    gap: 4px;
+    padding: 8px 12px;
+  }
+
+  .filter-btn {
+    padding: 5px 8px;
+    font-size: .73rem;
+  }
+
+  .dm-chat-header {
+    padding: 0 12px;
+    height: 58px;
+  }
+
+  .conversation-item {
+    padding: 10px 14px;
+  }
+
+  .conversation-avatar img {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* ── Desktop (> 992px): ensure no mobile classes interfere ─ */
+@media (min-width: 993px) {
+  .chat-sidebar {
+    position: relative !important;
+    inset: auto !important;
+    width: var(--dm-chat-sidebar-width) !important;
+    height: auto !important;
+    transform: none !important;
+    display: flex !important;
+  }
+  .chat-main {
+    position: relative !important;
+    inset: auto !important;
+    display: flex !important;
+    flex: 1;
+  }
+  .chat-mobile-bar { display: none !important; }
+  .chat-back-btn { display: none !important; }
 }

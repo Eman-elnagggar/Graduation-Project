@@ -51,3 +51,10 @@ _ReSharper*/
 *.[Cc]ache
 # but keep track of directories ending in .cache
 !?*.[Cc]ache/
+
+# User-uploaded files — never commit to source control
+wwwroot/uploads/
+wwwroot/uploads/**
+
+# Data Protection keys — environment-specific
+.dpkeys/

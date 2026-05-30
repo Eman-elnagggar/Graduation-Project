@@ -36,7 +36,7 @@ namespace Graduation_Project.Hubs
                 SenderUserId = senderId,
                 ReceiverUserId = receiverId,
                 Message = _chatMessageCrypto.Encrypt(text),
-                SentAtUtc = DateTime.Now,
+                SentAtUtc = DateTime.UtcNow,
                 IsRead = false
             };
 

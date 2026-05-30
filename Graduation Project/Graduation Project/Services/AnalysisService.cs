@@ -305,6 +305,11 @@ namespace Graduation_Project.Services
                 _logger.LogWarning("Submit payload for report {ReportId}: {Payload}", report.ReportID, payloadJson);
 
                 var analysisResponse = await _submitClient.SubmitAsync(submitRequest, cancellationToken);
+
+                if (report != null)
+                {
+                    report.AnalysisStatus = AnalysisStatus.Completed;
+                }
                 if (analysisResponse == null)
                     throw new InvalidOperationException("Analysis submit failed.");
 

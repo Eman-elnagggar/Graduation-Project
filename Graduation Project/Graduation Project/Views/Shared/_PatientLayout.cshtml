@@ -19,6 +19,8 @@
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     @await RenderSectionAsync("Head", required: false)
     @await RenderSectionAsync("Styles", required: false)
+    @* responsive-fixes LAST so it always wins over any page @section Styles *@
+    <link rel="stylesheet" href="~/css/responsive-fixes.css" asp-append-version="true" />
 </head>
 @{
     var layoutPatientId = ViewData["PatientId"] as int? ?? 0;
@@ -70,7 +72,7 @@
     var greeting = now.Hour < 12 ? "Good morning" : now.Hour < 17 ? "Good afternoon" : "Good evening";
     var headerDateChip = now.ToString("ddd, MMM d", new CultureInfo("en-US"));
     var pageTitleHtml = ViewData["PageTitleHtml"] as string;
-    var fallbackPageTitleHtml = $"{greeting}, <span class='topbar-accent'>{shortPatientName}</span> 👋";
+    var fallbackPageTitleHtml = $"<span id='ppGreetingWord'>{greeting}</span>, <span class='topbar-accent'>{shortPatientName}</span> 👋";
     var pageSubtitle = ViewData["PageSubtitle"] as string ?? now.ToString("dddd, MMMM dd, yyyy", CultureInfo.InvariantCulture);
 }
 
@@ -103,7 +105,7 @@
                         <i class="fas fa-bell"></i>
                         <span class="dot" id="patientNotificationBadge" hidden>0</span>
                     </button>
-                    <button class="icon-btn" title="Search" type="button">
+                    <button class="icon-btn" id="topbarSearchBtn" title="Search (Ctrl+K)" type="button" aria-label="Open search">
                         <i class="fas fa-search"></i>
                     </button>
                     <div class="topbar-avatar user-menu" title="@normalizedUserName">
@@ -291,112 +293,18 @@
                     }
                 });
 
-                refreshPatientRiskAlerts();
+                // Override greeting with client's local timezone (server timezone may differ)
+            (function() {
+                var h = new Date().getHours();
+                var g = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+                var el = document.getElementById('ppGreetingWord');
+                if (el) el.textContent = g;
+            })();
+
+            refreshPatientRiskAlerts();
                 setInterval(refreshPatientRiskAlerts, 15000);
             })();
     </script>
-    <style>
-            body.risk-ack-open {
-                overflow: hidden;
-            }
-
-            .risk-ack-overlay {
-                position: fixed;
-                inset: 0;
-                z-index: 1200;
-                background: rgba(2, 12, 27, 0.62);
-                backdrop-filter: blur(3px);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 20px;
-            }
-
-            .risk-ack-modal {
-                width: min(680px, 100%);
-                max-height: 88vh;
-                overflow: auto;
-                border-radius: 16px;
-                background: #fff;
-                border: 1px solid #e2e8f0;
-                box-shadow: 0 20px 50px rgba(15, 23, 42, 0.26);
-                padding: 24px;
-            }
-
-            .risk-ack-icon {
-                width: 48px;
-                height: 48px;
-                border-radius: 50%;
-                background: #fef3c7;
-                color: #b45309;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 1.2rem;
-                margin-bottom: 12px;
-            }
-
-            .risk-ack-modal h3 {
-                margin: 0;
-                color: #0f172a;
-                font-size: 1.2rem;
-            }
-
-            .risk-ack-sub {
-                color: #475569;
-                margin: 8px 0 16px;
-                font-size: .92rem;
-            }
-
-            .risk-ack-list {
-                display: flex;
-                flex-direction: column;
-                gap: 10px;
-                margin-bottom: 18px;
-            }
-
-            .risk-ack-item {
-                border-left: 4px solid #ef4444;
-                background: #fff5f5;
-                border-radius: 10px;
-                padding: 12px;
-            }
-
-            .risk-ack-item-title {
-                font-size: .88rem;
-                font-weight: 700;
-                color: #7f1d1d;
-            }
-
-            .risk-ack-item-msg {
-                margin-top: 4px;
-                font-size: .84rem;
-                color: #991b1b;
-            }
-
-            .risk-ack-item-time {
-                margin-top: 6px;
-                font-size: .72rem;
-                color: #64748b;
-            }
-
-            .risk-ack-btn {
-                width: 100%;
-                border: 0;
-                border-radius: 10px;
-                padding: 11px 14px;
-                background: linear-gradient(90deg, #1BAEBE 0%, #138fa0 100%);
-                color: #fff;
-                font-weight: 700;
-                font-size: .9rem;
-                cursor: pointer;
-            }
-
-                .risk-ack-btn:disabled {
-                    opacity: .65;
-                    cursor: not-allowed;
-                }
-    </style>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

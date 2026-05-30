@@ -1,37 +1,48 @@
 /* ================================
    CSS Variables & Reset
+   NOTE: design-system.css MUST load before this file.
+   Colour tokens are defined there as the single source of truth.
+   This block only declares shared-layout tokens not in design-system.css.
 ================================ */
 :root {
-  --primary: #1baebe;
-  --primary-dark: #158a97;
-  --secondary: #0077b6;
-  --accent: #00b4d8;
-  --success: #4caf50;
-  --warning: #ff9800;
-  --danger: #f44336;
-  --info: #2196f3;
+  /* Brand colours — reference design-system.css values (no duplication) */
+  --primary:      var(--role-primary,      #1baebe);
+  --primary-dark: var(--role-primary-dark, #158a97);
+  --accent:       var(--role-accent,       #00b4d8);
+  --secondary:    var(--secondary,         #0077b6);
 
-  --bg-primary: #f8fafc;
-  --bg-white: #ffffff;
-  --bg-card: #ffffff;
+  /* Semantic status — reference design-system.css (defined there) */
+  --success: var(--success, #4caf50);
+  --warning: var(--warning, #ff9800);
+  --danger:  var(--danger,  #f44336);
+  --info:    var(--info,    #2196f3);
 
-  --text-primary: #1e293b;
-  --text-secondary: #64748b;
-  --text-muted: #94a3b8;
+  /* Surface / bg tokens */
+  --bg-primary: var(--surface-page, #f8fafc);
+  --bg-white:   var(--surface-card, #ffffff);
+  --bg-card:    var(--surface-card, #ffffff);
 
-  --border-color: #e2e8f0;
+  /* Text tokens */
+  --text-primary:   var(--text-strong, #1e293b);
+  --text-secondary: var(--text-muted,  #64748b);
+  --text-muted:     #94a3b8;
+
+  /* Border / shadow */
+  --border-color: var(--border-subtle, #e2e8f0);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
 
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
+  /* Radii */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   16px;
   --radius-full: 50%;
 
-  --sidebar-width: 260px;
+  /* Layout */
+  --sidebar-width:          260px;
   --sidebar-collapsed-width: 80px;
-  --header-height: 70px;
+  --header-height:          70px;
 
   /* Content spacing tokens — change once, applies everywhere */
   --content-padding-x: 28px;
@@ -82,7 +93,10 @@ ul {
   height: 100vh;
   z-index: 1000;
   overflow-x: hidden;
-  overflow-y: hidden;
+  /* FIX: was overflow-y: hidden which created a stacking/scroll context and could
+     silently clip nav items. `clip` prevents overflow visually without creating
+     a scroll container, so position:fixed tooltips still anchor to the viewport. */
+  overflow-y: clip;
   border-right: 1px solid rgba(255, 255, 255, 0.06);
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -821,4 +835,21 @@ body.sidebar-collapsed .main-content {
 /* Animation for toggle icon */
 body.sidebar-collapsed .sidebar-toggle i {
   transform: rotate(180deg);
+}
+.close-notifications {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+.close-notifications:hover {
+  background: var(--bg-secondary);
+  color: var(--danger);
 }
