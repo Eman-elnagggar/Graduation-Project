@@ -1,6 +1,6 @@
 @{
     Layout = "~/Views/Shared/_PatientLayout.cshtml";
-    ViewData["Title"] = "NABD - ??? Assistant";
+    ViewData["Title"] = "NABD - Assistant";
     ViewData["ActivePage"] = "Chatbot";
     var patientId = ViewData["PatientId"] as int? ?? 0;
 }
@@ -10,7 +10,7 @@
 ??????????????????????????????????????????????????????? -->
 <div class="cb-page">
 
-    <!-- ???????????????? LEFT · CHAT WINDOW ???????????????? -->
+    <!-- ???????????????? LEFT ï¿½ CHAT WINDOW ???????????????? -->
     <div class="cb-window">
 
         <!-- ?? Window Header ?? -->
@@ -21,7 +21,7 @@
                     <span class="cb-win-dot"></span>
                 </div>
                 <div class="cb-win-meta">
-                    <h2 class="cb-win-name">NABD - ??? AI</h2>
+                    <h2 class="cb-win-name">NABD - AI</h2>
                     <p class="cb-win-status">
                         <span class="cb-blink"></span>
                         Online &ndash; responds instantly
@@ -53,7 +53,7 @@
                 </div>
                 <div class="cb-msg-body">
                     <div class="cb-bubble cb-bubble-bot">
-                        <p><i class="fa-regular fa-hand-spock"></i> Hello! I'm your <strong>NABD - ??? AI Assistant</strong>, here to support you every step of your pregnancy journey.</p>
+                        <p><i class="fa-regular fa-hand-spock"></i> Hello! I'm your <strong>NABD - AI Assistant</strong>, here to support you every step of your pregnancy journey.</p>
                         <p>I can answer questions about:</p>
                         <div class="cb-caps-grid">
                             <span class="cb-cap"><i class="fas fa-baby"></i> Pregnancy stages</span>
@@ -103,7 +103,7 @@
             <div class="cb-input-row">
                 <div class="cb-input-box">
                     <textarea class="cb-textarea" id="chatInput"
-                              placeholder="Ask me anything about your pregnancy…"
+                              placeholder="Ask me anything about your pregnancy."
                               rows="1" maxlength="500" autocomplete="off"></textarea>
                     <span class="cb-counter" id="charCount"></span>
                 </div>
@@ -119,7 +119,7 @@
 
     </div>
 
-    <!-- ???????????????? RIGHT · CONTEXT PANEL ???????????????? -->
+    <!-- ???????????????? RIGHT ï¿½ CONTEXT PANEL ???????????????? -->
     <aside class="cb-context">
 
         <!-- About -->
@@ -129,7 +129,7 @@
                     <i class="fas fa-robot"></i>
                 </div>
                 <div>
-                    <h4 class="cb-ctx-title">About NABD - ??? AI</h4>
+                    <h4 class="cb-ctx-title">About NABD - AI</h4>
                     <p class="cb-ctx-sub">Your pregnancy expert</p>
                 </div>
             </div>
@@ -170,9 +170,9 @@
                 </div>
             </div>
             <ul class="cb-tip-list">
-                <li><i class="fas fa-tint"></i><span>Drink 8–10 glasses of water</span></li>
+                <li><i class="fas fa-tint"></i><span>Drink 8-10 glasses of water</span></li>
                 <li><i class="fas fa-capsules"></i><span>Take your prenatal vitamins</span></li>
-                <li><i class="fas fa-moon"></i><span>Sleep 7–9 hours per night</span></li>
+                <li><i class="fas fa-moon"></i><span>Sleep 7-9 hours per night</span></li>
                 <li><i class="fas fa-walking"></i><span>30 min gentle movement daily</span></li>
                 <li><i class="fas fa-leaf"></i><span>Include folate-rich greens</span></li>
             </ul>
@@ -234,7 +234,7 @@
 @section Styles {
 <style>
 /* ???????????????????????????????????????????????????????????????
-   CHATBOT — Design Tokens
+   CHATBOT ï¿½ Design Tokens
 ??????????????????????????????????????????????????????????????? */
 :root {
     --cb-primary:     #1BAEBE;
@@ -257,7 +257,7 @@
 }
 
 /* ???????????????????????????????????????????????????????????????
-   PAGE WRAPPER  —  chat window fills vertical space
+   PAGE WRAPPER  ï¿½  chat window fills vertical space
 ??????????????????????????????????????????????????????????????? */
 .cb-page {
     display: grid;
@@ -425,7 +425,7 @@
 .cb-bubble p:last-child { margin-bottom: 0; }
 .cb-bubble strong      { font-weight: 700; }
 
-/* Bot bubble — white with left-bottom "tail" */
+/* Bot bubble ï¿½ white with left-bottom "tail" */
 .cb-bubble-bot {
     background: var(--cb-surface);
     border: 1px solid var(--cb-border);
@@ -434,12 +434,63 @@
     box-shadow: var(--cb-shadow);
 }
 
-/* User bubble — brand gradient with right-bottom "tail" */
+/* User bubble ï¿½ brand gradient with right-bottom "tail" */
 .cb-bubble-user {
     background: linear-gradient(135deg, var(--cb-primary) 0%, var(--cb-primary-dk) 100%);
     color: #fff;
     border-bottom-right-radius: 4px;
     box-shadow: 0 3px 14px rgba(27,174,190,.28);
+}
+
+/* Bot metadata (risk + recommendation) */
+.cb-bot-meta {
+    margin-top: .65rem;
+    padding-top: .6rem;
+    border-top: 1px dashed var(--cb-border);
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+}
+.cb-risk-row {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    font-size: .75rem;
+    color: var(--cb-muted);
+}
+.cb-risk-pill {
+    padding: .14rem .5rem;
+    border-radius: 999px;
+    font-size: .65rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+.cb-risk-low {
+    background: #dcfce7;
+    color: #15803d;
+    border: 1px solid #86efac;
+}
+.cb-risk-medium {
+    background: #fef3c7;
+    color: #b45309;
+    border: 1px solid #fde68a;
+}
+.cb-risk-high {
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fca5a5;
+}
+.cb-reco-title {
+    font-size: .75rem;
+    font-weight: 700;
+    color: var(--cb-text-2);
+    margin-bottom: .2rem;
+}
+.cb-reco-text {
+    font-size: .8rem;
+    color: var(--cb-text-2);
+    line-height: 1.55;
 }
 
 /* Capabilities grid inside welcome bubble */
@@ -767,11 +818,21 @@
     const clearBtn    = document.getElementById('clearChatBtn');
     const welcomeTime = document.getElementById('welcomeTime');
     const todayLabel  = document.getElementById('todayLabel');
+    const apiEndpoint = '@Url.Action("Ask", "Chatbot")';
+    const historyEndpoint = '@Url.Action("History", "Chatbot")';
+    const clearEndpoint = '@Url.Action("Clear", "Chatbot")';
+    const patientId = Number(document.body?.dataset?.patientId || '@patientId' || '0');
+    const antiForgeryToken = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+    let isLoading = false;
 
     /* ?? Init ??????????????????????????????????????? */
     const now = new Date();
     if (welcomeTime) welcomeTime.textContent = fmtTime(now);
     if (todayLabel)  todayLabel.textContent  = fmtDate(now);
+    loadHistory().catch(err => {
+        console.error('Failed to load chat history:', err);
+        toast('Unable to load chat history right now.', 'error');
+    });
 
     /* Auto-grow textarea */
     inputEl?.addEventListener('input', function () {
@@ -803,10 +864,16 @@
     );
 
     /* Clear button */
-    clearBtn?.addEventListener('click', function () {
-        if (!messagesEl) return;
-        while (messagesEl.children.length > 1) messagesEl.removeChild(messagesEl.lastChild);
-        toast('Conversation cleared', 'info');
+    clearBtn?.addEventListener('click', async function () {
+        if (!messagesEl || isLoading) return;
+        try {
+            await clearHistory();
+            while (messagesEl.children.length > 1) messagesEl.removeChild(messagesEl.lastChild);
+            toast('Conversation cleared', 'info');
+        } catch (err) {
+            console.error('Failed to clear chat history:', err);
+            toast('Unable to clear chat history right now.', 'error');
+        }
     });
 
     /* ?? Core ??????????????????????????????????????? */
@@ -817,17 +884,28 @@
         trySend();
     }
 
-    function trySend() {
+    async function trySend() {
+        if (isLoading) return;
         const text = inputEl?.value?.trim();
         if (!text) return;
-        addMsg(text, 'user');
+        const userEntry = addMsg(text, 'user');
         resetInput();
         const tid = showTyping();
-        /* TODO: replace with real API call */
-        setTimeout(() => {
-            removeTyping(tid);
-            /* TODO: addMsg(apiReply, 'bot'); */
-        }, 1500);
+        setLoading(true);
+        try {
+            const payload = await requestReply(text);
+            const reply = normalizeApiResponse(payload);
+            const risk = normalizeRiskLevel(reply.riskLevel);
+            if (!risk) throw new Error('Invalid risk level');
+            if (tid) removeTyping(tid);
+            if (reply.userSentAtUtc) updateMessageTime(userEntry?.timeEl, reply.userSentAtUtc);
+            addBotReply(reply.response, risk, reply.recommendation, reply.botSentAtUtc);
+        } catch (err) {
+            if (tid) removeTyping(tid);
+            addMsg('Sorry, the assistant is unavailable right now. Please try again later.', 'bot');
+        } finally {
+            setLoading(false);
+        }
     }
 
     function resetInput() {
@@ -845,26 +923,57 @@
     }
 
     /* ?? Message helpers ???????????????????????????? */
-    function addMsg(content, type) {
-        if (!messagesEl) return;
+    function addMsg(content, type, timestamp) {
+        if (!messagesEl) return null;
         const row  = document.createElement('div');
         row.className = `cb-msg cb-msg-${type}`;
-        const t = fmtTime(new Date());
+        const t = fmtTime(timestamp);
+        const htmlContent = formatText(content);
         if (type === 'bot') {
             row.innerHTML =
                 `<div class="cb-avatar cb-avatar-bot"><i class="fas fa-robot"></i></div>
                  <div class="cb-msg-body">
-                   <div class="cb-bubble cb-bubble-bot"><p>${escHtml(content)}</p></div>
+                   <div class="cb-bubble cb-bubble-bot"><p>${htmlContent}</p></div>
                    <time class="cb-msg-time">${t}</time>
                  </div>`;
         } else {
             row.innerHTML =
                 `<div class="cb-msg-body">
-                   <div class="cb-bubble cb-bubble-user"><p>${escHtml(content)}</p></div>
+                   <div class="cb-bubble cb-bubble-user"><p>${htmlContent}</p></div>
                    <time class="cb-msg-time">${t}</time>
                  </div>
                  <div class="cb-avatar cb-avatar-user"><i class="fas fa-user"></i></div>`;
         }
+        messagesEl.appendChild(row);
+        scrollEnd();
+        return { row, timeEl: row.querySelector('.cb-msg-time') };
+    }
+
+    function addBotReply(response, risk, recommendation, timestamp) {
+        if (!messagesEl) return;
+        const row = document.createElement('div');
+        row.className = 'cb-msg cb-msg-bot';
+        const t = fmtTime(timestamp);
+        const responseHtml = formatText(response);
+        const recommendationHtml = formatText(recommendation);
+        row.innerHTML =
+            `<div class="cb-avatar cb-avatar-bot"><i class="fas fa-robot"></i></div>
+             <div class="cb-msg-body">
+                 <div class="cb-bubble cb-bubble-bot">
+                     <p>${responseHtml}</p>
+                     <div class="cb-bot-meta">
+                         <div class="cb-risk-row">
+                             <span>Risk level</span>
+                             <span class="cb-risk-pill cb-risk-${risk.className}">${risk.label}</span>
+                         </div>
+                         <div class="cb-reco">
+                             <div class="cb-reco-title">Recommendation</div>
+                             <div class="cb-reco-text">${recommendationHtml}</div>
+                         </div>
+                     </div>
+                 </div>
+                 <time class="cb-msg-time">${t}</time>
+             </div>`;
         messagesEl.appendChild(row);
         scrollEnd();
     }
@@ -906,15 +1015,140 @@
         setTimeout(() => el?.remove(), 3500);
     }
 
+    function setLoading(loading) {
+        isLoading = loading;
+        if (!sendBtn || !inputEl) return;
+        sendBtn.disabled = loading;
+        inputEl.disabled = loading;
+        if (loading) {
+            if (!sendBtn.dataset.originalHtml) sendBtn.dataset.originalHtml = sendBtn.innerHTML;
+            sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        } else if (sendBtn.dataset.originalHtml) {
+            sendBtn.innerHTML = sendBtn.dataset.originalHtml;
+        }
+    }
+
+    async function requestReply(message) {
+        const headers = new Headers({ 'Content-Type': 'application/json' });
+        if (antiForgeryToken) headers.set('RequestVerificationToken', antiForgeryToken);
+        const body = { message };
+        if (patientId > 0) body.patientId = patientId;
+        const response = await fetch(apiEndpoint, {
+            method: 'POST',
+            headers,
+            credentials: 'same-origin',
+            body: JSON.stringify(body)
+        });
+        if (!response.ok) throw new Error('Service unavailable');
+        return await response.json();
+    }
+
+    async function loadHistory() {
+        if (!messagesEl) return;
+        const url = buildHistoryUrl();
+        const response = await fetch(url, { credentials: 'same-origin' });
+        if (!response.ok) throw new Error('History unavailable');
+        const history = await response.json();
+        if (!Array.isArray(history) || history.length === 0) return;
+
+        history.forEach(item => {
+            const role = String(item?.role ?? '').trim().toLowerCase();
+            const message = String(item?.message ?? '').trim();
+            if (!message) return;
+
+            if (role === 'user') {
+                addMsg(message, 'user', item?.sentAtUtc);
+                return;
+            }
+
+            if (role === 'bot') {
+                const riskLevel = item?.risk_level ?? item?.riskLevel;
+                const recommendation = String(item?.recommendation ?? '').trim();
+                const risk = normalizeRiskLevel(riskLevel);
+                if (risk && recommendation) {
+                    addBotReply(message, risk, recommendation, item?.sentAtUtc);
+                } else {
+                    addMsg(message, 'bot', item?.sentAtUtc);
+                }
+            }
+        });
+    }
+
+    async function clearHistory() {
+        const headers = new Headers({ 'Content-Type': 'application/json' });
+        if (antiForgeryToken) headers.set('RequestVerificationToken', antiForgeryToken);
+        const body = patientId > 0 ? { patientId } : {};
+        const response = await fetch(clearEndpoint, {
+            method: 'POST',
+            headers,
+            credentials: 'same-origin',
+            body: JSON.stringify(body)
+        });
+        if (!response.ok) throw new Error('Clear failed');
+        const result = await response.json();
+        if (!result?.success) throw new Error('Clear failed');
+    }
+
+    function buildHistoryUrl() {
+        const url = new URL(historyEndpoint, window.location.origin);
+        if (patientId > 0) url.searchParams.set('patientId', patientId);
+        return url.toString();
+    }
+
+    function normalizeApiResponse(payload) {
+        const response = String(payload?.response ?? '').trim();
+        const riskLevel = String(payload?.risk_level ?? payload?.riskLevel ?? '').trim();
+        const recommendation = String(payload?.recommendation ?? '').trim();
+        if (!response || !riskLevel || !recommendation) {
+            throw new Error('Invalid API response');
+        }
+        return {
+            response,
+            riskLevel,
+            recommendation,
+            userSentAtUtc: payload?.userMessage?.sentAtUtc ?? null,
+            botSentAtUtc: payload?.botMessage?.sentAtUtc ?? null
+        };
+    }
+
+    function normalizeRiskLevel(level) {
+        const key = String(level ?? '').trim().toLowerCase();
+        if (key === 'low') return { label: 'Low', className: 'low' };
+        if (key === 'medium') return { label: 'Medium', className: 'medium' };
+        if (key === 'high') return { label: 'High', className: 'high' };
+        return null;
+    }
+
+    function updateMessageTime(timeEl, timestamp) {
+        if (!timeEl) return;
+        timeEl.textContent = fmtTime(timestamp);
+    }
+
     /* ?? Utils ?????????????????????????????????????? */
-    function fmtTime(d) {
+    function fmtTime(value) {
+        const d = toDate(value);
         return d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
     }
     function fmtDate(d) {
         return d.toLocaleDateString([], { weekday:'long', month:'long', day:'numeric', year:'numeric' });
     }
+    function toDate(value) {
+        if (!value) return new Date();
+        if (value instanceof Date) return value;
+        const d = new Date(value);
+        return Number.isNaN(d.getTime()) ? new Date() : d;
+    }
     function escHtml(s) {
-        return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        return String(s ?? '')
+            .replace(/&/g,'&amp;')
+            .replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;')
+            .replace(/'/g,'&#39;');
+    }
+
+    function formatText(text) {
+        return escHtml(text).replace(/\r?\n/g, '<br/>');
     }
 
 }());
