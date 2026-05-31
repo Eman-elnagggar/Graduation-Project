@@ -183,7 +183,12 @@ END");
             }
 
             app.UseHttpsRedirection();
-            app.UseStaticFiles();
+
+            // Must register .webmanifest MIME type — without this Chrome ignores the manifest
+            // and shows the default browser icon instead of the NABD logo on home screen.
+            var mimeProvider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+            mimeProvider.Mappings[".webmanifest"] = "application/manifest+json";
+            app.UseStaticFiles(new StaticFileOptions { ContentTypeProvider = mimeProvider });
 
             app.UseRouting();
 
