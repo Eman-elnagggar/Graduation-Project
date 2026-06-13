@@ -71,6 +71,7 @@
          data-tooltip="Messages">
         <div class="nav-icon"><i class="fas fa-comments"></i></div>
         <span>Messages</span>
+        <span class="nav-msg-badge" id="sidebarMsgBadge" style="display:none;"></span>
       </a>
     </div>
 
@@ -81,14 +82,7 @@
          class="nav-item @(activePage == "Clinics" ? "active" : "")"
          data-tooltip="Clinics">
         <div class="nav-icon"><i class="fas fa-clinic-medical"></i></div>
-        <span>Create Clinic</span>
-      </a>
-
-      <a href="/Doctor/ClinicTeam/@doctorId"
-         class="nav-item @(activePage == "ClinicTeam" ? "active" : "")"
-         data-tooltip="Clinic Team">
-        <div class="nav-icon"><i class="fas fa-user-nurse"></i></div>
-        <span>Clinic Team</span>
+        <span>Clinics</span>
       </a>
 
       <a href="/Doctor/Analytics/@doctorId"

@@ -59,6 +59,8 @@ namespace Graduation_Project.Data
         public DbSet<CommunityComment> CommunityComments { get; set; }
         public DbSet<CommunityLike> CommunityLikes { get; set; }
         public DbSet<ChatbotMessage> ChatbotMessages { get; set; }
+        public DbSet<UserPushSubscription> UserPushSubscriptions { get; set; }
+        public DbSet<DoctorNotification> DoctorNotifications { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -880,6 +882,7 @@ namespace Graduation_Project.Data
                 entity.Property(e => e.Title).HasMaxLength(150).IsRequired();
                 entity.Property(e => e.Content).HasMaxLength(2000).IsRequired();
                 entity.Property(e => e.Category).HasMaxLength(60);
+                entity.Property(e => e.ImageUrl).HasMaxLength(300);
                 entity.HasOne(e => e.Patient)
                     .WithMany()
                     .HasForeignKey(e => e.PatientID)
@@ -912,6 +915,17 @@ namespace Graduation_Project.Data
                     .WithMany()
                     .HasForeignKey(e => e.PatientID)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<UserPushSubscription>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.Endpoint).IsUnique();
+                entity.HasIndex(e => e.UserId);
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
 

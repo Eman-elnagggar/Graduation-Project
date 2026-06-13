@@ -91,6 +91,8 @@ namespace Graduation_Project
             builder.Services.AddScoped<AnalysisBackgroundJob>();
             builder.Services.AddSingleton<IBackgroundJobScheduler, HangfireBackgroundJobScheduler>();
             builder.Services.AddScoped<UltrasoundImageStorage>();
+            builder.Services.AddSingleton<IPushNotificationService, PushNotificationService>();
+            builder.Services.AddScoped<IDoctorNotificationService, DoctorNotificationService>();
 
 
 
@@ -127,8 +129,8 @@ namespace Graduation_Project
             });
             builder.Services.AddHttpClient("AnalysisSubmit", client =>
             {
-                client.BaseAddress = new Uri("https://eman123yasser-submit-api-2.hf.space/");
-                client.Timeout = TimeSpan.FromSeconds(60);
+                client.BaseAddress = new Uri("https://eman456elnaggar-submit-api.hf.space/");
+                client.Timeout = TimeSpan.FromSeconds(120);
             });
             builder.Services.AddScoped<AnalysisOcrClient>();
             builder.Services.AddScoped<AnalysisSubmitClient>();
@@ -163,6 +165,24 @@ BEGIN
 
     CREATE INDEX [IX_ChatMessages_ReceiverUserId_IsRead]
         ON [dbo].[ChatMessages]([ReceiverUserId], [IsRead]);
+END");
+
+                await db.Database.ExecuteSqlRawAsync(@"
+IF OBJECT_ID(N'dbo.UserPushSubscriptions', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[UserPushSubscriptions](
+        [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        [UserId] NVARCHAR(450) NOT NULL,
+        [Endpoint] NVARCHAR(1000) NOT NULL,
+        [P256DH] NVARCHAR(500) NOT NULL,
+        [Auth] NVARCHAR(200) NOT NULL,
+        [CreatedAt] DATETIME2 NOT NULL,
+        CONSTRAINT [FK_UserPushSubscriptions_AspNetUsers_UserId]
+            FOREIGN KEY ([UserId]) REFERENCES [dbo].[AspNetUsers]([Id]) ON DELETE CASCADE,
+        CONSTRAINT [UQ_UserPushSubscriptions_Endpoint] UNIQUE ([Endpoint])
+    );
+    CREATE INDEX [IX_UserPushSubscriptions_UserId]
+        ON [dbo].[UserPushSubscriptions]([UserId]);
 END");
 
                 await DataSeeder.SeedAsync(db);

@@ -795,3 +795,74 @@
   color: var(--text-secondary);
   justify-content: center;
 }
+
+/* ── Clinics / Team tabs ─────────────────────────────── */
+.cl-tabs {
+  display: flex;
+  gap: .5rem;
+  margin-bottom: 1.2rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.cl-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .7rem 1.15rem;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: .92rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 10px 10px 0 0;
+  transition: color .18s ease, background .18s ease;
+}
+
+.cl-tab i {
+  font-size: .95rem;
+}
+
+.cl-tab:hover {
+  color: #14967f;
+  background: rgba(20, 150, 127, 0.06);
+}
+
+.cl-tab.is-active {
+  color: #14967f;
+}
+
+.cl-tab.is-active::after {
+  content: "";
+  position: absolute;
+  left: .6rem;
+  right: .6rem;
+  bottom: -1px;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: #14967f;
+}
+
+.cl-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  font-size: .72rem;
+  font-weight: 700;
+  color: #fff;
+  background: #f59e0b;
+  border-radius: 999px;
+}
+
+.cl-tab-pane {
+  display: none;
+  animation: sectionFadeUp 0.4s ease;
+}
+
+.cl-tab-pane.is-active {
+  display: block;
+}

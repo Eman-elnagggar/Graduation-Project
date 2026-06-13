@@ -1,19 +1,17 @@
-/**
- * Doctor Messages page
- * SignalR integration over existing UI rendering/layout.
- */
-
 const config = window.__doctorMessagesConfig || {};
 const CURRENT_USER_ID = String(config.currentUserId || "");
 const DOCTOR_ID = String(config.doctorId || "");
 const CONVERSATION_ENDPOINT_TEMPLATE = String(config.conversationMessagesEndpointTemplate || "");
+const UPLOAD_ENDPOINT_TEMPLATE = String(config.uploadChatFileEndpointTemplate || "");
+const ANTIFORGERY_TOKEN = String(config.antiForgeryToken || "");
 
 const state = {
   currentConversation: null,
   conversations: [],
   messages: {},
   filter: "all",
-  searchQuery: ""
+  searchQuery: "",
+  pendingFile: null
 };
 
 let connection = null;
@@ -35,17 +33,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   const urlPatient = new URLSearchParams(location.search).get("patient");
   if (urlPatient) {
     const target = state.conversations.find(c => String(c.participantType) === "Patient" && String(c.participantId) === String(urlPatient));
-    if (target) {
-      selectConversation(target.id);
-    }
+    if (target) selectConversation(target.id);
   }
 
   const urlAssistant = new URLSearchParams(location.search).get("assistant");
   if (urlAssistant) {
     const target = state.conversations.find(c => String(c.participantType) === "Assistant" && String(c.participantId) === String(urlAssistant));
-    if (target) {
-      selectConversation(target.id);
-    }
+    if (target) selectConversation(target.id);
   }
 });
 
@@ -71,10 +65,7 @@ async function ensureSignalRLoaded() {
 
   for (const url of SIGNALR_CDNS) {
     const loaded = await loadScript(url);
-    if (loaded && window.signalR) {
-      console.info("SignalR client loaded.", url);
-      return true;
-    }
+    if (loaded && window.signalR) return true;
   }
 
   showToast("error", "Connection", "SignalR script could not be loaded.");
@@ -94,46 +85,55 @@ function loadScript(src) {
 
 async function setupSignalRConnection() {
   if (!window.signalR) {
-    console.error("SignalR client script is missing.");
     showToast("error", "Connection", "SignalR library failed to load.");
     return;
   }
 
-  // Integration point: create hub connection to backend ChatHub endpoint.
   connection = new signalR.HubConnectionBuilder()
     .withUrl("/chatHub")
     .withAutomaticReconnect()
     .configureLogging(signalR.LogLevel.Information)
     .build();
 
-  // Integration point: receive message event from ChatHub.
-  connection.on("ReceiveMessage", (senderId, message, sentAtUtc) => {
-    handleIncomingMessage(String(senderId ?? ""), String(message ?? ""), sentAtUtc);
+  connection.on("ReceiveMessage", (senderId, message, sentAtUtc, attachmentUrl, attachmentType, attachmentName) => {
+    handleIncomingMessage(String(senderId ?? ""), String(message ?? ""), sentAtUtc, attachmentUrl || null, attachmentType || null, attachmentName || null);
   });
 
-  connection.onreconnecting((error) => {
-    console.warn("Chat reconnecting...", error);
-  });
-
-  connection.onreconnected((id) => {
-    console.info("Chat reconnected.", id);
+  connection.onreconnected(() => {
     showToast("success", "Connection", "Chat connection restored.");
   });
 
-  connection.onclose((error) => {
-    console.error("Chat disconnected.", error);
+  connection.onclose(() => {
     showToast("error", "Connection", "Chat disconnected. Retrying when possible.");
   });
 
   try {
     await connection.start();
-    console.info("Connected to /chatHub successfully.");
     showToast("success", "Connection", "Connected to chat server.");
-  } catch (error) {
-    // Integration point: explicit start error handling.
-    console.error("Failed to connect to /chatHub.", error);
+    await requestNotificationPermission();
+  } catch {
     showToast("error", "Connection", "Unable to connect to chat server.");
   }
+}
+
+async function requestNotificationPermission() {
+  if (!("Notification" in window)) return;
+  if (Notification.permission === "default") {
+    await Notification.requestPermission();
+  }
+}
+
+function showBrowserNotification(senderName, body) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  if (document.visibilityState === "visible") return;
+
+  const notif = new Notification(`💬 ${senderName}`, {
+    body: body || "Sent you a message",
+    icon: "/images/logo.png",
+    tag: `chat-${senderName}`
+  });
+  notif.onclick = () => { window.focus(); notif.close(); };
+  setTimeout(() => notif.close(), 6000);
 }
 
 function setupEventListeners() {
@@ -141,6 +141,9 @@ function setupEventListeners() {
   const searchClear = document.getElementById("searchClear");
   const messageInput = document.getElementById("messageInput");
   const sendBtn = document.getElementById("sendBtn");
+  const attachBtn = document.getElementById("attachBtn");
+  const fileInput = document.getElementById("chatFileInput");
+  const removeFileBtn = document.getElementById("removeFileBtn");
 
   searchInput?.addEventListener("input", (e) => {
     state.searchQuery = (e.target.value || "").toLowerCase();
@@ -165,7 +168,7 @@ function setupEventListeners() {
   });
 
   messageInput?.addEventListener("input", () => {
-    sendBtn.disabled = !messageInput.value.trim();
+    updateSendBtnState();
     autoResizeTextarea(messageInput);
   });
 
@@ -178,6 +181,36 @@ function setupEventListeners() {
 
   sendBtn?.addEventListener("click", sendMessage);
 
+  attachBtn?.addEventListener("click", () => {
+    if (state.currentConversation) fileInput?.click();
+  });
+
+  fileInput?.addEventListener("change", () => {
+    const file = fileInput.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"];
+    if (!allowedTypes.includes(file.type)) {
+      showToast("error", "Invalid file", "Only images (JPG, PNG, GIF, WebP) and PDFs are allowed.");
+      fileInput.value = "";
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      showToast("error", "File too large", "Maximum file size is 10 MB.");
+      fileInput.value = "";
+      return;
+    }
+
+    state.pendingFile = file;
+    showFilePreview(file);
+    updateSendBtnState();
+    fileInput.value = "";
+  });
+
+  removeFileBtn?.addEventListener("click", () => {
+    clearPendingFile();
+  });
+
   document.getElementById("viewProfileBtn")?.addEventListener("click", () => {
     if (!state.currentConversation) return;
     if (state.currentConversation.participantType !== "Patient") return;
@@ -187,6 +220,44 @@ function setupEventListeners() {
   document.getElementById("mobileMenuBtn")?.addEventListener("click", () => toggleSidebar(true));
   document.getElementById("sidebarClose")?.addEventListener("click", () => toggleSidebar(false));
   document.getElementById("sidebarOverlay")?.addEventListener("click", () => toggleSidebar(false));
+}
+
+function showFilePreview(file) {
+  const preview = document.getElementById("filePreview");
+  const previewName = document.getElementById("filePreviewName");
+  const previewImg = document.getElementById("filePreviewImg");
+  if (!preview) return;
+
+  previewName.textContent = file.name;
+
+  if (file.type.startsWith("image/")) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      previewImg.src = e.target.result;
+      previewImg.style.display = "block";
+    };
+    reader.readAsDataURL(file);
+  } else {
+    previewImg.style.display = "none";
+    previewImg.src = "";
+  }
+
+  preview.style.display = "flex";
+}
+
+function clearPendingFile() {
+  state.pendingFile = null;
+  const preview = document.getElementById("filePreview");
+  if (preview) preview.style.display = "none";
+  const previewImg = document.getElementById("filePreviewImg");
+  if (previewImg) { previewImg.src = ""; previewImg.style.display = "none"; }
+  updateSendBtnState();
+}
+
+function updateSendBtnState() {
+  const input = document.getElementById("messageInput");
+  const sendBtn = document.getElementById("sendBtn");
+  if (sendBtn) sendBtn.disabled = !state.pendingFile && !(input?.value.trim());
 }
 
 function renderConversations() {
@@ -259,9 +330,7 @@ function selectConversation(id) {
   document.getElementById("chatUserAvatar").alt = conversation.name;
   document.getElementById("chatUserName").textContent = conversation.name;
   const chatUserRole = document.getElementById("chatUserRole");
-  if (chatUserRole) {
-    chatUserRole.textContent = getParticipantTypeLabel(conversation.participantType);
-  }
+  if (chatUserRole) chatUserRole.textContent = getParticipantTypeLabel(conversation.participantType);
 
   document.getElementById("chatEmpty").style.display = "none";
   document.getElementById("chatContainer").style.display = "flex";
@@ -287,7 +356,6 @@ async function loadConversationMessages(conversation) {
   try {
     const response = await fetch(endpoint, { credentials: "same-origin" });
     if (!response.ok) {
-      console.error("Failed to load conversation messages.", response.status);
       renderMessages();
       return;
     }
@@ -298,15 +366,18 @@ async function loadConversationMessages(conversation) {
         id: m.id,
         sender: String(m.senderId) === CURRENT_USER_ID ? "me" : "other",
         content: String(m.content || ""),
-        timestamp: m.timestamp ? new Date(m.timestamp) : new Date()
+        timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
+        attachmentUrl: m.attachmentUrl || null,
+        attachmentType: m.attachmentType || null,
+        attachmentName: m.attachmentName || null
       }))
       : [];
 
     renderMessages();
     renderConversations();
     updateFilterCounts();
-  } catch (error) {
-    console.error("Error loading conversation messages.", error);
+    if (typeof window.refreshSidebarMsgBadge === "function") window.refreshSidebarMsgBadge();
+  } catch {
     renderMessages();
   }
 }
@@ -332,9 +403,21 @@ function renderMessages() {
 
 function renderMessage(msg) {
   const wrapperClass = `message-wrapper ${msg.sender === "me" ? "sent" : "received"}`;
+  let attachmentHtml = "";
+
+  if (msg.attachmentUrl) {
+    if (msg.attachmentType === "image") {
+      attachmentHtml = `<div class="msg-attachment msg-attachment-image"><a href="${escapeHtml(msg.attachmentUrl)}" target="_blank" rel="noopener"><img src="${escapeHtml(msg.attachmentUrl)}" alt="${escapeHtml(msg.attachmentName || "image")}" class="chat-img-preview" /></a></div>`;
+    } else {
+      attachmentHtml = `<div class="msg-attachment msg-attachment-file"><a href="${escapeHtml(msg.attachmentUrl)}" target="_blank" rel="noopener" download="${escapeHtml(msg.attachmentName || "file")}">📄 ${escapeHtml(msg.attachmentName || "Download file")}</a></div>`;
+    }
+  }
+
+  const textHtml = msg.content ? `<p class="message-text">${formatMessageContent(msg.content)}</p>` : "";
+
   return `
     <div class="${wrapperClass}">
-      <div class="message-bubble"><p class="message-text">${formatMessageContent(msg.content || "")}</p></div>
+      <div class="message-bubble">${attachmentHtml}${textHtml}</div>
       <div class="message-meta">
         <span class="message-time">${formatMessageTime(msg.timestamp)}</span>
       </div>
@@ -344,29 +427,64 @@ function renderMessage(msg) {
 
 async function sendMessage() {
   const input = document.getElementById("messageInput");
-  const text = input?.value.trim();
+  const text = input?.value.trim() || "";
 
-  if (!text || !state.currentConversation) return;
+  if (!text && !state.pendingFile) return;
+  if (!state.currentConversation) return;
 
   if (!connection || connection.state !== signalR.HubConnectionState.Connected) {
-    console.warn("Send blocked because connection state is not connected.", connection?.state);
     showToast("error", "Connection", "Chat is not connected.");
     return;
   }
 
-  try {
-    // Integration point: send through hub method SendMessage(receiverId, message).
-    await connection.invoke("SendMessage", state.currentConversation.receiverUserId, text);
-    input.value = "";
-    input.style.height = "auto";
-    document.getElementById("sendBtn").disabled = true;
-  } catch (error) {
-    console.error("Failed to send message.", error);
-    showToast("error", "Send failed", "Message could not be sent.");
+  if (state.pendingFile) {
+    await sendFileMessage(text);
+  } else {
+    try {
+      await connection.invoke("SendMessage", state.currentConversation.receiverUserId, text);
+      input.value = "";
+      input.style.height = "auto";
+      updateSendBtnState();
+    } catch {
+      showToast("error", "Send failed", "Message could not be sent.");
+    }
   }
 }
 
-function handleIncomingMessage(senderId, message, sentAtUtc) {
+async function sendFileMessage(caption) {
+  const uploadEndpoint = UPLOAD_ENDPOINT_TEMPLATE.replace("__DOCTOR_ID__", encodeURIComponent(DOCTOR_ID));
+  const formData = new FormData();
+  formData.append("file", state.pendingFile);
+
+  try {
+    const response = await fetch(uploadEndpoint, {
+      method: "POST",
+      headers: { "RequestVerificationToken": ANTIFORGERY_TOKEN },
+      body: formData,
+      credentials: "same-origin"
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      showToast("error", "Upload failed", err.error || "Could not upload file.");
+      return;
+    }
+
+    const result = await response.json();
+    clearPendingFile();
+
+    const input = document.getElementById("messageInput");
+    input.value = "";
+    input.style.height = "auto";
+
+    await connection.invoke("SendFileMessage", state.currentConversation.receiverUserId, caption, result.url, result.type, result.name);
+    updateSendBtnState();
+  } catch {
+    showToast("error", "Send failed", "File could not be sent.");
+  }
+}
+
+function handleIncomingMessage(senderId, message, sentAtUtc, attachmentUrl, attachmentType, attachmentName) {
   const isSentByCurrentUser = senderId === CURRENT_USER_ID;
 
   let conversation = null;
@@ -376,10 +494,7 @@ function handleIncomingMessage(senderId, message, sentAtUtc) {
     conversation = state.conversations.find(c => String(c.receiverUserId) === senderId);
   }
 
-  if (!conversation) {
-    console.warn("Incoming message ignored because conversation was not found.", { senderId });
-    return;
-  }
+  if (!conversation) return;
 
   if (!state.messages[conversation.id]) {
     state.messages[conversation.id] = [];
@@ -390,14 +505,22 @@ function handleIncomingMessage(senderId, message, sentAtUtc) {
     sender: isSentByCurrentUser ? "me" : "other",
     content: message,
     timestamp: sentAtUtc ? new Date(sentAtUtc) : new Date(),
-    status: "delivered"
+    status: "delivered",
+    attachmentUrl: attachmentUrl || null,
+    attachmentType: attachmentType || null,
+    attachmentName: attachmentName || null
   });
 
-  conversation.lastMessage = message;
+  conversation.lastMessage = attachmentUrl ? (message || "📎 Attachment") : message;
   conversation.lastMessageTime = sentAtUtc ? new Date(sentAtUtc) : new Date();
 
-  if (!state.currentConversation || state.currentConversation.id !== conversation.id) {
-    conversation.unreadCount = (conversation.unreadCount || 0) + (isSentByCurrentUser ? 0 : 1);
+  if (!isSentByCurrentUser) {
+    if (!state.currentConversation || state.currentConversation.id !== conversation.id) {
+      conversation.unreadCount = (conversation.unreadCount || 0) + 1;
+    }
+    const body = attachmentUrl ? "📎 Sent an attachment" : message;
+    showBrowserNotification(conversation.name, body);
+    if (typeof window.refreshSidebarMsgBadge === "function") window.refreshSidebarMsgBadge();
   }
 
   renderConversations();
@@ -482,9 +605,7 @@ function showToast(type, title, message) {
   toast.innerHTML = `<div style="font-weight:700;font-size:.86rem;">${escapeHtml(title)}</div><div style="font-size:.8rem;color:#64748b;">${escapeHtml(message)}</div>`;
   container.appendChild(toast);
 
-  setTimeout(() => {
-    toast.remove();
-  }, 3500);
+  setTimeout(() => { toast.remove(); }, 3500);
 }
 
 function escapeHtml(value) {

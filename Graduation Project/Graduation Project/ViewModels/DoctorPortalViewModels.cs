@@ -17,12 +17,14 @@ namespace Graduation_Project.ViewModels
         public int UnreadMessagesCount { get; set; }
         public int UrgentMessagesCount { get; set; }
         public int UnreadAlertsCount { get; set; }
+        public int UnreadNotificationsCount { get; set; }
 
         public List<int> WeeklyAppointmentCounts { get; set; } = new();
 
         public Appointment? NextAppointment { get; set; }
         public List<Appointment> TodayAppointments { get; set; } = new();
         public List<Alert> RecentAlerts { get; set; } = new();
+        public List<DoctorNotification> RecentNotifications { get; set; } = new();
         public List<DoctorPatientSummary> PriorityPatients { get; set; } = new();
         public List<DoctorDashboardRecentMessageSummary> RecentMessages { get; set; } = new();
     }
@@ -98,6 +100,11 @@ namespace Graduation_Project.ViewModels
         public string DoctorName { get; set; } = "Doctor";
         public List<Clinic> Clinics { get; set; } = new();
         public HashSet<int> LinkedClinicIds { get; set; } = new();
+
+        // Clinic Team (merged into the Clinics page)
+        public List<Assistant> Assistants { get; set; } = new();
+        public List<PendingInvitationViewModel> PendingInvitations { get; set; } = new();
+        public List<Clinic> LinkedClinics { get; set; } = new();
     }
 
     public class PendingInvitationViewModel

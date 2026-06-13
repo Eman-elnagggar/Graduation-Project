@@ -25,6 +25,12 @@
     const categoryBtns = document.querySelectorAll('.cm-cat-btn');
     const totalPostsEl = document.getElementById('cmTotalPosts');
     const totalCommentsEl = document.getElementById('cmTotalComments');
+    const imageInput = document.getElementById('cmPostImage');
+    const imageBtn = document.getElementById('cmImageBtn');
+    const imagePreview = document.getElementById('cmImagePreview');
+    const imagePreviewImg = document.getElementById('cmImagePreviewImg');
+    const imageRemoveBtn = document.getElementById('cmImageRemove');
+    const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     // ── Init ───────────────────────────────────────────────────────────
     function init() {
@@ -71,6 +77,43 @@
         contentArea?.addEventListener('input', () => {
             if (contentCount) contentCount.textContent = contentArea.value.length + ' / 2000';
         });
+
+        // Image picker
+        imageBtn?.addEventListener('click', () => imageInput?.click());
+        imageInput?.addEventListener('change', handleImageSelect);
+        imageRemoveBtn?.addEventListener('click', clearImageSelection);
+    }
+
+    // ── Image Selection ────────────────────────────────────────────────
+    function handleImageSelect() {
+        const file = imageInput?.files?.[0];
+        if (!file) { clearImageSelection(); return; }
+
+        if (!file.type.startsWith('image/')) {
+            showToast('Please select an image file.', 'error');
+            clearImageSelection();
+            return;
+        }
+        if (file.size > MAX_IMAGE_BYTES) {
+            showToast('Image exceeds the 5 MB limit.', 'error');
+            clearImageSelection();
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = e => {
+            if (imagePreviewImg) imagePreviewImg.src = e.target.result;
+            if (imagePreview) imagePreview.hidden = false;
+            if (imageBtn) imageBtn.hidden = true;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function clearImageSelection() {
+        if (imageInput) imageInput.value = '';
+        if (imagePreviewImg) imagePreviewImg.src = '';
+        if (imagePreview) imagePreview.hidden = true;
+        if (imageBtn) imageBtn.hidden = false;
     }
 
     // ── Modal ──────────────────────────────────────────────────────────
@@ -84,6 +127,7 @@
         createModal?.classList.remove('open');
         document.body.style.overflow = '';
         createForm?.reset();
+        clearImageSelection();
         const titleCount = document.getElementById('cmTitleCount');
         const contentCount = document.getElementById('cmContentCount');
         if (titleCount) titleCount.textContent = '0 / 150';
@@ -172,6 +216,7 @@
     <div class="cm-post-body">
         <h4 class="cm-post-title">${escHtml(p.title)}</h4>
         <p class="cm-post-content">${escHtml(p.content)}</p>
+        ${p.imageUrl ? `<div class="cm-post-image-wrap"><img class="cm-post-image" src="${escHtml(p.imageUrl)}" alt="Post photo" loading="lazy" /></div>` : ''}
     </div>
     <div class="cm-post-footer">
         <button class="cm-action-btn cm-like-btn ${likeClass}" data-post-id="${p.communityPostId}">
@@ -439,6 +484,8 @@
         fd.append('title', title);
         fd.append('content', content);
         fd.append('category', category);
+        const imageFile = imageInput?.files?.[0];
+        if (imageFile) fd.append('image', imageFile);
         fd.append('__RequestVerificationToken', antiforgeryToken);
 
         fetch('/Community/CreatePost', { method: 'POST', body: fd })

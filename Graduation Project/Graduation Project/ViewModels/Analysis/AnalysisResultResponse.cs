@@ -8,6 +8,9 @@ namespace Graduation_Project.ViewModels.Analysis
     {
         public string Status { get; set; } = string.Empty;
 
+        [JsonPropertyName("error")]
+        public string? Error { get; set; }
+
         [JsonPropertyName("personalInfo")]
         public Dictionary<string, object>? PersonalInfo { get; set; }
 

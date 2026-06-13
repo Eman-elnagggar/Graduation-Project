@@ -444,10 +444,76 @@ async function initAssistantTopbarBadge() {
 }
 
 // ================================
+// Sidebar Unread Message Badge
+// ================================
+async function _fetchAndUpdateMsgBadge() {
+  const badge = document.getElementById("sidebarMsgBadge");
+  if (!badge) return;
+
+  try {
+    const resp = await fetch("/Chat/UnreadCount", { credentials: "same-origin" });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const count = Number(data?.count || 0);
+    if (count > 0) {
+      badge.textContent = count > 99 ? "99+" : String(count);
+      badge.style.display = "inline-flex";
+    } else {
+      badge.style.display = "none";
+    }
+  } catch {
+    // no-op
+  }
+}
+
+window.refreshSidebarMsgBadge = _fetchAndUpdateMsgBadge;
+
+function initSidebarMessageBadge() {
+  const badge = document.getElementById("sidebarMsgBadge");
+  if (!badge) return;
+
+  // Inject badge CSS once
+  if (!document.getElementById("nav-msg-badge-style")) {
+    const style = document.createElement("style");
+    style.id = "nav-msg-badge-style";
+    style.textContent = `
+      .nav-msg-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: auto;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        border-radius: 9px;
+        background: #e53e3e;
+        color: #fff;
+        font-size: 0.7rem;
+        font-weight: 700;
+        line-height: 1;
+        flex-shrink: 0;
+        animation: badgePop .25s ease;
+      }
+      @keyframes badgePop {
+        0%   { transform: scale(0.5); opacity: 0; }
+        70%  { transform: scale(1.15); }
+        100% { transform: scale(1);   opacity: 1; }
+      }
+      .sidebar.collapsed .nav-msg-badge { display: none !important; }
+    `;
+    document.head.appendChild(style);
+  }
+
+  _fetchAndUpdateMsgBadge();
+  setInterval(_fetchAndUpdateMsgBadge, 60000);
+}
+
+// ================================
 // Initialize on DOM Ready
 // ================================
 document.addEventListener("DOMContentLoaded", function () {
   initSharedSidebar();
   initTopbarNotifications();
   initAssistantTopbarBadge();
+  initSidebarMessageBadge();
 });
