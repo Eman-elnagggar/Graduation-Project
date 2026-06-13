@@ -51,3 +51,6 @@ _ReSharper*/
 *.[Cc]ache
 # but keep track of directories ending in .cache
 !?*.[Cc]ache/
+
+# Secrets — never commit (VAPID push keys are generated at runtime)
+vapid-keys.json
