@@ -20,6 +20,8 @@ namespace Graduation_Project.Controllers
         private readonly IChatMessageCrypto _chatMessageCrypto;
         private readonly MedicationService _medicationService;
         private readonly MedicationAdherenceService _medicationAdherenceService;
+        private readonly IWebHostEnvironment _env;
+        private readonly IDoctorNotificationService _doctorNotificationService;
 
         public DoctorController(
             IAppointment appointmentRepository,
@@ -28,7 +30,9 @@ namespace Graduation_Project.Controllers
             IAnalysisService analysisService,
             IChatMessageCrypto chatMessageCrypto,
             MedicationService medicationService,
-            MedicationAdherenceService medicationAdherenceService)
+            MedicationAdherenceService medicationAdherenceService,
+            IWebHostEnvironment env,
+            IDoctorNotificationService doctorNotificationService)
         {
             _appointmentRepository = appointmentRepository;
             _patientDoctorRepository = patientDoctorRepository;
@@ -37,6 +41,8 @@ namespace Graduation_Project.Controllers
             _chatMessageCrypto = chatMessageCrypto;
             _medicationService = medicationService;
             _medicationAdherenceService = medicationAdherenceService;
+            _env = env;
+            _doctorNotificationService = doctorNotificationService;
         }
 
         [HttpGet]
@@ -124,6 +130,15 @@ namespace Graduation_Project.Controllers
             var unreadAlertsCount = _context.Alerts
                 .Count(a => approvedPatientIds.Contains(a.PatientID) && !a.IsRead);
 
+            var recentNotifications = _context.DoctorNotifications
+                .Where(n => n.DoctorID == doctor.DoctorID)
+                .OrderByDescending(n => n.DateCreated)
+                .Take(5)
+                .ToList();
+
+            var unreadNotificationsCount = _context.DoctorNotifications
+                .Count(n => n.DoctorID == doctor.DoctorID && !n.IsRead);
+
             var doctorUserId = doctor.UserID;
             var patientUserIdToPatient = approvedPatients
                 .Where(p => !string.IsNullOrWhiteSpace(p.UserID))
@@ -183,10 +198,12 @@ namespace Graduation_Project.Controllers
                 UnreadMessagesCount = unreadMessagesCount,
                 UrgentMessagesCount = 0,
                 UnreadAlertsCount = unreadAlertsCount,
+                UnreadNotificationsCount = unreadNotificationsCount,
                 WeeklyAppointmentCounts = weeklyCounts,
                 NextAppointment = nextAppointment,
                 TodayAppointments = todayAppointments,
                 RecentAlerts = recentAlerts,
+                RecentNotifications = recentNotifications,
                 RecentMessages = recentMessages,
                 PriorityPatients = patientSummaries
                     .Where(p => p.NeedsAttention)
@@ -242,6 +259,45 @@ namespace Graduation_Project.Controllers
             return View("~/Views/Doctor/PatientMedicationSummary.cshtml", viewModel);
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UploadChatFile(int id, IFormFile file)
+        {
+            var accessResult = TryResolveDoctor(id, out var doctor);
+            if (accessResult != null)
+                return accessResult;
+
+            if (file == null || file.Length == 0)
+                return BadRequest(new { error = "No file provided." });
+
+            if (file.Length > 10 * 1024 * 1024)
+                return BadRequest(new { error = "File exceeds the 10 MB limit." });
+
+            var allowedTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "image/jpeg", "image/png", "image/gif", "image/webp",
+                "application/pdf"
+            };
+
+            if (!allowedTypes.Contains(file.ContentType))
+                return BadRequest(new { error = "File type not allowed." });
+
+            var userDir = Path.Combine(_env.WebRootPath, "uploads", "chat", doctor!.UserID!);
+            Directory.CreateDirectory(userDir);
+
+            var ext = Path.GetExtension(file.FileName);
+            var fileName = $"{Guid.NewGuid():N}{ext}";
+            var filePath = Path.Combine(userDir, fileName);
+
+            using (var stream = System.IO.File.Create(filePath))
+                await file.CopyToAsync(stream);
+
+            var url = $"/uploads/chat/{doctor.UserID}/{fileName}";
+            var type = file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ? "image" : "file";
+
+            return Json(new { url, type, name = file.FileName });
+        }
+
         [HttpGet]
         public IActionResult ConversationMessages(int id, string userId)
         {
@@ -287,7 +343,10 @@ namespace Graduation_Project.Controllers
                     senderId = m.SenderUserId,
                     receiverId = m.ReceiverUserId,
                     content = _chatMessageCrypto.Decrypt(m.Message),
-                    timestamp = m.SentAtUtc
+                    timestamp = m.SentAtUtc,
+                    attachmentUrl = m.AttachmentUrl,
+                    attachmentType = m.AttachmentType,
+                    attachmentName = m.AttachmentName
                 })
                 .ToList();
 
@@ -622,19 +681,184 @@ namespace Graduation_Project.Controllers
             return View(vm);
         }
 
+        // Clinic Team is now merged into the Clinics page; keep this route for backwards compatibility.
         public IActionResult ClinicTeam(int id = 0)
         {
             var accessResult = TryResolveDoctor(id, out var doctor);
             if (accessResult != null)
                 return accessResult;
 
+            return RedirectToAction(nameof(Clinics), new { id = doctor!.DoctorID });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult InviteAssistant(int doctorId, string assistantEmail, int clinicId)
+        {
+            var accessResult = TryResolveDoctor(doctorId, out var doctor);
+            if (accessResult != null)
+                return accessResult;
+
+            if (string.IsNullOrWhiteSpace(assistantEmail))
+            {
+                TempData["InviteError"] = "Assistant email is required.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor!.DoctorID });
+            }
+
+            var clinic = _context.ClinicDoctors
+                .Include(cd => cd.Clinic)
+                .Where(cd => cd.DoctorID == doctor!.DoctorID && cd.ClinicID == clinicId)
+                .Select(cd => cd.Clinic)
+                .FirstOrDefault();
+
+            if (clinic == null)
+            {
+                TempData["InviteError"] = "Please select a valid clinic linked to your account.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor.DoctorID });
+            }
+
+            var normalizedEmail = assistantEmail.Trim().ToLowerInvariant();
+
+            var assistant = _context.Assistants
+                .Include(a => a.User)
+                .FirstOrDefault(a => a.User.Email != null && a.User.Email.ToLower() == normalizedEmail);
+
+            if (assistant == null)
+            {
+                TempData["InviteError"] = "No assistant account found with this email.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor.DoctorID });
+            }
+
+            // Removed hard restriction: assistant can be invited even when not currently assigned to the selected clinic.
+
+            var exists = _context.AssistantDoctors.Any(ad =>
+                ad.DoctorID == doctor.DoctorID && ad.AssistantID == assistant.AssistantID);
+            if (exists)
+            {
+                TempData["InviteError"] = "Assistant is already linked to your clinic team.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor.DoctorID });
+            }
+
+            var pendingExists = _context.ClinicInvitations.Any(ci =>
+                ci.DoctorID == doctor.DoctorID
+                && ci.ClinicID == clinicId
+                && ci.AssistantID == assistant.AssistantID
+                && ci.Status == "Pending");
+
+            if (pendingExists)
+            {
+                TempData["InviteError"] = "A pending invitation already exists for this assistant in the selected clinic.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor.DoctorID });
+            }
+
+            _context.ClinicInvitations.Add(new ClinicInvitation
+            {
+                DoctorID = doctor.DoctorID,
+                ClinicID = clinicId,
+                AssistantID = assistant.AssistantID,
+                AssistantEmail = assistant.User.Email ?? normalizedEmail,
+                Status = "Pending",
+                SentAtUtc = DateTime.UtcNow
+            });
+            _context.SaveChanges();
+
+            TempData["InviteSuccess"] = "Invitation sent successfully. Assistant must accept it first.";
+            return RedirectToAction(nameof(Clinics), new { id = doctor.DoctorID });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult RemoveAssistant(int doctorId, int assistantId)
+        {
+            var accessResult = TryResolveDoctor(doctorId, out var doctor);
+            if (accessResult != null)
+                return accessResult;
+
+            var doctorClinicIds = _context.ClinicDoctors
+                .Where(cd => cd.DoctorID == doctor!.DoctorID)
+                .Select(cd => cd.ClinicID)
+                .ToList();
+
+            var assistant = _context.Assistants.FirstOrDefault(a => a.AssistantID == assistantId);
+            if (assistant == null
+                || !assistant.ClinicID.HasValue
+                || !doctorClinicIds.Contains(assistant.ClinicID.Value))
+            {
+                TempData["InviteError"] = "Assistant not found in your linked clinics.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor.DoctorID });
+            }
+
+            var link = _context.AssistantDoctors
+                .FirstOrDefault(ad => ad.DoctorID == doctor.DoctorID && ad.AssistantID == assistantId);
+
+            if (link != null)
+            {
+                _context.AssistantDoctors.Remove(link);
+                _context.SaveChanges();
+                TempData["InviteSuccess"] = "Assistant removed from your clinic team.";
+            }
+
+            return RedirectToAction(nameof(Clinics), new { id = doctor.DoctorID });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult CancelInvitation(int invitationId, int id)
+        {
+            var accessResult = TryResolveDoctor(id, out var doctor);
+            if (accessResult != null)
+                return accessResult;
+
+            var invitation = _context.ClinicInvitations
+                .FirstOrDefault(ci => ci.ClinicInvitationID == invitationId && ci.DoctorID == doctor!.DoctorID);
+
+            if (invitation == null)
+            {
+                TempData["InviteError"] = "Invitation not found.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor.DoctorID });
+            }
+
+            if (!string.Equals(invitation.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+            {
+                TempData["InviteError"] = "Only pending invitations can be cancelled.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor.DoctorID });
+            }
+
+            invitation.Status = "Cancelled";
+            invitation.RespondedAtUtc = DateTime.UtcNow;
+            invitation.ResponseMessage = "Cancelled by doctor";
+            _context.SaveChanges();
+
+            TempData["InviteSuccess"] = "Invitation cancelled successfully.";
+            return RedirectToAction(nameof(Clinics), new { id = doctor.DoctorID });
+        }
+
+        public IActionResult Clinics(int id = 0)
+        {
+            var accessResult = TryResolveDoctor(id, out var doctor);
+            if (accessResult != null)
+                return accessResult;
+
+            var clinics = _context.Clinics
+                .Include(c => c.ClinicDoctors)
+                    .ThenInclude(cd => cd.Doctor)
+                        .ThenInclude(d => d.User)
+                .Include(c => c.Assistants)
+                    .ThenInclude(a => a.User)
+                .Where(c => c.ClinicDoctors.Any(cd => cd.DoctorID == doctor!.DoctorID))
+                .OrderBy(c => c.Name)
+                .ToList();
+
+            var linkedClinicIds = clinics
+                .Select(c => c.ClinicID)
+                .ToHashSet();
+
+            // Clinic Team data (merged into the Clinics page)
             var linkedClinics = _context.ClinicDoctors
                 .Where(cd => cd.DoctorID == doctor!.DoctorID)
                 .Select(cd => cd.Clinic)
                 .OrderBy(c => c.Name)
                 .ToList();
-
-            var linkedClinicIds = linkedClinics.Select(c => c.ClinicID).ToList();
 
             var assistantIds = _context.AssistantDoctors
                 .Where(ad => ad.DoctorID == doctor.DoctorID)
@@ -666,186 +890,15 @@ namespace Graduation_Project.Controllers
                 })
                 .ToList();
 
-            var vm = new DoctorClinicTeamViewModel
-            {
-                Doctor = doctor,
-                DoctorName = BuildDoctorName(doctor),
-                Assistants = assistants,
-                PendingInvitations = pendingInvitations,
-                LinkedClinics = linkedClinics
-            };
-
-            return View(vm);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult InviteAssistant(int doctorId, string assistantEmail, int clinicId)
-        {
-            var accessResult = TryResolveDoctor(doctorId, out var doctor);
-            if (accessResult != null)
-                return accessResult;
-
-            if (string.IsNullOrWhiteSpace(assistantEmail))
-            {
-                TempData["InviteError"] = "Assistant email is required.";
-                return RedirectToAction(nameof(ClinicTeam), new { id = doctor!.DoctorID });
-            }
-
-            var clinic = _context.ClinicDoctors
-                .Include(cd => cd.Clinic)
-                .Where(cd => cd.DoctorID == doctor!.DoctorID && cd.ClinicID == clinicId)
-                .Select(cd => cd.Clinic)
-                .FirstOrDefault();
-
-            if (clinic == null)
-            {
-                TempData["InviteError"] = "Please select a valid clinic linked to your account.";
-                return RedirectToAction(nameof(ClinicTeam), new { id = doctor.DoctorID });
-            }
-
-            var normalizedEmail = assistantEmail.Trim().ToLowerInvariant();
-
-            var assistant = _context.Assistants
-                .Include(a => a.User)
-                .FirstOrDefault(a => a.User.Email != null && a.User.Email.ToLower() == normalizedEmail);
-
-            if (assistant == null)
-            {
-                TempData["InviteError"] = "No assistant account found with this email.";
-                return RedirectToAction(nameof(ClinicTeam), new { id = doctor.DoctorID });
-            }
-
-            // Removed hard restriction: assistant can be invited even when not currently assigned to the selected clinic.
-
-            var exists = _context.AssistantDoctors.Any(ad =>
-                ad.DoctorID == doctor.DoctorID && ad.AssistantID == assistant.AssistantID);
-            if (exists)
-            {
-                TempData["InviteError"] = "Assistant is already linked to your clinic team.";
-                return RedirectToAction(nameof(ClinicTeam), new { id = doctor.DoctorID });
-            }
-
-            var pendingExists = _context.ClinicInvitations.Any(ci =>
-                ci.DoctorID == doctor.DoctorID
-                && ci.ClinicID == clinicId
-                && ci.AssistantID == assistant.AssistantID
-                && ci.Status == "Pending");
-
-            if (pendingExists)
-            {
-                TempData["InviteError"] = "A pending invitation already exists for this assistant in the selected clinic.";
-                return RedirectToAction(nameof(ClinicTeam), new { id = doctor.DoctorID });
-            }
-
-            _context.ClinicInvitations.Add(new ClinicInvitation
-            {
-                DoctorID = doctor.DoctorID,
-                ClinicID = clinicId,
-                AssistantID = assistant.AssistantID,
-                AssistantEmail = assistant.User.Email ?? normalizedEmail,
-                Status = "Pending",
-                SentAtUtc = DateTime.UtcNow
-            });
-            _context.SaveChanges();
-
-            TempData["InviteSuccess"] = "Invitation sent successfully. Assistant must accept it first.";
-            return RedirectToAction(nameof(ClinicTeam), new { id = doctor.DoctorID });
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult RemoveAssistant(int doctorId, int assistantId)
-        {
-            var accessResult = TryResolveDoctor(doctorId, out var doctor);
-            if (accessResult != null)
-                return accessResult;
-
-            var doctorClinicIds = _context.ClinicDoctors
-                .Where(cd => cd.DoctorID == doctor!.DoctorID)
-                .Select(cd => cd.ClinicID)
-                .ToList();
-
-            var assistant = _context.Assistants.FirstOrDefault(a => a.AssistantID == assistantId);
-            if (assistant == null
-                || !assistant.ClinicID.HasValue
-                || !doctorClinicIds.Contains(assistant.ClinicID.Value))
-            {
-                TempData["InviteError"] = "Assistant not found in your linked clinics.";
-                return RedirectToAction(nameof(ClinicTeam), new { id = doctor.DoctorID });
-            }
-
-            var link = _context.AssistantDoctors
-                .FirstOrDefault(ad => ad.DoctorID == doctor.DoctorID && ad.AssistantID == assistantId);
-
-            if (link != null)
-            {
-                _context.AssistantDoctors.Remove(link);
-                _context.SaveChanges();
-                TempData["InviteSuccess"] = "Assistant removed from your clinic team.";
-            }
-
-            return RedirectToAction(nameof(ClinicTeam), new { id = doctor.DoctorID });
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult CancelInvitation(int invitationId, int id)
-        {
-            var accessResult = TryResolveDoctor(id, out var doctor);
-            if (accessResult != null)
-                return accessResult;
-
-            var invitation = _context.ClinicInvitations
-                .FirstOrDefault(ci => ci.ClinicInvitationID == invitationId && ci.DoctorID == doctor!.DoctorID);
-
-            if (invitation == null)
-            {
-                TempData["InviteError"] = "Invitation not found.";
-                return RedirectToAction(nameof(ClinicTeam), new { id = doctor.DoctorID });
-            }
-
-            if (!string.Equals(invitation.Status, "Pending", StringComparison.OrdinalIgnoreCase))
-            {
-                TempData["InviteError"] = "Only pending invitations can be cancelled.";
-                return RedirectToAction(nameof(ClinicTeam), new { id = doctor.DoctorID });
-            }
-
-            invitation.Status = "Cancelled";
-            invitation.RespondedAtUtc = DateTime.UtcNow;
-            invitation.ResponseMessage = "Cancelled by doctor";
-            _context.SaveChanges();
-
-            TempData["InviteSuccess"] = "Invitation cancelled successfully.";
-            return RedirectToAction(nameof(ClinicTeam), new { id = doctor.DoctorID });
-        }
-
-        public IActionResult Clinics(int id = 0)
-        {
-            var accessResult = TryResolveDoctor(id, out var doctor);
-            if (accessResult != null)
-                return accessResult;
-
-            var clinics = _context.Clinics
-                .Include(c => c.ClinicDoctors)
-                    .ThenInclude(cd => cd.Doctor)
-                        .ThenInclude(d => d.User)
-                .Include(c => c.Assistants)
-                    .ThenInclude(a => a.User)
-                .Where(c => c.ClinicDoctors.Any(cd => cd.DoctorID == doctor!.DoctorID))
-                .OrderBy(c => c.Name)
-                .ToList();
-
-            var linkedClinicIds = clinics
-                .Select(c => c.ClinicID)
-                .ToHashSet();
-
             var vm = new DoctorClinicsViewModel
             {
                 Doctor = doctor!,
                 DoctorName = BuildDoctorName(doctor!),
                 Clinics = clinics,
-                LinkedClinicIds = linkedClinicIds
+                LinkedClinicIds = linkedClinicIds,
+                Assistants = assistants,
+                PendingInvitations = pendingInvitations,
+                LinkedClinics = linkedClinics
             };
 
             return View(vm);
@@ -1713,6 +1766,81 @@ namespace Graduation_Project.Controllers
             return Json(new { success = true, message = "Clinic information updated successfully." });
         }
 
+        // ─── Doctor Notifications API ─────────────────────────────────────────
+
+        [HttpGet]
+        public IActionResult GetNotifications()
+        {
+            var accessResult = TryResolveDoctor(0, out var doctor, true);
+            if (accessResult != null) return accessResult;
+
+            var notifications = _context.DoctorNotifications
+                .Where(n => n.DoctorID == doctor!.DoctorID)
+                .OrderByDescending(n => n.DateCreated)
+                .Take(30)
+                .Select(n => new
+                {
+                    n.Id,
+                    n.Title,
+                    n.Message,
+                    n.NotificationType,
+                    n.DateCreated,
+                    n.IsRead,
+                    n.ActionUrl
+                })
+                .ToList();
+
+            return Json(notifications);
+        }
+
+        [HttpGet]
+        public IActionResult GetUnreadNotificationsCount()
+        {
+            var accessResult = TryResolveDoctor(0, out var doctor, true);
+            if (accessResult != null) return accessResult;
+
+            var count = _context.DoctorNotifications.Count(n => n.DoctorID == doctor!.DoctorID && !n.IsRead);
+            return Json(new { unreadCount = count });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult MarkNotificationRead(int notificationId)
+        {
+            var accessResult = TryResolveDoctor(0, out var doctor, true);
+            if (accessResult != null) return accessResult;
+
+            var notification = _context.DoctorNotifications
+                .FirstOrDefault(n => n.Id == notificationId && n.DoctorID == doctor!.DoctorID);
+
+            if (notification == null)
+                return Json(new { success = false });
+
+            notification.IsRead = true;
+            _context.SaveChanges();
+            return Json(new { success = true });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult MarkAllNotificationsRead()
+        {
+            var accessResult = TryResolveDoctor(0, out var doctor, true);
+            if (accessResult != null) return accessResult;
+
+            var unread = _context.DoctorNotifications
+                .Where(n => n.DoctorID == doctor!.DoctorID && !n.IsRead)
+                .ToList();
+
+            foreach (var n in unread)
+                n.IsRead = true;
+
+            _context.SaveChanges();
+            return Json(new { success = true });
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+
         private IActionResult? TryResolveDoctor(int id, out Doctor? doctor, bool returnJsonOnFailure = false)
         {
             doctor = null;
@@ -1858,14 +1986,25 @@ namespace Graduation_Project.Controllers
 
         private static string ComputeRiskLevel(Patient patient, string? latestBloodPressure = null)
         {
-            if (patient.BloodPressureIssue || IsHighBloodPressure(latestBloodPressure))
+            if (patient.BloodPressureIssue
+                || IsHighBloodPressure(latestBloodPressure)
+                || RiskStateIsHigh(patient.RiskState))
                 return "high";
 
-            if (patient.GestationalWeeks >= 30)
+            if (patient.GestationalWeeks >= 30 || RiskStateIsMedium(patient.RiskState))
                 return "medium";
 
             return "low";
         }
+
+        private static bool RiskStateIsHigh(string? riskState) =>
+            !string.IsNullOrWhiteSpace(riskState)
+            && riskState.Contains("high", StringComparison.OrdinalIgnoreCase);
+
+        private static bool RiskStateIsMedium(string? riskState) =>
+            !string.IsNullOrWhiteSpace(riskState)
+            && (riskState.Contains("moderate", StringComparison.OrdinalIgnoreCase)
+                || riskState.Contains("medium", StringComparison.OrdinalIgnoreCase));
 
         private static bool IsHighBloodPressure(string? bloodPressure)
         {

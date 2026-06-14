@@ -26,6 +26,7 @@
     var weeklyTotal = weekly.Sum();
     var weeklyAverage = weeklyTotal / 7.0;
     var unreadAlerts = Model.UnreadAlertsCount;
+    var unreadNotifications = Model.UnreadNotificationsCount;
 }
 
 <div class="dd-wrap" data-doctor-dashboard>
@@ -46,7 +47,7 @@
             </div>
             <div class="hero-stat">
                 <div class="hero-stat-ico"><i class="fas fa-exclamation-triangle"></i></div>
-                <div class="hero-stat-body"><span class="hero-stat-val">@unreadAlerts</span><span class="hero-stat-lbl">Pending Notifications</span></div>
+                <div class="hero-stat-body"><span class="hero-stat-val">@unreadNotifications</span><span class="hero-stat-lbl">Pending Notifications</span></div>
             </div>
         </div>
     </div>
@@ -164,22 +165,31 @@
         <div class="right-col">
             <div class="card">
                 <div class="card-header">
-                    <div class="card-header-left"><div class="card-ico amber"><i class="fas fa-bell"></i></div><div><div class="card-title">Notifications</div><div class="card-sub">@(unreadAlerts == 0 ? "All read" : $"{unreadAlerts} unread")</div></div></div>
-                    <a class="card-link" href="#">View all <i class="fas fa-arrow-right"></i></a>
+                    <div class="card-header-left"><div class="card-ico amber"><i class="fas fa-bell"></i></div><div><div class="card-title">Notifications</div><div class="card-sub">@(unreadNotifications == 0 ? "All read" : $"{unreadNotifications} unread")</div></div></div>
+                    <a class="card-link" href="#" id="dashNotifViewAll" onclick="document.getElementById('notificationBtn')?.click();return false;">View all <i class="fas fa-arrow-right"></i></a>
                 </div>
                 <div>
-                    @if (Model.RecentAlerts.Any())
+                    @if (Model.RecentNotifications.Any())
                     {
-                        @foreach (var alert in Model.RecentAlerts)
+                        @foreach (var notif in Model.RecentNotifications)
                         {
-                            var t = (alert.AlertType ?? "info").ToLowerInvariant();
-                            var tClass = t == "danger" ? "critical" : t;
-                            var icon = tClass == "critical" ? "fa-exclamation-circle" : tClass == "warning" ? "fa-flask" : tClass == "success" ? "fa-check-circle" : "fa-calendar-check";
-                            <div class="alert-item @tClass">
+                            var nType = notif.NotificationType ?? "info";
+                            string nClass, nIcon;
+                            if (nType == "patient_risk") { nClass = "critical"; nIcon = "fa-exclamation-circle"; }
+                            else if (nType == "invitation_accepted") { nClass = "success"; nIcon = "fa-user-check"; }
+                            else if (nType == "admin_approved") { nClass = "success"; nIcon = "fa-check-circle"; }
+                            else { nClass = "info"; nIcon = "fa-bell"; }
+
+                            <div class="alert-item @nClass" style="cursor:pointer;"
+                                 onclick="markDashNotifRead(@notif.Id, '@notif.ActionUrl')">
                                 <div class="alert-strip"></div>
-                                <div class="alert-ico-wrap"><div class="alert-ico"><i class="fas @icon"></i></div></div>
-                                <div class="alert-body"><div class="alert-title">@alert.Title</div><div class="alert-msg">@alert.Message</div><div class="alert-time"><i class="fas fa-clock"></i>@alert.DateCreated.ToString("g")</div></div>
-                                @if (!alert.IsRead)
+                                <div class="alert-ico-wrap"><div class="alert-ico"><i class="fas @nIcon"></i></div></div>
+                                <div class="alert-body">
+                                    <div class="alert-title">@notif.Title</div>
+                                    <div class="alert-msg">@notif.Message</div>
+                                    <div class="alert-time"><i class="fas fa-clock"></i>@notif.DateCreated.ToString("g")</div>
+                                </div>
+                                @if (!notif.IsRead)
                                 {
                                     <div class="alert-unread"></div>
                                 }
@@ -188,7 +198,7 @@
                     }
                     else
                     {
-                        <div class="schedule-empty"><i class="fas fa-check-circle"></i>No alerts</div>
+                        <div class="schedule-empty"><i class="fas fa-bell-slash"></i>No notifications yet</div>
                     }
                 </div>
             </div>
@@ -307,4 +317,16 @@
 
 @section Scripts {
     <script src="~/js/doctor-dashboard-demo.js" asp-append-version="true"></script>
+    <script>
+    function markDashNotifRead(id, url) {
+        var token = document.querySelector('[name="__RequestVerificationToken"]')?.value || '';
+        fetch('/Doctor/MarkNotificationRead', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': token },
+            body: 'notificationId=' + id,
+            keepalive: true
+        });
+        if (url && url !== 'null' && url !== '#') window.location.href = url;
+    }
+    </script>
 }

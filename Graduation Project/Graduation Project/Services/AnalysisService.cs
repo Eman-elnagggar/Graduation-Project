@@ -15,6 +15,7 @@ namespace Graduation_Project.Services
         private readonly AnalysisSubmitClient _submitClient;
         private readonly ILogger<AnalysisService> _logger;
         private readonly IWebHostEnvironment _env;
+        private readonly IDoctorNotificationService _doctorNotification;
         private const string SubmitCbcNameNormalized = "cbc (complete blood count)";
         private const string SubmitUrinalysisNameNormalized = "urinalysis";
         private const string SubmitFbgNameNormalized = "fasting blood glucose";
@@ -30,13 +31,15 @@ namespace Graduation_Project.Services
             AnalysisOcrClient ocrClient,
             AnalysisSubmitClient submitClient,
             ILogger<AnalysisService> logger,
-            IWebHostEnvironment env)
+            IWebHostEnvironment env,
+            IDoctorNotificationService doctorNotification)
         {
             _context = context;
             _ocrClient = ocrClient;
             _submitClient = submitClient;
             _logger = logger;
             _env = env;
+            _doctorNotification = doctorNotification;
         }
 
         public async Task<AnalysisUploadResponse> UploadAndExtractAsync(AnalysisUploadRequest request, CancellationToken cancellationToken = default)
@@ -246,7 +249,7 @@ namespace Graduation_Project.Services
                     .ToList();
 
                 if (reportTests.Count == 0)
-                    throw new InvalidOperationException("No confirmed tests to submit.");
+                    throw new AnalysisUserException("Please confirm your test values before running the analysis.");
 
                 foreach (var test in reportTests)
                 {
@@ -293,7 +296,7 @@ namespace Graduation_Project.Services
                     LogPairSources(report.ReportID, testSources);
 
                 if (results.Count == 0)
-                    throw new InvalidOperationException("No supported tests to submit. The current submit API accepts CBC, Urinalysis, TSH, Ferritin, Fasting Blood Glucose, HbA1c, Blood Group, HBsAg, and HCV.");
+                    throw new AnalysisUserException("These tests aren't supported for AI analysis yet. Supported tests are CBC, Urinalysis, TSH, Ferritin, Fasting Blood Glucose, HbA1c, Blood Group, HBsAg, and HCV.");
 
                 var submitRequest = new AnalysisSubmitRequest
                 {
@@ -304,14 +307,8 @@ namespace Graduation_Project.Services
                 var payloadJson = JsonSerializer.Serialize(submitRequest, SubmitJsonOptions());
                 _logger.LogWarning("Submit payload for report {ReportId}: {Payload}", report.ReportID, payloadJson);
 
-                var analysisResponse = await _submitClient.SubmitAsync(submitRequest, cancellationToken);
-
-                if (report != null)
-                {
-                    report.AnalysisStatus = AnalysisStatus.Completed;
-                }
-                if (analysisResponse == null)
-                    throw new InvalidOperationException("Analysis submit failed.");
+                var analysisResponse = await _submitClient.SubmitAsync(submitRequest, cancellationToken)
+                    ?? throw new InvalidOperationException("The analysis service returned an empty response. Please try again.");
 
                 report.AnalysisStatus = AnalysisStatus.Processing;
                 report.ReportDate = DateTime.UtcNow;
@@ -331,6 +328,7 @@ namespace Graduation_Project.Services
                 if (report != null)
                 {
                     report.AnalysisStatus = AnalysisStatus.Failed;
+                    report.AISummary = AnalysisErrorMessages.ToUserMessage(ex);
                 }
             }
 
@@ -358,15 +356,171 @@ namespace Graduation_Project.Services
                 riskElement = JsonSerializer.Deserialize<JsonElement>(report.RiskJson);
             }
 
+            bool isFailed = string.Equals(status, AnalysisStatus.Failed, StringComparison.OrdinalIgnoreCase);
+
             return new AnalysisResultResponse
             {
                 Status = status,
+                Error = isFailed ? report?.AISummary : null,
                 PersonalInfo = DeserializeDictionary(report?.PersonalInfoJson),
                 Tests = DeserializeList(report?.AiResultJson) ?? new List<Dictionary<string, object>>(),
                 RiskPrediction = riskElement,
-                Report = report?.AISummary,
+                Report = isFailed ? null : report?.AISummary,
                 Alerts = DeserializeStringList(report?.AlertsJson)
             };
+        }
+
+        public async Task<OcrOnlyResponse> OcrOnlyAsync(OcrOnlyRequest request, CancellationToken cancellationToken = default)
+        {
+            if (request.Image == null)
+                throw new InvalidOperationException("Image is required.");
+
+            var ocrTestType = MapTestTypeForOcr(request.TestType);
+            var ocrResponse = await _ocrClient.AnalyzeImageAsync(request.Image, ocrTestType, cancellationToken);
+            if (ocrResponse == null)
+                throw new InvalidOperationException("OCR service unavailable.");
+            if (ocrResponse.Values.Count == 0)
+                throw new InvalidOperationException("OCR service returned no values.");
+
+            var normalizedValues = NormalizeDictionary(ocrResponse.Values);
+
+            string? tempImagePath = null;
+            try
+            {
+                var tempDir = Path.Combine(_env.WebRootPath, "uploads", "lab-tests", "temp");
+                Directory.CreateDirectory(tempDir);
+                var ext = Path.GetExtension(request.Image.FileName ?? "").ToLowerInvariant();
+                if (!new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".tiff", ".pdf" }.Contains(ext))
+                    ext = ".jpg";
+                var fileName = $"{Guid.NewGuid():N}{ext}";
+                var physicalPath = Path.Combine(tempDir, fileName);
+                tempImagePath = $"/uploads/lab-tests/temp/{fileName}";
+                using var imgStream = request.Image.OpenReadStream();
+                using var fileStream = new FileStream(physicalPath, FileMode.Create);
+                await imgStream.CopyToAsync(fileStream, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to save temp image for OCR-only request.");
+            }
+
+            return new OcrOnlyResponse
+            {
+                TestName = ocrResponse.TestName ?? request.TestType,
+                Confidence = ocrResponse.Confidence,
+                ExtractedValues = normalizedValues,
+                TempImagePath = tempImagePath
+            };
+        }
+
+        public async Task<BatchSubmitResponse> BatchSubmitAsync(BatchSubmitRequest request, CancellationToken cancellationToken = default)
+        {
+            if (request.Tests == null || request.Tests.Count == 0)
+                throw new InvalidOperationException("No tests provided.");
+
+            var patient = await _context.Patients
+                .Include(p => p.User)
+                .FirstOrDefaultAsync(p => p.PatientID == request.PatientId, cancellationToken);
+            if (patient == null)
+                throw new InvalidOperationException("Patient not found.");
+
+            var doctorId = await GetDoctorIdForPatientAsync(request.PatientId, cancellationToken);
+
+            var report = new TestReport
+            {
+                PatientID = request.PatientId,
+                DoctorID = doctorId == 0 ? 0 : doctorId,
+                ReportDate = DateTime.UtcNow,
+                AnalysisStatus = AnalysisStatus.Processing
+            };
+            _context.TestReports.Add(report);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            int lastLabTestId = 0;
+
+            foreach (var item in request.Tests)
+            {
+                // Move temp image to patient folder
+                string? imagePath = null;
+                if (!string.IsNullOrWhiteSpace(item.TempImagePath))
+                {
+                    try
+                    {
+                        var uploadsDir = Path.Combine(_env.WebRootPath, "uploads", "lab-tests", request.PatientId.ToString());
+                        Directory.CreateDirectory(uploadsDir);
+                        var fileName = Path.GetFileName(item.TempImagePath);
+                        var destPath = Path.Combine(uploadsDir, fileName);
+                        var srcPath = Path.Combine(_env.WebRootPath, item.TempImagePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+                        if (File.Exists(srcPath))
+                        {
+                            File.Move(srcPath, destPath, overwrite: true);
+                            imagePath = $"/uploads/lab-tests/{request.PatientId}/{fileName}";
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to move temp image for batch submit.");
+                    }
+                }
+
+                // Call confirm API to normalize user-edited values
+                var confirmedValues = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                try
+                {
+                    var testName = MapTestTypeForOcr(item.TestType);
+                    var payload = BuildConfirmPayloadFromValues(item.TestType, item.TestName, item.ConfirmedValues ?? new Dictionary<string, object>());
+                    var confirmResponse = await _ocrClient.ConfirmAsync(testName, payload, cancellationToken);
+                    confirmedValues = MergeConfirmValues(confirmResponse, payload);
+                    confirmedValues = RemoveMetadataKeys(confirmedValues);
+                    confirmedValues = NormalizeDictionaryValues(confirmedValues);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Confirm API call failed for batch submit item; using raw user values.");
+                    confirmedValues = NormalizeDictionary(item.ConfirmedValues ?? new Dictionary<string, object>());
+                }
+
+                var confirmedJson = JsonSerializer.Serialize(confirmedValues);
+
+                var labTest = new LabTest
+                {
+                    PatientID = request.PatientId,
+                    DoctorID = doctorId == 0 ? null : doctorId,
+                    UploadDate = DateTime.UtcNow,
+                    ImagePath = imagePath,
+                    TestType = item.TestType,
+                    TestName = item.TestName ?? MapTestTypeForOcr(item.TestType),
+                    OcrRawJson = confirmedJson,
+                    OcrNormalizedJson = confirmedJson,
+                    ConfirmedJson = confirmedJson,
+                    AnalysisStatus = AnalysisStatus.Processing,
+                    ReportID = report.ReportID
+                };
+
+                _context.LabTests.Add(labTest);
+                await _context.SaveChangesAsync(cancellationToken);
+                lastLabTestId = labTest.LabTestID;
+            }
+
+            return new BatchSubmitResponse
+            {
+                ReportId = report.ReportID,
+                LabTestId = lastLabTestId
+            };
+        }
+
+        private static Dictionary<string, object> BuildConfirmPayloadFromValues(string testType, string? testName, Dictionary<string, object> values)
+        {
+            var payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            var keyMap = GetConfirmKeyMap(testType, testName);
+            foreach (var kvp in values)
+            {
+                var normalizedKey = NormalizeKey(kvp.Key);
+                var targetKey = keyMap.TryGetValue(normalizedKey, out var mappedKey) ? mappedKey : kvp.Key;
+                var normalizedValue = NormalizeValue(kvp.Value);
+                payload[targetKey] = normalizedValue?.ToString() ?? string.Empty;
+            }
+            return payload;
         }
 
         private async Task UpsertReportAsync(LabTest labTest, AnalysisSubmitResponse response, CancellationToken cancellationToken)
@@ -401,6 +555,116 @@ namespace Graduation_Project.Services
                 ? response.RiskPrediction.Value.GetRawText()
                 : null;
             report.AlertsJson = JsonSerializer.Serialize(response.Alerts ?? new List<string>());
+
+            await SaveAnalysisAlertsAsync(labTest.PatientID, response, cancellationToken);
+        }
+
+        private async Task SaveAnalysisAlertsAsync(int patientId, AnalysisSubmitResponse response, CancellationToken cancellationToken)
+        {
+            string? notifyTitle = null;
+            string? notifyMessage = null;
+            string? notifyType = null;
+
+            if (response.RiskPrediction.HasValue)
+            {
+                var riskElement = response.RiskPrediction.Value;
+                JsonElement target = default;
+
+                if (riskElement.ValueKind == JsonValueKind.Object)
+                    target = riskElement;
+                else if (riskElement.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var item in riskElement.EnumerateArray())
+                    {
+                        if (item.ValueKind == JsonValueKind.Object && item.EnumerateObject().Any())
+                        { target = item; break; }
+                    }
+                }
+
+                if (target.ValueKind == JsonValueKind.Object)
+                {
+                    var riskLevel = target.TryGetProperty("risk_level", out var rl) ? rl.GetString() : null;
+                    var diabetesStatus = target.TryGetProperty("diabetes_status", out var dg) ? dg.GetString() : null;
+
+                    if (!string.IsNullOrWhiteSpace(riskLevel))
+                    {
+                        bool isHigh = riskLevel.Contains("high", StringComparison.OrdinalIgnoreCase);
+                        bool isModerate = riskLevel.Contains("moderate", StringComparison.OrdinalIgnoreCase)
+                                       || riskLevel.Contains("medium", StringComparison.OrdinalIgnoreCase);
+
+                        var alertType = isHigh ? "danger" : isModerate ? "warning" : "info";
+
+                        var message = riskLevel;
+                        if (!string.IsNullOrWhiteSpace(diabetesStatus))
+                            message += $". Diabetes status: {diabetesStatus}";
+
+                        _context.Alerts.Add(new Alert
+                        {
+                            PatientID = patientId,
+                            Title = "Risk Prediction",
+                            Message = message,
+                            AlertType = alertType,
+                            DateCreated = DateTime.UtcNow,
+                            IsRead = false
+                        });
+
+                        // Notify doctor for moderate or high risk
+                        if (isHigh || isModerate)
+                        {
+                            notifyType = isHigh ? "danger" : "warning";
+                            notifyTitle = isHigh
+                                ? "High Risk Analysis Result"
+                                : "Moderate Risk Analysis Result";
+                            notifyMessage = message;
+                        }
+                    }
+                }
+            }
+
+            if (response.Alerts != null)
+            {
+                foreach (var rec in response.Alerts)
+                {
+                    if (string.IsNullOrWhiteSpace(rec)) continue;
+                    _context.Alerts.Add(new Alert
+                    {
+                        PatientID = patientId,
+                        Title = "Clinical Recommendation",
+                        Message = rec,
+                        AlertType = "info",
+                        DateCreated = DateTime.UtcNow,
+                        IsRead = false
+                    });
+                }
+            }
+
+            // Notify assigned doctors if risk is moderate or high
+            if (notifyTitle != null)
+            {
+                var patient = await _context.Patients
+                    .Include(p => p.User)
+                    .FirstOrDefaultAsync(p => p.PatientID == patientId, cancellationToken);
+
+                var patientName = patient?.User != null
+                    ? $"{patient.User.FirstName} {patient.User.LastName}".Trim()
+                    : "A patient";
+                if (string.IsNullOrWhiteSpace(patientName)) patientName = "A patient";
+
+                var assignedDoctors = await _context.PatientDoctors
+                    .Where(pd => pd.PatientID == patientId
+                              && pd.Status == "Approved")
+                    .ToListAsync(cancellationToken);
+
+                foreach (var pd in assignedDoctors)
+                {
+                    await _doctorNotification.NotifyAsync(
+                        pd.DoctorID,
+                        $"{notifyTitle}: {patientName}",
+                        $"{patientName}'s lab analysis shows {notifyMessage}. Please review.",
+                        "patient_risk",
+                        $"/Doctor/PatientDetails/{pd.DoctorID}?patientId={patientId}");
+                }
+            }
         }
 
         private static void UpdatePatientFromRisk(Patient patient, AnalysisSubmitResponse response)
@@ -558,16 +822,16 @@ namespace Graduation_Project.Services
             return new AnalysisPersonalInfoDto
             {
                 Name = string.IsNullOrWhiteSpace(fullName) ? user?.UserName ?? "" : fullName,
-                Age = age ?? 0,
-                Trimester = trimester ?? 0,
-                Week = patient.GestationalWeeks > 0 ? patient.GestationalWeeks : 0,
+                Age = age > 0 ? age : null,
+                Trimester = trimester,
+                Week = patient.GestationalWeeks > 0 ? patient.GestationalWeeks : null,
                 BabyGender = string.IsNullOrWhiteSpace(pregnancy?.BabyGender) ? "Unknown" : pregnancy!.BabyGender,
-                Height = patient.HeightCm > 0 ? (int)Math.Round(patient.HeightCm) : 0,
-                Weight = patient.WeightKg > 0 ? (int)Math.Round(patient.WeightKg) : 0,
-                Parity = patient.Births,
-                RbsAverage = bloodSugarAvg > 0 ? (int)Math.Round(bloodSugarAvg) : 0,
-                AvgSystolic = avgSys ?? 0,
-                AvgDiastolic = avgDia ?? 0,
+                Height = patient.HeightCm > 0 ? (int)Math.Round(patient.HeightCm) : null,
+                Weight = patient.WeightKg > 0 ? (int)Math.Round(patient.WeightKg) : null,
+                Parity = patient.Births >= 0 ? patient.Births : null,
+                RbsAverage = bloodSugarAvg > 0 ? (int)Math.Round(bloodSugarAvg) : null,
+                AvgSystolic = avgSys > 0 ? avgSys : null,
+                AvgDiastolic = avgDia > 0 ? avgDia : null,
                 DgState = string.IsNullOrWhiteSpace(patient.DgState) ? "Stable" : patient.DgState,
                 RiskState = string.IsNullOrWhiteSpace(patient.RiskState) ? "Low" : patient.RiskState
             };
@@ -616,6 +880,12 @@ namespace Graduation_Project.Services
 
                 payload[targetKey] = submitValue;
             }
+
+            // The submit model requires every schema field for a test to be present — a missing
+            // key crashes its per-test handler (HTTP 500). Fields OCR couldn't read are omitted
+            // above, so backfill any remaining schema fields with "Not Extracted" (an accepted
+            // placeholder) before submitting.
+            EnsureSchemaFieldsPresent(payload);
 
             return FinalizeSubmitPayload(payload);
         }
@@ -770,30 +1040,46 @@ namespace Graduation_Project.Services
             }
         }
 
+        // The full field schema the submit model expects for each test. The model crashes (HTTP 500)
+        // when a test object is missing any of these keys, so this is used both to filter incoming
+        // fields and to backfill missing ones before submitting.
+        private static readonly Dictionary<string, string[]> SubmitSchemaFields = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["cbc (complete blood count)"] = new[] { "HB", "RBCs_Count", "MCV", "MCH", "RDW", "WBC", "lymphocytes", "platelet_count" },
+            ["urinalysis"] = new[] { "Color", "PH", "Specific_Gravity", "Protein", "Glucose", "Ketones", "Blood", "RBCs", "Leukocytes", "Nitrite" },
+            ["tsh (thyroid)"] = new[] { "TSH" },
+            ["ferritin"] = new[] { "Ferritin_value" },
+            ["fasting blood glucose"] = new[] { "FBG" },
+            ["hba1c (sugar test)"] = new[] { "HbA1c" },
+            ["blood group"] = new[] { "ABO_Group", "RH_Factor" },
+            ["hbsag (hepatitis b)"] = new[] { "HBsAg" },
+            ["hcv (hepatitis c)"] = new[] { "HCV" }
+        };
+
         private static bool IsSubmitFieldAllowed(string? testName, string key)
         {
             var testNormalized = (testName ?? string.Empty).Trim().ToLowerInvariant();
-            var allowed = testNormalized switch
-            {
-                "cbc (complete blood count)" => new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    "HB", "RBCs_Count", "MCV", "MCH", "RDW", "WBC", "lymphocytes", "platelet_count"
-                },
-                "urinalysis" => new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    "Color", "PH", "Specific_Gravity", "Protein", "Glucose", "Ketones", "Blood", "RBCs", "Leukocytes", "Nitrite"
-                },
-                "tsh (thyroid)" => new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "TSH" },
-                "ferritin" => new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Ferritin_value" },
-                "fasting blood glucose" => new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "FBG" },
-                "hba1c (sugar test)" => new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "HbA1c" },
-                "blood group" => new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "ABO_Group", "RH_Factor" },
-                "hbsag (hepatitis b)" => new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "HBsAg" },
-                "hcv (hepatitis c)" => new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "HCV" },
-                _ => null
-            };
+            return SubmitSchemaFields.TryGetValue(testNormalized, out var fields)
+                && fields.Contains(key, StringComparer.OrdinalIgnoreCase);
+        }
 
-            return allowed?.Contains(key) == true;
+        private static void EnsureSchemaFieldsPresent(Dictionary<string, object> payload)
+        {
+            var testName = payload.TryGetValue("test_name", out var name) ? name?.ToString() : null;
+            var testNormalized = (testName ?? string.Empty).Trim().ToLowerInvariant();
+            if (!SubmitSchemaFields.TryGetValue(testNormalized, out var fields))
+                return;
+
+            // CBC requires numeric values for every field; the model rejects "Not Extracted" for it,
+            // so backfilling can't salvage an incomplete CBC — leave it to the RDW guard / 500 path.
+            if (testNormalized == "cbc (complete blood count)")
+                return;
+
+            foreach (var field in fields)
+            {
+                if (!payload.ContainsKey(field))
+                    payload[field] = "Not Extracted";
+            }
         }
 
         private static bool ShouldOmitSubmitValue(object? value)
@@ -806,19 +1092,22 @@ namespace Graduation_Project.Services
                 var trimmed = text.Trim();
                 return string.IsNullOrWhiteSpace(trimmed)
                     || trimmed.Equals("none", StringComparison.OrdinalIgnoreCase)
-                    || trimmed.Equals("null", StringComparison.OrdinalIgnoreCase);
+                    || trimmed.Equals("null", StringComparison.OrdinalIgnoreCase)
+                    || trimmed.Equals("not extracted", StringComparison.OrdinalIgnoreCase);
             }
 
+            // 0 is not a valid measurement for any blood/urine test parameter —
+            // omit it so the model does not receive impossible input values.
             if (value is decimal dec)
-                return dec < 0;
+                return dec <= 0;
             if (value is double dbl)
-                return dbl < 0;
+                return dbl <= 0;
             if (value is float flt)
-                return flt < 0;
+                return flt <= 0;
             if (value is int i)
-                return i < 0;
+                return i <= 0;
             if (value is long l)
-                return l < 0;
+                return l <= 0;
 
             return false;
         }
@@ -940,7 +1229,7 @@ namespace Graduation_Project.Services
             if (testName.Equals("CBC (Complete Blood Count)", StringComparison.OrdinalIgnoreCase)
                 && !payload.ContainsKey("RDW"))
             {
-                throw new InvalidOperationException(
+                throw new AnalysisUserException(
                     "CBC analysis requires an RDW value. Please add RDW from your lab report in the review step.");
             }
 

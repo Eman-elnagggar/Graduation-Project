@@ -1,10 +1,13 @@
 using Graduation_Project.Interfaces;
 using Graduation_Project.Data;
+using Graduation_Project.Hubs;
 using Graduation_Project.Models;
 using Graduation_Project.Services;
 using Graduation_Project.ViewModels;
+using Graduation_Project.ViewModels.Chat;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
@@ -22,9 +25,12 @@ namespace Graduation_Project.Controllers
         private readonly IPatientDoctor _patientDoctorRepository;
         private readonly IAlert _alertRepository;
         private readonly AlertService _alertService;
+        private readonly IDoctorNotificationService _doctorNotificationService;
         private readonly MedicationReminderService _medicationReminderService;
         private readonly AppDbContext _context;
         private readonly IChatMessageCrypto _chatMessageCrypto;
+        private readonly IWebHostEnvironment _env;
+        private readonly IHubContext<ChatHub> _hubContext;
 
         public PatientController(
             IPatient patientRepository,
@@ -36,9 +42,12 @@ namespace Graduation_Project.Controllers
             IPatientDoctor patientDoctorRepository,
             IAlert alertRepository,
             AlertService alertService,
+            IDoctorNotificationService doctorNotificationService,
             MedicationReminderService medicationReminderService,
             AppDbContext context,
-            IChatMessageCrypto chatMessageCrypto)
+            IChatMessageCrypto chatMessageCrypto,
+            IWebHostEnvironment env,
+            IHubContext<ChatHub> hubContext)
         {
             _patientRepository = patientRepository;
             _patientBloodPressure = patientBloodPressure;
@@ -49,9 +58,12 @@ namespace Graduation_Project.Controllers
             _patientDoctorRepository = patientDoctorRepository;
             _alertRepository = alertRepository;
             _alertService = alertService;
+            _doctorNotificationService = doctorNotificationService;
             _medicationReminderService = medicationReminderService;
             _context = context;
             _chatMessageCrypto = chatMessageCrypto;
+            _env = env;
+            _hubContext = hubContext;
         }
 
         [HttpGet]
@@ -421,6 +433,45 @@ namespace Graduation_Project.Controllers
             return View(vm);
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UploadChatFile(int id, IFormFile file)
+        {
+            var (patient, failure) = AuthorizePatientAccess(id);
+            if (failure != null)
+                return failure;
+
+            if (file == null || file.Length == 0)
+                return BadRequest(new { error = "No file provided." });
+
+            if (file.Length > 10 * 1024 * 1024)
+                return BadRequest(new { error = "File exceeds the 10 MB limit." });
+
+            var allowedTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "image/jpeg", "image/png", "image/gif", "image/webp",
+                "application/pdf"
+            };
+
+            if (!allowedTypes.Contains(file.ContentType))
+                return BadRequest(new { error = "File type not allowed." });
+
+            var userDir = Path.Combine(_env.WebRootPath, "uploads", "chat", patient.UserID!);
+            Directory.CreateDirectory(userDir);
+
+            var ext = Path.GetExtension(file.FileName);
+            var fileName = $"{Guid.NewGuid():N}{ext}";
+            var filePath = Path.Combine(userDir, fileName);
+
+            using (var stream = System.IO.File.Create(filePath))
+                await file.CopyToAsync(stream);
+
+            var url = $"/uploads/chat/{patient.UserID}/{fileName}";
+            var type = file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ? "image" : "file";
+
+            return Json(new { url, type, name = file.FileName });
+        }
+
         [HttpGet]
         public IActionResult ConversationMessages(int id, string userId)
         {
@@ -475,7 +526,10 @@ namespace Graduation_Project.Controllers
                     senderId = m.SenderUserId,
                     receiverId = m.ReceiverUserId,
                     content = _chatMessageCrypto.Decrypt(m.Message),
-                    timestamp = m.SentAtUtc
+                    timestamp = m.SentAtUtc,
+                    attachmentUrl = m.AttachmentUrl,
+                    attachmentType = m.AttachmentType,
+                    attachmentName = m.AttachmentName
                 })
                 .ToList();
 
@@ -531,7 +585,37 @@ namespace Graduation_Project.Controllers
                 var lastBS = _patientBloodSugar.GetLastBloodSugarValue(patientId);
                 var lastLab = _labTest.GetLastLabTestByPatientId(patientId);
                 var nextAppt = _appointment.GetNextAppointmentForPatient(patientId);
-                _alertService.EvaluateAndSaveAlerts(patientId, patient, reading, lastBS, lastLab, nextAppt);
+                int newAlerts = _alertService.EvaluateAndSaveAlerts(patientId, patient, reading, lastBS, lastLab, nextAppt);
+                if (newAlerts > 0)
+                {
+                    var pName = $"{patient.User?.FirstName} {patient.User?.LastName}".Trim();
+                    if (string.IsNullOrWhiteSpace(pName)) pName = "A patient";
+                    var bpParts = reading.BloodPressure.Split('/');
+                    int sys = int.TryParse(bpParts[0].Trim(), out var sv) ? sv : 0;
+                    int dia = bpParts.Length > 1 && int.TryParse(bpParts[1].Trim(), out var dv) ? dv : 0;
+                    string bpTitle, bpMsg;
+                    if (sys >= 160 || dia >= 110)
+                    {
+                        bpTitle = $"Critical BP: {pName}";
+                        bpMsg = $"{pName}'s blood pressure ({reading.BloodPressure} mmHg) is critically high. Immediate attention required.";
+                    }
+                    else if (sys >= 140 || dia >= 90)
+                    {
+                        bpTitle = $"High BP Detected: {pName}";
+                        bpMsg = $"{pName}'s blood pressure ({reading.BloodPressure} mmHg) exceeds safe limits.";
+                    }
+                    else if (sys > 0 && (sys < 90 || dia < 60))
+                    {
+                        bpTitle = $"Low BP Detected: {pName}";
+                        bpMsg = $"{pName}'s blood pressure ({reading.BloodPressure} mmHg) is below normal range.";
+                    }
+                    else
+                    {
+                        bpTitle = $"Health Alert: {pName}";
+                        bpMsg = $"{pName} has a new blood pressure alert that requires your attention.";
+                    }
+                    NotifyAssignedDoctor(patientId, patient, bpTitle, bpMsg);
+                }
             }
 
             return Json(new
@@ -578,7 +662,34 @@ namespace Graduation_Project.Controllers
                 var lastBP = _patientBloodPressure.GetLastBloodPressureValue(patientId);
                 var lastLab = _labTest.GetLastLabTestByPatientId(patientId);
                 var nextAppt = _appointment.GetNextAppointmentForPatient(patientId);
-                _alertService.EvaluateAndSaveAlerts(patientId, patient, lastBP, reading, lastLab, nextAppt);
+                int newAlerts = _alertService.EvaluateAndSaveAlerts(patientId, patient, lastBP, reading, lastLab, nextAppt);
+                if (newAlerts > 0)
+                {
+                    var pName = $"{patient.User?.FirstName} {patient.User?.LastName}".Trim();
+                    if (string.IsNullOrWhiteSpace(pName)) pName = "A patient";
+                    string bsTitle, bsMsg;
+                    if (reading.BloodSugar >= 200)
+                    {
+                        bsTitle = $"Critical Blood Sugar: {pName}";
+                        bsMsg = $"{pName}'s blood sugar ({reading.BloodSugar} mg/dL) is critically high. Immediate attention required.";
+                    }
+                    else if (reading.BloodSugar > 125)
+                    {
+                        bsTitle = $"High Blood Sugar: {pName}";
+                        bsMsg = $"{pName}'s blood sugar ({reading.BloodSugar} mg/dL) is above normal range.";
+                    }
+                    else if (reading.BloodSugar < 70)
+                    {
+                        bsTitle = $"Low Blood Sugar: {pName}";
+                        bsMsg = $"{pName}'s blood sugar ({reading.BloodSugar} mg/dL) is dangerously low. Immediate attention required.";
+                    }
+                    else
+                    {
+                        bsTitle = $"Health Alert: {pName}";
+                        bsMsg = $"{pName} has a new blood sugar alert that requires your attention.";
+                    }
+                    NotifyAssignedDoctor(patientId, patient, bsTitle, bsMsg);
+                }
             }
 
             return Json(new
@@ -641,6 +752,62 @@ namespace Graduation_Project.Controllers
             return Json(new { success = true, alerts = pendingRiskAlerts });
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SendReportToDoctor(int id, [FromBody] SendReportToDoctorRequest req)
+        {
+            var (patient, failure) = AuthorizePatientAccess(id);
+            if (failure != null)
+                return failure;
+
+            if (string.IsNullOrWhiteSpace(req?.DoctorUserId) || string.IsNullOrWhiteSpace(req?.AttachmentUrl))
+                return BadRequest(new { error = "Invalid request." });
+
+            var approvedDoctorUserIds = _patientDoctorRepository
+                .GetByPatientId(id)
+                .Where(pd => string.Equals(pd.Status, "Approved", StringComparison.OrdinalIgnoreCase)
+                          && pd.Doctor != null
+                          && !string.IsNullOrWhiteSpace(pd.Doctor.UserID))
+                .Select(pd => pd.Doctor!.UserID!)
+                .Distinct()
+                .ToList();
+
+            if (!approvedDoctorUserIds.Contains(req.DoctorUserId))
+                return Forbid();
+
+            if (string.IsNullOrWhiteSpace(patient!.UserID))
+                return StatusCode(500);
+
+            var caption = string.IsNullOrWhiteSpace(req.Caption) ? "Lab Analysis Report" : req.Caption.Trim();
+            var fileName = string.IsNullOrWhiteSpace(req.FileName) ? "Lab-Analysis-Report.pdf" : req.FileName;
+
+            var chatMessage = new ChatMessage
+            {
+                SenderUserId = patient.UserID,
+                ReceiverUserId = req.DoctorUserId,
+                Message = _chatMessageCrypto.Encrypt(caption),
+                SentAtUtc = DateTime.Now,
+                IsRead = false,
+                AttachmentUrl = req.AttachmentUrl,
+                AttachmentType = "file",
+                AttachmentName = fileName
+            };
+
+            _context.ChatMessages.Add(chatMessage);
+            await _context.SaveChangesAsync();
+
+            await _hubContext.Clients.User(req.DoctorUserId).SendAsync(
+                "ReceiveMessage",
+                patient.UserID,
+                caption,
+                chatMessage.SentAtUtc,
+                req.AttachmentUrl,
+                "file",
+                fileName);
+
+            return Json(new { success = true });
+        }
+
         private static bool IsRiskAlertType(string? alertType)
         {
             if (string.IsNullOrWhiteSpace(alertType))
@@ -683,6 +850,30 @@ namespace Graduation_Project.Controllers
                 return Redirect(returnUrl);
 
             return RedirectToAction(nameof(Index), new { id = patientId });
+        }
+
+        private void NotifyAssignedDoctor(int patientId, Patient patient, string? title = null, string? message = null)
+        {
+            var patientName = $"{patient.User?.FirstName} {patient.User?.LastName}".Trim();
+            if (string.IsNullOrWhiteSpace(patientName)) patientName = "A patient";
+
+            var notifTitle = title ?? $"Health Alert: {patientName}";
+            var notifMessage = message ?? $"{patientName} has a new health risk alert that requires your attention.";
+
+            var assignedDoctors = _patientDoctorRepository
+                .GetByPatientId(patientId)
+                .Where(pd => string.Equals(pd.Status, "Approved", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            foreach (var pd in assignedDoctors)
+            {
+                _ = _doctorNotificationService.NotifyAsync(
+                    pd.DoctorID,
+                    notifTitle,
+                    notifMessage,
+                    "patient_risk",
+                    $"/Doctor/PatientDetails/{pd.DoctorID}?patientId={patientId}");
+            }
         }
     }
 }

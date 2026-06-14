@@ -11,10 +11,12 @@ namespace Graduation_Project.Controllers
     public class CommunityController : Controller
     {
         private readonly AppDbContext _db;
+        private readonly IWebHostEnvironment _env;
 
-        public CommunityController(AppDbContext db)
+        public CommunityController(AppDbContext db, IWebHostEnvironment env)
         {
             _db = db;
+            _env = env;
         }
 
         private int GetCurrentPatientId()
@@ -72,6 +74,7 @@ namespace Graduation_Project.Controllers
                     p.Title,
                     p.Content,
                     p.Category,
+                    p.ImageUrl,
                     p.CreatedAt,
                     AuthorName = (p.Patient != null && p.Patient.User != null)
                         ? (p.Patient.User.FirstName + " " + p.Patient.User.LastName).Trim()
@@ -100,7 +103,7 @@ namespace Graduation_Project.Controllers
         // ────────────────────────────────────────────────
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult CreatePost([FromForm] string title, [FromForm] string content, [FromForm] string category = "General")
+        public async Task<IActionResult> CreatePost([FromForm] string title, [FromForm] string content, [FromForm] string category = "General", [FromForm] IFormFile? image = null)
         {
             if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(content))
                 return Json(new { success = false, message = "Title and content are required." });
@@ -109,11 +112,21 @@ namespace Graduation_Project.Controllers
             if (patientId <= 0)
                 return Json(new { success = false, message = "Patient not found." });
 
+            string? imageUrl = null;
+            if (image != null && image.Length > 0)
+            {
+                var (savedUrl, error) = await SaveImageAsync(image, patientId);
+                if (error != null)
+                    return Json(new { success = false, message = error });
+                imageUrl = savedUrl;
+            }
+
             var post = new CommunityPost
             {
                 Title = title.Trim(),
                 Content = content.Trim(),
                 Category = category.Trim(),
+                ImageUrl = imageUrl,
                 PatientID = patientId,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
@@ -139,6 +152,7 @@ namespace Graduation_Project.Controllers
                     post.Title,
                     post.Content,
                     post.Category,
+                    post.ImageUrl,
                     post.CreatedAt,
                     AuthorName = authorName,
                     AuthorId = patientId,
@@ -166,10 +180,57 @@ namespace Graduation_Project.Controllers
             if (post.PatientID != patientId)
                 return Json(new { success = false, message = "You can only delete your own posts." });
 
+            DeleteImageFile(post.ImageUrl);
+
             _db.CommunityPosts.Remove(post);
             _db.SaveChanges();
 
             return Json(new { success = true });
+        }
+
+        // ────────────────────────────────────────────────
+        // Image helpers
+        // ────────────────────────────────────────────────
+        private async Task<(string? url, string? error)> SaveImageAsync(IFormFile image, int patientId)
+        {
+            if (image.Length > 5 * 1024 * 1024)
+                return (null, "Image exceeds the 5 MB limit.");
+
+            var allowedTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "image/jpeg", "image/png", "image/gif", "image/webp"
+            };
+
+            if (!allowedTypes.Contains(image.ContentType))
+                return (null, "Only JPEG, PNG, GIF, or WebP images are allowed.");
+
+            var dir = Path.Combine(_env.WebRootPath, "uploads", "community", patientId.ToString());
+            Directory.CreateDirectory(dir);
+
+            var ext = Path.GetExtension(image.FileName);
+            var fileName = $"{Guid.NewGuid():N}{ext}";
+            var filePath = Path.Combine(dir, fileName);
+
+            using (var stream = System.IO.File.Create(filePath))
+                await image.CopyToAsync(stream);
+
+            return ($"/uploads/community/{patientId}/{fileName}", null);
+        }
+
+        private void DeleteImageFile(string? imageUrl)
+        {
+            if (string.IsNullOrWhiteSpace(imageUrl)) return;
+            try
+            {
+                var relativePath = imageUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+                var fullPath = Path.Combine(_env.WebRootPath, relativePath);
+                if (System.IO.File.Exists(fullPath))
+                    System.IO.File.Delete(fullPath);
+            }
+            catch
+            {
+                // Best-effort cleanup; ignore failures.
+            }
         }
 
         // ────────────────────────────────────────────────

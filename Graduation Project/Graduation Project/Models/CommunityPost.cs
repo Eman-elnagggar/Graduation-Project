@@ -17,6 +17,9 @@ namespace Graduation_Project.Models
         [MaxLength(60)]
         public string Category { get; set; } = "General";
 
+        [MaxLength(300)]
+        public string? ImageUrl { get; set; }
+
         public int PatientID { get; set; }
         public Patient? Patient { get; set; }
 

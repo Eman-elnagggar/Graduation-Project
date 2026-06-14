@@ -99,6 +99,19 @@
                           maxlength="2000" required></textarea>
                 <div class="cm-char-count" id="cmContentCount">0 / 2000</div>
             </div>
+            <div class="cm-form-group">
+                <label class="cm-form-label">Photo <span style="color:#94a3b8;font-weight:400;">(optional)</span></label>
+                <input id="cmPostImage" type="file" accept="image/jpeg,image/png,image/gif,image/webp" hidden />
+                <button type="button" class="cm-image-btn" id="cmImageBtn">
+                    <i class="fas fa-image"></i> Add a photo
+                </button>
+                <div class="cm-image-preview" id="cmImagePreview" hidden>
+                    <img id="cmImagePreviewImg" src="" alt="Preview" />
+                    <button type="button" class="cm-image-remove" id="cmImageRemove" title="Remove photo">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
             <div class="cm-modal-actions">
                 <button type="button" class="cm-btn-cancel" id="cmCancelBtn">Cancel</button>
                 <button type="submit" class="cm-btn-submit" id="cmSubmitPost">

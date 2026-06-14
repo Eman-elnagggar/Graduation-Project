@@ -5,14 +5,8 @@
     ViewData["PatientId"]  = Model.Patient.PatientID;
     ViewData["ActivePage"] = "Alerts";
 
-    var criticalAlerts = Model.Alerts.Where(a =>
-        a.AlertType?.ToLower() == "danger" ||
-        a.AlertType?.ToLower() == "critical").ToList();
-    var warningAlerts  = Model.Alerts.Where(a => a.AlertType?.ToLower() == "warning").ToList();
-    var infoAlerts     = Model.Alerts.Where(a =>
-        a.AlertType?.ToLower() != "danger"   &&
-        a.AlertType?.ToLower() != "critical" &&
-        a.AlertType?.ToLower() != "warning").ToList();
+    // Alerts arrive from the controller already ordered newest-first.
+    var sortedAlerts = Model.Alerts.OrderByDescending(a => a.DateCreated).ToList();
 }
 
 @section Head {
@@ -116,182 +110,62 @@
     }
     else
     {
-        <!-- ── Critical ── -->
-        @if (criticalAlerts.Any())
-        {
-            <div class="al-group" id="group-critical">
-                <div class="al-group-header al-group-header-critical">
-                    <div class="al-group-title">
-                        <div class="al-group-icon-wrap critical"><i class="fas fa-exclamation-circle"></i></div>
-                        <span>Critical Alerts</span>
-                    </div>
-                    <span class="al-group-count">@criticalAlerts.Count alert@(criticalAlerts.Count != 1 ? "s" : "")</span>
-                </div>
+        <!-- ── All alerts, newest first ── -->
+        <div class="al-group" id="group-all">
+            @foreach (var alert in sortedAlerts)
+            {
+                var cat       = AlertCategory(alert.AlertType);
+                var iconClass = cat == "critical" ? "fa-heartbeat"
+                              : cat == "warning"  ? "fa-exclamation-triangle"
+                              : "fa-info-circle";
+                var pillIcon  = cat == "critical" ? "fa-exclamation-circle"
+                              : cat == "warning"  ? "fa-exclamation-triangle"
+                              : "fa-info-circle";
+                var pulseMod  = cat == "critical" ? "" : " " + cat;
 
-                @foreach (var alert in criticalAlerts)
-                {
-                    <div class="al-card al-card-critical @(alert.IsRead ? "" : "al-unread") alert-card"
-                         data-alert-id="@alert.AlertID"
-                         data-patient-id="@Model.Patient.PatientID"
-                         data-type="critical"
-                         data-status="@(alert.IsRead ? "read" : "unread")">
-                        <div class="al-card-stripe"></div>
-                        <div class="al-card-icon-col">
-                            <div class="al-card-icon critical">
-                                <i class="fas fa-heartbeat"></i>
+                <div class="al-card al-card-@cat @(alert.IsRead ? "" : "al-unread") alert-card"
+                     data-alert-id="@alert.AlertID"
+                     data-patient-id="@Model.Patient.PatientID"
+                     data-type="@cat"
+                     data-status="@(alert.IsRead ? "read" : "unread")">
+                    <div class="al-card-stripe"></div>
+                    <div class="al-card-icon-col">
+                        <div class="al-card-icon @cat">
+                            <i class="fas @iconClass"></i>
+                        </div>
+                        @if (!alert.IsRead)
+                        {
+                            <span class="al-pulse-dot@(pulseMod)"></span>
+                        }
+                    </div>
+                    <div class="al-card-body">
+                        <div class="al-card-top">
+                            <div class="al-card-title-row">
+                                <span class="al-severity-pill @cat"><i class="fas @pillIcon"></i> @cat.ToUpper()</span>
+                                <h4 class="al-card-title">@alert.Title</h4>
                             </div>
+                            <span class="al-time-chip" title="@alert.DateCreated.ToString("MMM dd, yyyy h:mm tt")">
+                                <i class="fas fa-clock"></i> @FormatRelativeTime(alert.DateCreated)
+                            </span>
+                        </div>
+                        <p class="al-card-message">@alert.Message</p>
+                        <div class="al-card-footer">
+                            <span class="al-date-label"><i class="fas fa-calendar-alt"></i> @alert.DateCreated.ToString("MMM dd, yyyy · h:mm tt")</span>
                             @if (!alert.IsRead)
                             {
-                                <span class="al-pulse-dot"></span>
+                                <button class="al-btn al-btn-mark-read mark-read-btn">
+                                    <i class="fas fa-check"></i> Mark as Read
+                                </button>
                             }
-                        </div>
-                        <div class="al-card-body">
-                            <div class="al-card-top">
-                                <div class="al-card-title-row">
-                                    <span class="al-severity-pill critical"><i class="fas fa-exclamation-circle"></i> CRITICAL</span>
-                                    <h4 class="al-card-title">@alert.Title</h4>
-                                </div>
-                                <span class="al-time-chip" title="@alert.DateCreated.ToString("MMM dd, yyyy h:mm tt")">
-                                    <i class="fas fa-clock"></i> @FormatRelativeTime(alert.DateCreated)
-                                </span>
-                            </div>
-                            <p class="al-card-message">@alert.Message</p>
-                            <div class="al-card-footer">
-                                <span class="al-date-label"><i class="fas fa-calendar-alt"></i> @alert.DateCreated.ToString("MMM dd, yyyy · h:mm tt")</span>
-                                @if (!alert.IsRead)
-                                {
-                                    <button class="al-btn al-btn-mark-read mark-read-btn">
-                                        <i class="fas fa-check"></i> Mark as Read
-                                    </button>
-                                }
-                                else
-                                {
-                                    <span class="al-read-badge"><i class="fas fa-check-circle"></i> Read</span>
-                                }
-                            </div>
-                        </div>
-                    </div>
-                }
-            </div>
-        }
-
-        <!-- ── Warning ── -->
-        @if (warningAlerts.Any())
-        {
-            <div class="al-group" id="group-warning">
-                <div class="al-group-header al-group-header-warning">
-                    <div class="al-group-title">
-                        <div class="al-group-icon-wrap warning"><i class="fas fa-exclamation-triangle"></i></div>
-                        <span>Warnings</span>
-                    </div>
-                    <span class="al-group-count">@warningAlerts.Count alert@(warningAlerts.Count != 1 ? "s" : "")</span>
-                </div>
-
-                @foreach (var alert in warningAlerts)
-                {
-                    <div class="al-card al-card-warning @(alert.IsRead ? "" : "al-unread") alert-card"
-                         data-alert-id="@alert.AlertID"
-                         data-patient-id="@Model.Patient.PatientID"
-                         data-type="warning"
-                         data-status="@(alert.IsRead ? "read" : "unread")">
-                        <div class="al-card-stripe"></div>
-                        <div class="al-card-icon-col">
-                            <div class="al-card-icon warning">
-                                <i class="fas fa-exclamation-triangle"></i>
-                            </div>
-                            @if (!alert.IsRead)
+                            else
                             {
-                                <span class="al-pulse-dot warning"></span>
+                                <span class="al-read-badge"><i class="fas fa-check-circle"></i> Read</span>
                             }
                         </div>
-                        <div class="al-card-body">
-                            <div class="al-card-top">
-                                <div class="al-card-title-row">
-                                    <span class="al-severity-pill warning"><i class="fas fa-exclamation-triangle"></i> WARNING</span>
-                                    <h4 class="al-card-title">@alert.Title</h4>
-                                </div>
-                                <span class="al-time-chip" title="@alert.DateCreated.ToString("MMM dd, yyyy h:mm tt")">
-                                    <i class="fas fa-clock"></i> @FormatRelativeTime(alert.DateCreated)
-                                </span>
-                            </div>
-                            <p class="al-card-message">@alert.Message</p>
-                            <div class="al-card-footer">
-                                <span class="al-date-label"><i class="fas fa-calendar-alt"></i> @alert.DateCreated.ToString("MMM dd, yyyy · h:mm tt")</span>
-                                @if (!alert.IsRead)
-                                {
-                                    <button class="al-btn al-btn-mark-read mark-read-btn">
-                                        <i class="fas fa-check"></i> Mark as Read
-                                    </button>
-                                }
-                                else
-                                {
-                                    <span class="al-read-badge"><i class="fas fa-check-circle"></i> Read</span>
-                                }
-                            </div>
-                        </div>
                     </div>
-                }
-            </div>
-        }
-
-        <!-- ── Info ── -->
-        @if (infoAlerts.Any())
-        {
-            <div class="al-group" id="group-info">
-                <div class="al-group-header al-group-header-info">
-                    <div class="al-group-title">
-                        <div class="al-group-icon-wrap info"><i class="fas fa-info-circle"></i></div>
-                        <span>Information</span>
-                    </div>
-                    <span class="al-group-count">@infoAlerts.Count alert@(infoAlerts.Count != 1 ? "s" : "")</span>
                 </div>
-
-                @foreach (var alert in infoAlerts)
-                {
-                    <div class="al-card al-card-info @(alert.IsRead ? "" : "al-unread") alert-card"
-                         data-alert-id="@alert.AlertID"
-                         data-patient-id="@Model.Patient.PatientID"
-                         data-type="info"
-                         data-status="@(alert.IsRead ? "read" : "unread")">
-                        <div class="al-card-stripe"></div>
-                        <div class="al-card-icon-col">
-                            <div class="al-card-icon info">
-                                <i class="fas fa-info-circle"></i>
-                            </div>
-                            @if (!alert.IsRead)
-                            {
-                                <span class="al-pulse-dot info"></span>
-                            }
-                        </div>
-                        <div class="al-card-body">
-                            <div class="al-card-top">
-                                <div class="al-card-title-row">
-                                    <span class="al-severity-pill info"><i class="fas fa-info-circle"></i> INFO</span>
-                                    <h4 class="al-card-title">@alert.Title</h4>
-                                </div>
-                                <span class="al-time-chip" title="@alert.DateCreated.ToString("MMM dd, yyyy h:mm tt")">
-                                    <i class="fas fa-clock"></i> @FormatRelativeTime(alert.DateCreated)
-                                </span>
-                            </div>
-                            <p class="al-card-message">@alert.Message</p>
-                            <div class="al-card-footer">
-                                <span class="al-date-label"><i class="fas fa-calendar-alt"></i> @alert.DateCreated.ToString("MMM dd, yyyy · h:mm tt")</span>
-                                @if (!alert.IsRead)
-                                {
-                                    <button class="al-btn al-btn-mark-read mark-read-btn">
-                                        <i class="fas fa-check"></i> Mark as Read
-                                    </button>
-                                }
-                                else
-                                {
-                                    <span class="al-read-badge"><i class="fas fa-check-circle"></i> Read</span>
-                                }
-                            </div>
-                        </div>
-                    </div>
-                }
-            </div>
-        }
+            }
+        </div>
     }
 </section>
 
@@ -883,6 +757,14 @@ document.addEventListener("DOMContentLoaded", function () {
 }
 
 @functions {
+    string AlertCategory(string? type)
+    {
+        var t = type?.ToLower();
+        if (t == "danger" || t == "critical") return "critical";
+        if (t == "warning") return "warning";
+        return "info";
+    }
+
     string FormatRelativeTime(DateTime dt)
     {
         var diff = DateTime.Now - dt;

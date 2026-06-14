@@ -6,207 +6,190 @@
 
 @Html.AntiForgeryToken()
 
-<!-- ══════════════════════════════════════════
-     PAGE HEADER
-══════════════════════════════════════════ -->
-<header class="tu-hero">
-    <div class="tu-hero-left">
-        <div class="tu-hero-icon">
-            <i class="fas fa-flask"></i>
+<!-- ══ PENDING ANALYSIS RESUME BANNER ══ -->
+<div id="pendingAnalysisBanner" class="tu-resume-banner" style="display:none" role="alert">
+    <div class="tu-resume-banner-inner">
+        <i class="fas fa-brain tu-resume-icon"></i>
+        <div class="tu-resume-text">
+            <strong>Analysis in progress</strong>
+            <span id="pendingAnalysisBannerMsg">Your previous test analysis is still running. Resuming automatically…</span>
         </div>
-        <div>
-            <h1 class="tu-hero-title">Upload Lab Tests</h1>
-            <p class="tu-hero-sub">Upload test images · AI extracts values · Review &amp; get a full report</p>
-        </div>
-    </div>
-    <div class="tu-hero-right">
-        <div class="tu-hero-chip"><i class="fas fa-brain"></i><span>AI Extraction</span></div>
-        <div class="tu-hero-chip tu-chip-review"><i class="fas fa-check-double"></i><span>Review &amp; Approve</span></div>
-        <div class="tu-hero-chip tu-chip-report"><i class="fas fa-file-medical-alt"></i><span>Full Report</span></div>
-    </div>
-</header>
-
-<!-- ══════════════════════════════════════════
-     PROGRESS STEPS
-══════════════════════════════════════════ -->
-<div class="tu-progress-bar">
-    <div class="tu-progress-step active" id="step1">
-        <div class="tu-step-circle"><span class="tu-step-num">1</span></div>
-        <div class="tu-step-label">Upload Tests</div>
-    </div>
-    <div class="tu-step-connector"><span class="tu-connector-line" id="conn1"></span></div>
-    <div class="tu-progress-step" id="step2">
-        <div class="tu-step-circle"><span class="tu-step-num">2</span></div>
-        <div class="tu-step-label">Review &amp; Approve</div>
-    </div>
-    <div class="tu-step-connector"><span class="tu-connector-line" id="conn2"></span></div>
-    <div class="tu-progress-step" id="step3">
-        <div class="tu-step-circle"><span class="tu-step-num">3</span></div>
-        <div class="tu-step-label">View Report</div>
+        <button class="lbtn lbtn-ghost tu-resume-dismiss" type="button" id="dismissPendingBanner" aria-label="Dismiss">
+            <i class="fas fa-times"></i>
+        </button>
     </div>
 </div>
 
-<!-- ══════════════════════════════════════════
-     STEP 1 — UPLOAD
-══════════════════════════════════════════ -->
-<section class="tu-section" id="section-upload">
-    <div class="tu-card">
-        <div class="tu-card-header">
-            <div class="tu-card-title">
-                <div class="tu-card-icon-wrap"><i class="fas fa-cloud-upload-alt"></i></div>
-                <div>
-                    <h3>Upload Test Images</h3>
-                    <p>Select a test type, then upload one or more lab test photos</p>
-                </div>
+<!-- ══ PAGE HEADER + INLINE STEPPER ══ -->
+<header class="lh">
+    <div class="lh-brand">
+        <div class="lh-icon"><i class="fas fa-flask"></i></div>
+        <div>
+            <div class="lh-title-row">
+                <h1 class="lh-title">Lab Test Analysis</h1>
+                <span class="lh-ai-badge"><i class="fas fa-wand-magic-sparkles"></i> AI-Powered</span>
             </div>
-            <span class="tu-step-badge">Step 1</span>
+            <p class="lh-sub"><i class="fas fa-shield-halved lh-sub-icon"></i> Upload your lab results and receive AI-powered medical insights</p>
         </div>
+    </div>
+    <nav class="lh-steps" aria-label="Progress">
+        <div class="ls-item active" id="step1">
+            <div class="ls-dot">
+                <span class="tu-step-num">1</span>
+                <i class="fas fa-check tu-step-check" style="display:none"></i>
+            </div>
+            <span class="ls-lbl">Upload</span>
+        </div>
+        <span class="ls-track" id="conn1"></span>
+        <div class="ls-item" id="step2">
+            <div class="ls-dot">
+                <span class="tu-step-num">2</span>
+                <i class="fas fa-check tu-step-check" style="display:none"></i>
+            </div>
+            <span class="ls-lbl">Review</span>
+        </div>
+        <span class="ls-track" id="conn2"></span>
+        <div class="ls-item" id="step3">
+            <div class="ls-dot">
+                <span class="tu-step-num">3</span>
+                <i class="fas fa-check tu-step-check" style="display:none"></i>
+            </div>
+            <span class="ls-lbl">Report</span>
+        </div>
+    </nav>
+</header>
 
-        <div class="tu-upload-row">
-
-            <!-- Left col: selector + queue -->
-            <div class="tu-form-group">
-                <label for="testType"><i class="fas fa-vials"></i> Test Type</label>
-                <div class="tu-select-container">
-                    <select id="testType" class="tu-select">
-                        <option value="">— Select Test Type —</option>
-                        <option value="cbc">CBC (Complete Blood Count)</option>
-                        <option value="urinalysis">Urinalysis</option>
-                        <option value="tsh">TSH (Thyroid)</option>
-                        <option value="ferritin">Ferritin</option>
-                        <option value="fbg">Fasting Blood Glucose</option>
-                        <option value="hba1c">HbA1c (Sugar Test)</option>
-                        <option value="hcv">HCV (Hepatitis C)</option>
-                        <option value="hbsag">HBsAg (Hepatitis B)</option>
-                        <option value="bloodgroup">Blood Group</option>
-                    </select>
-                    <i class="fas fa-chevron-down tu-select-arrow"></i>
+<!-- ══ STEP 1: UPLOAD ══ -->
+<section class="lp" id="section-upload">
+    <div class="lcard">
+        <div class="lcard-hd">
+            <h2 class="lcard-title">Upload Test Images</h2>
+            <p class="lcard-sub">Select a test type, then drag &amp; drop or browse your lab result images</p>
+        </div>
+        <div class="lup-grid">
+            <div class="lup-left">
+                <div class="lfg">
+                    <label class="lflbl" for="testType">Test Type</label>
+                    <div class="lsel-wrap">
+                        <select id="testType" class="lsel">
+                            <option value="">— Select Test Type —</option>
+                            <option value="cbc">CBC (Complete Blood Count)</option>
+                            <option value="urinalysis">Urinalysis</option>
+                            <option value="tsh">TSH (Thyroid)</option>
+                            <option value="ferritin">Ferritin</option>
+                            <option value="fbg">Fasting Blood Glucose</option>
+                            <option value="hba1c">HbA1c (Sugar Test)</option>
+                            <option value="hcv">HCV (Hepatitis C)</option>
+                            <option value="hbsag">HBsAg (Hepatitis B)</option>
+                            <option value="bloodgroup">Blood Group</option>
+                        </select>
+                        <i class="fas fa-chevron-down lsel-chevron"></i>
+                    </div>
+                    <p class="lfhint" id="testTypeHint">Select type before uploading</p>
+                    <p class="lfhint lfhint--error" id="testTypeError" style="display:none"><i class="fas fa-exclamation-circle"></i> Please select a test type first.</p>
                 </div>
-                <p class="tu-field-hint"><i class="fas fa-info-circle"></i> Choose the test type before uploading</p>
-
-                <!-- Queued files list -->
-                <div id="queuedFilesList" style="display:none; margin-top:1rem;">
-                    <p class="tu-queue-label"><i class="fas fa-layer-group"></i> Queued for upload</p>
+                <div id="queuedFilesList" style="display:none;margin-top:1.25rem">
+                    <p class="lq-hd">Queued for upload</p>
                     <div id="queuedFilesInner"></div>
                 </div>
             </div>
-
-            <!-- Right col: drop zone -->
-            <div class="tu-upload-zone" id="uploadZone">
-                <div class="tu-upload-icon-wrap"><i class="fas fa-cloud-upload-alt"></i></div>
-                <p class="tu-upload-title">Drag &amp; Drop test images here</p>
-                <p class="tu-upload-sub">or <span class="tu-upload-link">click to browse files</span></p>
-                <div class="tu-upload-hint">
-                    <i class="fas fa-info-circle"></i>
-                    JPG &nbsp;·&nbsp; PNG &nbsp;·&nbsp; PDF &nbsp;·&nbsp; Max 10 MB &nbsp;·&nbsp; Multiple files allowed
-                </div>
+            <div class="ldz" id="uploadZone">
+                <div class="ldz-icn"><i class="fas fa-cloud-upload-alt"></i></div>
+                <p class="ldz-title">Drag &amp; Drop test images here</p>
+                <p class="ldz-sub">or <span class="ldz-link">click to browse files</span></p>
+                <div class="ldz-hint">JPG &nbsp;·&nbsp; PNG &nbsp;·&nbsp; PDF &nbsp;·&nbsp; Max 10 MB &nbsp;·&nbsp; Multiple files allowed</div>
                 <input type="file" id="fileInput" accept="image/*,.pdf" multiple style="display:none" />
             </div>
         </div>
-
-        <div class="tu-card-footer">
-            <button class="tu-btn tu-btn-primary" id="sendToAIBtn" type="button" style="display:none">
-                <i class="fas fa-paper-plane"></i> Send to AI for Extraction
-                <span class="tu-file-count-badge" id="fileCountBadge">0</span>
-            </button>
-            <button class="tu-btn tu-btn-outline" id="addMoreTests" type="button">
+        <div class="lcard-ft">
+            <button class="lbtn lbtn-ghost" id="addMoreTests" type="button">
                 <i class="fas fa-plus"></i> Add More Files
             </button>
+            <button class="lbtn lbtn-primary" id="sendToAIBtn" type="button" style="display:none">
+                <i class="fas fa-bolt"></i> Analyze Files
+                <span class="lbadge" id="fileCountBadge">0</span>
+            </button>
         </div>
     </div>
 </section>
 
-<!-- ══════════════════════════════════════════
-     STEP 2 — REVIEW & APPROVE
-══════════════════════════════════════════ -->
-<section class="tu-section" id="uploadedTestsSection" style="display:none">
-    <div class="tu-card">
-        <div class="tu-card-header">
-            <div class="tu-card-title">
-                <div class="tu-card-icon-wrap tu-icon-review"><i class="fas fa-file-medical"></i></div>
-                <div>
-                    <h3>Review Extracted Values</h3>
-                    <p>AI has read your images — verify each value, edit if needed, then approve</p>
-                </div>
+<!-- ══ STEP 2: REVIEW & APPROVE ══ -->
+<section class="lp" id="uploadedTestsSection" style="display:none">
+    <div class="lcard">
+        <div class="lcard-hd lcard-hd--flex">
+            <div>
+                <h2 class="lcard-title">Review Extracted Values</h2>
+                <p class="lcard-sub">AI has read your images — verify each value, edit if needed, then approve</p>
             </div>
-            <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
-                <span class="tu-step-badge tu-badge-2">Step 2</span>
-                <button class="tu-btn tu-btn-danger-ghost" id="clearAllTests" type="button">
-                    <i class="fas fa-trash"></i> Clear All
-                </button>
-            </div>
+            <button class="lbtn lbtn-danger-ghost" id="clearAllTests" type="button">
+                <i class="fas fa-trash"></i> Clear All
+            </button>
         </div>
-
-        <!-- Extraction progress bar (shown while AI is reading files) -->
         <div id="extractionProgress" style="display:none">
-            <div class="tu-ext-bar-wrap">
-                <div class="tu-ext-bar-fill" id="extractionBarFill"></div>
-            </div>
-            <p class="tu-ext-status" id="extractionStatus">Extracting values…</p>
+            <div class="lext-track"><div class="lext-fill" id="extractionBarFill"></div></div>
+            <p class="lext-status" id="extractionStatus">Extracting values…</p>
         </div>
-
-        <!-- Test cards injected here -->
         <div id="uploadedTestsList"></div>
-
-        <div class="tu-submit-row" id="submitRow" style="display:none">
-            <div class="tu-submit-info">
-                <i class="fas fa-info-circle"></i>
-                Approve all tests below, then submit for comprehensive AI analysis
-            </div>
-            <div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;">
-                <span class="tu-approval-counter" id="approvalCounter">0 / 0 approved</span>
-                <button class="tu-btn tu-btn-primary tu-btn-lg" id="submitAllTests" type="button" disabled>
-                    <i class="fas fa-lock"></i> Approve all tests to submit
+        <div class="lsubmit-row" id="submitRow" style="display:none">
+            <p class="lsubmit-info"><i class="fas fa-info-circle"></i> Approve all tests, then submit for comprehensive AI analysis</p>
+            <div class="lsubmit-actions">
+                <span class="lapprove-ct" id="approvalCounter">0 / 0 approved</span>
+                <button class="lbtn lbtn-primary lbtn-lg" id="submitAllTests" type="button" disabled>
+                    <i class="fas fa-lock"></i> Approve all to submit
                 </button>
             </div>
         </div>
     </div>
 </section>
 
-<!-- ══════════════════════════════════════════
-     STEP 3 — AI REPORT
-══════════════════════════════════════════ -->
-<section class="tu-section" id="comprehensiveResults" style="display:none">
-    <div class="tu-card tu-card-report">
-        <div class="tu-card-header">
-            <div class="tu-card-title">
-                <div class="tu-card-icon-wrap tu-icon-report"><i class="fas fa-brain"></i></div>
-                <div>
-                    <h3>Comprehensive AI Analysis Report</h3>
-                    <p id="reportSubtitle">AI-generated insights based on your submitted tests</p>
-                </div>
+<!-- ══ STEP 3: AI REPORT ══ -->
+<section class="lp" id="comprehensiveResults" style="display:none">
+    <div class="lcard lcard--accent">
+        <div class="lcard-hd lcard-hd--flex">
+            <div>
+                <h2 class="lcard-title">Comprehensive AI Analysis Report</h2>
+                <p class="lcard-sub" id="reportSubtitle">AI-generated insights based on your submitted tests</p>
             </div>
-            <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
-                <span class="tu-step-badge tu-badge-3">Step 3</span>
-                <span class="tu-confidence-badge" id="overallConfidence" style="display:none">
-                    <i class="fas fa-brain"></i> Confidence: —
-                </span>
-            </div>
+            <span class="lconf-badge" id="overallConfidence" style="display:none">
+                <i class="fas fa-brain"></i> Confidence: —
+            </span>
         </div>
-
-        <!-- Report loading state -->
-        <div id="reportLoading" class="tu-report-loading">
-            <div class="tu-report-loading-inner">
-                <div class="tu-report-spinner"><i class="fas fa-brain"></i></div>
+        <div id="reportLoading" class="lreport-loading">
+            <div class="lreport-loading-inner">
+                <div class="lreport-spinner"><i class="fas fa-brain"></i></div>
                 <h4>Generating comprehensive report…</h4>
                 <p>AI is cross-referencing all test results against pregnancy-safe ranges</p>
-                <div class="tu-loading-steps" id="loadingSteps"></div>
-                <div class="tu-loading-bar"><div class="tu-loading-bar-fill" id="reportBarFill"></div></div>
+                <div class="lload-steps" id="loadingSteps"></div>
+                <div class="lload-bar"><div class="lload-bar-fill" id="reportBarFill"></div></div>
+                <p class="tu-close-note"><i class="fas fa-info-circle"></i> You can safely close this window — analysis continues in the background. Return to this page anytime to see your results.</p>
             </div>
         </div>
-
-        <!-- Report content (shown after loading) -->
+        <div id="reportError" style="display:none" class="tu-report-error-section">
+            <div class="tu-report-error-inner">
+                <i class="fas fa-exclamation-triangle tu-report-error-icon"></i>
+                <h4>Analysis Failed</h4>
+                <p id="reportErrorMsg" class="tu-report-error-msg">An error occurred while analyzing your tests.</p>
+                <div class="tu-report-error-actions">
+                    <button class="lbtn lbtn-ghost" id="reportErrorBackBtn" type="button">
+                        <i class="fas fa-arrow-left"></i> Back to Review
+                    </button>
+                    <button class="lbtn lbtn-primary" id="reportErrorRetryBtn" type="button">
+                        <i class="fas fa-redo"></i> Retry Analysis
+                    </button>
+                </div>
+            </div>
+        </div>
         <div id="reportReady" style="display:none">
             <div class="tu-report-verdict-row" id="reportVerdictRow"></div>
             <div id="comprehensiveReportContent"></div>
-            <div class="tu-report-actions">
-                <button class="tu-btn tu-btn-primary" type="button">
+            <div class="lreport-actions">
+                <button class="lbtn lbtn-primary" id="downloadReportBtn" type="button">
                     <i class="fas fa-download"></i> Download Report
                 </button>
-                <button class="tu-btn tu-btn-outline" type="button">
+                <button class="lbtn lbtn-outline" id="shareWithDoctorBtn" type="button">
                     <i class="fas fa-share-alt"></i> Share with Doctor
                 </button>
-                <button class="tu-btn tu-btn-ghost" id="uploadMoreBtn" type="button">
+                <button class="lbtn lbtn-ghost" id="uploadMoreBtn" type="button">
                     <i class="fas fa-plus"></i> Upload More Tests
                 </button>
             </div>
@@ -574,6 +557,13 @@
 
         <div class="tu-modal-footer">
             <button class="tu-btn tu-btn-ghost" id="tuModalCloseFooter" type="button"><i class="fas fa-times"></i> Close</button>
+            <button class="tu-btn tu-btn-view-report" id="tuModalDownloadBtn" type="button" style="display:none">
+                <i class="fas fa-download"></i> Download PDF
+            </button>
+            <button class="tu-btn tu-btn-view-report" id="tuModalShareBtn" type="button"
+                    style="background:var(--tu-primary);color:#fff;border-color:var(--tu-primary);display:none">
+                <i class="fas fa-share-alt"></i> Share with Doctor
+            </button>
         </div>
     </div>
 </div>
@@ -591,9 +581,9 @@
     --tu-muted:      #64748b;
     --tu-light:      #f8fafc;
     --tu-border:     #e2e8f0;
-    --tu-radius:     16px;
-    --tu-shadow:     0 4px 24px rgba(0,0,0,.07);
-    --tu-shadow-hov: 0 8px 32px rgba(0,0,0,.12);
+    --tu-radius:     18px;
+    --tu-shadow:     0 1px 2px rgba(16,42,67,.04), 0 6px 22px rgba(16,42,67,.07);
+    --tu-shadow-hov: 0 2px 4px rgba(16,42,67,.05), 0 14px 40px rgba(16,42,67,.12);
 }
 
 /* ════════════════════════════════════════════
@@ -693,15 +683,17 @@
 .tu-card-header {
     display: flex; justify-content: space-between; align-items: flex-start;
     flex-wrap: wrap; gap: .75rem;
-    padding: 1.3rem 1.5rem; border-bottom: 1.5px solid var(--tu-border); background: #fafbfc;
+    padding: 1.3rem 1.5rem; border-bottom: 1px solid var(--tu-border);
+    background: linear-gradient(180deg, #fcfdfe, #f8fafc);
 }
-.tu-card-title       { display: flex; align-items: flex-start; gap: .75rem; }
-.tu-card-title h3    { margin: 0 0 .15rem; font-size: 1rem; font-weight: 700; color: var(--tu-text); }
+.tu-card-title       { display: flex; align-items: center; gap: .85rem; }
+.tu-card-title h3    { margin: 0 0 .18rem; font-size: 1.1rem; font-weight: 800; color: var(--tu-text); letter-spacing: -.2px; }
 .tu-card-title p     { margin: 0; font-size: .8rem; color: var(--tu-muted); }
 .tu-card-icon-wrap   {
-    width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
-    background: rgba(27,174,190,.12); color: var(--tu-primary);
-    display: flex; align-items: center; justify-content: center; font-size: 1rem;
+    width: 44px; height: 44px; border-radius: 13px; flex-shrink: 0;
+    background: linear-gradient(135deg, rgba(47,208,224,.18), rgba(27,174,190,.13)); color: var(--tu-primary);
+    display: flex; align-items: center; justify-content: center; font-size: 1.05rem;
+    box-shadow: 0 4px 12px rgba(27,174,190,.14);
 }
 .tu-icon-review  { background: rgba(139,92,246,.12); color: #7c3aed; }
 .tu-icon-report  { background: rgba(27,174,190,.12);  color: var(--tu-primary); }
@@ -823,29 +815,43 @@
    TEST REVIEW CARDS
 ════════════════════════════════════════════ */
 .tu-test-card {
+    position: relative;
     border-top: 1px solid var(--tu-border);
-    animation: tuFadeIn .35s ease; transition: background .2s;
+    animation: tuFadeIn .35s ease; transition: background .25s, box-shadow .25s;
 }
 .tu-test-card:first-child { border-top: none; }
-.tu-test-card.approved    { background: rgba(27,174,190,.025); }
+.tu-test-card::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: transparent; transition: background .25s;
+}
+.tu-test-card.approved    { background: linear-gradient(90deg, rgba(27,174,190,.06), rgba(27,174,190,.015)); }
+.tu-test-card.approved::before { background: linear-gradient(180deg, #2fd0e0, #1BAEBE); }
 
 .tu-test-card-header {
     display: flex; justify-content: space-between; align-items: flex-start;
     flex-wrap: wrap; gap: .75rem;
-    padding: .95rem 1.5rem; background: #fafbfc; border-bottom: 1px solid var(--tu-border);
+    padding: 1.05rem 1.5rem; background: linear-gradient(180deg, #fcfdfe, #f8fafc);
+    border-bottom: 1px solid var(--tu-border);
 }
 .tu-test-card-header h4 {
-    margin: 0 0 .2rem; font-size: .9rem; font-weight: 700; color: var(--tu-text);
-    display: flex; align-items: center; gap: .45rem;
+    margin: 0 0 .35rem; font-size: 1rem; font-weight: 800; color: var(--tu-text);
+    display: flex; align-items: center; gap: .5rem; letter-spacing: -.2px;
 }
-.tu-test-card-header h4 i { color: var(--tu-primary); }
+.tu-test-card-header h4 i {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+    background: linear-gradient(135deg, rgba(47,208,224,.16), rgba(27,174,190,.12));
+    color: var(--tu-primary); font-size: .8rem;
+}
 .tu-test-meta { display: flex; align-items: center; gap: .85rem; flex-wrap: wrap; }
 .tu-test-meta span { font-size: .75rem; color: var(--tu-muted); display: flex; align-items: center; gap: .3rem; }
 .tu-test-meta span i { color: var(--tu-primary); }
 .tu-confidence-pill {
-    display: inline-flex; align-items: center; gap: .3rem; padding: .22rem .7rem;
-    border-radius: 14px; background: rgba(27,174,190,.1); color: var(--tu-primary);
-    font-size: .73rem; font-weight: 700; border: 1px solid rgba(27,174,190,.2);
+    display: inline-flex; align-items: center; gap: .35rem; padding: .26rem .75rem;
+    border-radius: 20px; background: linear-gradient(135deg, rgba(47,208,224,.14), rgba(27,174,190,.1));
+    color: var(--tu-primary-dk);
+    font-size: .73rem; font-weight: 800; border: 1px solid rgba(27,174,190,.25);
+    box-shadow: 0 1px 4px rgba(27,174,190,.12);
 }
 .tu-test-actions { display: flex; align-items: center; gap: .55rem; flex-wrap: wrap; }
 
@@ -862,12 +868,13 @@
 .tu-values-table tbody td { padding: .58rem .85rem; color: var(--tu-text); vertical-align: middle; }
 
 .tu-value-input {
-    padding: .36rem .65rem; border: 1.5px solid var(--tu-border); border-radius: 8px;
-    font-size: .84rem; color: var(--tu-text); background: var(--tu-light);
+    padding: .42rem .7rem; border: 1.5px solid var(--tu-border); border-radius: 9px;
+    font-size: .84rem; font-weight: 600; color: var(--tu-text); background: var(--tu-light);
     outline: none; font-family: inherit; width: 110px;
-    transition: border-color .2s, box-shadow .2s;
+    transition: border-color .2s, box-shadow .2s, background .2s;
 }
-.tu-value-input:focus { border-color: var(--tu-primary); box-shadow: 0 0 0 3px rgba(27,174,190,.1); background: #fff; }
+.tu-value-input:hover:not(:disabled) { border-color: #cbd5e1; }
+.tu-value-input:focus { border-color: var(--tu-primary); box-shadow: 0 0 0 3px rgba(27,174,190,.12); background: #fff; }
 .tu-value-input:disabled { background: #f1f5f9; color: var(--tu-muted); cursor: default; }
 .tu-value-unit { font-size: .76rem; color: var(--tu-muted); margin-left: .3rem; }
 
@@ -927,29 +934,44 @@
     border: 1px solid rgba(27,174,190,.2); white-space: nowrap;
 }
 .tu-report-verdict-row {
-    display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
-    padding: 1rem 1.5rem; border-bottom: 1px solid var(--tu-border);
+    display: flex; align-items: center; gap: 1.1rem; flex-wrap: wrap;
+    padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--tu-border);
+    position: relative; transition: background .3s;
 }
+.tu-report-verdict-row::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--tu-border);
+}
+.tu-report-verdict-row:has(.tu-verdict-badge.safe)    { background: linear-gradient(90deg, rgba(34,197,94,.10), rgba(34,197,94,.01)); }
+.tu-report-verdict-row:has(.tu-verdict-badge.warning) { background: linear-gradient(90deg, rgba(245,158,11,.12), rgba(245,158,11,.01)); }
+.tu-report-verdict-row:has(.tu-verdict-badge.danger)  { background: linear-gradient(90deg, rgba(239,68,68,.10), rgba(239,68,68,.01)); }
+.tu-report-verdict-row:has(.tu-verdict-badge.safe)::before    { background: linear-gradient(180deg,#4ade80,#16a34a); }
+.tu-report-verdict-row:has(.tu-verdict-badge.warning)::before { background: linear-gradient(180deg,#fbbf24,#d97706); }
+.tu-report-verdict-row:has(.tu-verdict-badge.danger)::before  { background: linear-gradient(180deg,#f87171,#dc2626); }
 .tu-verdict-badge {
-    display: inline-flex; align-items: center; gap: .45rem; padding: .45rem 1.05rem;
-    border-radius: 22px; font-size: .82rem; font-weight: 800; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: .5rem; padding: .55rem 1.2rem;
+    border-radius: 24px; font-size: .88rem; font-weight: 800; white-space: nowrap;
+    box-shadow: 0 4px 14px rgba(16,42,67,.08);
 }
-.tu-verdict-badge.safe    { background: #e8f5e9; color: #1b5e20; border: 1.5px solid #a5d6a7; }
-.tu-verdict-badge.warning { background: #fff3e0; color: #b84700; border: 1.5px solid #ffcc80; }
-.tu-verdict-badge.danger  { background: #ffebee; color: #b71c1c; border: 1.5px solid #ef9a9a; }
-.tu-verdict-summary { margin: 0; font-size: .84rem; color: var(--tu-muted); }
+.tu-verdict-badge i { font-size: 1rem; }
+.tu-verdict-badge.safe    { background: #fff; color: #15803d; border: 1.5px solid #86efac; }
+.tu-verdict-badge.warning { background: #fff; color: #b45309; border: 1.5px solid #fcd34d; }
+.tu-verdict-badge.danger  { background: #fff; color: #b91c1c; border: 1.5px solid #fca5a5; }
+.tu-verdict-summary { margin: 0; font-size: .86rem; color: #475569; font-weight: 500; }
 
 .tu-report-summary {
-    padding: 1.1rem 1.5rem; background: rgba(27,174,190,.04); border-bottom: 1px solid var(--tu-border);
+    margin: 1.25rem 1.5rem; padding: 1.1rem 1.3rem;
+    background: linear-gradient(135deg, rgba(47,208,224,.10), rgba(27,174,190,.05));
+    border: 1px solid rgba(27,174,190,.22); border-radius: 14px;
 }
 .tu-report-summary h4 {
-    margin: 0 0 .4rem; font-size: .92rem; font-weight: 700; color: var(--tu-text);
-    display: flex; align-items: center; gap: .45rem;
+    margin: 0 0 .4rem; font-size: .95rem; font-weight: 800; color: var(--tu-primary-dk);
+    display: flex; align-items: center; gap: .5rem;
 }
 .tu-report-summary h4 i { color: var(--tu-primary); }
-.tu-report-summary p  { margin: 0; font-size: .84rem; color: var(--tu-muted); }
+.tu-report-summary p  { margin: 0; font-size: .86rem; color: #475569; line-height: 1.6; }
+.tu-report-summary strong { color: var(--tu-primary-dk); }
 
-.tu-report-section { padding: 1.1rem 1.5rem; border-bottom: 1px solid var(--tu-border); }
+.tu-report-section { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--tu-border); }
 .tu-report-section:last-of-type { border-bottom: none; }
 .tu-report-section h5 {
     margin: 0 0 .85rem; font-size: .9rem; font-weight: 700; color: var(--tu-text);
@@ -958,19 +980,27 @@
 .tu-report-section h5 i { color: var(--tu-primary); }
 
 /* Insight value cards */
-.tu-insight-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: .8rem; }
+.tu-insight-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: .9rem; }
 .tu-insight-card {
-    padding: .8rem 1rem; border-radius: 12px; border: 1.5px solid var(--tu-border);
+    position: relative; overflow: hidden;
+    padding: 1rem 1.1rem; border-radius: 14px; border: 1.5px solid var(--tu-border);
     display: flex; flex-direction: column;
-    transition: box-shadow .2s, transform .2s;
+    transition: box-shadow .25s, transform .25s, border-color .25s;
 }
-.tu-insight-card:hover { box-shadow: var(--tu-shadow-hov); transform: translateY(-2px); }
-.tu-insight-card.normal  { border-color: #a5d6a7; background: #f6fff8; }
-.tu-insight-card.warning { border-color: #fde68a; background: #fffdf5; }
-.tu-insight-card.high    { border-color: #ef9a9a; background: #fff8f8; }
-.tu-insight-card.low     { border-color: #90caf9; background: #f0f8ff; }
-.tu-insight-label { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--tu-muted); margin-bottom: .28rem; }
-.tu-insight-value { font-size: 1.02rem; font-weight: 800; line-height: 1.25; margin-bottom: .2rem; }
+.tu-insight-card::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--tu-border);
+}
+.tu-insight-card:hover { box-shadow: var(--tu-shadow-hov); transform: translateY(-3px); }
+.tu-insight-card.normal  { border-color: #a5d6a7; background: linear-gradient(160deg, #f4fff7, #ecfdf2); }
+.tu-insight-card.warning { border-color: #fde68a; background: linear-gradient(160deg, #fffdf3, #fff8e6); }
+.tu-insight-card.high    { border-color: #ef9a9a; background: linear-gradient(160deg, #fff7f7, #ffeded); }
+.tu-insight-card.low     { border-color: #90caf9; background: linear-gradient(160deg, #f4faff, #e9f4ff); }
+.tu-insight-card.normal::before  { background: linear-gradient(90deg, #4ade80, #16a34a); }
+.tu-insight-card.warning::before { background: linear-gradient(90deg, #fbbf24, #d97706); }
+.tu-insight-card.high::before    { background: linear-gradient(90deg, #f87171, #dc2626); }
+.tu-insight-card.low::before     { background: linear-gradient(90deg, #60a5fa, #2563eb); }
+.tu-insight-label { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--tu-muted); margin-bottom: .3rem; }
+.tu-insight-value { font-size: 1.25rem; font-weight: 800; line-height: 1.2; margin-bottom: .22rem; letter-spacing: -.3px; }
 .tu-insight-value .tu-insight-unit { font-size: .68em; font-weight: 600; margin-left: .18rem; }
 .tu-insight-card.normal  .tu-insight-value { color: #1b5e20; }
 .tu-insight-card.warning .tu-insight-value { color: #b84700; }
@@ -1029,33 +1059,35 @@
 }
 
 .tu-history-count {
-    font-size: .82rem;
-    font-weight: 600;
-    color: var(--tu-muted);
-    padding: .3rem .75rem;
-    background: var(--tu-light);
+    font-size: .8rem;
+    font-weight: 700;
+    color: var(--tu-primary-dk);
+    padding: .35rem .85rem;
+    background: linear-gradient(135deg, rgba(47,208,224,.14), rgba(27,174,190,.08));
     border-radius: 20px;
-    border: 1px solid var(--tu-border);
+    border: 1px solid rgba(27,174,190,.22);
 }
 
 /* Empty State */
 .tu-empty-state {
     text-align: center;
-    padding: 3.5rem 2rem;
+    padding: 4rem 2rem;
     color: var(--tu-muted);
 }
 
 .tu-empty-icon {
-    width: 64px;
-    height: 64px;
-    margin: 0 auto 1rem;
-    border-radius: 50%;
-    background: var(--tu-light);
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1.25rem;
+    border-radius: 24px;
+    background: linear-gradient(135deg, rgba(47,208,224,.14), rgba(27,174,190,.08));
+    border: 1px solid rgba(27,174,190,.18);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.8rem;
+    font-size: 2rem;
     color: var(--tu-primary);
+    box-shadow: 0 8px 24px rgba(27,174,190,.14);
 }
 
 .tu-empty-state h4 {
@@ -1077,65 +1109,75 @@
     justify-content: space-between;
     align-items: center;
     gap: 1rem;
-    padding: 1rem 1.5rem;
+    padding: 1.1rem 1.5rem;
     border-bottom: 1px solid var(--tu-border);
-    background: #fafbfc;
+    background: linear-gradient(180deg, #fcfdfe, #f8fafc);
     flex-wrap: wrap;
 }
 
 .tu-search-box {
     position: relative;
     flex: 1;
-    min-width: 200px;
-    max-width: 320px;
+    min-width: 220px;
+    max-width: 360px;
 }
 
 .tu-search-box i {
     position: absolute;
-    left: .85rem;
+    left: 1rem;
     top: 50%;
     transform: translateY(-50%);
     color: var(--tu-muted);
-    font-size: .8rem;
+    font-size: .82rem;
+    transition: color .2s;
 }
 
 .tu-search-box input {
     width: 100%;
-    padding: .55rem .85rem .55rem 2.5rem;
-    border: 1px solid var(--tu-border);
-    border-radius: 8px;
-    font-size: .85rem;
+    padding: .62rem 1rem .62rem 2.6rem;
+    border: 1.5px solid var(--tu-border);
+    border-radius: 11px;
+    font-size: .86rem;
     color: var(--tu-text);
     background: #fff;
     outline: none;
+    box-shadow: 0 1px 2px rgba(16,42,67,.04);
     transition: border-color .2s, box-shadow .2s;
 }
 
+.tu-search-box input::placeholder { color: #94a3b8; }
+
 .tu-search-box input:focus {
     border-color: var(--tu-primary);
-    box-shadow: 0 0 0 3px rgba(27,174,190,.08);
+    box-shadow: 0 0 0 3px rgba(27,174,190,.12);
 }
+.tu-search-box:focus-within i { color: var(--tu-primary); }
 
 .tu-filter-group {
     display: flex;
-    gap: .5rem;
+    gap: .55rem;
     flex-wrap: wrap;
 }
 
 .tu-filter-select {
-    padding: .55rem .85rem;
-    border: 1px solid var(--tu-border);
-    border-radius: 8px;
-    font-size: .82rem;
+    padding: .62rem 2rem .62rem .95rem;
+    border: 1.5px solid var(--tu-border);
+    border-radius: 11px;
+    font-size: .83rem;
+    font-weight: 600;
     color: var(--tu-text);
-    background: #fff;
+    background: #fff url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right .85rem center;
+    -webkit-appearance: none; -moz-appearance: none; appearance: none;
     cursor: pointer;
     outline: none;
-    transition: border-color .2s;
+    box-shadow: 0 1px 2px rgba(16,42,67,.04);
+    transition: border-color .2s, box-shadow .2s;
 }
 
+.tu-filter-select:hover { border-color: #cbd5e1; }
 .tu-filter-select:focus {
     border-color: var(--tu-primary);
+    box-shadow: 0 0 0 3px rgba(27,174,190,.12);
 }
 
 /* Table */
@@ -1150,15 +1192,15 @@
 }
 
 .tu-history-table thead th {
-    padding: .85rem 1.2rem;
+    padding: .8rem 1.2rem;
     text-align: center;
-    font-size: .75rem;
-    font-weight: 700;
+    font-size: .72rem;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: .05em;
-    color: var(--tu-muted);
-    background: #fafbfc;
-    border-bottom: 2px solid var(--tu-border);
+    letter-spacing: .07em;
+    color: #94a3b8;
+    background: #f8fafc;
+    border-bottom: 1px solid var(--tu-border);
     white-space: nowrap;
 }
 
@@ -1167,20 +1209,27 @@
 }
 
 .tu-history-table tbody tr {
-    border-bottom: 1px solid var(--tu-border);
-    transition: background .15s;
+    position: relative;
+    border-bottom: 1px solid #eef2f6;
+    transition: background .18s, box-shadow .18s;
 }
 
 .tu-history-table tbody tr:last-child {
     border-bottom: none;
 }
 
-.tu-history-table tbody tr:hover {
-    background: #fafbfc;
+.tu-history-table tbody tr::after {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: transparent; transition: background .18s;
 }
 
+.tu-history-table tbody tr:hover {
+    background: linear-gradient(90deg, rgba(27,174,190,.05), transparent 60%);
+}
+.tu-history-table tbody tr:hover::after { background: linear-gradient(180deg,#2fd0e0,#1BAEBE); }
+
 .tu-history-table tbody td {
-    padding: 1rem 1.2rem;
+    padding: 1.05rem 1.2rem;
     color: var(--tu-text);
     vertical-align: middle;
     text-align: center;
@@ -1210,21 +1259,28 @@
 
 .tu-test-type-single,
 .tu-test-type-main {
-    font-size: .85rem;
-    font-weight: 600;
+    font-size: .86rem;
+    font-weight: 700;
     color: var(--tu-text);
 }
 
 .tu-test-type-extra {
-    font-size: .75rem;
-    color: var(--tu-muted);
+    display: inline-block;
+    font-size: .68rem;
+    font-weight: 700;
+    color: var(--tu-primary-dk);
+    padding: .12rem .5rem;
+    background: rgba(27,174,190,.1);
+    border: 1px solid rgba(27,174,190,.2);
+    border-radius: 20px;
+    margin-top: .15rem;
 }
 
 /* Status Column */
 .tu-status-dot {
     display: inline-block;
-    width: 8px;
-    height: 8px;
+    width: 9px;
+    height: 9px;
     border-radius: 50%;
     margin-right: .5rem;
     vertical-align: middle;
@@ -1232,41 +1288,53 @@
 
 .tu-status-dot.reviewed {
     background: var(--tu-primary);
+    box-shadow: 0 0 0 3px rgba(27,174,190,.18);
 }
 
 .tu-status-dot.pending {
     background: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245,158,11,.2);
+    animation: tuDotPulse 1.6s ease-in-out infinite;
+}
+@@keyframes tuDotPulse {
+    0%,100% { box-shadow: 0 0 0 3px rgba(245,158,11,.2); }
+    50%     { box-shadow: 0 0 0 5px rgba(245,158,11,.08); }
 }
 
 .tu-status-text {
-    font-size: .82rem;
-    font-weight: 500;
+    font-size: .83rem;
+    font-weight: 600;
     color: var(--tu-text);
 }
 
 /* Result Column */
 .tu-result-badge {
-    display: inline-block;
-    padding: .3rem .7rem;
-    border-radius: 6px;
-    font-size: .78rem;
+    display: inline-flex;
+    align-items: center;
+    padding: .34rem .8rem;
+    border-radius: 20px;
+    font-size: .77rem;
     font-weight: 700;
     white-space: nowrap;
+    border: 1px solid transparent;
 }
 
 .tu-result-badge.normal {
-    background: #e8f5e9;
-    color: #2e7d32;
+    background: #ecfdf3;
+    color: #15803d;
+    border-color: #a7f3c9;
 }
 
 .tu-result-badge.warning {
-    background: #fff3e0;
-    color: #e65100;
+    background: #fff8eb;
+    color: #b45309;
+    border-color: #fcd9a3;
 }
 
 .tu-result-badge.high {
-    background: #ffebee;
-    color: #c62828;
+    background: #fef2f2;
+    color: #b91c1c;
+    border-color: #fca5a5;
 }
 
 .tu-result-pending {
@@ -1289,46 +1357,55 @@
 }
 
 .tu-action-btn {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid var(--tu-border);
-    border-radius: 6px;
+    border: 1.5px solid var(--tu-border);
+    border-radius: 10px;
     background: #fff;
     color: var(--tu-muted);
-    font-size: .8rem;
+    font-size: .82rem;
     cursor: pointer;
-    transition: all .2s;
+    transition: transform .18s, box-shadow .18s, border-color .18s, color .18s, background .18s;
 }
 
 .tu-action-btn:hover {
-    background: var(--tu-light);
+    background: rgba(27,174,190,.06);
     border-color: var(--tu-primary);
     color: var(--tu-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(27,174,190,.18);
 }
 
 .tu-action-primary {
-    border-color: var(--tu-primary);
+    border-color: rgba(27,174,190,.4);
     color: var(--tu-primary);
-    background: rgba(27,174,190,.05);
+    background: rgba(27,174,190,.07);
 }
 
 .tu-action-primary:hover {
-    background: var(--tu-primary);
+    background: linear-gradient(135deg, #2fd0e0, #1BAEBE);
+    border-color: transparent;
     color: #fff;
+    box-shadow: 0 6px 16px rgba(27,174,190,.4);
 }
 
 .tu-processing-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    color: var(--tu-muted);
-    font-size: .75rem;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: #fff8eb;
+    border: 1.5px solid #fcd9a3;
+    color: #b45309;
+    font-size: .78rem;
 }
+.tu-processing-badge i { animation: tuSpin 2.4s linear infinite; }
+@@keyframes tuSpin { to { transform: rotate(360deg); } }
 
 /* Pagination */
 .tu-pagination {
@@ -1354,16 +1431,16 @@
 }
 
 .tu-page-btn {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid var(--tu-border);
-    border-radius: 6px;
+    border: 1.5px solid var(--tu-border);
+    border-radius: 10px;
     background: #fff;
     color: var(--tu-muted);
-    font-size: .75rem;
+    font-size: .78rem;
     cursor: pointer;
     transition: all .2s;
 }
@@ -1372,6 +1449,8 @@
     background: var(--tu-primary);
     border-color: var(--tu-primary);
     color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(27,174,190,.3);
 }
 
 .tu-page-btn:disabled {
@@ -1381,35 +1460,37 @@
 
 .tu-page-numbers {
     display: flex;
-    gap: .3rem;
+    gap: .35rem;
 }
 
 .tu-page-num {
-    min-width: 32px;
-    height: 32px;
+    min-width: 36px;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0 .5rem;
-    border: 1px solid var(--tu-border);
-    border-radius: 6px;
+    padding: 0 .55rem;
+    border: 1.5px solid var(--tu-border);
+    border-radius: 10px;
     background: #fff;
     color: var(--tu-text);
-    font-size: .82rem;
-    font-weight: 600;
+    font-size: .83rem;
+    font-weight: 700;
     cursor: pointer;
     transition: all .2s;
 }
 
 .tu-page-num:hover {
-    background: var(--tu-light);
+    background: rgba(27,174,190,.06);
     border-color: var(--tu-primary);
+    color: var(--tu-primary);
 }
 
 .tu-page-num.active {
-    background: var(--tu-primary);
-    border-color: var(--tu-primary);
+    background: linear-gradient(135deg, #2fd0e0, #1BAEBE);
+    border-color: transparent;
     color: #fff;
+    box-shadow: 0 4px 12px rgba(27,174,190,.35);
 }
 
 .tu-pagination-size {
@@ -1417,15 +1498,18 @@
 }
 
 .tu-page-size-select {
-    padding: .45rem .7rem;
-    border: 1px solid var(--tu-border);
-    border-radius: 6px;
+    padding: .5rem .8rem;
+    border: 1.5px solid var(--tu-border);
+    border-radius: 10px;
     font-size: .8rem;
+    font-weight: 600;
     color: var(--tu-text);
     background: #fff;
     cursor: pointer;
     outline: none;
+    transition: border-color .2s, box-shadow .2s;
 }
+.tu-page-size-select:focus { border-color: var(--tu-primary); box-shadow: 0 0 0 3px rgba(27,174,190,.12); }
 
 /* Responsive */
 @@media (max-width: 768px) {
@@ -1526,6 +1610,120 @@
 .tu-pi-value { font-size: .92rem; font-weight: 700; color: var(--tu-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ════════════════════════════════════════════
+   PATIENT INFO HORIZONTAL STRIP
+════════════════════════════════════════════ */
+.tu-pi-strip {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+    gap: .65rem; padding: .15rem 0 .25rem;
+}
+.tu-pi-chip {
+    position: relative; display: flex; flex-direction: column; gap: .3rem;
+    padding: .75rem .9rem; border-radius: 13px;
+    background: linear-gradient(160deg, #ffffff 0%, #f6f9fb 100%);
+    border: 1px solid var(--tu-border);
+    box-shadow: 0 1px 2px rgba(16,42,67,.04);
+    transition: box-shadow .2s, transform .2s, border-color .2s;
+}
+.tu-pi-chip:hover { box-shadow: 0 8px 22px rgba(16,42,67,.10); transform: translateY(-2px); border-color: rgba(27,174,190,.4); }
+.tu-pi-chip-label {
+    font-size: .64rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: .06em; color: var(--tu-muted); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+}
+.tu-pi-chip-value { font-size: 1rem; font-weight: 800; color: var(--tu-text); white-space: nowrap; letter-spacing: -.2px; }
+
+/* ════════════════════════════════════════════
+   RISK SCORE CARD
+════════════════════════════════════════════ */
+.tu-risk-score {
+    display: flex; align-items: center; gap: 1rem;
+    padding: 1rem 1.25rem; border-radius: 12px; border: 2px solid;
+}
+.tu-risk-score.safe    { background: #f0fdf4; border-color: #86efac; }
+.tu-risk-score.warning { background: #fffbeb; border-color: #fcd34d; }
+.tu-risk-score.danger  { background: #fef2f2; border-color: #fca5a5; }
+.tu-risk-score-icon {
+    width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 1.3rem;
+}
+.tu-risk-score.safe    .tu-risk-score-icon { background: #dcfce7; color: #16a34a; }
+.tu-risk-score.warning .tu-risk-score-icon { background: #fef3c7; color: #d97706; }
+.tu-risk-score.danger  .tu-risk-score-icon { background: #fee2e2; color: #dc2626; }
+.tu-risk-score-body { flex: 1; min-width: 0; }
+.tu-risk-score-level { font-size: 1rem; font-weight: 800; margin: 0 0 .22rem; }
+.tu-risk-score.safe    .tu-risk-score-level { color: #15803d; }
+.tu-risk-score.warning .tu-risk-score-level { color: #d97706; }
+.tu-risk-score.danger  .tu-risk-score-level { color: #dc2626; }
+.tu-risk-score-meta {
+    display: flex; align-items: center; gap: .65rem; flex-wrap: wrap;
+    font-size: .78rem; color: var(--tu-muted);
+}
+.tu-conf-bar-wrap { display: flex; align-items: center; gap: .5rem; flex: 1; min-width: 100px; }
+.tu-conf-bar-track {
+    flex: 1; height: 6px; background: rgba(0,0,0,.08); border-radius: 6px; overflow: hidden;
+}
+.tu-conf-bar-fill { height: 100%; border-radius: 6px; transition: width 1.2s ease; }
+.tu-risk-score.safe    .tu-conf-bar-fill { background: linear-gradient(90deg,#4ade80,#16a34a); }
+.tu-risk-score.warning .tu-conf-bar-fill { background: linear-gradient(90deg,#fbbf24,#d97706); }
+.tu-risk-score.danger  .tu-conf-bar-fill { background: linear-gradient(90deg,#f87171,#dc2626); }
+.tu-conf-pct { font-size: .74rem; font-weight: 700; white-space: nowrap; }
+.tu-risk-score.safe    .tu-conf-pct { color: #16a34a; }
+.tu-risk-score.warning .tu-conf-pct { color: #d97706; }
+.tu-risk-score.danger  .tu-conf-pct { color: #dc2626; }
+
+/* ════════════════════════════════════════════
+   SECTION HEADING WITH ACCENT
+════════════════════════════════════════════ */
+.tu-section-h {
+    display: flex; align-items: center; gap: .55rem; margin: 0 0 1rem;
+    font-size: 1rem; font-weight: 800; color: var(--tu-text); letter-spacing: -.2px;
+}
+.tu-section-h i {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
+    background: linear-gradient(135deg, rgba(47,208,224,.16), rgba(27,174,190,.12));
+    color: var(--tu-primary); font-size: .82rem;
+}
+
+/* ════════════════════════════════════════════
+   AI REPORT BLOCK
+════════════════════════════════════════════ */
+.tu-ai-block {
+    position: relative; background: #fff; border-radius: 14px;
+    border: 1px solid var(--tu-border); overflow: hidden;
+    box-shadow: 0 4px 18px rgba(16,42,67,.06);
+}
+.tu-ai-block::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    background: linear-gradient(180deg, #2fd0e0, #1BAEBE);
+}
+.tu-ai-block-body { padding: 1.25rem 1.5rem 1.25rem 1.7rem; line-height: 1.78; width: 100%; }
+
+/* ════════════════════════════════════════════
+   NUMBERED RECOMMENDATIONS
+════════════════════════════════════════════ */
+.tu-rec-numbered {
+    display: flex; align-items: flex-start; gap: .7rem;
+    padding: .55rem .85rem; border-radius: 8px;
+    background: var(--tu-light); border: 1px solid var(--tu-border);
+    margin-bottom: .4rem; font-size: .84rem; color: var(--tu-text); line-height: 1.55;
+}
+.tu-rec-num {
+    width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+    background: var(--tu-primary); color: #fff;
+    font-size: .69rem; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; margin-top: .05rem;
+}
+
+/* ════════════════════════════════════════════
+   INSIGHT CARD ACCENT BORDERS
+════════════════════════════════════════════ */
+.tu-insight-card.normal  { border-left: 3px solid #66bb6a; }
+.tu-insight-card.warning { border-left: 3px solid #ffa726; }
+.tu-insight-card.high    { border-left: 3px solid #ef5350; }
+.tu-insight-card.low     { border-left: 3px solid #42a5f5; }
+
+/* ════════════════════════════════════════════
    RISK PREDICTION BANNER
 ════════════════════════════════════════════ */
 .tu-risk-banner {
@@ -1542,19 +1740,29 @@
 /* ════════════════════════════════════════════
    AI MEDICAL REPORT TEXT
 ════════════════════════════════════════════ */
-.tu-ai-report-section { background: rgba(27,174,190,.02); }
+.tu-ai-report-section { background: linear-gradient(180deg, #fbfdfe, #f7fafc); }
 .tu-ai-report-body { padding: .5rem 0; line-height: 1.7; }
 .tu-report-heading {
-    margin: 1rem 0 .4rem; font-size: .92rem; font-weight: 800; color: var(--tu-text);
-    padding-bottom: .3rem; border-bottom: 2px solid rgba(27,174,190,.2);
+    display: flex; align-items: center; gap: .5rem;
+    margin: 1.35rem 0 .6rem; font-size: .92rem; font-weight: 800; color: var(--tu-primary-dk);
+    text-transform: uppercase; letter-spacing: .04em;
 }
-.tu-report-para { margin: 0 0 .6rem; font-size: .86rem; color: #334155; line-height: 1.7; }
+.tu-report-heading::before {
+    content: ""; width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, #2fd0e0, #1BAEBE); box-shadow: 0 0 0 3px rgba(27,174,190,.14);
+}
+.tu-report-heading:first-child { margin-top: 0; }
+.tu-report-para { margin: 0 0 .75rem; font-size: .88rem; color: #334155; line-height: 1.78; }
 .tu-report-bullet {
-    display: flex; align-items: flex-start; gap: .5rem;
-    margin: 0 0 .4rem; font-size: .84rem; color: #334155; line-height: 1.6;
-    list-style: none; padding-left: .5rem;
+    display: flex; align-items: flex-start; gap: .55rem;
+    margin: 0 0 .5rem; font-size: .86rem; color: #334155; line-height: 1.65;
+    list-style: none; padding: .15rem 0;
 }
-.tu-report-bullet i { color: var(--tu-primary); margin-top: .22rem; flex-shrink: 0; font-size: .7rem; }
+.tu-report-bullet i {
+    color: var(--tu-primary); margin-top: .15rem; flex-shrink: 0; font-size: .7rem;
+    width: 18px; height: 18px; border-radius: 50%; background: rgba(27,174,190,.1);
+    display: inline-flex; align-items: center; justify-content: center;
+}
 
 /* ════════════════════════════════════════════
    ANIMATIONS
@@ -1691,15 +1899,466 @@
   }
   .tu-modal-close:hover { background:#e2e8f0; }
 
+/* ════════════════════════════════════════════════════
+   NEW DESIGN LAYER  (l* prefix — page structure)
+════════════════════════════════════════════════════ */
+:root {
+    --lp: #1BAEBE;
+    --lp-dk: #138fa0;
+    --lt: #1e293b;
+    --lm: #64748b;
+    --ll: #f8fafc;
+    --lb: #e2e8f0;
+    --lr: 18px;
+    --lsh: 0 1px 2px rgba(16,42,67,.04), 0 6px 22px rgba(16,42,67,.07);
+}
+
+/* ── Header / Hero ── */
+.lh {
+    position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.7rem 2rem;
+    background: linear-gradient(120deg, #0b2c43 0%, #114e66 52%, #0c7185 100%);
+    border: 1px solid rgba(27,174,190,.28);
+    border-radius: 22px;
+    margin-bottom: 1.5rem; gap: 1.5rem; flex-wrap: wrap;
+    box-shadow: 0 14px 38px rgba(11,44,67,.30), 0 2px 6px rgba(0,0,0,.05);
+}
+.lh::before {
+    content: ""; position: absolute; top: -70px; right: -50px;
+    width: 260px; height: 260px; pointer-events: none;
+    background: radial-gradient(circle, rgba(47,208,224,.30) 0%, transparent 70%);
+}
+.lh::after {
+    content: ""; position: absolute; bottom: -90px; left: 18%;
+    width: 300px; height: 300px; pointer-events: none;
+    background: radial-gradient(circle, rgba(27,174,190,.18) 0%, transparent 70%);
+}
+.lh-brand { display: flex; align-items: center; gap: 1.05rem; position: relative; z-index: 1; }
+.lh-icon {
+    width: 54px; height: 54px; border-radius: 16px; flex-shrink: 0;
+    background: linear-gradient(135deg, #2fd0e0, #1BAEBE);
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-size: 1.35rem; box-shadow: 0 10px 24px rgba(27,174,190,.5);
+}
+.lh-title-row { display: flex; align-items: center; gap: .7rem; flex-wrap: wrap; }
+.lh-title { margin: 0; font-size: 1.55rem; font-weight: 800; color: #f1f7fa; letter-spacing: -.4px; }
+.lh-ai-badge {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .3rem .8rem; border-radius: 22px;
+    font-size: .72rem; font-weight: 800; letter-spacing: .02em;
+    color: #062c36; white-space: nowrap;
+    background: linear-gradient(135deg, #6ee7f5, #2fd0e0);
+    box-shadow: 0 4px 14px rgba(47,208,224,.45);
+}
+.lh-sub   { margin: .35rem 0 0; font-size: .85rem; color: #aacddc; display: flex; align-items: center; gap: .45rem; }
+.lh-sub-icon { color: #5fd6e6; }
+
+/* ── Stepper (frosted, on hero) ── */
+.lh-steps {
+    display: flex; align-items: center; position: relative; z-index: 1;
+    background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.15);
+    border-radius: 16px; padding: .75rem 1.2rem; backdrop-filter: blur(8px);
+}
+.ls-item  { display: flex; flex-direction: column; align-items: center; gap: .35rem; }
+.ls-dot {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(255,255,255,.14); color: #cfe6ee;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .8rem; font-weight: 800; transition: background .35s, color .35s, box-shadow .35s, transform .35s;
+}
+.ls-item.active .ls-dot {
+    background: linear-gradient(135deg, #6ee7f5, #1BAEBE); color: #062c36;
+    box-shadow: 0 0 0 4px rgba(47,208,224,.22), 0 4px 12px rgba(47,208,224,.4); transform: scale(1.08);
+}
+.ls-item.completed .ls-dot { background: #34d399; color: #04331f; box-shadow: 0 3px 10px rgba(52,211,153,.4); }
+.ls-lbl {
+    font-size: .7rem; font-weight: 600; color: rgba(214,236,243,.62);
+    transition: color .3s; white-space: nowrap;
+}
+.ls-item.active .ls-lbl    { color: #ffffff; font-weight: 700; }
+.ls-item.completed .ls-lbl { color: #86efac; }
+.ls-track {
+    width: 46px; height: 2px; background: rgba(255,255,255,.2);
+    border-radius: 2px; margin: 0 6px; margin-bottom: 18px;
+    display: block; transition: background .4s; flex-shrink: 0;
+}
+.ls-track.active { background: linear-gradient(90deg, #2fd0e0, #34d399); }
+@@media (max-width: 600px) {
+    .lh { padding: 1.4rem 1.4rem; }
+    .lh-steps { width: 100%; justify-content: center; }
+    .lh-title { font-size: 1.3rem; }
+    .ls-lbl { display: none; }
+    .ls-track { width: 26px; }
+}
+
+/* ── Step panels ── */
+.lp { margin-bottom: 1.25rem; }
+
+/* ── Card ── */
+.lcard {
+    background: #fff; border: 1px solid rgba(226,232,240,.8);
+    border-radius: var(--lr); box-shadow: var(--lsh); overflow: hidden;
+    transition: box-shadow .25s;
+}
+.lcard:hover { box-shadow: 0 2px 4px rgba(16,42,67,.05), 0 14px 40px rgba(16,42,67,.10); }
+.lcard--accent { border-color: rgba(27,174,190,.3); box-shadow: 0 8px 34px rgba(27,174,190,.13); }
+/* Report card → branded clinical header */
+.lcard--accent > .lcard-hd {
+    position: relative; overflow: hidden;
+    background: linear-gradient(120deg, #0b2c43 0%, #114e66 55%, #0c7185 100%);
+    border-bottom: none;
+}
+.lcard--accent > .lcard-hd::after {
+    content: ""; position: absolute; top: -60px; right: -30px; width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(47,208,224,.28) 0%, transparent 70%); pointer-events: none;
+}
+.lcard--accent > .lcard-hd .lcard-title { color: #f1f7fa; font-size: 1.15rem; position: relative; z-index: 1; }
+.lcard--accent > .lcard-hd .lcard-sub   { color: #9fc4d4; position: relative; z-index: 1; }
+.lcard--accent > .lcard-hd .lconf-badge {
+    position: relative; z-index: 1;
+    background: rgba(255,255,255,.12); color: #c7f1f7;
+    border: 1px solid rgba(125,232,244,.4); backdrop-filter: blur(6px);
+}
+.lcard-hd {
+    padding: 1.35rem 1.6rem; border-bottom: 1px solid var(--lb);
+    background: linear-gradient(180deg, #fcfdfe 0%, #f8fafc 100%);
+}
+.lcard-hd--flex {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    flex-wrap: wrap; gap: .75rem;
+}
+.lcard-title { margin: 0 0 .25rem; font-size: 1.1rem; font-weight: 800; color: var(--lt); letter-spacing: -.2px; }
+.lcard-sub   { margin: 0; font-size: .8rem; color: var(--lm); }
+.lcard-ft {
+    padding: 1rem 1.5rem; border-top: 1px solid var(--lb);
+    background: #fafbfc; display: flex; align-items: center; gap: .65rem; flex-wrap: wrap;
+}
+
+/* ── Upload layout ── */
+.lup-grid {
+    display: grid; grid-template-columns: 260px 1fr; gap: 1.25rem;
+    padding: 1.5rem; align-items: start;
+}
+@@media (max-width: 768px) { .lup-grid { grid-template-columns: 1fr; } }
+.lup-left { display: flex; flex-direction: column; }
+
+/* ── Form elements ── */
+.lfg  { display: flex; flex-direction: column; gap: .38rem; }
+.lflbl { font-size: .82rem; font-weight: 700; color: var(--lt); }
+.lsel-wrap { position: relative; }
+.lsel {
+    width: 100%; padding: .62rem 2.2rem .62rem .95rem;
+    border: 1.5px solid var(--lb); border-radius: 10px;
+    font-size: .88rem; color: var(--lt); background: var(--ll);
+    appearance: none; outline: none; font-family: inherit; cursor: pointer;
+    transition: border-color .2s, box-shadow .2s;
+}
+.lsel:focus { border-color: var(--lp); box-shadow: 0 0 0 3px rgba(27,174,190,.1); background: #fff; }
+.lsel-chevron {
+    position: absolute; right: .85rem; top: 50%; transform: translateY(-50%);
+    color: var(--lm); font-size: .74rem; pointer-events: none;
+}
+.lfhint { font-size: .73rem; color: var(--lm); margin: 0; }
+.lq-hd  {
+    font-size: .72rem; font-weight: 700; color: var(--lm);
+    text-transform: uppercase; letter-spacing: .05em; margin: 0 0 .45rem;
+}
+
+/* ── Drop zone ── */
+.ldz {
+    position: relative; overflow: hidden;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: .65rem; padding: 3rem 1.5rem;
+    border: 2px dashed #bcd3e0; border-radius: 18px;
+    background: linear-gradient(160deg, #f7fbfc 0%, #eef7f9 100%);
+    cursor: pointer; text-align: center; min-height: 250px;
+    transition: border-color .25s, background .25s, box-shadow .25s, transform .25s;
+}
+.ldz:hover, .ldz.drag-over {
+    border-color: var(--lp); border-style: solid;
+    background: linear-gradient(160deg, #f0fbfc 0%, #e2f5f8 100%);
+    box-shadow: 0 0 0 5px rgba(27,174,190,.10), 0 12px 30px rgba(27,174,190,.12);
+    transform: translateY(-2px);
+}
+.ldz-icn {
+    width: 68px; height: 68px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(47,208,224,.18), rgba(27,174,190,.14)); color: var(--lp);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; transition: transform .25s, box-shadow .25s;
+    box-shadow: 0 6px 16px rgba(27,174,190,.16);
+}
+.ldz:hover .ldz-icn, .ldz.drag-over .ldz-icn { transform: scale(1.1) translateY(-3px); box-shadow: 0 12px 26px rgba(27,174,190,.28); }
+.ldz-title { margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--lt); }
+.ldz-sub   { margin: 0; font-size: .85rem; color: var(--lm); }
+.ldz-link  { color: var(--lp); font-weight: 700; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
+.ldz-hint  {
+    font-size: .72rem; color: var(--lm); font-weight: 500;
+    background: #fff; border: 1px solid var(--lb);
+    border-radius: 20px; padding: .32rem .9rem; margin-top: .25rem;
+    box-shadow: 0 1px 3px rgba(16,42,67,.05);
+}
+
+/* ── Extraction progress ── */
+#extractionProgress {
+    display: flex; flex-direction: column-reverse; gap: .8rem;
+    margin: 1.25rem 1.5rem; padding: 1.1rem 1.25rem;
+    background: linear-gradient(135deg, rgba(47,208,224,.08), rgba(27,174,190,.035));
+    border: 1px solid rgba(27,174,190,.22); border-radius: 14px;
+    box-shadow: 0 4px 16px rgba(27,174,190,.08); animation: tuFadeIn .3s ease;
+}
+.lext-track {
+    position: relative; height: 8px; background: rgba(27,174,190,.14);
+    margin: 0; border-radius: 8px; overflow: hidden;
+}
+.lext-track::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.6), transparent);
+    animation: lshimmer 1.4s ease-in-out infinite;
+}
+.lext-fill  {
+    position: relative; z-index: 1;
+    height: 100%; width: 0%; border-radius: 8px;
+    background: linear-gradient(90deg, var(--lp), var(--lp-dk));
+    transition: width .35s ease;
+}
+.lext-status {
+    padding: 0; font-size: .88rem; color: var(--lp-dk);
+    font-weight: 700; display: flex; align-items: center; gap: .6rem; margin: 0; line-height: 1.4;
+}
+.lext-status::before {
+    content: ''; width: 17px; height: 17px; border-radius: 50%; flex-shrink: 0;
+    border: 2px solid rgba(27,174,190,.25); border-top-color: var(--lp);
+    animation: lring .8s linear infinite;
+}
+
+/* ── Submit row ── */
+.lsubmit-row {
+    padding: 1rem 1.5rem; border-top: 1px solid var(--lb); background: #fafbfc;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: .75rem;
+}
+.lsubmit-info {
+    font-size: .8rem; color: var(--lm);
+    display: flex; align-items: center; gap: .4rem; flex: 1;
+}
+.lsubmit-info i { color: var(--lp); flex-shrink: 0; }
+.lsubmit-actions { display: flex; align-items: center; gap: .65rem; flex-wrap: wrap; }
+.lapprove-ct {
+    font-size: .77rem; font-weight: 700; color: var(--lm);
+    padding: .26rem .7rem; background: var(--ll);
+    border: 1px solid var(--lb); border-radius: 20px;
+}
+
+/* ── Report loading ── */
+.lreport-loading { padding: 3.5rem 1.5rem; display: flex; align-items: center; justify-content: center; min-height: 420px; }
+.lreport-loading-inner { text-align: center; max-width: 420px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; align-items: center; }
+.lreport-loading-inner .lload-steps,
+.lreport-loading-inner .lload-bar { width: 100%; }
+.lreport-spinner {
+    position: relative;
+    width: 84px; height: 84px; border-radius: 50%; margin: 0 auto 1.4rem;
+    background: radial-gradient(circle, rgba(27,174,190,.16) 0%, rgba(27,174,190,.06) 70%); color: var(--lp);
+    display: flex; align-items: center; justify-content: center; font-size: 1.9rem;
+    animation: lspin 2s ease-in-out infinite;
+}
+.lreport-spinner::before {
+    content: ""; position: absolute; inset: -8px; border-radius: 50%;
+    background: conic-gradient(from 0deg, transparent 0%, rgba(47,208,224,.0) 55%, #2fd0e0 80%, #1BAEBE 100%);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+            mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+    animation: lring 1.1s linear infinite;
+}
+.lreport-spinner::after {
+    content: ""; position: absolute; inset: -16px; border-radius: 50%;
+    border: 1.5px dashed rgba(27,174,190,.25); animation: lring 9s linear infinite reverse;
+}
+@@keyframes lring { to { transform: rotate(360deg); } }
+.lreport-loading-inner h4 { margin: 0 0 .45rem; font-size: 1.1rem; font-weight: 800; color: var(--lt); letter-spacing: -.2px; }
+.lreport-loading-inner p  { margin: 0 0 1.5rem; font-size: .86rem; color: var(--lm); line-height: 1.6; }
+.lload-steps { display: flex; flex-direction: column; gap: .45rem; margin-bottom: 1.25rem; text-align: left; }
+.lload-step {
+    font-size: .82rem; color: var(--lm); padding: .5rem .85rem;
+    border-radius: 10px; display: flex; align-items: center; gap: .6rem;
+    border: 1px solid transparent; transition: background .3s, color .3s, border-color .3s;
+}
+.lload-step.active {
+    color: var(--lp-dk); background: rgba(27,174,190,.08);
+    border-color: rgba(27,174,190,.22); font-weight: 700;
+}
+.lload-step.done   { color: #15803d; background: #f0fdf4; border-color: #bbf7d0; }
+.lload-bar { position: relative; height: 6px; background: var(--lb); border-radius: 6px; overflow: hidden; }
+.lload-bar::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(27,174,190,.35), transparent);
+    animation: lshimmer 1.4s ease-in-out infinite;
+}
+.lload-bar-fill {
+    position: relative; z-index: 1;
+    height: 100%; width: 0%; border-radius: 6px;
+    background: linear-gradient(90deg, var(--lp), var(--lp-dk));
+    transition: width .5s ease;
+}
+@@keyframes lshimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+/* ── Confidence badge ── */
+.lconf-badge {
+    display: inline-flex; align-items: center; gap: .35rem;
+    padding: .3rem .8rem; border-radius: 20px; font-size: .73rem; font-weight: 700;
+    background: rgba(27,174,190,.1); color: var(--lp);
+    border: 1px solid rgba(27,174,190,.2); white-space: nowrap;
+}
+
+/* ── Report actions ── */
+.lreport-actions {
+    padding: 1.1rem 1.5rem; border-top: 1px solid var(--lb);
+    background: #fafbfc; display: flex; align-items: center; gap: .65rem; flex-wrap: wrap;
+}
+
+/* ── Badge ── */
+.lbadge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 20px; height: 20px; border-radius: 10px; padding: 0 .3rem;
+    background: rgba(255,255,255,.2); font-size: .69rem; font-weight: 800; margin-left: .05rem;
+}
+
+/* ── Low-confidence warning ── */
+.lconf-warn {
+    display: flex; align-items: center; gap: .55rem;
+    margin: 0 1.5rem .85rem; padding: .65rem 1rem;
+    background: #fffbeb; border: 1.5px solid #fcd34d;
+    border-radius: 9px; font-size: .8rem; color: #92400e; font-weight: 500;
+}
+.lconf-warn i { color: #d97706; flex-shrink: 0; }
+
+/* ── Buttons ── */
+.lbtn {
+    display: inline-flex; align-items: center; gap: .45rem;
+    padding: .58rem 1.25rem; border-radius: 9px;
+    font-size: .83rem; font-weight: 700; cursor: pointer; border: none;
+    font-family: inherit; transition: all .2s; white-space: nowrap;
+}
+.lbtn:hover:not(:disabled) { transform: translateY(-1px); }
+.lbtn:disabled { opacity: .5; cursor: not-allowed; transform: none !important; }
+.lbtn-primary {
+    background: linear-gradient(135deg, var(--lp), var(--lp-dk));
+    color: #fff; box-shadow: 0 2px 8px rgba(27,174,190,.28);
+}
+.lbtn-primary:hover:not(:disabled) { box-shadow: 0 4px 16px rgba(27,174,190,.42); }
+.lbtn-outline {
+    background: transparent; color: var(--lp); border: 1.5px solid var(--lp);
+}
+.lbtn-outline:hover:not(:disabled) { background: rgba(27,174,190,.06); }
+.lbtn-ghost {
+    background: var(--ll); color: var(--lm); border: 1.5px solid var(--lb);
+}
+.lbtn-ghost:hover:not(:disabled) { background: #f1f5f9; border-color: #cbd5e1; }
+.lbtn-danger-ghost {
+    background: transparent; color: #c62828; border: 1.5px solid #ef9a9a;
+    font-size: .79rem; padding: .4rem .9rem;
+}
+.lbtn-danger-ghost:hover:not(:disabled) { background: #ffebee; }
+.lbtn-lg { padding: .68rem 1.5rem; font-size: .88rem; }
+
+/* ── Animations ── */
+@@keyframes lpulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.45; transform:scale(.75); } }
+@@keyframes lspin  { 0%,100% { transform:scale(1); opacity:1;  } 50% { transform:scale(1.06); opacity:.65; } }
+@@keyframes shake  { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+
+/* ── Test type validation ── */
+.lsel--error { border-color: #e53935 !important; box-shadow: 0 0 0 2px rgba(229,57,53,.18) !important; }
+.lfg--shake { animation: shake .45s ease; }
+.lfhint--error { color: #e53935 !important; font-weight: 600; }
+
+/* ── Error card in review list ── */
+.tu-test-card--error { border-color: #ffcdd2 !important; background: #fff8f8; }
+.tu-error-body { padding: .85rem 1rem 1rem; }
+.tu-error-msg { color: #c62828; font-size: .84rem; margin: 0 0 .35rem; }
+.tu-error-file { font-size: .78rem; color: var(--tu-muted); margin: 0; }
+
+/* ── Report error section ── */
+.tu-report-error-section { padding: 2.5rem 1rem; text-align: center; }
+.tu-report-error-inner { display:inline-flex; flex-direction:column; align-items:center; gap:.75rem; max-width:400px; }
+.tu-report-error-icon { font-size:2.5rem; color:#e53935; }
+.tu-report-error-inner h4 { margin:0; font-size:1.1rem; font-weight:700; color:var(--lt); }
+.tu-report-error-msg { color:var(--lm); font-size:.88rem; margin:0; }
+.tu-report-error-actions { display:flex; gap:.75rem; flex-wrap:wrap; justify-content:center; margin-top:.25rem; }
+
+/* ── Pending analysis banner ── */
+.tu-resume-banner { background: #e3f2fd; border-bottom: 2px solid #90caf9; padding: .6rem 1.25rem; }
+.tu-resume-banner-inner { display:flex; align-items:center; gap:.85rem; max-width:900px; margin:0 auto; }
+.tu-resume-icon { font-size:1.4rem; color:#1976d2; flex-shrink:0; }
+.tu-resume-text { flex:1; display:flex; flex-direction:column; gap:.1rem; }
+.tu-resume-text strong { font-size:.88rem; color:#1565c0; }
+.tu-resume-text span { font-size:.8rem; color:#1976d2; }
+.tu-resume-dismiss { padding:.25rem .6rem; font-size:.75rem; }
+
+/* ── Close window note ── */
+.tu-close-note {
+    font-size:.76rem; color:var(--lm); margin:1.1rem auto 0; max-width:340px;
+    display:flex; align-items:center; justify-content:center; gap:.4rem; text-align:center;
+    line-height:1.5; padding:.6rem .9rem; border-radius:10px;
+    background:rgba(27,174,190,.05); border:1px solid rgba(27,174,190,.14);
+}
+.tu-close-note i { flex-shrink:0; color:var(--lp); }
+
 </style>
 }
 
+<!-- ══ Share Report with Doctor Modal ══ -->
+<div id="shareReportModal" class="tu-modal-overlay" role="dialog" aria-modal="true"
+     aria-labelledby="shareReportModalTitle" style="display:none">
+    <div class="tu-modal" style="max-width:430px;border-radius:16px;max-height:fit-content">
+        <div class="tu-modal-hdr">
+            <div class="tu-modal-hdr-left">
+                <div class="tu-card-icon-wrap" style="background:linear-gradient(135deg,#1BAEBE,#0d8fa0)">
+                    <i class="fas fa-share-alt" style="color:#fff"></i>
+                </div>
+                <div>
+                    <h5 id="shareReportModalTitle" class="tu-modal-title" style="margin:0">Share with Doctor</h5>
+                    <p style="margin:0;font-size:.78rem;color:#64748b">Send your lab analysis report as a PDF</p>
+                </div>
+            </div>
+            <div class="tu-modal-hdr-right">
+                <button class="tu-modal-close-btn" id="shareReportModalClose" type="button" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div class="tu-modal-body" style="padding:1.25rem 1.5rem;overflow:hidden">
+            <p style="color:#64748b;margin:0 0 1rem;font-size:.875rem">
+                The report will be generated as a PDF and sent directly to the selected doctor's chat.
+            </p>
+            <label for="shareReportDoctorSelect" style="font-weight:600;font-size:.82rem;display:block;margin-bottom:.45rem;color:#374151">
+                Select Doctor
+            </label>
+            <select id="shareReportDoctorSelect"
+                    style="width:100%;padding:.6rem .85rem;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.9rem;color:#1e293b;background:#fafafa;outline:none">
+            </select>
+        </div>
+        <div style="padding:.9rem 1.5rem;display:flex;justify-content:flex-end;gap:.6rem;border-top:1px solid #f0f0f5">
+            <button type="button" class="lbtn lbtn-ghost" id="shareReportCancelBtn">Cancel</button>
+            <button type="button" class="lbtn lbtn-primary" id="shareReportConfirmBtn">
+                <i class="fas fa-paper-plane"></i> Send Report
+            </button>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
 <script>
 (function () {
     'use strict';
 
     const TOKEN = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+    const APPROVED_DOCTORS = @Html.Raw(ViewBag.ApprovedDoctorsJson ?? "[]");
+    const UPLOAD_REPORT_URL = '@Url.Action("UploadChatFile", "Patient", new { id = ViewBag.PatientId })';
+    const SEND_REPORT_URL   = '@Url.Action("SendReportToDoctor", "Patient", new { id = ViewBag.PatientId })';
+    // Tracks which DOM elements to read when generating a PDF (null = main report view)
+    let _reportSourceOpts = null;
+    let nextClientId = 1;
 
     /* ══════════════════════════════════════════════════════
        TEST CONFIGURATIONS
@@ -1781,35 +2440,28 @@
 
     async function apiExtractValues(testType, file) {
         const formData = new FormData();
-        formData.append('patientId', document.body.dataset.patientId || '0');
         formData.append('testType', testType);
         formData.append('image', file);
-        formData.append('__RequestVerificationToken', TOKEN);
 
-        const reportId = uploadedTests[0]?.reportId;
-        if (reportId) {
-            formData.append('reportId', reportId);
-        }
-
-        const response = await fetchWithTimeout('/api/analysis', {
+        const response = await fetchWithTimeout('/api/analysis/ocr-only', {
             method: 'POST',
             body: formData
         }, 45000);
 
         if (!response.ok) {
             const error = await safeReadError(response);
-            throw new Error(error || 'Failed to extract values from the uploaded image.');
+            const status = response.status;
+            if (status === 502 || status === 503 || status === 504) {
+                throw new Error('The OCR service is temporarily unavailable. Please try again in a moment.');
+            }
+            throw new Error(error || 'Failed to extract values from the uploaded image. Make sure it is a clear, readable lab test document.');
         }
 
         const data = await response.json();
-        const labTestId = data.labTestId ?? data.LabTestId;
-        if (labTestId == null) {
-            throw new Error('Server did not return a lab test id.');
-        }
 
         return {
-            id: labTestId,
-            reportId: data.reportId ?? data.ReportId,
+            id: 'temp-' + (nextClientId++),
+            tempImagePath: data.tempImagePath,
             testType,
             testTypeName: data.testName || testConfigurations[testType].name,
             fileName: file.name,
@@ -1819,31 +2471,54 @@
     }
 
     async function apiAnalyzeTests(tests) {
-        const confirmPromises = tests.map(test => {
-            const payload = { values: test.extractedValues };
-            return fetchWithTimeout(`/api/analysis/${test.id}/confirm`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'RequestVerificationToken': TOKEN
-            },
-                body: JSON.stringify(payload)
-            }, 45000).then(async response => {
-                if (!response.ok) {
-                    const error = await safeReadError(response);
-                    throw new Error(error || 'Failed to confirm test values.');
-                }
-                return response.json();
-            });
-        });
+        const patientId = parseInt(document.body.dataset.patientId || '0');
+        if (!patientId) throw new Error('Patient profile not found. Please refresh and try again.');
 
-        await Promise.all(confirmPromises);
-        const lastTest = tests[tests.length - 1];
-        return waitForAnalysisResult(lastTest.id);
+        const payload = {
+            patientId,
+            tests: tests.map(t => ({
+                tempImagePath: t.tempImagePath || null,
+                testType: t.testType,
+                testName: t.testTypeName,
+                confirmedValues: t.extractedValues || {}
+            }))
+        };
+
+        const response = await fetchWithTimeout('/api/analysis/batch-submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }, 60000);
+
+        if (!response.ok) {
+            const error = await safeReadError(response);
+            const status = response.status;
+            if (status === 504) throw new Error('The submission timed out. The server may be busy — please try again.');
+            if (status === 502 || status === 503) throw new Error('The analysis service is temporarily unavailable. Please try again in a moment.');
+            throw new Error(error || 'Failed to submit tests for analysis.');
+        }
+
+        const data = await response.json();
+        const labTestId = data.labTestId ?? data.LabTestId;
+        if (!labTestId) throw new Error('Server did not return a test ID after submission.');
+
+        // Persist so user can close and resume later
+        try {
+            localStorage.setItem('nabd_pending_analysis', JSON.stringify({
+                labTestId,
+                reportId: data.reportId ?? data.ReportId,
+                submittedAt: Date.now()
+            }));
+        } catch { /* storage unavailable */ }
+
+        return waitForAnalysisResult(labTestId);
     }
 
     async function waitForAnalysisResult(labTestId) {
-        const maxAttempts = 20;
+        // The submit service (HF space) can intermittently fail and is retried server-side for
+        // up to ~90s, so poll long enough to outlast those retries. Returns early as soon as the
+        // status becomes Completed or Failed, so a fast analysis is unaffected.
+        const maxAttempts = 75;
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
             const response = await fetchWithTimeout(`/api/analysis/${labTestId}`, {}, 15000);
             if (!response.ok) {
@@ -1855,7 +2530,7 @@
                 return mapAnalysisResponse(data);
             }
             if (data.status === 'Failed') {
-                throw new Error(data.error || data.message || 'Analysis failed. Check that CBC includes RDW and all values match your lab report.');
+                throw new Error(data.error || data.message || 'Analysis failed. Please go back, check your values, and try again.');
             }
             await delay(2000);
         }
@@ -1998,9 +2673,38 @@
     }
 
     /* ══════════════════════════════════════════════════════
+       TEST TYPE VALIDATION
+    ══════════════════════════════════════════════════════ */
+    function showTestTypeError() {
+        testTypeSelect.classList.add('lsel--error');
+        const fg = testTypeSelect.closest('.lfg');
+        document.getElementById('testTypeHint').style.display = 'none';
+        document.getElementById('testTypeError').style.display = 'block';
+        if (fg) {
+            fg.classList.remove('lfg--shake');
+            void fg.offsetWidth; // reflow to restart animation
+            fg.classList.add('lfg--shake');
+        }
+        testTypeSelect.focus();
+    }
+
+    function clearTestTypeError() {
+        testTypeSelect.classList.remove('lsel--error');
+        document.getElementById('testTypeHint').style.display = 'block';
+        document.getElementById('testTypeError').style.display = 'none';
+    }
+
+    testTypeSelect.addEventListener('change', () => {
+        if (testTypeSelect.value) clearTestTypeError();
+    });
+
+    /* ══════════════════════════════════════════════════════
        UPLOAD ZONE
     ══════════════════════════════════════════════════════ */
-    uploadZone.addEventListener('click', () => fileInput.click());
+    uploadZone.addEventListener('click', () => {
+        if (!testTypeSelect.value) { showTestTypeError(); return; }
+        fileInput.click();
+    });
     uploadZone.addEventListener('dragover',  e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
     uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
     uploadZone.addEventListener('drop', e => {
@@ -2011,13 +2715,16 @@
         if (fileInput.files.length) enqueueFiles(fileInput.files);
         fileInput.value = '';
     });
-    addMoreBtn.addEventListener('click', () => fileInput.click());
+    addMoreBtn.addEventListener('click', () => {
+        if (!testTypeSelect.value) { showTestTypeError(); return; }
+        fileInput.click();
+    });
 
     function enqueueFiles(files) {
         const type = testTypeSelect.value;
-        if (!type) { notify('Please select a test type first.', 'warning'); return; }
+        if (!type) { showTestTypeError(); return; }
         Array.from(files).forEach(f => {
-            if (f.size > 10 * 1024 * 1024) { notify('"' + f.name + '" exceeds 10 MB.', 'error'); return; }
+            if (f.size > 10 * 1024 * 1024) { notify('"' + f.name + '" exceeds 10 MB — maximum file size is 10 MB.', 'error'); return; }
             queuedFiles.push({ file: f, testType: type });
         });
         renderQueue();
@@ -2066,9 +2773,11 @@
         queuedFiles = [];
         renderQueue();
 
-        // Show step 2 section
+        // Transition: hide step 1 panel, show step 2
+        const sUp = document.getElementById('section-upload');
+        if (sUp) sUp.style.display = 'none';
         uploadedTestsSection.style.display = 'block';
-        uploadedTestsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         setStep(2);
         extractionProgress.style.display = 'block';
         submitRow.style.display = 'none';
@@ -2076,6 +2785,7 @@
         sendToAIBtn.disabled = true;
         sendToAIBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Extracting…';
 
+        let extractionErrors = 0;
         for (let i = 0; i < batch.length; i++) {
             const pct = Math.round((i / batch.length) * 90);
             extractionBarFill.style.width = pct + '%';
@@ -2083,39 +2793,58 @@
 
             try {
                 const result = await apiExtractValues(batch[i].testType, batch[i].file);
-
                 result.approved = false;
                 uploadedTests.push(result);
                 renderTestCard(result);
             } catch (err) {
-                notify(err?.message || 'Failed to extract values.', 'error');
+                extractionErrors++;
+                renderErrorCard(batch[i].file.name, batch[i].testType, err?.message || 'Failed to extract values from this image.');
             }
         }
 
         extractionBarFill.style.width = '100%';
-        extractionStatus.textContent  = 'Extraction complete — please review the values below.';
+        if (extractionErrors > 0 && uploadedTests.length === 0) {
+            extractionStatus.textContent = 'All ' + batch.length + ' image(s) failed. Please check the files and try again.';
+        } else if (extractionErrors > 0) {
+            extractionStatus.textContent = (batch.length - extractionErrors) + ' of ' + batch.length + ' image(s) processed. ' + extractionErrors + ' failed — see errors below.';
+        } else {
+            extractionStatus.textContent = 'Extraction complete — review the values below and approve each test.';
+        }
         await delay(700);
         extractionProgress.style.display = 'none';
-        submitRow.style.display          = 'flex';
+        if (uploadedTests.length > 0) submitRow.style.display = 'flex';
         updateApprovalCounter();
 
         sendToAIBtn.disabled = false;
-        sendToAIBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send to AI for Extraction <span class="tu-file-count-badge" id="fileCountBadge">0</span>';
+        sendToAIBtn.innerHTML = '<i class="fas fa-bolt"></i> Analyze Files <span class="lbadge" id="fileCountBadge">0</span>';
     });
 
     /* ══════════════════════════════════════════════════════
        RENDER REVIEW CARD
     ══════════════════════════════════════════════════════ */
-    function renderTestCard(testData) {
-        if (testData.id == null || testData.id === '') {
-            notify('This test has no id from the server. Please upload the image again.', 'error');
-            return;
-        }
+    function renderErrorCard(fileName, testType, errorMessage) {
+        const card = document.createElement('div');
+        card.className = 'tu-test-card tu-test-card--error';
+        const typeName = testConfigurations[testType]?.name || testType;
+        card.innerHTML =
+            '<div class="tu-card-hd">'
+            + '<div class="tu-card-title"><i class="fas fa-exclamation-circle" style="color:#e53935;margin-right:.35rem"></i>'
+            + escHtml(typeName) + ' — Extraction Failed</div>'
+            + '<span class="tu-badge-status high"><i class="fas fa-times"></i> Failed</span>'
+            + '</div>'
+            + '<div class="tu-error-body">'
+            + '<p class="tu-error-msg"><i class="fas fa-info-circle"></i> ' + escHtml(errorMessage) + '</p>'
+            + '<p class="tu-error-file">File: ' + escHtml(fileName) + '</p>'
+            + '<p style="margin-top:.4rem;font-size:.78rem;color:var(--tu-muted)">Please upload a clearer, well-lit image of the lab report and try again.</p>'
+            + '</div>';
+        uploadedTestsList.appendChild(card);
+    }
 
+    function renderTestCard(testData) {
         document.getElementById('test-' + testData.id)?.remove();
         const cfg  = testConfigurations[testData.testType];
         if (!cfg) {
-            notify('Unknown test type "' + (testData.testType || '') + '".', 'error');
+            notify('Unknown test type "' + (testData.testType || '') + '". Please select the correct test type before uploading.', 'error');
             return;
         }
         const card = document.createElement('div');
@@ -2143,6 +2872,13 @@
             : '<button class="tu-btn tu-btn-sm" data-action="edit" type="button"><i class="fas fa-edit"></i> Edit Values</button>'
               + '<button class="tu-btn tu-btn-sm approve" data-action="approve" type="button"><i class="fas fa-check"></i> Approve</button>';
 
+        const confRaw = parseFloat(testData.confidence);
+        // API returns confidence as 0–1 decimal; normalize to 0–100 for threshold comparison
+        const confPct = !isNaN(confRaw) ? (confRaw <= 1 ? confRaw * 100 : confRaw) : null;
+        const confWarn = (confPct !== null && confPct < 70)
+            ? '<div class="lconf-warn"><i class="fas fa-exclamation-triangle"></i> Low AI confidence (' + confPct.toFixed(1) + '%) — please verify all values carefully before approving.</div>'
+            : '';
+
         card.innerHTML =
             '<div class="tu-test-card-header">'
             + '<div><h4><i class="fas fa-file-medical"></i> ' + escHtml(testData.testTypeName) + '</h4>'
@@ -2153,6 +2889,7 @@
             + '<div class="tu-test-actions">' + approvedBadge
             + '<button class="tu-btn tu-btn-sm" data-action="remove" title="Remove" type="button" style="color:#c62828;border-color:#ef9a9a"><i class="fas fa-trash"></i></button>'
             + '</div></div>'
+            + confWarn
             + '<div class="tu-values-table-wrap"><table class="tu-values-table">'
             + '<thead><tr><th>Parameter</th><th>Value</th></tr></thead>'
             + '<tbody>' + rows + '</tbody></table></div>'
@@ -2245,41 +2982,74 @@
         submitRow.style.display             = 'none';
         uploadedTestsSection.style.display  = 'none';
         comprehensiveResults.style.display  = 'none';
+        const sUp2 = document.getElementById('section-upload');
+        if (sUp2) sUp2.style.display = 'block';
         setStep(1);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
     /* ══════════════════════════════════════════════════════
        STEP 2 → 3  :  SUBMIT FOR ANALYSIS
     ══════════════════════════════════════════════════════ */
+    function showAnalysisError(message) {
+        reportLoading.style.display = 'none';
+        reportReady.style.display = 'none';
+        overallConfidence.style.display = 'none';
+        const errorSection = document.getElementById('reportError');
+        if (errorSection) {
+            document.getElementById('reportErrorMsg').textContent = message;
+            errorSection.style.display = 'block';
+        } else {
+            notify(message, 'error');
+        }
+        submitAllBtn.disabled = false;
+        submitAllBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit All Tests for Comprehensive Analysis';
+    }
+
+    document.getElementById('reportErrorBackBtn')?.addEventListener('click', () => {
+        const errorSection = document.getElementById('reportError');
+        if (errorSection) errorSection.style.display = 'none';
+        comprehensiveResults.style.display = 'none';
+        uploadedTestsSection.style.display = 'block';
+        setStep(2);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    document.getElementById('reportErrorRetryBtn')?.addEventListener('click', () => {
+        const errorSection = document.getElementById('reportError');
+        if (errorSection) errorSection.style.display = 'none';
+        submitAllBtn.click();
+    });
+
     submitAllBtn.addEventListener('click', async () => {
         if (!uploadedTests.every(t => t.approved)) return;
 
+        // Transition: hide step 2 panel, show step 3
+        uploadedTestsSection.style.display = 'none';
         comprehensiveResults.style.display = 'block';
         reportLoading.style.display        = 'block';
         reportReady.style.display          = 'none';
+        const errorSection = document.getElementById('reportError');
+        if (errorSection) errorSection.style.display = 'none';
         overallConfidence.style.display    = 'none';
-        comprehensiveResults.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         setStep(3);
         submitAllBtn.disabled  = true;
-        submitAllBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing…';
+        submitAllBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting…';
 
         loadingStepsEl.innerHTML = '';
         reportBarFill.style.width = '0%';
 
-        // ↓ Replace this call with a real API request when ready ↓
         let analysis;
         try {
             analysis = await apiAnalyzeTests(uploadedTests);
         } catch (err) {
-            notify(err?.message || 'Failed to analyze tests.', 'error');
-            reportLoading.style.display = 'none';
-            reportReady.style.display = 'none';
-            overallConfidence.style.display = 'none';
-            submitAllBtn.disabled = false;
-            submitAllBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit All Tests for Comprehensive Analysis';
+            try { localStorage.removeItem('nabd_pending_analysis'); } catch {}
+            showAnalysisError(err?.message || 'Failed to analyze tests. Please try again.');
             return;
         }
 
+        try { localStorage.removeItem('nabd_pending_analysis'); } catch {}
         generateComprehensiveReport(analysis);
         overallConfidence.innerHTML = '<i class="fas fa-brain"></i> Confidence: ' + analysis.confidence + '%';
         refreshPreviousTests();
@@ -2319,16 +3089,16 @@
                 { label: 'DG State', value: pi.dg_state, icon: 'fa-notes-medical' },
                 { label: 'Risk State', value: pi.risk_state, icon: 'fa-shield-alt' }
             ];
-            let piCards = '';
+            let piChips = '';
             piFields.forEach(f => {
                 if (f.value == null || f.value === '') return;
-                piCards += '<div class="tu-pi-card">'
-                    + '<div class="tu-pi-icon"><i class="fas ' + f.icon + '"></i></div>'
-                    + '<div class="tu-pi-info"><span class="tu-pi-label">' + escHtml(f.label) + '</span>'
-                    + '<span class="tu-pi-value">' + escHtml(String(f.value)) + (f.suffix || '') + '</span></div></div>';
+                piChips += '<div class="tu-pi-chip">'
+                    + '<span class="tu-pi-chip-label">' + escHtml(f.label) + '</span>'
+                    + '<span class="tu-pi-chip-value">' + escHtml(String(f.value)) + (f.suffix || '') + '</span>'
+                    + '</div>';
             });
-            html += '<div class="tu-report-section"><h5><i class="fas fa-id-card"></i> Patient Information</h5>'
-                + '<div class="tu-pi-grid">' + piCards + '</div></div>';
+            html += '<div class="tu-report-section"><h5 class="tu-section-h"><i class="fas fa-id-card"></i> Patient Information</h5>'
+                + '<div class="tu-pi-strip">' + piChips + '</div></div>';
         }
 
         // ── Analysis Summary ──
@@ -2356,34 +3126,15 @@
                     + (p.unit ? '<span class="tu-insight-unit">' + escHtml(p.unit) + '</span>' : '') + '</div></div>';
             });
             }
-            html += '<div class="tu-report-section"><h5><i class="fas fa-vial"></i> ' + escHtml(test.testTypeName || cfg?.name || 'Lab Test')
+            html += '<div class="tu-report-section"><h5 class="tu-section-h"><i class="fas fa-vial"></i> ' + escHtml(test.testTypeName || cfg?.name || 'Lab Test')
                 + (confVal ? '<span class="tu-confidence-pill" style="margin-left:.75rem"><i class="fas fa-brain"></i> ' + (parseFloat(confVal) * 100).toFixed(0) + '% confidence</span>' : '')
                 + '</h5><div class="tu-insight-grid">' + cards + '</div></div>';
         });
 
-        // ── Risk Prediction (result_3) ──
-        if (analysis.riskLevel || analysis.diabetesStatus) {
-            const rl = (analysis.riskLevel || '').toLowerCase();
-            const rc = rl.includes('high') ? 'danger' : rl.includes('moderate') ? 'warning' : 'safe';
-            const ri = rc === 'danger' ? 'fa-exclamation-triangle' : rc === 'warning' ? 'fa-exclamation-circle' : 'fa-shield-alt';
-            html += '<div class="tu-report-section"><h5><i class="fas fa-chart-pie"></i> Risk Prediction</h5>'
-                + '<div class="tu-risk-banner ' + rc + '"><i class="fas ' + ri + '"></i>'
-                + '<div><strong>' + escHtml(analysis.riskLevel || 'N/A') + '</strong>'
-                + (analysis.confidence !== '—' ? '<span class="tu-risk-conf">' + analysis.confidence + '% confidence</span>' : '')
-                + (analysis.diabetesStatus ? '<span class="tu-risk-conf">Diabetes: ' + escHtml(analysis.diabetesStatus) + '</span>' : '')
-                + '</div></div></div>';
-        }
-
         // ── AI Medical Report (result_4) ──
         if (analysis.report) {
-            html += '<div class="tu-report-section tu-ai-report-section"><h5><i class="fas fa-file-medical-alt"></i> AI Medical Report</h5>'
-                + '<div class="tu-ai-report-body">' + formatReportText(analysis.report) + '</div></div>';
-        }
-
-        // ── Clinical Recommendations (result_5) ──
-        if (analysis.recommendations && analysis.recommendations.length) {
-            html += '<div class="tu-recommendations"><h4><i class="fas fa-lightbulb"></i> Clinical Recommendations</h4>'
-                + '<ul class="tu-rec-list">' + analysis.recommendations.map(r => '<li><i class="fas fa-check-circle"></i> ' + escHtml(r) + '</li>').join('') + '</ul></div>';
+            html += '<div class="tu-report-section tu-ai-report-section"><h5 class="tu-section-h"><i class="fas fa-file-medical-alt"></i> AI Medical Report</h5>'
+                + '<div class="tu-ai-block"><div class="tu-ai-block-body">' + formatReportText(analysis.report) + '</div></div></div>';
         }
 
         reportContent.innerHTML = html;
@@ -2406,15 +3157,253 @@
     /* ══════════════════════════════════════════════════════
        UPLOAD MORE (reset to step 1)
     ══════════════════════════════════════════════════════ */
+
+    /* Shared PDF generation — returns a Blob.
+       opts: { contentElId, verdictElId, title } — defaults to main report view */
+    async function generateReportBlob(opts) {
+        const contentElId = opts?.contentElId || 'comprehensiveReportContent';
+        const verdictElId = opts?.verdictElId || 'reportVerdictRow';
+        const title       = opts?.title       || 'Comprehensive AI Analysis Report';
+
+        const reportEl  = document.getElementById(contentElId);
+        const verdictEl = verdictElId ? document.getElementById(verdictElId) : null;
+        if (!reportEl) throw new Error('Report not found.');
+
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = 'background:#fff;padding:24px 28px;font-family:sans-serif;width:820px;position:absolute;left:-9999px;top:0';
+
+        const header = document.createElement('div');
+        header.style.cssText = 'border-bottom:2px solid #e8bcd4;padding-bottom:12px;margin-bottom:18px';
+        header.innerHTML = '<h2 style="color:#c2185b;margin:0;font-size:18px">' + escHtml(title) + '</h2>'
+            + '<p style="color:#888;margin:4px 0 0;font-size:12px">Generated: ' + new Date().toLocaleDateString() + '</p>';
+        wrapper.appendChild(header);
+
+        if (verdictEl && verdictEl.innerHTML.trim())
+            wrapper.appendChild(verdictEl.cloneNode(true));
+        wrapper.appendChild(reportEl.cloneNode(true));
+        document.body.appendChild(wrapper);
+
+        const canvas = await html2canvas(wrapper, { scale: 1.5, useCORS: true, logging: false });
+        document.body.removeChild(wrapper);
+
+        const { jsPDF } = window.jspdf;
+        const pdf   = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+        const pageW = pdf.internal.pageSize.getWidth();
+        const pageH = pdf.internal.pageSize.getHeight();
+        const imgW  = pageW;
+        const imgH  = canvas.height * imgW / canvas.width;
+        const imgData = canvas.toDataURL('image/jpeg', 0.92);
+
+        let y = 0, remaining = imgH;
+        pdf.addImage(imgData, 'JPEG', 0, y, imgW, imgH);
+        remaining -= pageH;
+        while (remaining > 0) {
+            y -= pageH;
+            pdf.addPage();
+            pdf.addImage(imgData, 'JPEG', 0, y, imgW, imgH);
+            remaining -= pageH;
+        }
+        return pdf.output('blob');
+    }
+
+    /* Download report as PDF */
+    document.getElementById('downloadReportBtn')?.addEventListener('click', async () => {
+        const btn = document.getElementById('downloadReportBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating PDF…';
+        try {
+            const blob = await generateReportBlob();
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement('a');
+            a.href = url;
+            a.download = 'Lab-Analysis-Report.pdf';
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error(err);
+            notify('Could not generate PDF. Please try again.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-download"></i> Download Report';
+        }
+    });
+
+    /* Share with Doctor — generate PDF and send via chat */
+    function openShareModal() {
+        const select = document.getElementById('shareReportDoctorSelect');
+        if (select) {
+            select.innerHTML = APPROVED_DOCTORS.map(d =>
+                '<option value="' + escAttr(d.userId) + '">' + escHtml(d.name) + '</option>'
+            ).join('');
+        }
+        document.getElementById('shareReportModal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeShareModal() {
+        document.getElementById('shareReportModal').style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    document.getElementById('shareReportModalClose')?.addEventListener('click', closeShareModal);
+    document.getElementById('shareReportCancelBtn')?.addEventListener('click', closeShareModal);
+    document.getElementById('shareReportModal')?.addEventListener('click', function (e) {
+        if (e.target === this) closeShareModal();
+    });
+
+    document.getElementById('shareWithDoctorBtn')?.addEventListener('click', () => {
+        _reportSourceOpts = null; // use main report view
+        if (!APPROVED_DOCTORS.length) {
+            notify('No approved doctor linked to your account. Please connect with a doctor first.', 'error');
+            return;
+        }
+        if (APPROVED_DOCTORS.length === 1) {
+            sendReportToDoctor(APPROVED_DOCTORS[0]);
+            return;
+        }
+        openShareModal();
+    });
+
+    document.getElementById('shareReportConfirmBtn')?.addEventListener('click', () => {
+        const select = document.getElementById('shareReportDoctorSelect');
+        const uid    = select?.value;
+        const doctor = APPROVED_DOCTORS.find(d => d.userId === uid);
+        if (!doctor) return;
+        closeShareModal();
+        sendReportToDoctor(doctor);
+    });
+
+    async function sendReportToDoctor(doctor) {
+        const shareBtn = document.getElementById('shareWithDoctorBtn');
+        shareBtn.disabled = true;
+        shareBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending…';
+        const sourceOpts = _reportSourceOpts;
+        try {
+            const blob     = await generateReportBlob(sourceOpts);
+            const fileName = 'Lab-Analysis-Report.pdf';
+
+            const fd = new FormData();
+            fd.append('file', new File([blob], fileName, { type: 'application/pdf' }));
+            fd.append('__RequestVerificationToken', TOKEN);
+            const uploadResp = await fetch(UPLOAD_REPORT_URL, { method: 'POST', body: fd, credentials: 'same-origin' });
+            if (!uploadResp.ok) throw new Error('Upload failed.');
+            const { url } = await uploadResp.json();
+
+            const sendResp = await fetch(SEND_REPORT_URL, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': TOKEN },
+                body: JSON.stringify({ doctorUserId: doctor.userId, attachmentUrl: url, fileName, caption: 'Lab Analysis Report' })
+            });
+            if (!sendResp.ok) throw new Error('Send failed.');
+            notify('Report sent to ' + escHtml(doctor.name) + ' successfully!', 'success');
+        } catch (err) {
+            console.error(err);
+            notify('Could not send report. Please try again.', 'error');
+        } finally {
+            shareBtn.disabled = false;
+            shareBtn.innerHTML = '<i class="fas fa-share-alt"></i> Share with Doctor';
+        }
+    }
+
+    function escAttr(s) {
+        return String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
     uploadMoreBtn.addEventListener('click', () => {
         uploadedTests = [];
         uploadedTestsList.innerHTML = '';
         uploadedTestsSection.style.display = 'none';
         comprehensiveResults.style.display = 'none';
         submitRow.style.display            = 'none';
+        const sUp3 = document.getElementById('section-upload');
+        if (sUp3) sUp3.style.display = 'block';
         setStep(1);
-        document.getElementById('section-upload').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     });
+
+    /* ══════════════════════════════════════════════════════
+       PENDING ANALYSIS BANNER
+    ══════════════════════════════════════════════════════ */
+    document.getElementById('dismissPendingBanner')?.addEventListener('click', () => {
+        document.getElementById('pendingAnalysisBanner').style.display = 'none';
+        try { localStorage.removeItem('nabd_pending_analysis'); } catch {}
+    });
+
+    async function resumePendingAnalysis(pending) {
+        document.getElementById('pendingAnalysisBanner').style.display = 'none';
+        const sUp = document.getElementById('section-upload');
+        if (sUp) sUp.style.display = 'none';
+        uploadedTestsSection.style.display = 'none';
+        comprehensiveResults.style.display = 'block';
+        reportLoading.style.display = 'block';
+        reportReady.style.display = 'none';
+        const errSec = document.getElementById('reportError');
+        if (errSec) errSec.style.display = 'none';
+        overallConfidence.style.display = 'none';
+        setStep(3);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        try {
+            const response = await fetchWithTimeout('/api/analysis/' + pending.labTestId, {}, 15000);
+            if (!response.ok) throw new Error('Could not check analysis status.');
+            const data = await response.json();
+
+            if (data.status === 'Completed') {
+                const analysis = mapAnalysisResponse(data);
+                try { localStorage.removeItem('nabd_pending_analysis'); } catch {}
+                generateComprehensiveReport(analysis);
+                overallConfidence.innerHTML = '<i class="fas fa-brain"></i> Confidence: ' + analysis.confidence + '%';
+                refreshPreviousTests();
+                document.getElementById('reportSubtitle').textContent =
+                    'Resumed from previous session · ' + new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+            } else if (data.status === 'Failed') {
+                try { localStorage.removeItem('nabd_pending_analysis'); } catch {}
+                const errMsg = data.error || data.message || 'Analysis failed. Please upload your tests again.';
+                showAnalysisError(errMsg);
+            } else {
+                // Still processing — continue polling
+                try {
+                    const analysis = await waitForAnalysisResult(pending.labTestId);
+                    try { localStorage.removeItem('nabd_pending_analysis'); } catch {}
+                    generateComprehensiveReport(analysis);
+                    overallConfidence.innerHTML = '<i class="fas fa-brain"></i> Confidence: ' + analysis.confidence + '%';
+                    refreshPreviousTests();
+                    document.getElementById('reportSubtitle').textContent =
+                        'Resumed from previous session · ' + new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+                } catch (pollErr) {
+                    try { localStorage.removeItem('nabd_pending_analysis'); } catch {}
+                    showAnalysisError(pollErr?.message || 'Analysis timed out. Please upload your tests again.');
+                }
+            }
+        } catch (err) {
+            try { localStorage.removeItem('nabd_pending_analysis'); } catch {}
+            showAnalysisError(err?.message || 'Could not resume analysis. Please upload your tests again.');
+        }
+    }
+
+    // Check for pending analysis on page load
+    (function checkPendingAnalysis() {
+        try {
+            const raw = localStorage.getItem('nabd_pending_analysis');
+            if (!raw) return;
+            const pending = JSON.parse(raw);
+            if (!pending?.labTestId) { localStorage.removeItem('nabd_pending_analysis'); return; }
+            const ageHours = (Date.now() - (pending.submittedAt || 0)) / 3600000;
+            if (ageHours > 24) { localStorage.removeItem('nabd_pending_analysis'); return; }
+            const banner = document.getElementById('pendingAnalysisBanner');
+            const msg = document.getElementById('pendingAnalysisBannerMsg');
+            if (banner) {
+                if (msg) {
+                    const mins = Math.round((Date.now() - (pending.submittedAt || 0)) / 60000);
+                    const timeAgo = mins < 2 ? 'just now' : mins < 60 ? mins + ' minutes ago' : Math.floor(mins / 60) + ' hour(s) ago';
+                    msg.textContent = 'Analysis submitted ' + timeAgo + '. Resuming automatically…';
+                }
+                banner.style.display = 'block';
+                setTimeout(() => resumePendingAnalysis(pending), 1500);
+            }
+        } catch { /* ignore storage errors */ }
+    })();
 
     /* ══════════════════════════════════════════════════════
        REFRESH PREVIOUS TESTS TABLE
@@ -2649,6 +3638,10 @@
             window.showNotification(msg, type);
             return;
         }
+        if (typeof window.showToast === 'function') {
+            window.showToast(msg, type || 'info');
+            return;
+        }
         if (type === 'error') {
             alert(msg);
             return;
@@ -2709,16 +3702,23 @@
         document.body.style.overflow = '';
     }
 
+    const tuModalDownloadBtn = document.getElementById('tuModalDownloadBtn');
+    const tuModalShareBtn    = document.getElementById('tuModalShareBtn');
+
     function showModalLoading() {
         tuModalLoading.style.display  = 'flex';
         tuModalContent.style.display  = 'none';
         tuModalError.style.display    = 'none';
+        if (tuModalDownloadBtn) tuModalDownloadBtn.style.display = 'none';
+        if (tuModalShareBtn)    tuModalShareBtn.style.display    = 'none';
     }
 
     function showModalContent() {
         tuModalLoading.style.display  = 'none';
         tuModalContent.style.display  = 'block';
         tuModalError.style.display    = 'none';
+        if (tuModalDownloadBtn) tuModalDownloadBtn.style.display = 'inline-flex';
+        if (tuModalShareBtn)    tuModalShareBtn.style.display    = 'inline-flex';
     }
 
     function showModalError(msg) {
@@ -2726,6 +3726,8 @@
         tuModalContent.style.display  = 'none';
         tuModalError.style.display    = 'block';
         tuModalErrorMsg.textContent   = msg || 'Could not load the report.';
+        if (tuModalDownloadBtn) tuModalDownloadBtn.style.display = 'none';
+        if (tuModalShareBtn)    tuModalShareBtn.style.display    = 'none';
     }
 
     function renderReportInModal(analysis) {
@@ -2754,15 +3756,16 @@
                 { label: 'BP',       value: (pi.avg_systolic && pi.avg_diastolic) ? pi.avg_systolic + '/' + pi.avg_diastolic : null, icon: 'fa-heartbeat', suffix: ' mmHg' },
                 { label: 'Risk',     value: pi.risk_state, icon: 'fa-shield-alt' }
             ];
-            let cards = '';
+            let piChips2 = '';
             piFields.forEach(f => {
                 if (f.value == null || f.value === '') return;
-                cards += '<div class="tu-pi-card"><div class="tu-pi-icon"><i class="fas ' + f.icon + '"></i></div>'
-                    + '<div class="tu-pi-info"><span class="tu-pi-label">' + escHtml(f.label) + '</span>'
-                    + '<span class="tu-pi-value">' + escHtml(String(f.value)) + (f.suffix || '') + '</span></div></div>';
+                piChips2 += '<div class="tu-pi-chip">'
+                    + '<span class="tu-pi-chip-label">' + escHtml(f.label) + '</span>'
+                    + '<span class="tu-pi-chip-value">' + escHtml(String(f.value)) + (f.suffix || '') + '</span>'
+                    + '</div>';
             });
-            if (cards) html += '<div class="tu-report-section"><h5><i class="fas fa-id-card"></i> Patient Information</h5>'
-                + '<div class="tu-pi-grid">' + cards + '</div></div>';
+            if (piChips2) html += '<div class="tu-report-section"><h5 class="tu-section-h"><i class="fas fa-id-card"></i> Patient Information</h5>'
+                + '<div class="tu-pi-strip">' + piChips2 + '</div></div>';
         }
 
         // Test Results
@@ -2783,37 +3786,17 @@
                         + (p.unit ? '<span class="tu-insight-unit">' + escHtml(p.unit) + '</span>' : '') + '</div></div>';
                 });
                 }
-                html += '<div class="tu-report-section"><h5><i class="fas fa-vial"></i> ' + escHtml(test.test_name || cfg?.name || 'Lab Test')
+                html += '<div class="tu-report-section"><h5 class="tu-section-h"><i class="fas fa-vial"></i> ' + escHtml(test.test_name || cfg?.name || 'Lab Test')
                     + (confVal ? '<span class="tu-confidence-pill" style="margin-left:.75rem"><i class="fas fa-brain"></i> '
                         + (parseFloat(confVal) * 100).toFixed(0) + '% confidence</span>' : '')
                     + '</h5><div class="tu-insight-grid">' + cards + '</div></div>';
             });
         }
 
-        // Risk Prediction
-        if (analysis.riskLevel || analysis.diabetesStatus) {
-            const rl = (analysis.riskLevel || '').toLowerCase();
-            const rc = rl.includes('high') ? 'danger' : rl.includes('moderate') ? 'warning' : 'safe';
-            const ri = rc === 'danger' ? 'fa-exclamation-triangle' : rc === 'warning' ? 'fa-exclamation-circle' : 'fa-shield-alt';
-            html += '<div class="tu-report-section"><h5><i class="fas fa-chart-pie"></i> Risk Prediction</h5>'
-                + '<div class="tu-risk-banner ' + rc + '"><i class="fas ' + ri + '"></i>'
-                + '<div><strong>' + escHtml(analysis.riskLevel || 'N/A') + '</strong>'
-                + (analysis.confidence !== '—' ? '<span class="tu-risk-conf">' + analysis.confidence + '% confidence</span>' : '')
-                + (analysis.diabetesStatus ? '<span class="tu-risk-conf">Diabetes: ' + escHtml(analysis.diabetesStatus) + '</span>' : '')
-                + '</div></div></div>';
-        }
-
         // AI Medical Report
         if (analysis.report) {
-            html += '<div class="tu-report-section tu-ai-report-section"><h5><i class="fas fa-file-medical-alt"></i> AI Medical Report</h5>'
-                + '<div class="tu-ai-report-body">' + formatReportText(analysis.report) + '</div></div>';
-        }
-
-        // Clinical Recommendations
-        if (analysis.recommendations && analysis.recommendations.length) {
-            html += '<div class="tu-recommendations"><h4><i class="fas fa-lightbulb"></i> Clinical Recommendations</h4>'
-                + '<ul class="tu-rec-list">' + analysis.recommendations.map(r =>
-                    '<li><i class="fas fa-check-circle"></i> ' + escHtml(r) + '</li>').join('') + '</ul></div>';
+            html += '<div class="tu-report-section tu-ai-report-section"><h5 class="tu-section-h"><i class="fas fa-file-medical-alt"></i> AI Medical Report</h5>'
+                + '<div class="tu-ai-block"><div class="tu-ai-block-body">' + formatReportText(analysis.report) + '</div></div></div>';
         }
 
         tuModalReportContent.innerHTML = html || '<p style="padding:1.5rem;color:var(--tu-muted)">No detailed data available for this report.</p>';
@@ -2866,6 +3849,50 @@
     tuModalCloseFooter.addEventListener('click', closeModal);
     tuModal.addEventListener('click', e => { if (e.target === tuModal) closeModal(); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && tuModal.style.display !== 'none') closeModal(); });
+
+    // ── Modal: Download PDF ──
+    tuModalDownloadBtn?.addEventListener('click', async () => {
+        const opts = {
+            contentElId: 'tuModalReportContent',
+            verdictElId: 'tuModalVerdictRow',
+            title: tuModalTitle.textContent || 'Lab Analysis Report'
+        };
+        tuModalDownloadBtn.disabled = true;
+        tuModalDownloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating…';
+        try {
+            const blob = await generateReportBlob(opts);
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement('a');
+            a.href = url;
+            a.download = 'Lab-Analysis-Report.pdf';
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error(err);
+            notify('Could not generate PDF. Please try again.', 'error');
+        } finally {
+            tuModalDownloadBtn.disabled = false;
+            tuModalDownloadBtn.innerHTML = '<i class="fas fa-download"></i> Download PDF';
+        }
+    });
+
+    // ── Modal: Share with Doctor ──
+    tuModalShareBtn?.addEventListener('click', () => {
+        _reportSourceOpts = {
+            contentElId: 'tuModalReportContent',
+            verdictElId: 'tuModalVerdictRow',
+            title: tuModalTitle.textContent || 'Lab Analysis Report'
+        };
+        if (!APPROVED_DOCTORS.length) {
+            notify('No approved doctor linked to your account. Please connect with a doctor first.', 'error');
+            return;
+        }
+        if (APPROVED_DOCTORS.length === 1) {
+            sendReportToDoctor(APPROVED_DOCTORS[0]);
+            return;
+        }
+        openShareModal();
+    });
 
       /* ══════════════════════════════════════════════════════
          IMAGE GALLERY MODAL
