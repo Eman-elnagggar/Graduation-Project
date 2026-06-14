@@ -565,6 +565,39 @@
 
 </div>
 
+<!-- ══════════════ LAB REPORT MODAL ══════════════ -->
+<div id="mhReportModal" class="mhrm-overlay" role="dialog" aria-modal="true" aria-labelledby="mhModalTitle" style="display:none">
+    <div class="mhrm-dialog">
+        <div class="mhrm-header">
+            <div class="mhrm-header-left">
+                <div class="mhrm-icon"><i class="fas fa-file-medical-alt"></i></div>
+                <div>
+                    <h3 id="mhModalTitle">Test Report</h3>
+                    <p id="mhModalSubtitle">Loading…</p>
+                </div>
+            </div>
+            <button class="mhrm-close-btn" id="mhModalClose" type="button" aria-label="Close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="mhrm-body">
+            <div id="mhModalLoading" class="mhrm-loading">
+                <div class="mhrm-spinner"><i class="fas fa-brain"></i></div>
+                <p>Fetching report…</p>
+            </div>
+            <div id="mhModalContent" style="display:none">
+                <div id="mhModalVerdictRow" class="mhrm-verdict-row"></div>
+                <div id="mhModalReportContent"></div>
+            </div>
+            <div id="mhModalError" style="display:none;text-align:center;padding:3rem 1.5rem;color:#64748b">
+                <i class="fas fa-exclamation-circle" style="font-size:2rem;display:block;margin-bottom:.75rem;color:#ef9a9a"></i>
+                <p id="mhModalErrorMsg">Could not load the report.</p>
+            </div>
+        </div>
+        <div class="mhrm-footer">
+            <button class="mhrm-btn" id="mhModalCloseFooter" type="button"><i class="fas fa-times"></i> Close</button>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 <script>
 document.addEventListener("DOMContentLoaded", function () {
@@ -717,22 +750,235 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // Lab report button handlers
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('.mh-lab-btn-primary')) {
-            const btn = e.target.closest('.mh-lab-btn-primary');
-            const labData = {
-                labId: btn.dataset.labid,
-                testType: btn.dataset.testtype,
-                uploadDate: btn.dataset.uploaddate,
-                imagePath: btn.dataset.imagepath,
-                hasAI: btn.dataset.hasai === 'true',
-                aiJSON: btn.dataset.aijson
-            };
+    // ── Lab Report Modal ──
+    const mhModal         = document.getElementById('mhReportModal');
+    const mhModalClose    = document.getElementById('mhModalClose');
+    const mhModalCloseFooter = document.getElementById('mhModalCloseFooter');
+    const mhModalTitle    = document.getElementById('mhModalTitle');
+    const mhModalSubtitle = document.getElementById('mhModalSubtitle');
+    const mhModalLoading  = document.getElementById('mhModalLoading');
+    const mhModalContent  = document.getElementById('mhModalContent');
+    const mhModalError    = document.getElementById('mhModalError');
+    const mhModalErrorMsg = document.getElementById('mhModalErrorMsg');
+    const mhModalVerdictRow   = document.getElementById('mhModalVerdictRow');
+    const mhModalReportContent = document.getElementById('mhModalReportContent');
 
-            console.log('Lab Report:', labData);
-            showNotification("Lab report viewer coming soon!", "info");
+    function mhOpenModal()  { mhModal.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+    function mhCloseModal() { mhModal.style.display = 'none'; document.body.style.overflow = ''; }
+
+    mhModalClose?.addEventListener('click', mhCloseModal);
+    mhModalCloseFooter?.addEventListener('click', mhCloseModal);
+    mhModal?.addEventListener('click', e => { if (e.target === mhModal) mhCloseModal(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && mhModal?.style.display === 'flex') mhCloseModal(); });
+
+    function mhShowLoading() {
+        mhModalLoading.style.display  = 'flex';
+        mhModalContent.style.display  = 'none';
+        mhModalError.style.display    = 'none';
+    }
+    function mhShowContent() {
+        mhModalLoading.style.display  = 'none';
+        mhModalContent.style.display  = 'block';
+        mhModalError.style.display    = 'none';
+    }
+    function mhShowError(msg) {
+        mhModalLoading.style.display  = 'none';
+        mhModalContent.style.display  = 'none';
+        mhModalError.style.display    = 'block';
+        mhModalErrorMsg.textContent   = msg || 'Could not load the report.';
+    }
+
+    function mhEsc(s) {
+        return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function mhFormatText(text) {
+        if (!text) return '';
+        return text.split('\n').map(line => {
+            line = line.trim();
+            if (!line) return '';
+            if (line.startsWith('*')) return '<li class="mhrm-report-bullet"><i class="fas fa-angle-right"></i>' + mhEsc(line.replace(/^\*\s*/, '')) + '</li>';
+            if (line.endsWith(':') && line.length < 120) return '<h6 class="mhrm-report-heading">' + mhEsc(line) + '</h6>';
+            return '<p class="mhrm-report-para">' + mhEsc(line) + '</p>';
+        }).join('');
+    }
+
+    function mhIsMetaKey(k) { return ['test_name','confidence'].includes(String(k||'').toLowerCase()); }
+    function mhToLabel(k) { return String(k||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()); }
+
+    function mhDiagStatus(val) { return Array.isArray(val) ? String(val[0]??'') : String(val??''); }
+    function mhDiagDetail(val) {
+        if (!Array.isArray(val)) return '';
+        if (val.length===1 && Array.isArray(val[0])) return val[0].join(', ');
+        return val.slice(1).flat().filter(Boolean).join(' ');
+    }
+    function mhDiagClass(status) {
+        const s = String(status||'').toLowerCase();
+        if (!s || s==='normal') return 'normal';
+        if (s.includes('trace')||s.includes('elevated')||s.includes('mild')||s.includes('moderate')||s.includes('borderline')||s.includes('low specific')) return 'warning';
+        if (s.includes('low')||s.includes('below')||s.includes('deficiency')||s.includes('anemia')||s.includes('acidic')||s.includes('alkaline')) return 'warning';
+        return 'high';
+    }
+    function mhExtractRange(d) { if (!d) return ''; const m=d.match(/normal\s+range\s+([^\n]+?)(?:\s*$)/i); return m?m[1].trim():''; }
+    function mhExtractMeasured(d) { if (!d) return ''; const m=d.match(/^The value\s+(.+?)\s+(?:is\s+)?(?:within|not in)/i); return m?m[1].trim():''; }
+
+    function mhHasDiag(test) { return Object.keys(test||{}).some(k=>!mhIsMetaKey(k)&&Array.isArray(test[k])); }
+
+    function mhDiagCards(test) {
+        const diagList=[];
+        const fieldKeys = Object.keys(test||{}).filter(k=>{
+            if (mhIsMetaKey(k)) return false;
+            if (k.toLowerCase()==='other_diagnoses') { const v=test[k]; (Array.isArray(v)?v:[v]).forEach(d=>{if(d)diagList.push(String(d));}); return false; }
+            return true;
+        });
+        let cards = fieldKeys.map(k=>{
+            const v=test[k]; const status=mhDiagStatus(v); const detail=mhDiagDetail(v);
+            const cls=mhDiagClass(status); const nr=mhExtractRange(detail); const mv=mhExtractMeasured(detail);
+            return '<div class="mhrm-insight-card '+cls+'">'
+                +'<div class="mhrm-insight-label">'+mhEsc(mhToLabel(k))+'</div>'
+                +'<div class="mhrm-insight-value"><span class="mhrm-insight-dot"></span>'+mhEsc(status||'Normal')
+                +(mv?'<span class="mhrm-insight-unit">'+mhEsc(mv)+'</span>':'')
+                +'</div>'+(nr?'<div class="mhrm-insight-range">Normal: '+mhEsc(nr)+'</div>':(detail?'<div class="mhrm-insight-detail">'+mhEsc(detail)+'</div>':''))
+                +'</div>';
+        }).join('');
+        if (diagList.length) {
+            cards += '<div class="mhrm-insight-card high" style="grid-column:1/-1;flex-direction:row;align-items:flex-start;gap:.7rem">'
+                +'<div style="flex-shrink:0;margin-top:.1rem"><i class="fas fa-exclamation-triangle" style="color:#c62828"></i></div>'
+                +'<div><div class="mhrm-insight-label">Additional Diagnoses</div>'
+                +diagList.map(d=>'<div class="mhrm-insight-value"><span class="mhrm-insight-dot"></span>'+mhEsc(d)+'</div>').join('')
+                +'</div></div>';
         }
+        return cards;
+    }
+
+    const mhTestConfigs = {
+        'cbc (complete blood count)': [
+            {key:'hb',name:'Hemoglobin',unit:'g/dL'},{key:'wbc',name:'WBC',unit:'/µL'},{key:'rbcs_count',name:'RBC',unit:'million/µL'},
+            {key:'mcv',name:'MCV',unit:'fL'},{key:'mch',name:'MCH',unit:'pg'},{key:'rdw',name:'RDW',unit:'%'},
+            {key:'mchc',name:'MCHC',unit:'g/dL'},{key:'lymphocytes',name:'Lymphocytes',unit:'%'},{key:'platelet_count',name:'Platelets',unit:'/µL'}
+        ],
+        'urinalysis': [
+            {key:'color',name:'Color',unit:''},{key:'ph',name:'pH',unit:''},{key:'specific_gravity',name:'Specific Gravity',unit:''},
+            {key:'protein',name:'Protein',unit:''},{key:'glucose',name:'Glucose',unit:''},{key:'ketones',name:'Ketones',unit:''},
+            {key:'blood',name:'Blood',unit:''},{key:'rbcs',name:'RBCs',unit:'/HPF'},{key:'leukocytes',name:'Leukocytes',unit:'/HPF'},{key:'nitrite',name:'Nitrite',unit:''}
+        ],
+        'tsh (thyroid)': [{key:'tsh',name:'TSH',unit:'mIU/L'}],
+        'ferritin': [{key:'ferritin_value',name:'Ferritin',unit:'ng/mL'}],
+        'fasting blood glucose': [{key:'fbg',name:'FBG',unit:'mg/dL'}],
+        'hba1c (sugar test)': [{key:'hba1c',name:'HbA1c',unit:'%'}],
+        'hcv (hepatitis c)': [{key:'hcv',name:'HCV',unit:''}],
+        'hbsag (hepatitis b)': [{key:'hbsag',name:'HBsAg',unit:''}],
+        'blood group': [{key:'abo_group',name:'ABO Group',unit:''},{key:'rh_factor',name:'Rh Factor',unit:''}]
+    };
+    function mhResolveParams(testName) {
+        if (!testName) return null;
+        const n = testName.toLowerCase();
+        return mhTestConfigs[n] || Object.entries(mhTestConfigs).find(([k])=>n.includes(k))?.[1] || null;
+    }
+    function mhExtractVal(src, key) {
+        if (!src) return null;
+        const k = Object.keys(src).find(k=>k.toLowerCase()===key.toLowerCase());
+        const v = k ? src[k] : null;
+        return Array.isArray(v) ? (v[0]??null) : v;
+    }
+
+    function mhRenderReport(analysis) {
+        const iconMap = {safe:'fa-check-circle', warning:'fa-exclamation-circle', danger:'fa-exclamation-triangle'};
+        mhModalVerdictRow.innerHTML =
+            '<span class="mhrm-verdict-badge '+analysis.verdict+'">'
+            +'<i class="fas '+iconMap[analysis.verdict]+'"></i> '+mhEsc(analysis.overall)+'</span>'
+            +'<p class="mhrm-verdict-summary">'+mhEsc(analysis.riskLevel||'See detailed breakdown below')+'</p>';
+
+        let html = '';
+
+        if (analysis.personalInfo) {
+            const pi = analysis.personalInfo;
+            const piFields = [
+                {label:'Name',value:pi.name},{label:'Age',value:pi.age,suffix:' yrs'},{label:'Trimester',value:pi.trimester},
+                {label:'Week',value:pi.week},{label:'Height',value:pi.height,suffix:' cm'},{label:'Weight',value:pi.weight,suffix:' kg'},
+                {label:'Risk',value:pi.risk_state}
+            ];
+            let chips='';
+            piFields.forEach(f=>{
+                if (f.value==null||f.value==='') return;
+                chips+='<div class="mhrm-pi-chip"><span class="mhrm-pi-label">'+mhEsc(f.label)+'</span><span class="mhrm-pi-value">'+mhEsc(String(f.value))+(f.suffix||'')+'</span></div>';
+            });
+            if (chips) html+='<div class="mhrm-section"><h5 class="mhrm-section-h"><i class="fas fa-id-card"></i> Patient Information</h5><div class="mhrm-pi-strip">'+chips+'</div></div>';
+        }
+
+        if (analysis.tests && analysis.tests.length) {
+            analysis.tests.forEach(test => {
+                const params = mhResolveParams(test.test_name);
+                const isDiag = mhHasDiag(test);
+                if (!params && !isDiag) return;
+                const confVal = test.confidence;
+                let cards = isDiag ? mhDiagCards(test) : params.map(p=>{
+                    const val = mhExtractVal(test,p.key)??'—';
+                    return '<div class="mhrm-insight-card normal">'
+                        +'<div class="mhrm-insight-label">'+mhEsc(p.name)+'</div>'
+                        +'<div class="mhrm-insight-value"><span class="mhrm-insight-dot"></span>'+mhEsc(String(val))
+                        +(p.unit?'<span class="mhrm-insight-unit">'+mhEsc(p.unit)+'</span>':'')
+                        +'</div></div>';
+                }).join('');
+                html+='<div class="mhrm-section"><h5 class="mhrm-section-h"><i class="fas fa-vial"></i> '+mhEsc(test.test_name||'Lab Test')
+                    +(confVal?'<span class="mhrm-confidence-pill"><i class="fas fa-brain"></i> '+(parseFloat(confVal)*100).toFixed(0)+'% confidence</span>':'')
+                    +'</h5><div class="mhrm-insight-grid">'+cards+'</div></div>';
+            });
+        }
+
+        if (analysis.report) {
+            html+='<div class="mhrm-section mhrm-ai-section"><h5 class="mhrm-section-h"><i class="fas fa-file-medical-alt"></i> AI Medical Report</h5>'
+                +'<div class="mhrm-ai-block"><div class="mhrm-ai-block-body">'+mhFormatText(analysis.report)+'</div></div></div>';
+        }
+
+        mhModalReportContent.innerHTML = html || '<p style="padding:1.5rem;color:#64748b">No detailed data available for this report.</p>';
+        mhShowContent();
+    }
+
+    function mhMapAnalysis(data) {
+        const tests = data.tests || [];
+        let hasHigh=false, hasLow=false;
+        tests.forEach(test=>{
+            if (mhHasDiag(test)) {
+                Object.keys(test).forEach(k=>{
+                    if (mhIsMetaKey(k)||k.toLowerCase()==='other_diagnoses') return;
+                    const cls=mhDiagClass(mhDiagStatus(test[k]));
+                    if (cls==='high') hasHigh=true;
+                    if (cls==='warning') hasLow=true;
+                });
+            }
+        });
+        const riskRaw=data.riskPrediction; let riskObj={};
+        if (riskRaw&&typeof riskRaw==='object'&&!Array.isArray(riskRaw)) riskObj=riskRaw;
+        else if (Array.isArray(riskRaw)) { for (let i=riskRaw.length-1;i>=0;i--) { if(riskRaw[i]&&typeof riskRaw[i]==='object'&&Object.keys(riskRaw[i]).length){riskObj=riskRaw[i];break;} } }
+        const riskText=String(riskObj.risk_level||'').toLowerCase();
+        if (riskText.includes('high')) hasHigh=true;
+        if (riskText.includes('moderate')||riskText.includes('medium')) hasLow=true;
+        const verdict=hasHigh?'danger':hasLow?'warning':'safe';
+        const overall=hasHigh?'Abnormal Values Detected':hasLow?'Some Values Below Normal':'All Values Normal';
+        return { verdict, overall, personalInfo:data.personalInfo||null, tests, riskLevel:riskObj.risk_level||null, report:data.report||null };
+    }
+
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.mh-lab-btn-primary');
+        if (!btn) return;
+        const labId    = btn.dataset.labid;
+        const testType = btn.dataset.testtype;
+        const date     = btn.dataset.uploaddate;
+
+        mhModalTitle.textContent    = testType ? testType.toUpperCase() + ' Test Report' : 'Test Report';
+        mhModalSubtitle.textContent = date || '';
+        mhShowLoading();
+        mhOpenModal();
+
+        fetch('/api/analysis/' + labId)
+            .then(r => { if (!r.ok) throw new Error('Report not found.'); return r.json(); })
+            .then(data => {
+                if (data.status && data.status !== 'Completed')
+                    throw new Error('This report is still being processed (' + data.status + ').');
+                mhRenderReport(mhMapAnalysis(data));
+            })
+            .catch(err => mhShowError(err?.message || 'Failed to load report.'));
     });
 });
 </script>
@@ -2233,6 +2479,111 @@ document.addEventListener("DOMContentLoaded", function () {
         display: none;
     }
 }
+
+/* ══ Lab Report Modal ══ */
+:root { --mhrm-primary:#1BAEBE; --mhrm-border:#e2e8f0; --mhrm-muted:#64748b; --mhrm-text:#1e293b; --mhrm-light:#f8fafc; }
+
+.mhrm-overlay {
+    position:fixed; inset:0; z-index:9999;
+    background:rgba(15,35,60,.65); backdrop-filter:blur(4px);
+    display:flex; align-items:center; justify-content:center;
+    padding:1rem; animation:mhrmFadeIn .2s ease;
+}
+@@keyframes mhrmFadeIn { from{opacity:0} to{opacity:1} }
+@@keyframes mhrmSlideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+.mhrm-dialog {
+    background:#fff; border-radius:20px; width:100%; max-width:860px; max-height:92vh;
+    display:flex; flex-direction:column; box-shadow:0 24px 80px rgba(0,0,0,.22);
+    overflow:hidden; animation:mhrmSlideUp .25s ease;
+}
+.mhrm-header {
+    display:flex; align-items:center; justify-content:space-between; gap:.75rem; flex-wrap:wrap;
+    padding:1.3rem 1.5rem; border-bottom:1.5px solid var(--mhrm-border);
+    background:linear-gradient(135deg,#0f2942 0%,#1a4a6e 50%,#0d3d5c 100%); flex-shrink:0;
+}
+.mhrm-header-left { display:flex; align-items:center; gap:.75rem; }
+.mhrm-header-left h3 { margin:0 0 .1rem; font-size:1rem; font-weight:800; color:#f1f5f9; }
+.mhrm-header-left p  { margin:0; font-size:.78rem; color:#94a3b8; }
+.mhrm-icon {
+    width:40px; height:40px; border-radius:12px; flex-shrink:0;
+    background:rgba(27,174,190,.25); color:#7de8f4;
+    display:flex; align-items:center; justify-content:center; font-size:1.1rem;
+}
+.mhrm-close-btn {
+    width:34px; height:34px; border-radius:50%; border:1.5px solid rgba(255,255,255,.25);
+    background:rgba(255,255,255,.1); color:#e2e8f0; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-size:.85rem; transition:background .2s;
+}
+.mhrm-close-btn:hover { background:rgba(255,255,255,.22); }
+.mhrm-body { overflow-y:auto; flex:1; scrollbar-width:thin; scrollbar-color:var(--mhrm-border) transparent; }
+.mhrm-loading {
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:3.5rem 1.5rem; color:var(--mhrm-muted); gap:.85rem;
+}
+.mhrm-spinner { font-size:2.4rem; color:var(--mhrm-primary); animation:mhrmSpin 1.4s ease-in-out infinite; }
+@@keyframes mhrmSpin { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.8)} }
+.mhrm-loading p { margin:0; font-size:.9rem; }
+.mhrm-footer {
+    padding:.9rem 1.5rem; border-top:1.5px solid var(--mhrm-border);
+    background:#fafbfc; display:flex; align-items:center; justify-content:flex-end; flex-shrink:0;
+}
+.mhrm-btn {
+    display:inline-flex; align-items:center; gap:.4rem; padding:.55rem 1.1rem;
+    border-radius:10px; border:1.5px solid var(--mhrm-border); background:#fff;
+    color:var(--mhrm-muted); font-size:.85rem; font-weight:600; cursor:pointer; transition:background .2s;
+}
+.mhrm-btn:hover { background:var(--mhrm-light); }
+
+/* Verdict */
+.mhrm-verdict-row { display:flex; align-items:center; gap:1rem; flex-wrap:wrap; padding:1rem 1.5rem; border-bottom:1px solid var(--mhrm-border); }
+.mhrm-verdict-badge { display:inline-flex; align-items:center; gap:.45rem; padding:.45rem 1.05rem; border-radius:22px; font-size:.82rem; font-weight:800; white-space:nowrap; }
+.mhrm-verdict-badge.safe    { background:#e8f5e9; color:#1b5e20; border:1.5px solid #a5d6a7; }
+.mhrm-verdict-badge.warning { background:#fff3e0; color:#b84700; border:1.5px solid #ffcc80; }
+.mhrm-verdict-badge.danger  { background:#ffebee; color:#b71c1c; border:1.5px solid #ef9a9a; }
+.mhrm-verdict-summary { margin:0; font-size:.84rem; color:var(--mhrm-muted); }
+
+/* Sections */
+.mhrm-section { padding:1.1rem 1.5rem; border-bottom:1px solid var(--mhrm-border); }
+.mhrm-section:last-of-type { border-bottom:none; }
+.mhrm-section-h { display:flex; align-items:center; gap:.5rem; margin:0 0 .85rem; font-size:.9rem; font-weight:700; color:var(--mhrm-text); padding-left:.65rem; border-left:3px solid var(--mhrm-primary); }
+.mhrm-section-h i { color:var(--mhrm-primary); flex-shrink:0; }
+.mhrm-ai-section { }
+.mhrm-ai-block { background:#fafbfc; border-radius:10px; border:1px solid var(--mhrm-border); overflow:hidden; }
+.mhrm-ai-block-body { padding:.85rem 1.1rem; line-height:1.72; }
+.mhrm-report-heading { margin:.7rem 0 .3rem; font-size:.88rem; font-weight:700; color:var(--mhrm-text); }
+.mhrm-report-para { margin:.2rem 0; font-size:.85rem; color:#334155; }
+.mhrm-report-bullet { margin:.2rem 0; font-size:.85rem; color:#334155; list-style:none; display:flex; align-items:baseline; gap:.4rem; }
+.mhrm-report-bullet i { color:var(--mhrm-primary); font-size:.7rem; }
+
+/* Insight cards */
+.mhrm-insight-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:.8rem; }
+.mhrm-insight-card { padding:.8rem 1rem; border-radius:12px; border:1.5px solid var(--mhrm-border); display:flex; flex-direction:column; }
+.mhrm-insight-card.normal  { border-color:#a5d6a7; background:#f6fff8; }
+.mhrm-insight-card.warning { border-color:#fde68a; background:#fffdf5; }
+.mhrm-insight-card.high    { border-color:#ef9a9a; background:#fff8f8; }
+.mhrm-insight-label { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--mhrm-muted); margin-bottom:.28rem; }
+.mhrm-insight-value { font-size:1rem; font-weight:800; line-height:1.25; margin-bottom:.2rem; display:flex; align-items:center; }
+.mhrm-insight-unit { font-size:.68em; font-weight:600; margin-left:.18rem; }
+.mhrm-insight-card.normal  .mhrm-insight-value { color:#1b5e20; }
+.mhrm-insight-card.warning .mhrm-insight-value { color:#b84700; }
+.mhrm-insight-card.high    .mhrm-insight-value { color:#b71c1c; }
+.mhrm-insight-range { font-size:.7rem; color:var(--mhrm-muted); }
+.mhrm-insight-detail { margin-top:.35rem; font-size:.74rem; color:#475569; line-height:1.45; }
+.mhrm-insight-dot { display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:.3rem; }
+.mhrm-insight-card.normal  .mhrm-insight-dot { background:#4caf50; }
+.mhrm-insight-card.warning .mhrm-insight-dot { background:#ff9800; }
+.mhrm-insight-card.high    .mhrm-insight-dot { background:#f44336; }
+
+/* Patient info strip */
+.mhrm-pi-strip { display:flex; overflow-x:auto; gap:.5rem; padding:.2rem .1rem .5rem; scrollbar-width:none; }
+.mhrm-pi-strip::-webkit-scrollbar { display:none; }
+.mhrm-pi-chip { display:flex; flex-direction:column; flex-shrink:0; min-width:80px; padding:.6rem .9rem; border-radius:10px; background:var(--mhrm-light); border:1.5px solid var(--mhrm-border); }
+.mhrm-pi-label { font-size:.63rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--mhrm-muted); margin-bottom:.2rem; white-space:nowrap; }
+.mhrm-pi-value { font-size:.88rem; font-weight:700; color:var(--mhrm-text); white-space:nowrap; }
+
+/* Confidence pill */
+.mhrm-confidence-pill { display:inline-flex; align-items:center; gap:.3rem; padding:.22rem .7rem; border-radius:14px; background:rgba(27,174,190,.1); color:var(--mhrm-primary); font-size:.73rem; font-weight:700; border:1px solid rgba(27,174,190,.2); margin-left:.75rem; }
 </style>
 }
 

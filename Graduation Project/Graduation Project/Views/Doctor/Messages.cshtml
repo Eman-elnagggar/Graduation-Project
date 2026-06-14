@@ -103,10 +103,19 @@
       <div class="dm-chat-messages" id="chatMessages"></div>
 
       <div class="dm-chat-input-area">
-        <div class="input-wrapper">
-          <textarea id="messageInput" placeholder="Type a message..." rows="1" maxlength="2000"></textarea>
+        <div class="file-preview-strip" id="filePreview" style="display:none;">
+          <img id="filePreviewImg" src="" alt="" style="display:none;max-height:60px;border-radius:6px;" />
+          <span id="filePreviewName" class="file-preview-name"></span>
+          <button type="button" id="removeFileBtn" class="remove-file-btn" title="Remove"><i class="fas fa-times"></i></button>
         </div>
-        <button class="dm-send-btn" id="sendBtn" disabled><i class="fas fa-paper-plane"></i></button>
+        <div class="input-row">
+          <input type="file" id="chatFileInput" accept="image/jpeg,image/png,image/gif,image/webp,application/pdf" style="display:none;" />
+          <button type="button" class="attach-btn" id="attachBtn" title="Attach image or PDF"><i class="fas fa-paperclip"></i></button>
+          <div class="input-wrapper">
+            <textarea id="messageInput" placeholder="Type a message..." rows="1" maxlength="2000"></textarea>
+          </div>
+          <button class="dm-send-btn" id="sendBtn" disabled><i class="fas fa-paper-plane"></i></button>
+        </div>
       </div>
     </div>
     </main>
@@ -120,11 +129,14 @@
 }
 
 @section Scripts {
+  @Html.AntiForgeryToken()
   <script>
     window.__doctorMessagesConfig = {
       doctorId: @Html.Raw(JsonSerializer.Serialize(doctorId)),
       currentUserId: @Html.Raw(JsonSerializer.Serialize(currentUserId)),
       conversationMessagesEndpointTemplate: @Html.Raw(JsonSerializer.Serialize(Url.Action("ConversationMessages", "Doctor", new { id = "__DOCTOR_ID__", userId = "__USER_ID__" }))),
+      uploadChatFileEndpointTemplate: @Html.Raw(JsonSerializer.Serialize(Url.Action("UploadChatFile", "Doctor", new { id = "__DOCTOR_ID__" }))),
+      antiForgeryToken: document.querySelector('input[name="__RequestVerificationToken"]')?.value || "",
       conversations: @Html.Raw(JsonSerializer.Serialize(conversations))
     };
   </script>

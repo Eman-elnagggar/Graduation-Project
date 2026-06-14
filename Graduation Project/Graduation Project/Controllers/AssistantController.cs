@@ -23,8 +23,10 @@ namespace Graduation_Project.Controllers
         private readonly IAlert _alertRepository;
         private readonly ILabTest _labTestRepository;
         private readonly AssistantScheduleService _assistantScheduleService;
+        private readonly IDoctorNotificationService _doctorNotificationService;
         private readonly AppDbContext _context;
         private readonly IChatMessageCrypto _chatMessageCrypto;
+        private readonly IWebHostEnvironment _env;
 
         public AssistantController(
             IAssistant assistantRepository,
@@ -35,8 +37,10 @@ namespace Graduation_Project.Controllers
             IAlert alertRepository,
             ILabTest labTestRepository,
             AssistantScheduleService assistantScheduleService,
+            IDoctorNotificationService doctorNotificationService,
             AppDbContext context,
-            IChatMessageCrypto chatMessageCrypto)
+            IChatMessageCrypto chatMessageCrypto,
+            IWebHostEnvironment env)
         {
             _assistantRepository = assistantRepository;
             _clinicRepository = clinicRepository;
@@ -46,13 +50,15 @@ namespace Graduation_Project.Controllers
             _alertRepository = alertRepository;
             _labTestRepository = labTestRepository;
             _assistantScheduleService = assistantScheduleService;
+            _doctorNotificationService = doctorNotificationService;
             _context = context;
             _chatMessageCrypto = chatMessageCrypto;
+            _env = env;
         }
 
         public IActionResult Index(int id, int? doctorId, DateTime? date, string? status)
         {
-            // Fast initial load — only 2 DB queries (assistant + clinic)
+            // Fast initial load ï¿½ only 2 DB queries (assistant + clinic)
             var assistant = _assistantRepository.GetByIdWithDoctors(id);
             if (assistant == null)
                 return NotFound();
@@ -75,7 +81,7 @@ namespace Graduation_Project.Controllers
                 ? doctorSummaries.FirstOrDefault(d => d.DoctorID == doctorId.Value)?.FullName ?? "Doctor"
                 : "All Doctors";
 
-            // Return page skeleton — heavy data (stats, schedule) loaded via AJAX
+            // Return page skeleton ï¿½ heavy data (stats, schedule) loaded via AJAX
             var viewModel = new AssistantDashboardViewModel
             {
                 Assistant = assistant,
@@ -193,6 +199,44 @@ namespace Graduation_Project.Controllers
             return View(vm);
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UploadChatFile(int id, IFormFile file)
+        {
+            var accessResult = TryResolveAssistantClinic(id, out var assistant, out _);
+            if (accessResult != null) return accessResult;
+
+            if (file == null || file.Length == 0)
+                return BadRequest(new { error = "No file provided." });
+
+            if (file.Length > 10 * 1024 * 1024)
+                return BadRequest(new { error = "File exceeds the 10 MB limit." });
+
+            var allowedTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "image/jpeg", "image/png", "image/gif", "image/webp",
+                "application/pdf"
+            };
+
+            if (!allowedTypes.Contains(file.ContentType))
+                return BadRequest(new { error = "File type not allowed." });
+
+            var userDir = Path.Combine(_env.WebRootPath, "uploads", "chat", assistant!.UserID!);
+            Directory.CreateDirectory(userDir);
+
+            var ext = Path.GetExtension(file.FileName);
+            var fileName = $"{Guid.NewGuid():N}{ext}";
+            var filePath = Path.Combine(userDir, fileName);
+
+            using (var stream = System.IO.File.Create(filePath))
+                await file.CopyToAsync(stream);
+
+            var url = $"/uploads/chat/{assistant.UserID}/{fileName}";
+            var type = file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ? "image" : "file";
+
+            return Json(new { url, type, name = file.FileName });
+        }
+
         [HttpGet]
         public IActionResult ConversationMessages(int id, string userId)
         {
@@ -240,7 +284,10 @@ namespace Graduation_Project.Controllers
                     senderId = m.SenderUserId,
                     receiverId = m.ReceiverUserId,
                     content = _chatMessageCrypto.Decrypt(m.Message),
-                    timestamp = m.SentAtUtc
+                    timestamp = m.SentAtUtc,
+                    attachmentUrl = m.AttachmentUrl,
+                    attachmentType = m.AttachmentType,
+                    attachmentName = m.AttachmentName
                 })
                 .ToList();
 
@@ -1353,7 +1400,18 @@ namespace Graduation_Project.Controllers
             invitation.ResponseMessage = "Accepted by assistant";
             _context.SaveChanges();
 
-            TempData["InviteSuccess"] = "Invitation accepted. You are now part of the doctor’s clinic team.";
+            var assistantUser = _context.Users.FirstOrDefault(u => u.Id == trackedAssistant.UserID);
+            var assistantName = assistantUser != null
+                ? $"{assistantUser.FirstName} {assistantUser.LastName}".Trim()
+                : invitation.AssistantEmail;
+            _ = _doctorNotificationService.NotifyAsync(
+                invitation.DoctorID,
+                "Assistant Joined Your Team",
+                $"{assistantName} has accepted your clinic invitation and joined your team.",
+                "invitation_accepted",
+                "/Doctor/ClinicTeam");
+
+            TempData["InviteSuccess"] = "Invitation accepted. You are now part of the doctorï¿½s clinic team.";
             return RedirectToAction(nameof(ClinicInvitations), new { id = assistant.AssistantID });
         }
 

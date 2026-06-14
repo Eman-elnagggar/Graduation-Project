@@ -52,7 +52,7 @@ namespace Graduation_Project.Controllers
                 || ex.Message.Contains("OCR service returned no values", StringComparison.OrdinalIgnoreCase))
             {
                 _logger.LogError(ex, "External OCR service error while uploading analysis data.");
-                return StatusCode(502, new { error = ex.Message });
+                return StatusCode(502, new { error = AnalysisErrorMessages.ToUserMessage(ex) });
             }
             catch (InvalidOperationException ex)
             {
@@ -67,7 +67,7 @@ namespace Graduation_Project.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to upload and extract analysis data.");
-                return StatusCode(500, new { error = ex.Message });
+                return StatusCode(500, new { error = AnalysisErrorMessages.ToUserMessage(ex) });
             }
         }
 
@@ -87,7 +87,7 @@ namespace Graduation_Project.Controllers
                 ex.Message.Contains("Confirm service unavailable", StringComparison.OrdinalIgnoreCase))
             {
                 _logger.LogError(ex, "External confirm service error.");
-                return StatusCode(502, new { error = ex.Message });
+                return StatusCode(502, new { error = AnalysisErrorMessages.ToUserMessage(ex) });
             }
             catch (InvalidOperationException ex)
             {
@@ -102,7 +102,79 @@ namespace Graduation_Project.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to confirm analysis for lab test {LabTestId}.", id);
-                return StatusCode(500, new { error = ex.Message });
+                return StatusCode(500, new { error = AnalysisErrorMessages.ToUserMessage(ex) });
+            }
+        }
+
+        [HttpPost("ocr-only")]
+        [RequestSizeLimit(10 * 1024 * 1024)]
+        public async Task<IActionResult> OcrOnlyAsync([FromForm] OcrOnlyRequest request, CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (request.Image == null || request.Image.Length == 0)
+                    return BadRequest(new { error = "No image file provided." });
+
+                if (string.IsNullOrWhiteSpace(request.TestType))
+                    return BadRequest(new { error = "Test type is required." });
+
+                var response = await _analysisService.OcrOnlyAsync(request, cancellationToken);
+                return Ok(response);
+            }
+            catch (InvalidOperationException ex) when (
+                ex.Message.Contains("OCR service unavailable", StringComparison.OrdinalIgnoreCase)
+                || ex.Message.Contains("OCR API error", StringComparison.OrdinalIgnoreCase)
+                || ex.Message.Contains("OCR service returned no values", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogError(ex, "External OCR service error (ocr-only).");
+                return StatusCode(502, new { error = AnalysisErrorMessages.ToUserMessage(ex) });
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "Validation failed in ocr-only.");
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (TaskCanceledException ex)
+            {
+                _logger.LogWarning(ex, "OCR API timed out (ocr-only).");
+                return StatusCode(504, new { error = "The analysis service timed out. Please try again." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error in ocr-only.");
+                return StatusCode(500, new { error = "An unexpected error occurred. Please try again." });
+            }
+        }
+
+        [HttpPost("batch-submit")]
+        public async Task<IActionResult> BatchSubmitAsync([FromBody] BatchSubmitRequest request, CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (request == null || request.Tests == null || request.Tests.Count == 0)
+                    return BadRequest(new { error = "No tests provided." });
+
+                if (request.PatientId <= 0)
+                    return BadRequest(new { error = "Invalid patient id." });
+
+                var response = await _analysisService.BatchSubmitAsync(request, cancellationToken);
+                _backgroundJobScheduler.EnqueueAnalysis(response.LabTestId);
+                return Ok(response);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "Validation failed in batch-submit.");
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (TaskCanceledException ex)
+            {
+                _logger.LogWarning(ex, "Batch submit timed out.");
+                return StatusCode(504, new { error = "The submission timed out. Please try again." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error in batch-submit.");
+                return StatusCode(500, new { error = "An unexpected error occurred. Please try again." });
             }
         }
 

@@ -1,4 +1,5 @@
 using Graduation_Project.Data;
+using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
 using Graduation_Project.Services;
 using Graduation_Project.ViewModels;
@@ -15,12 +16,14 @@ namespace Graduation_Project.Controllers
         private readonly AppDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IEmailService _emailService;
+        private readonly IDoctorNotificationService _doctorNotificationService;
 
-        public AdminController(AppDbContext context, UserManager<ApplicationUser> userManager, IEmailService emailService)
+        public AdminController(AppDbContext context, UserManager<ApplicationUser> userManager, IEmailService emailService, IDoctorNotificationService doctorNotificationService)
         {
             _context = context;
             _userManager = userManager;
             _emailService = emailService;
+            _doctorNotificationService = doctorNotificationService;
         }
 
         // ─── Dashboard ────────────────────────────────────────────────────────
@@ -317,7 +320,7 @@ namespace Graduation_Project.Controllers
             doctor.VerificationDate = DateTime.Now;
             await _context.SaveChangesAsync();
 
-            // Send approval email
+            // Send approval email and in-app notification
             var approvedUser = await _context.Users.FindAsync(doctor.UserID);
             if (approvedUser != null)
             {
@@ -328,6 +331,12 @@ namespace Graduation_Project.Controllers
                     "Your NABD Registration Has Been Approved ✅",
                     DoctorEmailTemplates.Approved(name));
             }
+            _ = _doctorNotificationService.NotifyAsync(
+                doctor.DoctorID,
+                "Account Approved",
+                "Your NABD registration has been approved by the admin. You can now access all doctor features.",
+                "admin_approved",
+                "/Doctor/Index");
 
             TempData["AdminSuccess"] = "Doctor has been approved and notified by email.";
             return RedirectToAction(nameof(DoctorVerification));

@@ -429,7 +429,13 @@
 .dm-chat-input-area {
   background: #fff;
   border-top: 1px solid var(--border-color);
-  padding: 12px 16px;
+  padding: 8px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-row {
   display: flex;
   gap: 10px;
   align-items: flex-end;
@@ -508,11 +514,87 @@
 .toast.error { border-left: 3px solid var(--danger); }
 .toast.success { border-left: 3px solid var(--success); }
 
-/* ================================================================
-   RESPONSIVE — Mobile Chat (panel switcher pattern)
-   On ≤992px: show list OR chat, never both at once.
-   On >992px: side-by-side layout (no changes needed).
-================================================================ */
+/* Attach button */
+.attach-btn {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 50%;
+  background: var(--gray-100);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  transition: background .18s, color .18s;
+}
+.attach-btn:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+/* File preview strip above the input row */
+.file-preview-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: var(--gray-50);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: .82rem;
+  color: var(--text-secondary);
+}
+.file-preview-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.remove-file-btn {
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  line-height: 1;
+  font-size: .85rem;
+}
+.remove-file-btn:hover { color: var(--danger); }
+
+/* Message attachment rendering */
+.msg-attachment {
+  margin-bottom: 4px;
+}
+.msg-attachment-image .chat-img-preview {
+  max-width: 240px;
+  max-height: 220px;
+  border-radius: var(--radius-md);
+  display: block;
+  object-fit: cover;
+  cursor: pointer;
+}
+.msg-attachment-file a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  font-size: .83rem;
+  text-decoration: none;
+  word-break: break-all;
+}
+.message-wrapper.sent .msg-attachment-file a {
+  background: rgba(255,255,255,.18);
+  color: #fff;
+}
+.message-wrapper.received .msg-attachment-file a {
+  background: var(--gray-100);
+  color: var(--primary);
+}
 
 @media (max-width: 992px) {
   /* Overall app: relative container for absolute panels */

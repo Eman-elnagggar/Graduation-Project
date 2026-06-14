@@ -26,6 +26,7 @@ namespace Graduation_Project.Controllers
         private readonly UltrasoundImageStorage _storage;
         private readonly IAlert _alertRepository;
         private readonly IPatient _patientRepository;
+        private readonly ILogger<UltrasoundController> _logger;
 
         public UltrasoundController(
             AppDbContext context,
@@ -34,7 +35,8 @@ namespace Graduation_Project.Controllers
             IUltrasoundAIService aiService,
             UltrasoundImageStorage storage,
             IAlert alertRepository,
-            IPatient patientRepository)
+            IPatient patientRepository,
+            ILogger<UltrasoundController> logger)
         {
             _context = context;
             _patientDoctorRepository = patientDoctorRepository;
@@ -43,6 +45,7 @@ namespace Graduation_Project.Controllers
             _storage = storage;
             _alertRepository = alertRepository;
             _patientRepository = patientRepository;
+            _logger = logger;
         }
 
         // ── GET: Upload ────────────────────────────────────────────────────────
@@ -145,8 +148,11 @@ namespace Graduation_Project.Controllers
             }
             catch (Exception ex)
             {
+                // Keep the technical detail in the logs, not in AI_Result_JSON (which is meant to
+                // hold the model's JSON output and would otherwise carry a raw exception string).
+                _logger.LogError(ex, "Ultrasound AI analysis failed for image {ImageId}.", record.ImageID);
                 record.Status = UltrasoundStatus.Failed;
-                record.AI_Result_JSON = ex.Message;
+                record.AI_Result_JSON = string.Empty;
 
                 TempData["ErrorMessage"] = "AI analysis is currently unavailable. The image has been saved and can be viewed in the patient's history.";
             }

@@ -10,12 +10,18 @@ namespace Graduation_Project.Services
         private readonly AppDbContext _context;
         private readonly IAlert _alertRepository;
         private readonly IMedicationLog _logRepository;
+        private readonly IPushNotificationService _push;
 
-        public MedicationReminderService(AppDbContext context, IAlert alertRepository, IMedicationLog logRepository)
+        public MedicationReminderService(
+            AppDbContext context,
+            IAlert alertRepository,
+            IMedicationLog logRepository,
+            IPushNotificationService push)
         {
             _context = context;
             _alertRepository = alertRepository;
             _logRepository = logRepository;
+            _push = push;
         }
 
         public List<MedicationDueSlot> GetDueSlots(int patientId, DateTime date)
@@ -109,6 +115,14 @@ namespace Graduation_Project.Services
                         DateCreated = DateTime.Now,
                         IsRead = false
                     });
+
+                    var patientUserId = _context.Patients
+                        .Where(p => p.PatientID == patientId)
+                        .Select(p => p.UserID)
+                        .FirstOrDefault();
+
+                    if (!string.IsNullOrEmpty(patientUserId))
+                        _ = _push.SendToUserAsync(patientUserId, title, message, "/Patient/Medications");
                 }
 
                 _alertRepository.Save();

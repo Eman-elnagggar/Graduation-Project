@@ -52,9 +52,5 @@ _ReSharper*/
 # but keep track of directories ending in .cache
 !?*.[Cc]ache/
 
-# User-uploaded files — never commit to source control
-wwwroot/uploads/
-wwwroot/uploads/**
-
-# Data Protection keys — environment-specific
-.dpkeys/
+# Secrets — never commit (VAPID push keys are generated at runtime)
+vapid-keys.json
