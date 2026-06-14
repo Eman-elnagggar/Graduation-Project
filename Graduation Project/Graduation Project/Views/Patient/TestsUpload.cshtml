@@ -2515,7 +2515,10 @@
     }
 
     async function waitForAnalysisResult(labTestId) {
-        const maxAttempts = 20;
+        // The submit service (HF space) can intermittently fail and is retried server-side for
+        // up to ~90s, so poll long enough to outlast those retries. Returns early as soon as the
+        // status becomes Completed or Failed, so a fast analysis is unaffected.
+        const maxAttempts = 75;
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
             const response = await fetchWithTimeout(`/api/analysis/${labTestId}`, {}, 15000);
             if (!response.ok) {

@@ -249,7 +249,7 @@ namespace Graduation_Project.Services
                     .ToList();
 
                 if (reportTests.Count == 0)
-                    throw new InvalidOperationException("No confirmed tests to submit.");
+                    throw new AnalysisUserException("Please confirm your test values before running the analysis.");
 
                 foreach (var test in reportTests)
                 {
@@ -296,7 +296,7 @@ namespace Graduation_Project.Services
                     LogPairSources(report.ReportID, testSources);
 
                 if (results.Count == 0)
-                    throw new InvalidOperationException("No supported tests to submit. The current submit API accepts CBC, Urinalysis, TSH, Ferritin, Fasting Blood Glucose, HbA1c, Blood Group, HBsAg, and HCV.");
+                    throw new AnalysisUserException("These tests aren't supported for AI analysis yet. Supported tests are CBC, Urinalysis, TSH, Ferritin, Fasting Blood Glucose, HbA1c, Blood Group, HBsAg, and HCV.");
 
                 var submitRequest = new AnalysisSubmitRequest
                 {
@@ -328,7 +328,7 @@ namespace Graduation_Project.Services
                 if (report != null)
                 {
                     report.AnalysisStatus = AnalysisStatus.Failed;
-                    report.AISummary = ex.Message;
+                    report.AISummary = AnalysisErrorMessages.ToUserMessage(ex);
                 }
             }
 
@@ -881,6 +881,12 @@ namespace Graduation_Project.Services
                 payload[targetKey] = submitValue;
             }
 
+            // The submit model requires every schema field for a test to be present — a missing
+            // key crashes its per-test handler (HTTP 500). Fields OCR couldn't read are omitted
+            // above, so backfill any remaining schema fields with "Not Extracted" (an accepted
+            // placeholder) before submitting.
+            EnsureSchemaFieldsPresent(payload);
+
             return FinalizeSubmitPayload(payload);
         }
 
@@ -1034,30 +1040,46 @@ namespace Graduation_Project.Services
             }
         }
 
+        // The full field schema the submit model expects for each test. The model crashes (HTTP 500)
+        // when a test object is missing any of these keys, so this is used both to filter incoming
+        // fields and to backfill missing ones before submitting.
+        private static readonly Dictionary<string, string[]> SubmitSchemaFields = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["cbc (complete blood count)"] = new[] { "HB", "RBCs_Count", "MCV", "MCH", "RDW", "WBC", "lymphocytes", "platelet_count" },
+            ["urinalysis"] = new[] { "Color", "PH", "Specific_Gravity", "Protein", "Glucose", "Ketones", "Blood", "RBCs", "Leukocytes", "Nitrite" },
+            ["tsh (thyroid)"] = new[] { "TSH" },
+            ["ferritin"] = new[] { "Ferritin_value" },
+            ["fasting blood glucose"] = new[] { "FBG" },
+            ["hba1c (sugar test)"] = new[] { "HbA1c" },
+            ["blood group"] = new[] { "ABO_Group", "RH_Factor" },
+            ["hbsag (hepatitis b)"] = new[] { "HBsAg" },
+            ["hcv (hepatitis c)"] = new[] { "HCV" }
+        };
+
         private static bool IsSubmitFieldAllowed(string? testName, string key)
         {
             var testNormalized = (testName ?? string.Empty).Trim().ToLowerInvariant();
-            var allowed = testNormalized switch
-            {
-                "cbc (complete blood count)" => new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    "HB", "RBCs_Count", "MCV", "MCH", "RDW", "WBC", "lymphocytes", "platelet_count"
-                },
-                "urinalysis" => new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    "Color", "PH", "Specific_Gravity", "Protein", "Glucose", "Ketones", "Blood", "RBCs", "Leukocytes", "Nitrite"
-                },
-                "tsh (thyroid)" => new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "TSH" },
-                "ferritin" => new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Ferritin_value" },
-                "fasting blood glucose" => new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "FBG" },
-                "hba1c (sugar test)" => new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "HbA1c" },
-                "blood group" => new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "ABO_Group", "RH_Factor" },
-                "hbsag (hepatitis b)" => new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "HBsAg" },
-                "hcv (hepatitis c)" => new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "HCV" },
-                _ => null
-            };
+            return SubmitSchemaFields.TryGetValue(testNormalized, out var fields)
+                && fields.Contains(key, StringComparer.OrdinalIgnoreCase);
+        }
 
-            return allowed?.Contains(key) == true;
+        private static void EnsureSchemaFieldsPresent(Dictionary<string, object> payload)
+        {
+            var testName = payload.TryGetValue("test_name", out var name) ? name?.ToString() : null;
+            var testNormalized = (testName ?? string.Empty).Trim().ToLowerInvariant();
+            if (!SubmitSchemaFields.TryGetValue(testNormalized, out var fields))
+                return;
+
+            // CBC requires numeric values for every field; the model rejects "Not Extracted" for it,
+            // so backfilling can't salvage an incomplete CBC — leave it to the RDW guard / 500 path.
+            if (testNormalized == "cbc (complete blood count)")
+                return;
+
+            foreach (var field in fields)
+            {
+                if (!payload.ContainsKey(field))
+                    payload[field] = "Not Extracted";
+            }
         }
 
         private static bool ShouldOmitSubmitValue(object? value)
@@ -1207,7 +1229,7 @@ namespace Graduation_Project.Services
             if (testName.Equals("CBC (Complete Blood Count)", StringComparison.OrdinalIgnoreCase)
                 && !payload.ContainsKey("RDW"))
             {
-                throw new InvalidOperationException(
+                throw new AnalysisUserException(
                     "CBC analysis requires an RDW value. Please add RDW from your lab report in the review step.");
             }
 

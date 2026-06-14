@@ -52,7 +52,7 @@ namespace Graduation_Project.Controllers
                 || ex.Message.Contains("OCR service returned no values", StringComparison.OrdinalIgnoreCase))
             {
                 _logger.LogError(ex, "External OCR service error while uploading analysis data.");
-                return StatusCode(502, new { error = ex.Message });
+                return StatusCode(502, new { error = AnalysisErrorMessages.ToUserMessage(ex) });
             }
             catch (InvalidOperationException ex)
             {
@@ -67,7 +67,7 @@ namespace Graduation_Project.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to upload and extract analysis data.");
-                return StatusCode(500, new { error = ex.Message });
+                return StatusCode(500, new { error = AnalysisErrorMessages.ToUserMessage(ex) });
             }
         }
 
@@ -87,7 +87,7 @@ namespace Graduation_Project.Controllers
                 ex.Message.Contains("Confirm service unavailable", StringComparison.OrdinalIgnoreCase))
             {
                 _logger.LogError(ex, "External confirm service error.");
-                return StatusCode(502, new { error = ex.Message });
+                return StatusCode(502, new { error = AnalysisErrorMessages.ToUserMessage(ex) });
             }
             catch (InvalidOperationException ex)
             {
@@ -102,7 +102,7 @@ namespace Graduation_Project.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to confirm analysis for lab test {LabTestId}.", id);
-                return StatusCode(500, new { error = ex.Message });
+                return StatusCode(500, new { error = AnalysisErrorMessages.ToUserMessage(ex) });
             }
         }
 
@@ -127,7 +127,7 @@ namespace Graduation_Project.Controllers
                 || ex.Message.Contains("OCR service returned no values", StringComparison.OrdinalIgnoreCase))
             {
                 _logger.LogError(ex, "External OCR service error (ocr-only).");
-                return StatusCode(502, new { error = ex.Message });
+                return StatusCode(502, new { error = AnalysisErrorMessages.ToUserMessage(ex) });
             }
             catch (InvalidOperationException ex)
             {

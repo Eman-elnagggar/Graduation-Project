@@ -8,7 +8,12 @@ namespace Graduation_Project.Services
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<AnalysisSubmitClient> _logger;
-        private static readonly HashSet<int> _retryStatusCodes = new() { 502, 503, 504 };
+        // 502/503/504 mean the HF space is asleep/starting — wait long for it to wake.
+        private static readonly HashSet<int> _wakeStatusCodes = new() { 502, 503, 504 };
+        // 500 from this space is transient (the risk-prediction model intermittently
+        // crashes/OOMs on the free tier and recovers). The same payload succeeds on a
+        // quick retry, so retry 500 a few times with a short delay before giving up.
+        private static readonly HashSet<int> _transientStatusCodes = new() { 500 };
 
         public AnalysisSubmitClient(IHttpClientFactory httpClientFactory, ILogger<AnalysisSubmitClient> logger)
         {
@@ -21,9 +26,11 @@ namespace Graduation_Project.Services
             // HF free-tier spaces sleep after inactivity and need up to 90s to wake.
             // We retry 503/502/504 with a 30s delay to give the space time to start.
             const int maxStatusRetries = 4;
+            const int maxTransientRetries = 5;
             const int maxExceptionRetries = 2;
             int attempt = 0;
             int statusRetries = 0;
+            int transientRetries = 0;
             int exceptionRetries = 0;
 
             while (true)
@@ -38,12 +45,23 @@ namespace Graduation_Project.Services
 
                     var response = await client.PostAsync("/submit-json", content, cancellationToken);
 
-                    if (_retryStatusCodes.Contains((int)response.StatusCode) && statusRetries < maxStatusRetries)
+                    if (_wakeStatusCodes.Contains((int)response.StatusCode) && statusRetries < maxStatusRetries)
                     {
                         statusRetries++;
                         // Wait 30s to let the HF space wake up from sleep before retrying
-                        _logger.LogWarning("Submit API returned {StatusCode} (status-retry {Retry}/{Max}). Waiting 30s for service to start...", (int)response.StatusCode, statusRetries, maxStatusRetries);
+                        _logger.LogWarning("Submit API returned {StatusCode} (wake-retry {Retry}/{Max}). Waiting 30s for service to start...", (int)response.StatusCode, statusRetries, maxStatusRetries);
                         await Task.Delay(30_000, cancellationToken);
+                        continue;
+                    }
+
+                    if (_transientStatusCodes.Contains((int)response.StatusCode) && transientRetries < maxTransientRetries)
+                    {
+                        transientRetries++;
+                        // The space's risk model crashes intermittently and recovers quickly — retry the
+                        // same payload after a short, growing delay before treating it as a failure.
+                        int delaySeconds = 3 + (transientRetries * 2);
+                        _logger.LogWarning("Submit API returned {StatusCode} (transient-retry {Retry}/{Max}). Waiting {Delay}s before retrying...", (int)response.StatusCode, transientRetries, maxTransientRetries, delaySeconds);
+                        await Task.Delay(delaySeconds * 1_000, cancellationToken);
                         continue;
                     }
 

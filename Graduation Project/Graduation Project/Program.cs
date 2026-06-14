@@ -104,7 +104,7 @@ namespace Graduation_Project
 
             builder.Services.AddHttpClient<IChatbotService, ChatbotService>(client =>
             {
-                client.BaseAddress = new Uri("https://mennnaa-pregnancy-chatbot.hf.space/");
+                client.BaseAddress = new Uri("https://mennatullah989-chatbot.hf.space/docs");
                 client.Timeout = TimeSpan.FromSeconds(60);
             });
 
