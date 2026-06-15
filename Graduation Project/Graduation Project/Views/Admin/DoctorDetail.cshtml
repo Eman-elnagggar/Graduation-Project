@@ -252,12 +252,12 @@
                 </form>
             }
 
-            @if (!Model.IsActive && string.IsNullOrWhiteSpace(Model.OriginalEmail) == false)
+            @if (!string.IsNullOrWhiteSpace(Model.OriginalEmail))
             {
-                <form method="post" action="/Admin/ToggleUserStatus" onsubmit="return confirm('Reactivate this user account?')">
+                <form method="post" action="/Admin/RestoreUser" onsubmit="return confirm('Restore this doctor? Their original email and login access will be reinstated.')">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="userId" value="@Model.UserId" />
-                    <button type="submit" class="dp-btn success" style="width:100%;"><i class="fas fa-user-check"></i> Reactivate Account</button>
+                    <button type="submit" class="dp-btn success" style="width:100%;"><i class="fas fa-undo"></i> Restore Account</button>
                 </form>
             }
 

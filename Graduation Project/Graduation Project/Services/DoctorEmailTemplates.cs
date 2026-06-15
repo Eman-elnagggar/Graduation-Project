@@ -44,6 +44,54 @@ namespace Graduation_Project.Services
 </body></html>";
         }
 
+        public static string NewPatientWelcome(string patientName, string email, string tempPassword, string loginUrl)
+        {
+            return $@"<!doctype html><html><head><meta charset='utf-8'/>
+<style>
+{BaseStyle}
+.cred-box{{background:rgba(74,222,128,0.07);border:1px solid rgba(74,222,128,0.22);border-radius:12px;padding:20px 24px;margin:20px 0;}}
+.cred-label{{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#4ade80;margin-bottom:10px;}}
+.cred-row{{display:flex;align-items:center;margin-bottom:8px;gap:10px;}}
+.cred-key{{font-size:13px;color:#8b949e;min-width:90px;}}
+.cred-val{{font-size:14px;font-weight:700;color:#e6edf3;letter-spacing:0.03em;background:rgba(255,255,255,0.05);padding:5px 12px;border-radius:6px;font-family:monospace;}}
+.warn-box{{background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.22);border-radius:10px;padding:14px 18px;margin:20px 0;font-size:13px;color:#fbbf24;}}
+.btn{{display:inline-block;padding:13px 36px;border-radius:999px;font-size:15px;font-weight:700;text-decoration:none;margin-top:8px;background:linear-gradient(135deg,#2563eb 0%,#3b82f6 55%,#60a5fa 100%);color:#ffffff !important;box-shadow:0 12px 24px rgba(37,99,235,0.35),0 2px 6px rgba(0,0,0,0.2);}}
+</style></head><body>
+<div class='wrap'>
+  <div class='header' style='background:linear-gradient(135deg,#0a1628 0%,#1e3a8a 60%,#1d4ed8 100%);'>
+    <div style='margin-bottom:18px;'>
+      <img src='cid:nabd-logo' alt='NABD نبض' style='max-width:130px;height:auto;display:block;margin:0 auto;'/>
+    </div>
+    <div style='font-size:40px;margin-bottom:10px;'>🩺</div>
+    <h1 style='color:#e6edf3;'>Welcome to NABD نبض</h1>
+    <p style='color:#93c5fd;font-size:14px;margin:0;'>NABD نبض · Patient Portal</p>
+  </div>
+  <div class='body'>
+    <p>Hello <strong style='color:#e6edf3;'>{System.Net.WebUtility.HtmlEncode(patientName)}</strong>,</p>
+    <p>Your account has been created on <strong style='color:#4f8ef7;'>NABD نبض</strong> by our clinic team. Use the credentials below to sign in for the first time.</p>
+    <div class='cred-box'>
+      <div class='cred-label'>Your Login Credentials</div>
+      <div class='cred-row'>
+        <span class='cred-key'>Email</span>
+        <span class='cred-val'>{System.Net.WebUtility.HtmlEncode(email)}</span>
+      </div>
+      <div class='cred-row'>
+        <span class='cred-key'>Password</span>
+        <span class='cred-val'>{System.Net.WebUtility.HtmlEncode(tempPassword)}</span>
+      </div>
+    </div>
+    <div class='warn-box'>⚠️ This is a temporary password. Please change it immediately after signing in.</div>
+    <p style='text-align:center;'>
+      <a class='btn' href='{loginUrl}'>Sign In Now</a>
+    </p>
+    <hr class='divider'/>
+    <p style='font-size:13px;color:#8b949e;'>If you did not expect this account, please contact your clinic or ignore this email.</p>
+  </div>
+  <div class='footer'>© {DateTime.UtcNow.Year} NABD نبض · Healthcare Management Platform</div>
+</div>
+</body></html>";
+        }
+
         public static string Rejected(string doctorName, string? rejectionNote)
         {
             var noteSection = string.IsNullOrWhiteSpace(rejectionNote)

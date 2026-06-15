@@ -114,10 +114,20 @@
                             </span>
                         </td>
                         <td>
-                            <span class="status-badge @(user.IsActive ? "active" : "inactive")">
-                                <span class="status-dot @(user.IsActive ? "active" : "inactive")"></span>
-                                @(user.IsActive ? "Active" : "Inactive")
-                            </span>
+                            @if (user.IsSoftDeleted)
+                            {
+                                <span class="status-badge inactive" title="Account soft-deleted — email anonymised, login blocked">
+                                    <span class="status-dot inactive"></span>
+                                    Deleted
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="status-badge @(user.IsActive ? "active" : "inactive")">
+                                    <span class="status-dot @(user.IsActive ? "active" : "inactive")"></span>
+                                    @(user.IsActive ? "Active" : "Inactive")
+                                </span>
+                            }
                         </td>
                         <td style="color:var(--text-secondary);font-size:0.82rem;">
                             @(string.IsNullOrWhiteSpace(user.PhoneNumber) ? "—" : user.PhoneNumber)
@@ -127,34 +137,14 @@
                         </td>
                         <td>
                             <div class="action-btns">
-                                <form method="post" action="/Admin/ToggleUserStatus" style="display:inline"
-                                      onsubmit="return confirm('@(user.IsActive ? "Deactivate" : "Activate") this user?')">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="userId" value="@user.UserId" />
-                                    <button type="submit"
-                                            class="btn-action @(user.IsActive ? "deactivate" : "activate")"
-                                            title="@(user.IsActive ? "Deactivate" : "Activate")">
-                                        <i class="fas @(user.IsActive ? "fa-user-slash" : "fa-user-check")"></i>
-                                    </button>
-                                </form>
-
-                                <form method="post" action="/Admin/ResetPassword" style="display:inline"
-                                      onsubmit="return confirm('Reset password for this user?')">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="userId" value="@user.UserId" />
-                                    <button type="submit" class="btn-action reset" title="Reset Password">
-                                        <i class="fas fa-key"></i>
-                                    </button>
-                                </form>
-
-                                @if (user.Role != "Admin")
+                                @if (user.IsSoftDeleted)
                                 {
-                                    <form method="post" action="/Admin/SoftDeleteUser" style="display:inline"
-                                          onsubmit="return confirm('Soft-delete this user? Their account will be deactivated.')">
+                                    <form method="post" action="/Admin/RestoreUser" style="display:inline"
+                                          onsubmit="return confirm('Restore this user? Their account will be reactivated.')">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="userId" value="@user.UserId" />
-                                        <button type="submit" class="btn-action delete" title="Soft Delete">
-                                            <i class="fas fa-trash"></i>
+                                        <button type="submit" class="btn-action activate" title="Restore Account">
+                                            <i class="fas fa-undo"></i>
                                         </button>
                                     </form>
 
@@ -169,6 +159,52 @@
                                             <i class="fas fa-skull-crossbones"></i>
                                         </button>
                                     </form>
+                                }
+                                else
+                                {
+                                    <form method="post" action="/Admin/ToggleUserStatus" style="display:inline"
+                                          onsubmit="return confirm('@(user.IsActive ? "Deactivate" : "Activate") this user?')">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="userId" value="@user.UserId" />
+                                        <button type="submit"
+                                                class="btn-action @(user.IsActive ? "deactivate" : "activate")"
+                                                title="@(user.IsActive ? "Deactivate" : "Activate")">
+                                            <i class="fas @(user.IsActive ? "fa-user-slash" : "fa-user-check")"></i>
+                                        </button>
+                                    </form>
+
+                                    <form method="post" action="/Admin/ResetPassword" style="display:inline"
+                                          onsubmit="return confirm('Reset password for this user?')">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="userId" value="@user.UserId" />
+                                        <button type="submit" class="btn-action reset" title="Reset Password">
+                                            <i class="fas fa-key"></i>
+                                        </button>
+                                    </form>
+
+                                    @if (user.Role != "Admin")
+                                    {
+                                        <form method="post" action="/Admin/SoftDeleteUser" style="display:inline"
+                                              onsubmit="return confirm('Soft-delete this user? Their account will be deactivated and can be restored later.')">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="userId" value="@user.UserId" />
+                                            <button type="submit" class="btn-action delete" title="Soft Delete (Reversible)">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+
+                                        <form method="post" action="/Admin/HardDeleteUser" style="display:inline"
+                                              onsubmit="return confirm('PERMANENTLY delete this user and all their data? This cannot be undone.')">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="userId" value="@user.UserId" />
+                                            <button type="submit"
+                                                    class="btn-action delete"
+                                                    title="Hard Delete (Permanent)"
+                                                    style="background:rgba(220,38,38,0.2);color:#ef4444;border:1px solid rgba(220,38,38,0.3);">
+                                                <i class="fas fa-skull-crossbones"></i>
+                                            </button>
+                                        </form>
+                                    }
                                 }
                             </div>
                         </td>

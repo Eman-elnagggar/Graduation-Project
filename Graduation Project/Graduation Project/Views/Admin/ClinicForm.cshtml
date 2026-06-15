@@ -2,98 +2,72 @@
 @{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
     var isEdit = Model.IsEdit;
-    var pageTitle = isEdit ? "Edit Clinic" : "Add Clinic";
-    var formAction = isEdit ? "/Admin/EditClinic" : "/Admin/AddClinic";
+    ViewData["Title"] = isEdit ? "Edit Clinic" : "Add Clinic";
+    ViewData["ActivePage"] = "Clinics";
+    ViewData["PageTitle"] = isEdit ? "Edit Clinic" : "Add Clinic";
+    ViewData["PageSubtitle"] = isEdit ? $"Editing: {Model.Name}" : "Register a new clinic in the system";
 }
 
-<div class="top-bar">
-  <div class="topbar-left">
+<a href="/Admin/Clinics" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:rgba(255,255,255,0.06);border:1px solid var(--border-color);border-radius:8px;text-decoration:none;color:var(--text-secondary);font-size:0.8rem;font-weight:600;margin-bottom:20px;">
+  <i class="fas fa-arrow-left"></i> Back to Clinics
+</a>
 
-    <div>
-      <h1 class="page-title">@pageTitle</h1>
-      <p class="page-subtitle">
-        @if (isEdit) { <text>Update clinic information</text> }
-        else { <text>Register a new clinic in the system</text> }
-      </p>
-    </div>
-  </div>
-  <div class="topbar-right">
-    <a href="/Admin/Clinics" class="btn-admin-ghost">
-      <i class="fas fa-arrow-left"></i> Back to Clinics
-    </a>
-  </div>
-</div>
-
-<div class="page-content">
-  <div class="clinic-form-wrapper">
-    <div class="admin-card clinic-form-card">
-
-      <div class="admin-card-header">
+<div style="max-width:520px;">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-header-left">
+        <div class="card-ico purple"><i class="fas fa-@(isEdit ? "edit" : "hospital-alt")"></i></div>
         <div>
-          <h2 class="admin-card-title">
-            <i class="fas fa-@(isEdit ? "edit" : "hospital-alt")"></i> @pageTitle
-          </h2>
-          <p class="admin-card-subtitle">
-            @if (isEdit) { <text>Editing: @Model.Name</text> }
-            else { <text>Fill in the details below to add a new clinic</text> }
-          </p>
+          <div class="card-title">@(isEdit ? "Edit Clinic" : "Add New Clinic")</div>
+          <div class="card-sub">@(isEdit ? "Update clinic information below" : "Fill in the details to register a new clinic")</div>
         </div>
       </div>
-
-      <form method="post" action="@formAction" class="clinic-form">
-        @Html.AntiForgeryToken()
-        @if (isEdit)
-        {
-          <input type="hidden" name="ClinicID" value="@Model.ClinicID" />
-        }
-
-        <div class="form-group-admin">
-          <label class="form-label-admin" for="Name">
-            <i class="fas fa-hospital me-1" style="color:#7c3aed;"></i> Clinic Name
-            <span class="required-star">*</span>
-          </label>
-          <input type="text"
-                 id="Name"
-                 name="Name"
-                 value="@Model.Name"
-                 class="form-control-admin @(ViewData.ModelState["Name"]?.Errors.Count > 0 ? "input-error" : "")"
-                 placeholder="e.g. Al-Nour Medical Clinic"
-                 required />
-          @if (ViewData.ModelState["Name"]?.Errors.Count > 0)
-          {
-            <span class="field-error">@ViewData.ModelState["Name"]!.Errors[0].ErrorMessage</span>
-          }
-        </div>
-
-        <div class="form-group-admin">
-          <label class="form-label-admin" for="Location">
-            <i class="fas fa-map-marker-alt me-1" style="color:#7c3aed;"></i> Location / Address
-            <span class="required-star">*</span>
-          </label>
-          <input type="text"
-                 id="Location"
-                 name="Location"
-                 value="@Model.Location"
-                 class="form-control-admin @(ViewData.ModelState["Location"]?.Errors.Count > 0 ? "input-error" : "")"
-                 placeholder="e.g. 15 Cairo Street, Alexandria"
-                 required />
-          @if (ViewData.ModelState["Location"]?.Errors.Count > 0)
-          {
-            <span class="field-error">@ViewData.ModelState["Location"]!.Errors[0].ErrorMessage</span>
-          }
-        </div>
-
-        <div class="form-actions-admin">
-          <a href="/Admin/Clinics" class="btn-admin-ghost">
-            <i class="fas fa-times"></i> Cancel
-          </a>
-          <button type="submit" class="btn-admin-primary">
-            <i class="fas fa-@(isEdit ? "save" : "plus")"></i>
-            @if (isEdit) { <text>Save Changes</text> } else { <text>Add Clinic</text> }
-          </button>
-        </div>
-      </form>
-
     </div>
+
+    <form method="post" action="@(isEdit ? "/Admin/EditClinic" : "/Admin/AddClinic")" style="padding:20px 24px 24px;">
+      @Html.AntiForgeryToken()
+      @if (isEdit)
+      {
+        <input type="hidden" name="ClinicID" value="@Model.ClinicID" />
+      }
+
+      <div style="margin-bottom:18px;">
+        <label style="display:block;font-size:0.8rem;font-weight:600;color:var(--text-secondary);margin-bottom:6px;">
+          <i class="fas fa-hospital" style="color:#7c3aed;margin-right:4px;"></i> Clinic Name <span style="color:#ef4444;">*</span>
+        </label>
+        <input type="text" name="Name" value="@Model.Name"
+               placeholder="e.g. Al-Nour Medical Clinic" required
+               style="width:100%;padding:9px 13px;background:var(--bg-secondary);border:1px solid @(ViewData.ModelState["Name"]?.Errors.Count > 0 ? "#ef4444" : "var(--border-color)");border-radius:8px;color:var(--text-primary);font-size:0.88rem;outline:none;font-family:inherit;" />
+        @if (ViewData.ModelState["Name"]?.Errors.Count > 0)
+        {
+          <span style="font-size:0.78rem;color:#ef4444;margin-top:4px;display:block;">@ViewData.ModelState["Name"]!.Errors[0].ErrorMessage</span>
+        }
+      </div>
+
+      <div style="margin-bottom:24px;">
+        <label style="display:block;font-size:0.8rem;font-weight:600;color:var(--text-secondary);margin-bottom:6px;">
+          <i class="fas fa-map-marker-alt" style="color:#7c3aed;margin-right:4px;"></i> Location / Address <span style="color:#ef4444;">*</span>
+        </label>
+        <input type="text" name="Location" value="@Model.Location"
+               placeholder="e.g. 15 Cairo Street, Alexandria" required
+               style="width:100%;padding:9px 13px;background:var(--bg-secondary);border:1px solid @(ViewData.ModelState["Location"]?.Errors.Count > 0 ? "#ef4444" : "var(--border-color)");border-radius:8px;color:var(--text-primary);font-size:0.88rem;outline:none;font-family:inherit;" />
+        @if (ViewData.ModelState["Location"]?.Errors.Count > 0)
+        {
+          <span style="font-size:0.78rem;color:#ef4444;margin-top:4px;display:block;">@ViewData.ModelState["Location"]!.Errors[0].ErrorMessage</span>
+        }
+      </div>
+
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <a href="/Admin/Clinics"
+           style="padding:9px 18px;background:rgba(255,255,255,0.06);border:1px solid var(--border-color);border-radius:8px;color:var(--text-secondary);font-size:0.85rem;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+          <i class="fas fa-times"></i> Cancel
+        </a>
+        <button type="submit"
+                style="padding:9px 20px;background:var(--admin-primary);color:white;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+          <i class="fas fa-@(isEdit ? "save" : "plus")"></i>
+          @(isEdit ? "Save Changes" : "Add Clinic")
+        </button>
+      </div>
+    </form>
   </div>
 </div>

@@ -169,13 +169,16 @@ namespace Graduation_Project.Controllers
                     entityId = ast?.AssistantID;
                 }
 
+                var isSoftDeleted = !string.IsNullOrWhiteSpace(user.OriginalEmail);
                 userRows.Add(new AdminUserRow
                 {
                     UserId = user.Id,
                     FullName = string.IsNullOrWhiteSpace(fullName) ? user.UserName! : fullName,
-                    Email = user.Email ?? "",
+                    Email = isSoftDeleted ? user.OriginalEmail! : (user.Email ?? ""),
+                    OriginalEmail = user.OriginalEmail,
                     Role = userRole,
                     IsActive = user.IsActive,
+                    IsSoftDeleted = isSoftDeleted,
                     CreatedDate = user.CreatedDate,
                     PhoneNumber = user.PhoneNumber,
                     RoleEntityId = entityId
@@ -271,6 +274,37 @@ namespace Graduation_Project.Controllers
             await _userManager.UpdateAsync(user);
 
             TempData["AdminSuccess"] = $"User ({user.OriginalEmail}) has been soft-deleted and locked out.";
+            return RedirectToAction(nameof(Users));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RestoreUser(string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                TempData["AdminError"] = "User not found.";
+                return RedirectToAction(nameof(Users));
+            }
+
+            if (string.IsNullOrWhiteSpace(user.OriginalEmail))
+            {
+                TempData["AdminError"] = "This user was not soft-deleted; nothing to restore.";
+                return RedirectToAction(nameof(Users));
+            }
+
+            var restoredEmail = user.OriginalEmail;
+            user.Email = restoredEmail;
+            user.NormalizedEmail = restoredEmail.ToUpperInvariant();
+            user.UserName = restoredEmail;
+            user.NormalizedUserName = restoredEmail.ToUpperInvariant();
+            user.OriginalEmail = null;
+            user.IsActive = true;
+            user.LockoutEnd = null;
+            await _userManager.UpdateAsync(user);
+
+            TempData["AdminSuccess"] = $"User ({restoredEmail}) has been restored and can now log in.";
             return RedirectToAction(nameof(Users));
         }
 
@@ -396,10 +430,19 @@ namespace Graduation_Project.Controllers
             if (doctor != null)
                 await CascadeDeleteDoctorAsync(doctor.DoctorID);
 
-            // Remove chat messages sent/received by this user
-            var chatMsgs = _context.ChatMessages
-                .Where(m => m.SenderUserId == userId || m.ReceiverUserId == userId);
-            _context.ChatMessages.RemoveRange(chatMsgs);
+            var patient = await _context.Patients.FirstOrDefaultAsync(p => p.UserID == userId);
+            if (patient != null)
+                await CascadeDeletePatientAsync(patient.PatientID);
+
+            var assistant = await _context.Assistants.FirstOrDefaultAsync(a => a.UserID == userId);
+            if (assistant != null)
+                await CascadeDeleteAssistantAsync(assistant.AssistantID);
+
+            // Remove chat messages and push subscriptions
+            _context.ChatMessages.RemoveRange(
+                _context.ChatMessages.Where(m => m.SenderUserId == userId || m.ReceiverUserId == userId));
+            _context.UserPushSubscriptions.RemoveRange(
+                _context.UserPushSubscriptions.Where(s => s.UserId == userId));
             await _context.SaveChangesAsync();
 
             await _userManager.DeleteAsync(user);
@@ -1000,6 +1043,125 @@ namespace Graduation_Project.Controllers
             };
 
             return View(vm);
+        }
+
+        private async Task CascadeDeletePatientAsync(int patientId)
+        {
+            // 1. Lab sub-type records
+            var labTestIds = await _context.LabTests
+                .Where(lt => lt.PatientID == patientId)
+                .Select(lt => lt.LabTestID)
+                .ToListAsync();
+
+            if (labTestIds.Any())
+            {
+                _context.CBC_Tests.RemoveRange(_context.CBC_Tests.Where(t => labTestIds.Contains(t.LabTestID)));
+                _context.BloodGroup_Tests.RemoveRange(_context.BloodGroup_Tests.Where(t => labTestIds.Contains(t.LabTestID)));
+                _context.HbA1c_Tests.RemoveRange(_context.HbA1c_Tests.Where(t => labTestIds.Contains(t.LabTestID)));
+                _context.Urinalysis_Tests.RemoveRange(_context.Urinalysis_Tests.Where(t => labTestIds.Contains(t.LabTestID)));
+                _context.HBsAg_Tests.RemoveRange(_context.HBsAg_Tests.Where(t => labTestIds.Contains(t.LabTestID)));
+                _context.HCV_Tests.RemoveRange(_context.HCV_Tests.Where(t => labTestIds.Contains(t.LabTestID)));
+                _context.TSH_Tests.RemoveRange(_context.TSH_Tests.Where(t => labTestIds.Contains(t.LabTestID)));
+                _context.Ferritin_Tests.RemoveRange(_context.Ferritin_Tests.Where(t => labTestIds.Contains(t.LabTestID)));
+                _context.FBG_Tests.RemoveRange(_context.FBG_Tests.Where(t => labTestIds.Contains(t.LabTestID)));
+
+                // Null out MedicalHistory.LabTestID before deleting the lab tests
+                var medHistsWithLab = await _context.MedicalHistories
+                    .Where(mh => mh.LabTestID.HasValue && labTestIds.Contains(mh.LabTestID.Value))
+                    .ToListAsync();
+                foreach (var mh in medHistsWithLab) mh.LabTestID = null;
+
+                await _context.SaveChangesAsync();
+            }
+
+            // 2. MedicalHistories, LabTests, TestReports
+            _context.MedicalHistories.RemoveRange(_context.MedicalHistories.Where(mh => mh.PatientID == patientId));
+            _context.LabTests.RemoveRange(_context.LabTests.Where(lt => lt.PatientID == patientId));
+            _context.TestReports.RemoveRange(_context.TestReports.Where(tr => tr.PatientID == patientId));
+            await _context.SaveChangesAsync();
+
+            // 3. Community — delete by-patient activity, then patient's posts
+            var postIds = await _context.CommunityPosts
+                .Where(p => p.PatientID == patientId)
+                .Select(p => p.CommunityPostId)
+                .ToListAsync();
+
+            if (postIds.Any())
+            {
+                _context.CommunityLikes.RemoveRange(_context.CommunityLikes.Where(l => postIds.Contains(l.CommunityPostId)));
+                _context.CommunityComments.RemoveRange(_context.CommunityComments.Where(c => postIds.Contains(c.CommunityPostId)));
+            }
+            _context.CommunityLikes.RemoveRange(_context.CommunityLikes.Where(l => l.PatientID == patientId));
+            _context.CommunityComments.RemoveRange(_context.CommunityComments.Where(c => c.PatientID == patientId));
+            _context.CommunityPosts.RemoveRange(_context.CommunityPosts.Where(p => p.PatientID == patientId));
+            await _context.SaveChangesAsync();
+
+            // 4. Medications (logs → schedules → medications), reminders
+            var medicationIds = await _context.Medications
+                .Where(m => m.PatientID == patientId)
+                .Select(m => m.MedicationId)
+                .ToListAsync();
+
+            if (medicationIds.Any())
+            {
+                _context.MedicationLogs.RemoveRange(_context.MedicationLogs.Where(l => medicationIds.Contains(l.MedicationId)));
+                _context.MedicationSchedules.RemoveRange(_context.MedicationSchedules.Where(s => medicationIds.Contains(s.MedicationId)));
+            }
+            _context.MedicationReminderSettings.RemoveRange(_context.MedicationReminderSettings.Where(s => s.PatientID == patientId));
+            _context.Medications.RemoveRange(_context.Medications.Where(m => m.PatientID == patientId));
+            await _context.SaveChangesAsync();
+
+            // 5. Prescriptions (items first)
+            var prescIds = await _context.Prescriptions
+                .Where(p => p.PatientID == patientId)
+                .Select(p => p.PrescriptionID)
+                .ToListAsync();
+            if (prescIds.Any())
+                _context.PrescriptionItems.RemoveRange(_context.PrescriptionItems.Where(pi => prescIds.Contains(pi.PrescriptionID)));
+            _context.Prescriptions.RemoveRange(_context.Prescriptions.Where(p => p.PatientID == patientId));
+
+            // 6. Remaining patient data
+            _context.Notes.RemoveRange(_context.Notes.Where(n => n.PatientID == patientId));
+            _context.Alerts.RemoveRange(_context.Alerts.Where(a => a.PatientID == patientId));
+            _context.ChatbotMessages.RemoveRange(_context.ChatbotMessages.Where(m => m.PatientID == patientId));
+            _context.Bookings.RemoveRange(_context.Bookings.Where(b => b.PatientID == patientId));
+            _context.PatientDoctors.RemoveRange(_context.PatientDoctors.Where(pd => pd.PatientID == patientId));
+            _context.PatientBloodPressure.RemoveRange(_context.PatientBloodPressure.Where(bp => bp.PatientID == patientId));
+            _context.PatientBloodSugar.RemoveRange(_context.PatientBloodSugar.Where(bs => bs.PatientID == patientId));
+            _context.PatientDrugs.RemoveRange(_context.PatientDrugs.Where(pd => pd.PatientID == patientId));
+            _context.Places.RemoveRange(_context.Places.Where(p => p.PatientID == patientId));
+            _context.UltrasoundImages.RemoveRange(_context.UltrasoundImages.Where(ui => ui.PatientID == patientId));
+            _context.WeightTrackings.RemoveRange(_context.WeightTrackings.Where(wt => wt.PatientID == patientId));
+            _context.PregnancyRecords.RemoveRange(_context.PregnancyRecords.Where(pr => pr.PatientID == patientId));
+
+            // Null out Appointments.PatientID — preserve the slot for the doctor
+            var patAppts = await _context.Appointments.Where(a => a.PatientID == patientId).ToListAsync();
+            foreach (var a in patAppts) a.PatientID = null;
+
+            await _context.SaveChangesAsync();
+
+            // 7. Patient record
+            var patient = await _context.Patients.FindAsync(patientId);
+            if (patient != null) _context.Patients.Remove(patient);
+            await _context.SaveChangesAsync();
+        }
+
+        private async Task CascadeDeleteAssistantAsync(int assistantId)
+        {
+            // Null out appointments created by this assistant
+            var astAppts = await _context.Appointments
+                .Where(a => a.CreatedByAssistantID == assistantId)
+                .ToListAsync();
+            foreach (var a in astAppts) a.CreatedByAssistantID = null;
+
+            _context.AssistantDoctors.RemoveRange(_context.AssistantDoctors.Where(ad => ad.AssistantID == assistantId));
+            _context.ClinicInvitations.RemoveRange(_context.ClinicInvitations.Where(ci => ci.AssistantID == assistantId));
+
+            await _context.SaveChangesAsync();
+
+            var assistant = await _context.Assistants.FindAsync(assistantId);
+            if (assistant != null) _context.Assistants.Remove(assistant);
+            await _context.SaveChangesAsync();
         }
 
         // ─── Helpers ──────────────────────────────────────────────────────────

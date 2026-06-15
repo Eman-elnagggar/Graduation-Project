@@ -1645,14 +1645,8 @@ namespace Graduation_Project.Controllers
                 try
                 {
                     var loginUrl = Url.Action("Login", "Account", null, Request.Scheme) ?? string.Empty;
-                    var htmlBody = $@"<p>Hello {patientName},</p>
-<p>Your account has been created on NABD نبض.</p>
-<p><strong>Login email:</strong> {model.Email}<br/>
-<strong>Temporary password:</strong> {tempPassword}</p>
-<p>Please sign in and change your password immediately: <a href='{loginUrl}'>Sign in</a></p>
-<p>If you did not request this, please contact support.</p>";
-
-                    await _emailService.SendAsync(model.Email, patientName, "Your NABD نبض account — temporary password", htmlBody);
+                    var htmlBody = DoctorEmailTemplates.NewPatientWelcome(patientName, model.Email, tempPassword, loginUrl);
+                    await _emailService.SendAsync(model.Email, patientName, "Welcome to NABD نبض — your account credentials", htmlBody);
                 }
                 catch
                 {
@@ -1908,6 +1902,18 @@ namespace Graduation_Project.Controllers
 
                     patientId = patient.PatientID;
                     model.PatientName = $"{model.NewPatientFirstName} {model.NewPatientLastName}".Trim();
+
+                    // Send welcome email with credentials
+                    try
+                    {
+                        var loginUrl = Url.Action("Login", "Account", null, Request.Scheme) ?? string.Empty;
+                        var htmlBody = DoctorEmailTemplates.NewPatientWelcome(model.PatientName, model.NewPatientEmail, tempPassword, loginUrl);
+                        await _emailService.SendAsync(model.NewPatientEmail, model.PatientName, "Welcome to NABD نبض — your account credentials", htmlBody);
+                    }
+                    catch
+                    {
+                        // Email failures are logged by EmailService; do not block patient/appointment creation
+                    }
                 }
                 catch (Exception ex)
                 {
