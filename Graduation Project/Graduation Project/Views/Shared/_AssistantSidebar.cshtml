@@ -49,6 +49,14 @@
                 <div class="nav-icon"><i class="fas fa-calendar-alt"></i></div>
                 <span>Appointments</span>
             </a>
+
+            <a href="/Assistant/CreateAppointment/@assistantId"
+               class="nav-item @(activePage == "CreateAppointment" ? "active" : "")"
+               data-tooltip="Create New Appointment">
+                <div class="nav-icon"><i class="fas fa-calendar-plus"></i></div>
+                <span>New Appointment</span>
+            </a>
+
             <a href="/Assistant/Patients/@assistantId"
                class="nav-item @(activePage == "Patients" ? "active" : "")"
                data-tooltip="Patients">
@@ -62,6 +70,13 @@
                 <span>Messages</span>
                 <span class="nav-msg-badge" id="sidebarMsgBadge" style="display:none;"></span>
             </a>
+            <a href="/Assistant/Alerts/@assistantId"
+               class="nav-item @(activePage == "Alerts" ? "active" : "")"
+               data-tooltip="Patient Alerts">
+                <div class="nav-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                <span>Alerts</span>
+                <span class="nav-msg-badge" id="sidebarAlertsBadge" style="display:none;"></span>
+            </a>
         </div>
 
         <div class="nav-section">
@@ -73,6 +88,13 @@
                 <div class="nav-icon"><i class="fas fa-clock"></i></div>
                 <span>Availability</span>
             </a>
+            <a href="/Assistant/CreatePatient/@assistantId"
+               class="nav-item @(activePage == "CreatePatient" ? "active" : "")"
+               data-tooltip="Register New Patient">
+                <div class="nav-icon"><i class="fas fa-user-plus"></i></div>
+                <span>Register Patient</span>
+            </a>
+            
             <a href="/Assistant/ClinicInvitations/@assistantId"
                class="nav-item @(activePage == "ClinicInvitations" ? "active" : "")"
                data-tooltip="Clinic Invitations">

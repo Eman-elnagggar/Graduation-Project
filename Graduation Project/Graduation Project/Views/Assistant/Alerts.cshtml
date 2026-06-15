@@ -1,0 +1,800 @@
+@model Graduation_Project.ViewModels.AssistantAlertsViewModel
+@using System.Globalization
+@{
+    Layout = "~/Views/Shared/_AssistantLayout.cshtml";
+    ViewData["Title"] = "Notifications";
+    ViewData["AssistantId"] = Model.Assistant.AssistantID;
+    ViewData["AssistantName"] = Model.AssistantName;
+    ViewData["ActivePage"] = "Alerts";
+    ViewData["PageTitle"] = "Notifications";
+    ViewData["PageSubtitle"] = "Appointment and patient activity for " + Model.ClinicName;
+
+    var totalAlerts   = Model.Alerts.Count;
+    var unreadCount   = Model.UnreadCount;
+    var urgentCount   = Model.Alerts.Count(a => a.AlertType?.ToLower() == "danger");
+    var pendingCount  = Model.Alerts.Count(a => a.AlertType?.ToLower() == "warning");
+    var resolvedCount = Model.Alerts.Count(a => a.AlertType?.ToLower() is "success" or "info");
+
+    // Helper to map alert type → icon / accent class
+    Func<string?, string> getIcon = type => type?.ToLower() switch {
+        "danger"  => "fa-exclamation-circle",
+        "warning" => "fa-calendar-times",
+        "success" => "fa-calendar-check",
+        _         => "fa-calendar-alt"
+    };
+
+    Func<string?, string> getAccent = type => type?.ToLower() switch {
+        "danger"  => "notif-accent--danger",
+        "warning" => "notif-accent--warning",
+        "success" => "notif-accent--success",
+        _         => "notif-accent--info"
+    };
+
+    Func<string?, string> getIconBg = type => type?.ToLower() switch {
+        "danger"  => "notif-icon--danger",
+        "warning" => "notif-icon--warning",
+        "success" => "notif-icon--success",
+        _         => "notif-icon--info"
+    };
+
+    Func<string?, string> getBadgeClass = type => type?.ToLower() switch {
+        "danger"  => "notif-badge--danger",
+        "warning" => "notif-badge--warning",
+        "success" => "notif-badge--success",
+        _         => "notif-badge--info"
+    };
+
+    Func<string?, string> getBadgeLabel = type => type?.ToLower() switch {
+        "danger"  => "Urgent",
+        "warning" => "Changed",
+        "success" => "Confirmed",
+        _         => "Activity"
+    };
+
+    static string RelativeTime(DateTime dt) {
+        var diff = DateTime.Now - dt;
+        if (diff.TotalMinutes < 1)  return "just now";
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}m ago";
+        if (diff.TotalHours   < 24) return $"{(int)diff.TotalHours}h ago";
+        if (diff.TotalDays    < 7)  return $"{(int)diff.TotalDays}d ago";
+        return dt.ToString("MMM dd, yyyy", CultureInfo.InvariantCulture);
+    }
+}
+
+<div class="is-hidden">
+    @Html.AntiForgeryToken()
+</div>
+
+<div class="dash-v2">
+
+    @* ── Page Hero ── *@
+    <div class="dcard page-hero page-hero--spaced">
+        <div class="page-hero-icon" style="background:linear-gradient(135deg,#7c3aed,#8b5cf6);">
+            <i class="fas fa-bell"></i>
+        </div>
+        <div class="page-hero-text">
+            <h1 class="page-hero-title">Notifications</h1>
+            <p class="page-hero-sub">Appointment and patient activity · @Model.ClinicName</p>
+        </div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:10px;flex-shrink:0;">
+            @if (unreadCount > 0)
+            {
+                <button class="btn btn-outline btn-sm" id="markAllReadBtn" onclick="markAllAlertsRead()">
+                    <i class="fas fa-check-double"></i> Mark All Read
+                </button>
+            }
+        </div>
+    </div>
+
+    @* ── KPI Strip ── *@
+    <div class="kpi-row">
+        <div class="kpi-card kpi-card--primary">
+            <div class="kpi-icon"><i class="fas fa-bell"></i></div>
+            <div class="kpi-body">
+                <div class="kpi-value">@totalAlerts</div>
+                <div class="kpi-label">Total</div>
+            </div>
+        </div>
+        <div class="kpi-card kpi-card--warning">
+            <div class="kpi-icon"><i class="fas fa-envelope-open"></i></div>
+            <div class="kpi-body">
+                <div class="kpi-value" id="unreadCount">@unreadCount</div>
+                <div class="kpi-label">Unread</div>
+            </div>
+        </div>
+        <div class="kpi-card kpi-card--danger">
+            <div class="kpi-icon"><i class="fas fa-exclamation-circle"></i></div>
+            <div class="kpi-body">
+                <div class="kpi-value">@urgentCount</div>
+                <div class="kpi-label">Urgent</div>
+            </div>
+        </div>
+        <div class="kpi-card kpi-card--success">
+            <div class="kpi-icon"><i class="fas fa-check-circle"></i></div>
+            <div class="kpi-body">
+                <div class="kpi-value">@resolvedCount</div>
+                <div class="kpi-label">Resolved</div>
+            </div>
+        </div>
+    </div>
+
+    @* ── Main Notifications Card ── *@
+    <div class="dcard notif-card">
+
+        @* Card header *@
+        <div class="dcard-header">
+            <div class="dcard-title-group">
+                <h3 class="dcard-title">
+                    <i class="fas fa-inbox"></i> Notification Feed
+                </h3>
+                @if (unreadCount > 0)
+                {
+                    <span class="notif-unread-pill" id="unreadPill">@unreadCount unread</span>
+                }
+            </div>
+            <div class="dcard-controls">
+                <div class="notif-search-wrap">
+                    <i class="fas fa-search notif-search-icon"></i>
+                    <input type="text" id="notifSearch" class="notif-search-input"
+                           placeholder="Search notifications…" oninput="searchNotifs(this.value)" autocomplete="off" />
+                </div>
+            </div>
+        </div>
+
+        @* Filter tabs *@
+        <div class="notif-tabs">
+            <button class="notif-tab active" data-filter="all" onclick="filterAlerts('all')">
+                All
+                <span class="notif-tab-count" id="filterCount-all">@totalAlerts</span>
+            </button>
+            <button class="notif-tab" data-filter="unread" onclick="filterAlerts('unread')">
+                Unread
+                <span class="notif-tab-count notif-tab-count--red" id="filterCount-unread">@unreadCount</span>
+            </button>
+            <button class="notif-tab" data-filter="danger" onclick="filterAlerts('danger')">
+                Urgent
+                <span class="notif-tab-count notif-tab-count--red" id="filterCount-danger">@urgentCount</span>
+            </button>
+            <button class="notif-tab" data-filter="warning" onclick="filterAlerts('warning')">
+                Changes
+                <span class="notif-tab-count notif-tab-count--amber" id="filterCount-warning">@pendingCount</span>
+            </button>
+            <button class="notif-tab" data-filter="resolved" onclick="filterAlerts('resolved')">
+                Activity
+                <span class="notif-tab-count notif-tab-count--green" id="filterCount-resolved">@resolvedCount</span>
+            </button>
+        </div>
+
+        @* Feed body *@
+        <div class="notif-feed-body">
+            @if (!Model.Alerts.Any())
+            {
+                <div class="notif-empty-state">
+                    <div class="notif-empty-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h3 class="notif-empty-title">All caught up!</h3>
+                    <p class="notif-empty-desc">
+                        No notifications yet. Appointment changes, check-ins, and new patient registrations will appear here.
+                    </p>
+                </div>
+            }
+            else
+            {
+                <div class="notif-list" id="alertsList">
+                    @foreach (var alert in Model.Alerts.OrderByDescending(a => !a.IsRead).ThenByDescending(a => a.DateCreated))
+                    {
+                        var alertType    = alert.AlertType?.ToLower() ?? "info";
+                        var patientName  = alert.Patient?.User != null
+                            ? $"{alert.Patient.User.FirstName} {alert.Patient.User.LastName}".Trim()
+                            : "Patient";
+                        var isResolved   = alertType is "success" or "info";
+                        var filterType   = isResolved ? "resolved" : alertType;
+
+                        <div class="notif-item @(alert.IsRead ? "notif-item--read" : "notif-item--unread")"
+                             data-alert-id="@alert.AlertID"
+                             data-alert-type="@alertType"
+                             data-filter-type="@filterType"
+                             data-is-read="@(alert.IsRead ? "true" : "false")"
+                             data-search-text="@(alert.Title + " " + patientName + " " + alert.Message)">
+
+                            @* Accent strip *@
+                            <div class="notif-accent @getAccent(alert.AlertType)"></div>
+
+                            @* Icon *@
+                            <div class="notif-icon-wrap @getIconBg(alert.AlertType)">
+                                <i class="fas @getIcon(alert.AlertType)"></i>
+                            </div>
+
+                            @* Content *@
+                            <div class="notif-content">
+                                <div class="notif-row-top">
+                                    <div class="notif-title-group">
+                                        <span class="notif-title">@alert.Title</span>
+                                        @if (!alert.IsRead)
+                                        {
+                                            <span class="notif-dot" title="Unread"></span>
+                                        }
+                                    </div>
+                                    <div class="notif-meta-right">
+                                        <span class="notif-badge @getBadgeClass(alert.AlertType)">
+                                            @getBadgeLabel(alert.AlertType)
+                                        </span>
+                                        <span class="notif-time" title="@alert.DateCreated.ToString("ddd MMM dd, yyyy hh:mm tt", CultureInfo.InvariantCulture)">
+                                            <i class="fas fa-clock"></i>
+                                            @RelativeTime(alert.DateCreated)
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="notif-context">
+                                    <i class="fas fa-user-circle"></i>
+                                    <span>@patientName</span>
+                                    <span class="notif-context-sep">·</span>
+                                    <span class="notif-full-date">
+                                        @alert.DateCreated.ToString("MMM dd, yyyy · hh:mm tt", CultureInfo.InvariantCulture)
+                                    </span>
+                                </div>
+
+                                <p class="notif-message">@alert.Message</p>
+
+                                @if (!alert.IsRead)
+                                {
+                                    <div class="notif-actions">
+                                        <button class="notif-mark-btn"
+                                                onclick="markAlertRead(@alert.AlertID, this)"
+                                                title="Mark as read">
+                                            <i class="fas fa-check"></i> Mark as Read
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+
+                        </div>
+                    }
+                </div>
+
+                @* No results state (shown by JS when search/filter returns nothing) *@
+                <div class="notif-no-results" id="notifNoResults" style="display:none;">
+                    <i class="fas fa-search"></i>
+                    <p>No notifications match your current filter.</p>
+                </div>
+            }
+        </div>
+
+    </div>
+
+</div>
+
+@section Scripts {
+<script>
+const alertsConfig = {
+    assistantId: @Model.Assistant.AssistantID,
+    antiForgeryToken: document.querySelector('input[name="__RequestVerificationToken"]')?.value || "",
+    urls: {
+        markAlertRead:    '@Url.Action("MarkAlertRead",    "Assistant")',
+        markAllAlertsRead:'@Url.Action("MarkAllAlertsRead","Assistant")'
+    }
+};
+
+let currentFilter  = "all";
+let currentSearch  = "";
+
+// ── Filter ──────────────────────────────────────────────────
+function filterAlerts(filter) {
+    currentFilter = filter;
+
+    document.querySelectorAll(".notif-tab").forEach(b =>
+        b.classList.toggle("active", b.dataset.filter === filter));
+
+    applyVisibility();
+}
+
+// ── Search ───────────────────────────────────────────────────
+function searchNotifs(value) {
+    currentSearch = (value || "").toLowerCase();
+    applyVisibility();
+}
+
+// ── Combined visibility logic ────────────────────────────────
+function applyVisibility() {
+    const items = document.querySelectorAll(".notif-item");
+    let visible = 0;
+
+    items.forEach(item => {
+        const type      = item.dataset.alertType;
+        const ftype     = item.dataset.filterType;
+        const isRead    = item.dataset.isRead === "true";
+        const searchTxt = (item.dataset.searchText || "").toLowerCase();
+
+        let show = true;
+
+        // Filter
+        if (currentFilter === "unread")   show = !isRead;
+        else if (currentFilter === "danger")  show = type === "danger";
+        else if (currentFilter === "warning") show = type === "warning";
+        else if (currentFilter === "resolved") show = ftype === "resolved";
+
+        // Search
+        if (show && currentSearch) {
+            show = searchTxt.includes(currentSearch);
+        }
+
+        item.style.display = show ? "" : "none";
+        if (show) visible++;
+    });
+
+    const noResults = document.getElementById("notifNoResults");
+    if (noResults) noResults.style.display = visible === 0 ? "" : "none";
+}
+
+// ── Mark single alert read ───────────────────────────────────
+async function markAlertRead(alertId, btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    try {
+        const resp = await fetch(alertsConfig.urls.markAlertRead, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+                id: alertsConfig.assistantId,
+                alertId,
+                __RequestVerificationToken: alertsConfig.antiForgeryToken
+            })
+        });
+        const result = await resp.json();
+        if (result.success) {
+            const item = document.querySelector(`[data-alert-id="${alertId}"]`);
+            if (item) {
+                item.dataset.isRead = "true";
+                item.classList.remove("notif-item--unread");
+                item.classList.add("notif-item--read");
+                item.querySelector(".notif-dot")?.remove();
+                item.querySelector(".notif-actions")?.remove();
+            }
+            adjustUnreadCount(-1);
+            applyVisibility();
+        }
+    } catch {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-check"></i> Mark as Read';
+    }
+}
+
+// ── Mark all read ────────────────────────────────────────────
+async function markAllAlertsRead() {
+    const btn = document.getElementById("markAllReadBtn");
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Marking…'; }
+    try {
+        const resp = await fetch(alertsConfig.urls.markAllAlertsRead, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+                id: alertsConfig.assistantId,
+                __RequestVerificationToken: alertsConfig.antiForgeryToken
+            })
+        });
+        const result = await resp.json();
+        if (result.success) {
+            document.querySelectorAll(".notif-item").forEach(item => {
+                item.dataset.isRead = "true";
+                item.classList.remove("notif-item--unread");
+                item.classList.add("notif-item--read");
+                item.querySelector(".notif-dot")?.remove();
+                item.querySelector(".notif-actions")?.remove();
+            });
+
+            // Zero out counts
+            ["unreadCount","filterCount-unread"].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = "0";
+            });
+            document.getElementById("unreadPill")?.remove();
+            btn?.remove();
+
+            // Hide sidebar badge
+            const badge = document.getElementById("sidebarAlertsBadge");
+            if (badge) badge.style.display = "none";
+
+            applyVisibility();
+        }
+    } catch {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check-double"></i> Mark All Read'; }
+    }
+}
+
+// ── Shared unread count updater ──────────────────────────────
+function adjustUnreadCount(delta) {
+    ["unreadCount","filterCount-unread"].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const next = Math.max(0, parseInt(el.textContent || "0", 10) + delta);
+        el.textContent = next;
+    });
+    const pill = document.getElementById("unreadPill");
+    if (pill) {
+        const n = parseInt(document.getElementById("unreadCount")?.textContent || "0", 10);
+        if (n > 0) pill.textContent = n + " unread";
+        else pill.remove();
+    }
+    const badge = document.getElementById("sidebarAlertsBadge");
+    if (badge) {
+        const n = parseInt(document.getElementById("unreadCount")?.textContent || "0", 10);
+        badge.textContent = n;
+        badge.style.display = n > 0 ? "" : "none";
+    }
+}
+</script>
+}
+
+@section Styles {
+<style>
+/* ── Alerts-specific tokens ──────────────────────────────── */
+.kpi-card--danger { }
+.kpi-card--danger .kpi-icon { background:#fee2e2; color:#dc2626; }
+
+/* ── Notification search ────────────────────────────────── */
+.notif-search-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.notif-search-icon {
+    position: absolute;
+    left: 12px;
+    color: #94a3b8;
+    font-size: .8rem;
+    pointer-events: none;
+}
+
+.notif-search-input {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 7px 14px 7px 34px;
+    font-size: .82rem;
+    font-family: inherit;
+    color: #0f172a;
+    width: 220px;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+}
+
+.notif-search-input::placeholder { color: #94a3b8; }
+
+.notif-search-input:focus {
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124,58,237,.08);
+    background: #fff;
+}
+
+/* ── Tabs ────────────────────────────────────────────────── */
+.notif-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 0 20px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.notif-tabs::-webkit-scrollbar { display: none; }
+
+.notif-tab {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 13px 16px;
+    border: none;
+    border-bottom: 2.5px solid transparent;
+    background: none;
+    font-family: inherit;
+    font-size: .82rem;
+    font-weight: 500;
+    color: #64748b;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color .15s, border-color .15s;
+    margin-bottom: -1px;
+}
+
+.notif-tab:hover { color: #7c3aed; }
+
+.notif-tab.active {
+    color: #7c3aed;
+    font-weight: 700;
+    border-bottom-color: #7c3aed;
+}
+
+.notif-tab-count {
+    font-size: .68rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 9999px;
+    background: #f1f5f9;
+    color: #64748b;
+    min-width: 20px;
+    text-align: center;
+}
+
+.notif-tab-count--red   { background: #fee2e2; color: #dc2626; }
+.notif-tab-count--amber { background: #fef3c7; color: #d97706; }
+.notif-tab-count--green { background: #dcfce7; color: #15803d; }
+
+/* ── Unread pill in card header ────────────────────────── */
+.notif-unread-pill {
+    background: #fee2e2;
+    color: #dc2626;
+    font-size: .68rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 9999px;
+}
+
+/* ── Feed body ──────────────────────────────────────────── */
+.notif-feed-body {
+    padding: 8px 0 4px;
+}
+
+/* ── Empty / no-results states ──────────────────────────── */
+.notif-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 64px 24px;
+    gap: 12px;
+    text-align: center;
+}
+
+.notif-empty-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: #f0fdf4;
+    color: #10b981;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+}
+
+.notif-empty-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+}
+
+.notif-empty-desc {
+    font-size: .875rem;
+    color: #64748b;
+    max-width: 340px;
+    margin: 0;
+    line-height: 1.6;
+}
+
+.notif-no-results {
+    padding: 40px 24px;
+    text-align: center;
+    color: #64748b;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.notif-no-results i { font-size: 1.4rem; color: #cbd5e1; }
+.notif-no-results p { font-size: .875rem; margin: 0; }
+
+/* ── Notification list ──────────────────────────────────── */
+.notif-list {
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── Single notification item ───────────────────────────── */
+.notif-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    padding: 0;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background .12s;
+    position: relative;
+}
+
+.notif-item:last-child { border-bottom: none; }
+
+.notif-item:hover { background: #fafbfc; }
+
+.notif-item--unread { background: #faf9ff; }
+.notif-item--unread:hover { background: #f5f3ff; }
+
+/* Left colour accent strip */
+.notif-accent {
+    width: 4px;
+    min-width: 4px;
+    align-self: stretch;
+    border-radius: 0;
+    flex-shrink: 0;
+}
+
+.notif-accent--danger  { background: #ef4444; }
+.notif-accent--warning { background: #f59e0b; }
+.notif-accent--success { background: #10b981; }
+.notif-accent--info    { background: #3b82f6; }
+
+/* Icon */
+.notif-icon-wrap {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .9rem;
+    flex-shrink: 0;
+    margin: 14px 0 14px 14px;
+}
+
+.notif-icon--danger  { background: #fee2e2; color: #dc2626; }
+.notif-icon--warning { background: #fef3c7; color: #d97706; }
+.notif-icon--success { background: #dcfce7; color: #15803d; }
+.notif-icon--info    { background: #eff6ff; color: #2563eb; }
+
+/* Content block */
+.notif-content {
+    flex: 1;
+    min-width: 0;
+    padding: 14px 20px 14px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+/* Top row: title + badge + time */
+.notif-row-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.notif-title-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.notif-title {
+    font-size: .9rem;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.35;
+}
+
+.notif-item--read .notif-title {
+    font-weight: 600;
+    color: #334155;
+}
+
+/* Unread dot */
+.notif-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #7c3aed;
+    flex-shrink: 0;
+    display: inline-block;
+}
+
+/* Right meta: badge + time */
+.notif-meta-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* Badge */
+.notif-badge {
+    font-size: .65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    padding: 3px 9px;
+    border-radius: 9999px;
+}
+
+.notif-badge--danger  { background: #fee2e2; color: #dc2626; }
+.notif-badge--warning { background: #fef3c7; color: #d97706; }
+.notif-badge--success { background: #dcfce7; color: #15803d; }
+.notif-badge--info    { background: #eff6ff; color: #2563eb; }
+
+/* Timestamp */
+.notif-time {
+    font-size: .72rem;
+    color: #94a3b8;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.notif-time i { font-size: .65rem; }
+
+/* Context line (patient · full date) */
+.notif-context {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: .78rem;
+    color: #64748b;
+    flex-wrap: wrap;
+}
+
+.notif-context i { font-size: .75rem; color: #7c3aed; }
+.notif-context-sep { color: #cbd5e1; }
+.notif-full-date { color: #94a3b8; }
+
+/* Message preview */
+.notif-message {
+    font-size: .83rem;
+    color: #475569;
+    margin: 0;
+    line-height: 1.55;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.notif-item--read .notif-message { color: #64748b; }
+
+/* Actions */
+.notif-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.notif-mark-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 13px;
+    font-size: .75rem;
+    font-weight: 600;
+    font-family: inherit;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #fff;
+    color: #7c3aed;
+    cursor: pointer;
+    transition: all .15s;
+}
+
+.notif-mark-btn:hover {
+    background: #f3e8ff;
+    border-color: #7c3aed;
+}
+
+.notif-mark-btn:disabled {
+    opacity: .5;
+    cursor: default;
+}
+
+/* ── Responsive ─────────────────────────────────────────── */
+@@media (max-width: 640px) {
+    .notif-search-input { width: 160px; }
+    .notif-meta-right   { flex-direction: column; align-items: flex-end; gap: 4px; }
+    .notif-full-date    { display: none; }
+    .notif-content      { padding: 12px 14px 12px 10px; }
+}
+</style>
+}

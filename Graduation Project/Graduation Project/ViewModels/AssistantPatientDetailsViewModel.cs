@@ -14,5 +14,6 @@ namespace Graduation_Project.ViewModels
         public List<Appointment> Appointments { get; set; } = new();
         public List<PatientDrug> Medications { get; set; } = new();
         public List<PregnancyRecord> PregnancyRecords { get; set; } = new();
+        public List<Alert> Alerts { get; set; } = new();
     }
 }

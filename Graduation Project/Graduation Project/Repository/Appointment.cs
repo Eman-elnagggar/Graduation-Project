@@ -158,7 +158,7 @@ namespace Graduation_Project.Repository
                 query = query.Where(a =>
                     ((a.Patient != null && a.Patient.User != null) &&
                         (((a.Patient.User.FirstName ?? "") + " " + (a.Patient.User.LastName ?? "")).Contains(term)
-                         || (a.Patient.User.Phone ?? "").Contains(term)))
+                         || (a.Patient.User.PhoneNumber ?? "").Contains(term)))
                     || ((a.Doctor != null && a.Doctor.User != null) &&
                         (((a.Doctor.User.FirstName ?? "") + " " + (a.Doctor.User.LastName ?? "")).Contains(term))));
             }
@@ -191,7 +191,7 @@ namespace Graduation_Project.Repository
                 query = query.Where(a =>
                     ((a.Patient != null && a.Patient.User != null) &&
                         (((a.Patient.User.FirstName ?? "") + " " + (a.Patient.User.LastName ?? "")).Contains(term)
-                         || (a.Patient.User.Phone ?? "").Contains(term)))
+                         || (a.Patient.User.PhoneNumber ?? "").Contains(term)))
                     || ((a.Doctor != null && a.Doctor.User != null) &&
                         (((a.Doctor.User.FirstName ?? "") + " " + (a.Doctor.User.LastName ?? "")).Contains(term))));
             }

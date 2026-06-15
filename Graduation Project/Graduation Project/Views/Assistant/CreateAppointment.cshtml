@@ -1,0 +1,509 @@
+@model Graduation_Project.ViewModels.AssistantCreateAppointmentViewModel
+@{
+	Layout = "~/Views/Shared/_AssistantLayout.cshtml";
+	ViewData["Title"] = "Create Appointment";
+	ViewData["AssistantId"] = Model.Assistant.AssistantID;
+	ViewData["AssistantName"] = Model.AssistantName;
+	ViewData["ActivePage"] = "CreateAppointment";
+	ViewData["PageTitle"] = "Create Appointment";
+	ViewData["PageSubtitle"] = "Book an appointment for a patient at " + Model.ClinicName;
+}
+
+<div class="ad-wrap">
+
+<!-- Inline Error/Success -->
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+	<div class="ca-alert ca-alert-error">
+		<i class="fas fa-exclamation-circle"></i>
+		<span>@Model.ErrorMessage</span>
+	</div>
+}
+@if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+{
+	<div class="ca-alert ca-alert-success">
+		<i class="fas fa-check-circle"></i>
+		<span>@Model.SuccessMessage</span>
+	</div>
+}
+
+<!-- Form Card -->
+<section class="card ca-form-card">
+	<form method="post" asp-action="CreateAppointment" asp-controller="Assistant" asp-route-id="@Model.Assistant.AssistantID">
+		@Html.AntiForgeryToken()
+
+		<!-- ── Patient Selection ── -->
+		<div class="ca-section">
+			<div class="ca-section-header">
+				<div class="ca-section-icon ca-icon-purple">
+					<i class="fas fa-user"></i>
+				</div>
+				<div>
+					<div class="ca-section-title">Select Patient <span class="req">*</span></div>
+					<div class="ca-section-sub">Choose an existing patient or register a new one</div>
+				</div>
+			</div>
+
+			<!-- Tab toggle -->
+			<div class="ca-tabs" role="tablist">
+				<label class="ca-tab @(Model.PatientOption == "new" ? "" : "ca-tab-active")" id="tab-existing">
+					<input type="radio" name="PatientOption" value="existing"
+						   @(Model.PatientOption == "new" ? "" : "checked")
+						   onchange="togglePatientOption('existing')" />
+					<i class="fas fa-users"></i>
+					<span>Existing Patient</span>
+				</label>
+				<label class="ca-tab @(Model.PatientOption == "new" ? "ca-tab-active" : "")" id="tab-new">
+					<input type="radio" name="PatientOption" value="new"
+						   @(Model.PatientOption == "new" ? "checked" : "")
+						   onchange="togglePatientOption('new')" />
+					<i class="fas fa-user-plus"></i>
+					<span>New Patient (Create &amp; Book)</span>
+				</label>
+			</div>
+
+			<!-- Existing patient fields -->
+			<div id="existingPatientFields" style="@(Model.PatientOption == "new" ? "display:none;" : "")">
+				<div class="ca-field">
+					<label for="existingPatientSelect">Choose Patient <span class="req">*</span></label>
+					<div class="ca-input-wrap">
+						<i class="fas fa-search ca-input-icon"></i>
+						<select id="existingPatientSelect" name="ExistingPatientID" class="ca-input ca-input-padded ca-select">
+							<option value="">-- Select a Patient --</option>
+							@foreach (var patient in Model.ExistingPatients)
+							{
+								if (Model.ExistingPatientID == patient.PatientID)
+								{
+									<option value="@patient.PatientID" selected>
+										@patient.FullName@(string.IsNullOrWhiteSpace(patient.PhoneNumber) ? "" : $" — {patient.PhoneNumber}")
+									</option>
+								}
+								else
+								{
+									<option value="@patient.PatientID">
+										@patient.FullName@(string.IsNullOrWhiteSpace(patient.PhoneNumber) ? "" : $" — {patient.PhoneNumber}")
+									</option>
+								}
+							}
+						</select>
+					</div>
+				</div>
+				@if (!Model.ExistingPatients.Any())
+				{
+					<div class="ca-notice ca-notice-info">
+						<i class="fas fa-info-circle"></i>
+						<span>No patients available yet. Switch to "New Patient" to register one.</span>
+					</div>
+				}
+			</div>
+
+			<!-- New patient mini-form -->
+			<div id="newPatientFields" class="ca-new-patient-box" style="@(Model.PatientOption == "new" ? "" : "display:none;")">
+				<div class="ca-new-patient-label">
+					<i class="fas fa-user-plus"></i> New Patient Details
+				</div>
+				<div class="ca-grid-2">
+					<div class="ca-field">
+						<label for="newFirstName">First Name <span class="req">*</span></label>
+						<input type="text" id="newFirstName" name="NewPatientFirstName" class="ca-input"
+							   placeholder="First name" value="@Model.NewPatientFirstName" />
+					</div>
+					<div class="ca-field">
+						<label for="newLastName">Last Name <span class="req">*</span></label>
+						<input type="text" id="newLastName" name="NewPatientLastName" class="ca-input"
+							   placeholder="Last name" value="@Model.NewPatientLastName" />
+					</div>
+				</div>
+				<div class="ca-grid-2">
+					<div class="ca-field">
+						<label for="newEmail">Email <span class="req">*</span></label>
+						<div class="ca-input-wrap">
+							<i class="fas fa-envelope ca-input-icon"></i>
+							<input type="email" id="newEmail" name="NewPatientEmail" class="ca-input ca-input-padded"
+								   placeholder="patient@example.com" value="@Model.NewPatientEmail" />
+						</div>
+					</div>
+					<div class="ca-field">
+						<label for="newPhone">Phone <span class="req">*</span></label>
+						<div class="ca-input-wrap">
+							<i class="fas fa-phone ca-input-icon"></i>
+							<input type="tel" id="newPhone" name="NewPatientPhoneNumber" class="ca-input ca-input-padded"
+								   placeholder="+20 123 456 7890" value="@Model.NewPatientPhoneNumber" />
+						</div>
+					</div>
+				</div>
+				<div class="ca-grid-2">
+					<div class="ca-field">
+						<label for="newDOB">Date of Birth <span class="ca-opt">(optional)</span></label>
+						<input type="date" id="newDOB" name="NewPatientDateOfBirth" class="ca-input"
+							   value="@Model.NewPatientDateOfBirth?.ToString("yyyy-MM-dd")" />
+					</div>
+					<div class="ca-field">
+						<label for="newAddress">Address <span class="ca-opt">(optional)</span></label>
+						<input type="text" id="newAddress" name="NewPatientAddress" class="ca-input"
+							   placeholder="Street address" value="@Model.NewPatientAddress" />
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- ── Appointment Details ── -->
+		<div class="ca-section">
+			<div class="ca-section-header">
+				<div class="ca-section-icon ca-icon-indigo">
+					<i class="fas fa-calendar-alt"></i>
+				</div>
+				<div>
+					<div class="ca-section-title">Appointment Details</div>
+					<div class="ca-section-sub">Select the doctor, date and time</div>
+				</div>
+			</div>
+
+			<div class="ca-grid-3">
+				<div class="ca-field">
+					<label for="doctorSelect">Doctor <span class="req">*</span></label>
+					<div class="ca-input-wrap">
+						<i class="fas fa-stethoscope ca-input-icon"></i>
+						<select id="doctorSelect" name="DoctorID" class="ca-input ca-input-padded ca-select" required>
+							<option value="">-- Choose a Doctor --</option>
+							@foreach (var doctor in Model.Doctors)
+							{
+								if (Model.DoctorID == doctor.DoctorID)
+								{
+									<option value="@doctor.DoctorID" selected>
+										@doctor.FullName — @doctor.Specialization
+									</option>
+								}
+								else
+								{
+									<option value="@doctor.DoctorID">
+										@doctor.FullName — @doctor.Specialization
+									</option>
+								}
+							}
+						</select>
+					</div>
+					<span class="ca-error">@Html.ValidationMessageFor(m => m.DoctorID)</span>
+				</div>
+
+				<div class="ca-field">
+					<label for="appointmentDate">Date <span class="req">*</span></label>
+					<div class="ca-input-wrap">
+						<i class="fas fa-calendar ca-input-icon"></i>
+						<input type="date" id="appointmentDate" name="AppointmentDate" class="ca-input ca-input-padded"
+							   value="@Model.AppointmentDate?.ToString("yyyy-MM-dd")"
+							   min="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+					</div>
+					<span class="ca-error">@Html.ValidationMessageFor(m => m.AppointmentDate)</span>
+				</div>
+
+				<div class="ca-field">
+					<label for="appointmentTime">Time <span class="req">*</span></label>
+					<div class="ca-input-wrap">
+						<i class="fas fa-clock ca-input-icon"></i>
+						<input type="time" id="appointmentTime" name="AppointmentTime" class="ca-input ca-input-padded"
+							   value="@Model.AppointmentTime?.ToString("hh\\:mm")" required />
+					</div>
+					<span class="ca-error">@Html.ValidationMessageFor(m => m.AppointmentTime)</span>
+				</div>
+			</div>
+		</div>
+
+		<!-- ── Notes ── -->
+		<div class="ca-section ca-section-last">
+			<div class="ca-section-header">
+				<div class="ca-section-icon ca-icon-amber">
+					<i class="fas fa-file-alt"></i>
+				</div>
+				<div>
+					<div class="ca-section-title">Appointment Notes</div>
+					<div class="ca-section-sub">Optional — add context for the doctor</div>
+				</div>
+			</div>
+
+			<div class="ca-grid-2">
+				<div class="ca-field">
+					<label for="reason">Reason for Visit</label>
+					<div class="ca-input-wrap">
+						<i class="fas fa-clipboard-list ca-input-icon"></i>
+						<input type="text" id="reason" name="Reason" class="ca-input ca-input-padded"
+							   placeholder="e.g. Routine Checkup, Follow-up…" value="@Model.Reason" />
+					</div>
+				</div>
+				<div class="ca-field" style="grid-column: 1 / -1;">
+					<label for="notes">Additional Notes</label>
+					<textarea id="notes" name="Notes" class="ca-input ca-textarea" rows="3"
+							  placeholder="Any additional information or special requests…">@Model.Notes</textarea>
+				</div>
+			</div>
+		</div>
+
+		<!-- Form Actions -->
+		<div class="ca-actions">
+			<a href="@Url.Action("Appointments", "Assistant", new { id = Model.Assistant.AssistantID })"
+			   class="ca-btn ca-btn-ghost">
+				<i class="fas fa-arrow-left"></i> Cancel
+			</a>
+			<button type="submit" class="ca-btn ca-btn-primary">
+				<i class="fas fa-calendar-check"></i> Create Appointment
+			</button>
+		</div>
+	</form>
+</section>
+
+<!-- Info Panel -->
+<section class="card ca-info-card">
+	<div class="ca-info-header">
+		<i class="fas fa-info-circle"></i>
+		<span>How it works</span>
+	</div>
+	<ul class="ca-info-list">
+		<li><i class="fas fa-check"></i> Appointments are confirmed immediately upon creation</li>
+		<li><i class="fas fa-clock"></i> The system checks for doctor time conflicts automatically</li>
+		<li><i class="fas fa-bell"></i> The patient will receive a notification of their appointment</li>
+		<li><i class="fas fa-user-plus"></i> New patients get a temporary password to access their account</li>
+	</ul>
+</section>
+
+</div>
+
+@section Scripts {
+<script>
+	function togglePatientOption(option) {
+		const existingFields = document.getElementById('existingPatientFields');
+		const newFields      = document.getElementById('newPatientFields');
+		const tabs           = document.querySelectorAll('.ca-tab');
+
+		tabs.forEach(tab => {
+			const radio = tab.querySelector('input[type="radio"]');
+			tab.classList.toggle('ca-tab-active', radio && radio.value === option);
+		});
+
+		existingFields.style.display = option === 'existing' ? 'block' : 'none';
+		newFields.style.display      = option === 'new'      ? 'block' : 'none';
+	}
+</script>
+}
+
+<style>
+/* ---- Card accent ---- */
+.ca-form-card { border-top: 3px solid #7c3aed; }
+
+/* ---- Section ---- */
+.ca-section {
+	padding: 28px 0;
+	border-bottom: 1px solid #f0edf8;
+}
+.ca-section-last { border-bottom: none; }
+
+.ca-section-header {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	margin-bottom: 24px;
+}
+.ca-section-icon {
+	width: 42px; height: 42px;
+	border-radius: 10px;
+	display: flex; align-items: center; justify-content: center;
+	font-size: 17px;
+	flex-shrink: 0;
+}
+.ca-icon-purple { background: #ede9fe; color: #7c3aed; }
+.ca-icon-indigo { background: #e0e7ff; color: #4338ca; }
+.ca-icon-amber  { background: #fef3c7; color: #d97706; }
+
+.ca-section-title {
+	font-size: 15px;
+	font-weight: 700;
+	color: #1e1b4b;
+}
+.ca-section-sub {
+	font-size: 12.5px;
+	color: #6b7280;
+	margin-top: 1px;
+}
+.req { color: #e74c3c; margin-left: 2px; }
+.ca-opt { font-size: 11.5px; font-weight: 400; color: #9ca3af; margin-left: 4px; }
+
+/* ---- Patient tabs ---- */
+.ca-tabs {
+	display: flex;
+	gap: 0;
+	border: 1.5px solid #e5e7eb;
+	border-radius: 10px;
+	overflow: hidden;
+	margin-bottom: 20px;
+}
+.ca-tab {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	padding: 13px 20px;
+	cursor: pointer;
+	font-size: 14px;
+	font-weight: 600;
+	color: #6b7280;
+	background: #fafafa;
+	transition: all 0.2s;
+	user-select: none;
+	border-right: 1.5px solid #e5e7eb;
+}
+.ca-tab:last-child { border-right: none; }
+.ca-tab input[type="radio"] { display: none; }
+.ca-tab:hover:not(.ca-tab-active) { background: #f3f4f6; color: #374151; }
+.ca-tab-active {
+	background: #ede9fe;
+	color: #7c3aed;
+	border-color: #ddd6fe !important;
+}
+
+/* ---- New patient inset box ---- */
+.ca-new-patient-box {
+	background: #faf5ff;
+	border: 1.5px solid #ddd6fe;
+	border-radius: 10px;
+	padding: 20px;
+	margin-top: 4px;
+}
+.ca-new-patient-label {
+	font-size: 13px;
+	font-weight: 700;
+	color: #5b21b6;
+	margin-bottom: 16px;
+	display: flex;
+	align-items: center;
+	gap: 7px;
+}
+
+/* ---- Grids ---- */
+.ca-grid-2 {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	gap: 16px;
+	margin-bottom: 16px;
+}
+.ca-grid-3 {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 18px;
+}
+
+/* ---- Fields ---- */
+.ca-field { display: flex; flex-direction: column; gap: 6px; }
+.ca-field label {
+	font-size: 13px;
+	font-weight: 600;
+	color: #374151;
+	letter-spacing: 0.01em;
+}
+.ca-error { font-size: 12px; color: #e74c3c; min-height: 16px; }
+
+/* ---- Inputs ---- */
+.ca-input-wrap { position: relative; }
+.ca-input-icon {
+	position: absolute;
+	left: 12px; top: 50%; transform: translateY(-50%);
+	color: #9ca3af;
+	font-size: 13px;
+	pointer-events: none;
+}
+.ca-input {
+	width: 100%; box-sizing: border-box;
+	padding: 11px 14px;
+	border: 1.5px solid #e5e7eb;
+	border-radius: 8px;
+	font-size: 14px;
+	color: #1f2937;
+	background: #fafafa;
+	font-family: inherit;
+	transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+.ca-input-padded { padding-left: 38px; }
+.ca-input:focus {
+	outline: none;
+	border-color: #7c3aed;
+	background: #fff;
+	box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+}
+.ca-select { cursor: pointer; appearance: auto; }
+.ca-textarea { resize: vertical; min-height: 90px; }
+
+/* ---- Notice ---- */
+.ca-notice {
+	display: flex; align-items: flex-start; gap: 10px;
+	padding: 11px 14px;
+	border-radius: 8px;
+	font-size: 13.5px;
+	margin-top: 10px;
+}
+.ca-notice-info { background: #ede9fe; border: 1px solid #c4b5fd; color: #5b21b6; }
+
+/* ---- Actions ---- */
+.ca-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 10px;
+	padding-top: 24px;
+	border-top: 1px solid #f0edf8;
+	margin-top: 4px;
+}
+.ca-btn {
+	display: inline-flex; align-items: center; gap: 8px;
+	padding: 11px 24px;
+	border-radius: 8px;
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+	border: none;
+	text-decoration: none;
+	transition: all 0.2s;
+}
+.ca-btn-primary {
+	background: #7c3aed;
+	color: #fff;
+	box-shadow: 0 2px 8px rgba(124,58,237,0.25);
+}
+.ca-btn-primary:hover {
+	background: #5b21b6;
+	box-shadow: 0 4px 12px rgba(124,58,237,0.35);
+	transform: translateY(-1px);
+}
+.ca-btn-ghost {
+	background: transparent;
+	color: #6b7280;
+	border: 1.5px solid #e5e7eb;
+}
+.ca-btn-ghost:hover { background: #f9fafb; color: #374151; }
+
+/* ---- Inline alerts ---- */
+.ca-alert {
+	display: flex; align-items: center; gap: 10px;
+	padding: 13px 16px;
+	border-radius: 8px;
+	font-size: 14px;
+	font-weight: 500;
+	margin-bottom: 16px;
+}
+.ca-alert-error { background: #fef2f2; border: 1px solid #fca5a5; color: #b91c1c; }
+.ca-alert-success { background: #f0fdf4; border: 1px solid #86efac; color: #15803d; }
+
+/* ---- Info card ---- */
+.ca-info-card { margin-top: 0; }
+.ca-info-header {
+	display: flex; align-items: center; gap: 8px;
+	font-size: 14px; font-weight: 600; color: #5b21b6;
+	margin-bottom: 12px;
+}
+.ca-info-list {
+	list-style: none; padding: 0; margin: 0;
+	display: flex; flex-direction: column; gap: 10px;
+}
+.ca-info-list li {
+	display: flex; align-items: flex-start; gap: 10px;
+	font-size: 13.5px; color: #4b5563;
+}
+.ca-info-list li i { color: #7c3aed; margin-top: 2px; flex-shrink: 0; }
+</style>

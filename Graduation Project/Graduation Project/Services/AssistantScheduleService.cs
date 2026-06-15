@@ -50,7 +50,7 @@ namespace Graduation_Project.Services
                     appointmentId = a.AppointmentID,
                     patientName = a.Patient?.User != null
                         ? $"{a.Patient.User.FirstName} {a.Patient.User.LastName}" : "Unknown",
-                    patientPhone = a.Patient?.User?.Phone ?? string.Empty,
+                    patientPhone = a.Patient?.User?.PhoneNumber ?? string.Empty,
                     doctorName = a.Doctor?.User != null
                         ? $"Dr. {a.Doctor.User.FirstName} {a.Doctor.User.LastName}" : "Unknown",
                     doctorSpecialization = a.Doctor?.Specialization ?? string.Empty,
@@ -59,7 +59,9 @@ namespace Graduation_Project.Services
                     status = a.Booking?.Status ?? "Confirmed",
                     reason = a.Booking?.Reason ?? string.Empty,
                     notes = a.Booking?.Notes ?? string.Empty,
-                    isToday = a.Date.Date == DateTime.Today
+                    isToday = a.Date.Date == DateTime.Today,
+                    isCheckedIn = a.Booking?.IsCheckedIn ?? false,
+                    checkedInAt = a.Booking?.CheckedInAt?.ToString("hh:mm tt") ?? string.Empty
                 })
                 .ToList();
 

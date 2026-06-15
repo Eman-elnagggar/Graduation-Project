@@ -1,86 +1,103 @@
 @model Graduation_Project.ViewModels.AssistantPatientDetailsViewModel
+@using System.Globalization
 @{
     Layout = "~/Views/Shared/_AssistantLayout.cshtml";
     ViewData["Title"] = "Patient Details";
     ViewData["AssistantId"] = Model.Assistant.AssistantID;
     ViewData["AssistantName"] = Model.AssistantName;
     ViewData["ActivePage"] = "Patients";
+
+    var avatarPalette = new[] { "#7c3aed", "#2563eb", "#059669", "#d97706", "#dc2626", "#0891b2", "#6366f1" };
+    var patName  = Model.PatientName ?? "Patient";
+    var patColor = avatarPalette[(int)(patName.Length > 0 ? patName[0] : 'P') % avatarPalette.Length];
+    var patInitials = string.Concat(
+        patName.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
+               .Take(2).Select(w => w[0])).ToUpper();
 }
 
-<div class="ad-wrap">
-    <header class="header">
-        <div class="header-left">
-            <div class="header-page-icon">
-                <i class="fas fa-user-injured"></i>
-            </div>
-            <div class="header-title-group">
-                <h1>@Model.PatientName</h1>
-                <p>Full patient profile and appointments at @Model.ClinicName</p>
-            </div>
-        </div>
-        <div>
-            <a class="btn btn-outline" href="@Url.Action("Patients", "Assistant", new { id = Model.Assistant.AssistantID })">
-                <i class="fas fa-arrow-left"></i> Back to Patients
-            </a>
-        </div>
-    </header>
+<div class="dash-v2">
 
-    <section class="card section-spacing">
-        <div class="card-header">
-            <h3><i class="fas fa-id-card"></i> Profile</h3>
+    <!-- Page Hero -->
+    <div class="dcard page-hero page-hero--spaced">
+        <div class="page-hero-icon" style="background:@patColor;box-shadow:none">
+            <span style="font-size:1rem;font-weight:700;letter-spacing:0.5px">@patInitials</span>
         </div>
-        <div class="quick-stats">
-            <div class="quick-stat-card">
-                <div class="stat-label">Phone</div>
-                <div class="stat-value">@(Model.Patient.User?.PhoneNumber ?? "N/A")</div>
-            </div>
-            <div class="quick-stat-card">
-                <div class="stat-label">Address</div>
-                <div class="stat-value">@(string.IsNullOrWhiteSpace(Model.Patient.Address) ? "N/A" : Model.Patient.Address)</div>
-            </div>
-            <div class="quick-stat-card">
-                <div class="stat-label">Gestational Weeks</div>
-                <div class="stat-value">@Model.Patient.GestationalWeeks</div>
-            </div>
-            <div class="quick-stat-card">
-                <div class="stat-label">Blood Pressure Risk</div>
-                <div class="stat-value">@(Model.Patient.BloodPressureIssue ? "Yes" : "No")</div>
-            </div>
+        <div class="page-hero-text">
+            <h1 class="page-hero-title">@Model.PatientName</h1>
+            <p class="page-hero-sub">Full profile &amp; appointment history &middot; @Model.ClinicName</p>
         </div>
-    </section>
+        <a class="btn btn-outline btn-sm" style="margin-left:auto;flex-shrink:0"
+           href="@Url.Action("Patients", "Assistant", new { id = Model.Assistant.AssistantID })">
+            <i class="fas fa-arrow-left"></i> Back
+        </a>
+    </div>
 
-    <section class="card section-spacing">
-        <div class="card-header">
-            <h3><i class="fas fa-user-md"></i> Assigned Doctors</h3>
+    <!-- Profile card -->
+    <div class="dcard">
+        <div class="dcard-header">
+            <h3 class="dcard-title"><i class="fas fa-id-card"></i> Profile</h3>
         </div>
-        @if (!Model.AssignedDoctors.Any())
-        {
-            <div class="empty-state">
-                <i class="fas fa-user-md"></i>
-                <p>No assigned doctors found in this scope.</p>
+        <div class="pd-profile-grid">
+            <div class="pd-info-item">
+                <span class="pd-info-label">Phone</span>
+                <span class="pd-info-value">@(Model.Patient.User?.PhoneNumber ?? "N/A")</span>
             </div>
-        }
-        else
-        {
-            <div class="request-list">
-                @foreach (var doctor in Model.AssignedDoctors)
+            <div class="pd-info-item">
+                <span class="pd-info-label">Address</span>
+                <span class="pd-info-value">@(string.IsNullOrWhiteSpace(Model.Patient.Address) ? "N/A" : Model.Patient.Address)</span>
+            </div>
+            <div class="pd-info-item">
+                <span class="pd-info-label">Gestational Weeks</span>
+                <span class="pd-info-value">@Model.Patient.GestationalWeeks <small style="color:#64748b;font-weight:400">wks</small></span>
+            </div>
+            <div class="pd-info-item">
+                <span class="pd-info-label">BP Risk</span>
+                @if (Model.Patient.BloodPressureIssue)
                 {
-                    <article class="request-card">
-                        <div class="request-info">
-                            <h4>
-                                Dr. @doctor.User?.FirstName @doctor.User?.LastName
-                            </h4>
-                            <p>@(string.IsNullOrWhiteSpace(doctor.Specialization) ? "General" : doctor.Specialization)</p>
-                        </div>
-                    </article>
+                    <span class="pd-info-value" style="color:#dc2626">
+                        <i class="fas fa-exclamation-circle" style="font-size:0.8rem"></i> Yes
+                    </span>
+                }
+                else
+                {
+                    <span class="pd-info-value" style="color:#059669">No</span>
                 }
             </div>
-        }
-    </section>
+        </div>
+    </div>
 
-    <section class="card section-spacing">
-        <div class="card-header">
-            <h3><i class="fas fa-calendar-alt"></i> All Appointments</h3>
+    <!-- Assigned Doctors -->
+    @if (Model.AssignedDoctors.Any())
+    {
+        <div class="dcard">
+            <div class="dcard-header">
+                <h3 class="dcard-title"><i class="fas fa-user-md"></i> Assigned Doctors</h3>
+                <span class="dcard-subtitle">@Model.AssignedDoctors.Count() doctor(s)</span>
+            </div>
+            <div class="pd-doctor-list">
+                @foreach (var doctor in Model.AssignedDoctors)
+                {
+                    var dName = $"Dr. {doctor.User?.FirstName} {doctor.User?.LastName}".Trim();
+                    var dSpec = string.IsNullOrWhiteSpace(doctor.Specialization) ? "General" : doctor.Specialization;
+                    var dInit = string.Concat(dName.Split(' ').Skip(1).Take(2).Select(w => w[0])).ToUpper();
+
+                    <div class="pd-doctor-row">
+                        <div class="pd-doctor-avatar">@dInit</div>
+                        <div>
+                            <div class="pd-doctor-name">@dName</div>
+                            <div class="pd-doctor-spec">@dSpec</div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- All Appointments -->
+    <div class="dcard">
+        <div class="dcard-header">
+            <h3 class="dcard-title"><i class="fas fa-calendar-alt"></i> All Appointments</h3>
+            <span class="dcard-subtitle">@Model.Appointments.Count() total</span>
         </div>
         @if (!Model.Appointments.Any())
         {
@@ -91,88 +108,168 @@
         }
         else
         {
-            <div class="request-list">
-                @foreach (var appointment in Model.Appointments)
-                {
-                    var status = appointment.Booking?.Status ?? "Confirmed";
-                    var statusClass = status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase)
-                        ? "danger"
-                        : status.Equals("Modified", StringComparison.OrdinalIgnoreCase)
-                            ? "reviewed"
-                            : "confirmed";
-
-                    <article class="request-card appointment-card">
-                        <div class="request-info">
-                            <div class="request-header-line">
-                                <h4>@appointment.Date.ToString("ddd, MMM dd, yyyy") at @DateTime.Today.Add(appointment.Time).ToString("hh:mm tt")</h4>
-                                <span class="status-badge @statusClass">@status</span>
-                            </div>
-                            <p><strong>Doctor:</strong> Dr. @appointment.Doctor?.User?.FirstName @appointment.Doctor?.User?.LastName</p>
-                            @if (!string.IsNullOrWhiteSpace(appointment.Booking?.Reason))
-                            {
-                                <p><strong>Reason:</strong> @appointment.Booking.Reason</p>
-                            }
-                            @if (!string.IsNullOrWhiteSpace(appointment.Booking?.Notes))
-                            {
-                                <p><strong>Notes:</strong> @appointment.Booking.Notes</p>
-                            }
-                        </div>
-                    </article>
-                }
+            <div class="appt-list-header pd-appt-grid">
+                <div>Date &amp; Time</div>
+                <div>Doctor</div>
+                <div>Reason</div>
+                <div>Status</div>
             </div>
-        }
-    </section>
+            @foreach (var appointment in Model.Appointments)
+            {
+                var aptStatus  = appointment.Booking?.Status ?? "Confirmed";
+                var aptBadge   = aptStatus.ToLowerInvariant() switch
+                {
+                    "cancelled" => "pts-appt-sbadge--cancelled",
+                    "modified"  => "pts-appt-sbadge--modified",
+                    "completed" => "pts-appt-sbadge--confirmed",
+                    "missed"    => "pts-appt-sbadge--cancelled",
+                    _           => "pts-appt-sbadge--confirmed"
+                };
+                var aptReason = string.IsNullOrWhiteSpace(appointment.Booking?.Reason) ? "—" : appointment.Booking.Reason;
+                var aptDoc    = $"Dr. {appointment.Doctor?.User?.FirstName} {appointment.Doctor?.User?.LastName}".Trim();
 
-    <section class="card section-spacing">
-        <div class="card-header">
-            <h3><i class="fas fa-pills"></i> Medications</h3>
+                <div class="pd-appt-row pd-appt-grid">
+                    <div class="pd-appt-datetime">
+                        @appointment.Date.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)
+                        <span style="color:#64748b;font-weight:400"> @DateTime.Today.Add(appointment.Time).ToString("h:mm tt", CultureInfo.InvariantCulture)</span>
+                    </div>
+                    <div class="pd-appt-doctor">@aptDoc</div>
+                    <div class="pd-appt-reason" title="@aptReason">@aptReason</div>
+                    <span class="pts-appt-sbadge @aptBadge">@aptStatus</span>
+                </div>
+            }
+        }
+    </div>
+
+    <!-- Medications -->
+    <div class="dcard">
+        <div class="dcard-header">
+            <h3 class="dcard-title"><i class="fas fa-pills"></i> Medications</h3>
+            <span class="dcard-subtitle">@Model.Medications.Count() recorded</span>
         </div>
         @if (!Model.Medications.Any())
         {
-            <div class="empty-state">
-                <p>No medications recorded.</p>
-            </div>
+            <div class="empty-state"><p>No medications recorded.</p></div>
         }
         else
         {
-            <div class="request-list">
-                @foreach (var med in Model.Medications)
-                {
-                    <article class="request-card">
-                        <div class="request-info">
-                            <h4>@med.DrugName</h4>
-                            <p><strong>Reason:</strong> @med.Reason</p>
-                            <p><strong>Dose:</strong> @med.DoseMgPerDay mg/day · <strong>Duration:</strong> @med.DurationMonths month(s)</p>
-                        </div>
-                    </article>
-                }
+            <div class="appt-list-header pd-med-grid">
+                <div>Drug</div>
+                <div>Reason</div>
+                <div>Dose</div>
+                <div>Duration</div>
             </div>
+            @foreach (var med in Model.Medications)
+            {
+                <div class="pd-med-row pd-med-grid">
+                    <div class="pd-med-name">@med.DrugName</div>
+                    <div class="pd-appt-reason" title="@med.Reason">@(string.IsNullOrWhiteSpace(med.Reason) ? "—" : med.Reason)</div>
+                    <div class="pd-med-stat">@med.DoseMgPerDay <small>mg/day</small></div>
+                    <div class="pd-med-stat">@med.DurationMonths <small>mo.</small></div>
+                </div>
+            }
         }
-    </section>
+    </div>
 
-    <section class="card section-spacing">
-        <div class="card-header">
-            <h3><i class="fas fa-baby"></i> Pregnancy Records</h3>
+    <!-- Pregnancy Records -->
+    <div class="dcard">
+        <div class="dcard-header">
+            <h3 class="dcard-title"><i class="fas fa-baby"></i> Pregnancy Records</h3>
+            <span class="dcard-subtitle">@Model.PregnancyRecords.Count() record(s)</span>
         </div>
         @if (!Model.PregnancyRecords.Any())
         {
-            <div class="empty-state">
-                <p>No pregnancy records found.</p>
-            </div>
+            <div class="empty-state"><p>No pregnancy records found.</p></div>
         }
         else
         {
-            <div class="request-list">
-                @foreach (var record in Model.PregnancyRecords)
+            @foreach (var record in Model.PregnancyRecords)
+            {
+                var isActive = !record.EndDate.HasValue;
+                <div class="pd-record-row">
+                    <i class="fas fa-circle" style="font-size:0.5rem;color:@(isActive ? "#10b981" : "#94a3b8")"></i>
+                    <div class="pd-record-dates">
+                        <span class="pd-record-date">@record.StartDate.ToString("MMM dd, yyyy", CultureInfo.InvariantCulture)</span>
+                        <i class="fas fa-arrow-right pd-record-arrow"></i>
+                        <span class="pd-record-end">
+                            @(record.EndDate.HasValue ? record.EndDate.Value.ToString("MMM dd, yyyy", CultureInfo.InvariantCulture) : "Present")
+                        </span>
+                    </div>
+                    @if (isActive)
+                    {
+                        <span class="pts-appt-sbadge pts-appt-sbadge--confirmed">Active</span>
+                    }
+                    else
+                    {
+                        <span class="pts-appt-sbadge" style="background:#f1f5f9;color:#64748b">Completed</span>
+                    }
+                </div>
+            }
+        }
+    </div>
+
+    <!-- Health Alerts -->
+    <div class="dcard">
+        <div class="dcard-header">
+            <h3 class="dcard-title">
+                <i class="fas fa-exclamation-triangle"></i> Health Alerts
+            </h3>
+            @if (Model.Alerts.Any(a => !a.IsRead))
+            {
+                <span class="appt-tab-badge appt-tab-badge--danger" style="font-size:0.72rem;padding:3px 9px">
+                    @Model.Alerts.Count(a => !a.IsRead) unread
+                </span>
+            }
+            <span class="dcard-subtitle">@Model.Alerts.Count() alert(s)</span>
+        </div>
+        @if (!Model.Alerts.Any())
+        {
+            <div class="empty-state"><p>No health alerts recorded for this patient.</p></div>
+        }
+        else
+        {
+            <div class="alert-list">
+                @foreach (var alert in Model.Alerts)
                 {
-                    <article class="request-card">
-                        <div class="request-info">
-                            <h4>Start: @record.StartDate.ToString("MMM dd, yyyy")</h4>
-                            <p><strong>End:</strong> @(record.EndDate.HasValue ? record.EndDate.Value.ToString("MMM dd, yyyy") : "Active")</p>
+                    var alertMod = alert.AlertType?.ToLower();
+                    var rowClass = alertMod switch
+                    {
+                        "danger"  => "alert-row--danger",
+                        "warning" => "alert-row--warning",
+                        "success" => "alert-row--success",
+                        _         => "alert-row--info"
+                    };
+                    var alertIcon = alertMod switch
+                    {
+                        "danger"  => "fa-exclamation-circle",
+                        "warning" => "fa-exclamation-triangle",
+                        "success" => "fa-check-circle",
+                        _         => "fa-info-circle"
+                    };
+
+                    <div class="alert-row @rowClass">
+                        <div class="alert-row-indicator"></div>
+                        <div class="alert-row-icon">
+                            <i class="fas @alertIcon"></i>
                         </div>
-                    </article>
+                        <div class="alert-row-body">
+                            <div class="alert-row-title">
+                                @alert.Title
+                                @if (!alert.IsRead)
+                                {
+                                    <span class="appt-row-chip appt-row-chip--today" style="margin-left:6px">Unread</span>
+                                }
+                            </div>
+                            <div class="alert-row-meta">@alert.Message</div>
+                            <div class="alert-row-meta" style="margin-top:2px;color:#94a3b8">
+                                @alert.DateCreated.ToString("ddd, MMM dd, yyyy — h:mm tt", CultureInfo.InvariantCulture)
+                            </div>
+                        </div>
+                        <div class="alert-row-type">@alert.AlertType</div>
+                    </div>
                 }
             </div>
         }
-    </section>
+    </div>
+
 </div>

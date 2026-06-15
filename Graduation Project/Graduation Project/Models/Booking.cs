@@ -18,6 +18,8 @@ namespace Graduation_Project.Models
         public string Status { get; set; }
         public string Reason { get; set; }
         public string Notes { get; set; }
+        public bool IsCheckedIn { get; set; }
+        public DateTime? CheckedInAt { get; set; }
 
         // Navigation
         public virtual Appointment Appointment { get; set; }

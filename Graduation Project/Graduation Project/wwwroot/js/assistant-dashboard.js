@@ -10,28 +10,6 @@
     return;
   }
 
-  const notificationBtn = document.getElementById("notificationBtn") || document.querySelector(".notification");
-  const notificationsPanel = document.querySelector(".notifications-panel");
-  const closeNotifications = document.querySelector(".close-notifications");
-
-  if (notificationBtn && notificationsPanel) {
-    notificationBtn.addEventListener("click", () => {
-      notificationsPanel.classList.toggle("open");
-    });
-
-    if (closeNotifications) {
-      closeNotifications.addEventListener("click", () => {
-        notificationsPanel.classList.remove("open");
-      });
-    }
-
-    document.addEventListener("click", (e) => {
-      if (!notificationsPanel.contains(e.target) && !notificationBtn.contains(e.target)) {
-        notificationsPanel.classList.remove("open");
-      }
-    });
-  }
-
   const todayDateEl = document.getElementById("todayDate");
   const datePicker = document.getElementById("dashboardDatePicker");
   const prevDateBtn = document.getElementById("prevDateBtn");
@@ -174,6 +152,7 @@
 
         setTxt("stat-today-appointments", data.todayAppointmentsCount);
         setTxt("stat-total-patients", data.totalPatients);
+        setTxt("stat-pending-alerts", data.pendingAlertsCount);
         setTxt("hero-appointment-count", data.todayAppointmentsCount);
 
         const assistantHeaderBadge = document.getElementById("alert-badge");

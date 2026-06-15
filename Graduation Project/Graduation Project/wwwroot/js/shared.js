@@ -376,29 +376,176 @@ function handleFileSelection(file, uploadZone, uploadedFile, fileNameEl) {
 // ================================
 // Top-Bar Notifications Panel
 // ================================
+// ================================
+// Top-Bar Notifications Panel
+// ================================
+
+const _notifIconMap = {
+  danger:  { icon: "fa-exclamation-circle", color: "#ef4444" },
+  warning: { icon: "fa-exclamation-triangle", color: "#f59e0b" },
+  success: { icon: "fa-check-circle",        color: "#10b981" },
+  info:    { icon: "fa-info-circle",          color: "#3b82f6" },
+};
+
+function _notifRelativeTime(isoStr) {
+  const diff = Date.now() - new Date(isoStr).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1)  return "Just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+function _setBadge(badge, count) {
+  if (!badge) return;
+  if (count > 0) {
+    badge.textContent = count > 99 ? "99+" : String(count);
+    badge.hidden = false;
+    badge.style.display = "inline-flex";
+  } else {
+    badge.hidden = true;
+    badge.style.display = "none";
+  }
+}
+
+function _renderNotifications(items, listEl, assistantId, badge, sidebarBadge) {
+  if (!listEl) return;
+
+  if (!items || items.length === 0) {
+    listEl.innerHTML = `
+      <div style="text-align:center;padding:40px 16px;color:var(--text-muted,#64748b)">
+        <i class="fas fa-bell-slash" style="font-size:2rem;opacity:.4;display:block;margin-bottom:8px"></i>
+        <span style="font-size:.9rem">No notifications</span>
+      </div>`;
+    return;
+  }
+
+  const alertsUrl = `/Assistant/Alerts/${assistantId}`;
+  const unread = items.filter(n => !n.isRead).length;
+
+  listEl.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0 4px 12px;border-bottom:1px solid var(--border-color,#e2e8f0);margin-bottom:8px">
+      <span style="font-size:.8rem;color:var(--text-muted,#64748b)">${unread} unread</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        ${unread > 0 ? `<button id="markAllReadBtn" type="button" style="font-size:.78rem;color:var(--assistant-primary,#7c3aed);background:none;border:none;cursor:pointer;padding:0">Mark all read</button>` : ""}
+        <a href="${alertsUrl}" style="font-size:.78rem;color:var(--assistant-primary,#7c3aed);text-decoration:none">View all</a>
+      </div>
+    </div>
+    ${items.map(n => {
+      const style = _notifIconMap[(n.alertType || "info").toLowerCase()] || _notifIconMap.info;
+      return `
+        <div class="notification-item ${n.isRead ? "" : "unread"}" data-alert-id="${n.alertId}" style="cursor:pointer">
+          <div class="notif-icon" style="color:${style.color};font-size:1.1rem;flex-shrink:0;padding-top:2px">
+            <i class="fas ${style.icon}"></i>
+          </div>
+          <div class="notif-content" style="flex:1;min-width:0">
+            <h4 style="margin:0 0 3px;font-size:.88rem;font-weight:600;color:var(--text-strong,#1e293b);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_escHtml(n.title)}</h4>
+            <p style="margin:0 0 4px;font-size:.8rem;color:var(--text-body,#475569);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${_escHtml(n.message || "")}</p>
+            <span style="font-size:.73rem;color:var(--text-muted,#94a3b8)">${_escHtml(n.patientName)} &middot; ${_notifRelativeTime(n.dateCreated)}</span>
+          </div>
+        </div>`;
+    }).join("")}`;
+
+  // Mark all read
+  const markAllBtn = listEl.querySelector("#markAllReadBtn");
+  if (markAllBtn) {
+    markAllBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      try {
+        const tok = document.querySelector('input[name="__RequestVerificationToken"]')?.value || "";
+        const r = await fetch(`/Assistant/MarkAllAlertsRead/${assistantId}`, {
+          method: "POST",
+          headers: { "RequestVerificationToken": tok, "Content-Type": "application/x-www-form-urlencoded" },
+          body: `__RequestVerificationToken=${encodeURIComponent(tok)}`
+        });
+        if (r.ok) {
+          items.forEach(n => n.isRead = true);
+          _renderNotifications(items, listEl, assistantId, badge, sidebarBadge);
+          _setBadge(badge, 0);
+          _setBadge(sidebarBadge, 0);
+        }
+      } catch { /* no-op */ }
+    });
+  }
+
+  // Mark single read on click
+  listEl.querySelectorAll(".notification-item[data-alert-id]").forEach(el => {
+    el.addEventListener("click", async () => {
+      const alertId = Number(el.dataset.alertId);
+      const item = items.find(n => n.alertId === alertId);
+      if (!item || item.isRead) return;
+      try {
+        const tok = document.querySelector('input[name="__RequestVerificationToken"]')?.value || "";
+        await fetch(`/Assistant/MarkAlertRead/${assistantId}?alertId=${alertId}`, {
+          method: "POST",
+          headers: { "RequestVerificationToken": tok, "Content-Type": "application/x-www-form-urlencoded" },
+          body: `__RequestVerificationToken=${encodeURIComponent(tok)}&alertId=${alertId}`
+        });
+        item.isRead = true;
+        el.classList.remove("unread");
+        const newUnread = items.filter(n => !n.isRead).length;
+        _setBadge(badge, newUnread);
+        _setBadge(sidebarBadge, newUnread);
+        // Re-render header row
+        _renderNotifications(items, listEl, assistantId, badge, sidebarBadge);
+      } catch { /* no-op */ }
+    });
+  });
+}
+
+function _escHtml(str) {
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 function initTopbarNotifications() {
-  const notificationBtn = document.getElementById("notificationBtn");
+  const notificationBtn   = document.getElementById("notificationBtn");
   const notificationsPanel = document.getElementById("notificationsPanel");
   const closeNotifications = document.getElementById("closeNotifications");
-  const notificationBadge = document.getElementById("notificationBadge");
-  const notificationsList = document.getElementById("notificationsList");
+  const notificationBadge  = document.getElementById("notificationBadge");
+  const notificationsList  = document.getElementById("notificationsList");
 
   if (!notificationBtn || !notificationsPanel) return;
   if (notificationBtn.dataset.notificationsInitialized === "true") return;
   notificationBtn.dataset.notificationsInitialized = "true";
 
-  const unreadCount = notificationsList
-    ? notificationsList.querySelectorAll(".unread, [data-unread='true']").length
-    : 0;
+  const assistantId = Number(document.body?.dataset?.assistantId || 0);
+  const sidebarAlertsBadge = document.getElementById("sidebarAlertsBadge");
+  let loaded = false;
+  let cachedItems = null;
 
-  if (notificationBadge) {
-    notificationBadge.textContent = unreadCount > 0 ? String(unreadCount) : "";
-    notificationBadge.style.display = unreadCount > 0 ? "block" : "none";
+  async function loadNotifications() {
+    if (!assistantId) return;
+    if (notificationsList) {
+      notificationsList.innerHTML = `<div style="text-align:center;padding:32px 16px;color:var(--text-muted,#64748b)"><i class="fas fa-spinner fa-spin"></i></div>`;
+    }
+    try {
+      const r = await fetch(`/Assistant/GetNotificationsJson?id=${assistantId}`);
+      if (!r.ok) throw new Error(r.status);
+      cachedItems = await r.json();
+      loaded = true;
+      _renderNotifications(cachedItems, notificationsList, assistantId, notificationBadge, sidebarAlertsBadge);
+      const unread = cachedItems.filter(n => !n.isRead).length;
+      _setBadge(notificationBadge, unread);
+      _setBadge(sidebarAlertsBadge, unread);
+    } catch {
+      if (notificationsList) {
+        notificationsList.innerHTML = `<div style="text-align:center;padding:32px 16px;color:var(--danger,#ef4444);font-size:.85rem"><i class="fas fa-exclamation-circle"></i> Failed to load</div>`;
+      }
+    }
   }
 
   notificationBtn.addEventListener("click", function (e) {
     e.stopPropagation();
+    const isOpening = !notificationsPanel.classList.contains("open");
     notificationsPanel.classList.toggle("open");
+    if (isOpening && !loaded) {
+      loadNotifications();
+    }
   });
 
   if (closeNotifications) {
@@ -416,31 +563,23 @@ function initTopbarNotifications() {
       notificationsPanel.classList.remove("open");
     }
   });
+
+  // Load badge count immediately (without opening panel)
+  if (assistantId) {
+    fetch(`/Assistant/GetUnreadAlertsCount?id=${assistantId}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) {
+          _setBadge(notificationBadge, Number(data.unreadCount || 0));
+          _setBadge(sidebarAlertsBadge, Number(data.unreadCount || 0));
+        }
+      })
+      .catch(() => {});
+  }
 }
 
 async function initAssistantTopbarBadge() {
-  const notificationBadge = document.getElementById("notificationBadge");
-  if (!notificationBadge) return;
-
-  const assistantId = Number(document.body?.dataset?.assistantId || 0);
-
-  try {
-    const response = await fetch(`/Assistant/GetUnreadAlertsCount?id=${assistantId}`);
-    if (!response.ok) return;
-
-    const data = await response.json();
-    const count = Number(data?.unreadCount || 0);
-
-    if (count > 0) {
-      notificationBadge.textContent = count > 99 ? "99+" : String(count);
-      notificationBadge.style.display = "inline-flex";
-    } else {
-      notificationBadge.textContent = "0";
-      notificationBadge.style.display = "none";
-    }
-  } catch {
-    // no-op
-  }
+  // Badge is now handled inside initTopbarNotifications; this is a no-op kept for compatibility.
 }
 
 // ================================

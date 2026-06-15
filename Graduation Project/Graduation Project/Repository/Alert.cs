@@ -53,5 +53,14 @@ namespace Graduation_Project.Repository
                 .Select(a => a.PatientID)
                 .Distinct()
                 .ToList();
+
+        public IEnumerable<Alert> GetByPatientIds(IEnumerable<int> patientIds) =>
+            _context.Alerts
+                .AsNoTracking()
+                .Include(a => a.Patient)
+                    .ThenInclude(p => p.User)
+                .Where(a => patientIds.Contains(a.PatientID))
+                .OrderByDescending(a => a.DateCreated)
+                .ToList();
     }
 }

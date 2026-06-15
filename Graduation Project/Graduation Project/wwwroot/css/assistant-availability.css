@@ -95,6 +95,11 @@
   border: 2px dashed #cbd5e1;
 }
 
+.other-clinic-swatch {
+  background: #eff6ff;
+  border: 2px solid #3b82f6;
+}
+
 .slot-group {
   margin-bottom: 20px;
 }

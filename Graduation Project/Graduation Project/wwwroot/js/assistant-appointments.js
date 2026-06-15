@@ -234,58 +234,70 @@ function renderAppointments(appointments, status) {
         return;
     }
 
-    const canModify = status === "Confirmed";
-    const canCancel = status !== "Cancelled";
+    const canModify   = status === "Confirmed";
+    const canCancel   = status !== "Cancelled";
+    const canReinstate = status === "Cancelled" || status === "Modified";
+
+    const AVATAR_PALETTE = ["#7c3aed", "#2563eb", "#059669", "#d97706", "#dc2626", "#0891b2", "#6366f1"];
+    const STATUS_MAP = {
+        confirmed: { bg: "#dcfce7", fg: "#15803d", dot: "#10b981" },
+        modified:  { bg: "#dbeafe", fg: "#1d4ed8", dot: "#2563eb" },
+        cancelled: { bg: "#fee2e2", fg: "#b91c1c", dot: "#ef4444" }
+    };
 
     list.innerHTML = appointments.map(a => {
-        const fmt = formatTime(a.time);
-        const dateStr = formatDate(a.date);
-        const isApt = a.isToday;
+        const fmt       = formatTime(a.time);
+        const isApt     = a.isToday;
         const isPastApt = !isApt && isPast(a.date);
+        const s         = STATUS_MAP[a.status?.toLowerCase()] || STATUS_MAP.confirmed;
 
-        const badges = [
-            isApt ? '<span class="status-badge status-badge--today"><i class="fas fa-sun"></i>Today</span>' : "",
-            isPastApt ? '<span class="status-badge status-badge--past"><i class="fas fa-history"></i>Past</span>' : "",
-            `<span class="status-badge ${getStatusClass(a.status)}">${escapeHtml(a.status)}</span>`
-        ].join("");
+        const initials  = (a.patientName || "?").trim().split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase();
+        const avatarBg  = AVATAR_PALETTE[(a.patientName?.charCodeAt(0) || 0) % AVATAR_PALETTE.length];
 
-        const details = [
-            `<div class="detail-item"><i class="fas fa-calendar"></i><span>${dateStr}</span></div>`,
-            `<div class="detail-item"><i class="fas fa-clock"></i><span>${fmt.time} ${fmt.period}</span></div>`,
-            a.reason ? `<div class="detail-item"><i class="fas fa-info-circle"></i><span>${escapeHtml(a.reason)}</span></div>` : "",
-            a.notes ? `<div class="detail-item"><i class="fas fa-sticky-note"></i><span>${escapeHtml(a.notes)}</span></div>` : "",
-            a.patientPhone ? `<div class="detail-item"><i class="fas fa-phone"></i><span>${escapeHtml(a.patientPhone)}</span></div>` : ""
-        ].join("");
+        const todayChip   = isApt     ? `<span class="appt-row-chip appt-row-chip--today">Today</span>` : "";
+        const pastChip    = isPastApt  ? `<span class="appt-row-chip appt-row-chip--past">Past</span>`  : "";
+        const checkinChip = a.isCheckedIn
+            ? `<span class="appt-row-chip appt-row-chip--checkin"><i class="fas fa-check-double"></i>${a.checkedInAt ? " " + escapeHtml(a.checkedInAt) : " In"}</span>`
+            : "";
 
         const modifyBtn = canModify && !isPastApt
-            ? `<button class="btn btn-outline btn-sm" data-action="modify-${a.appointmentId}" onclick="openModifyModal(${a.appointmentId})"><i class="fas fa-edit"></i> Modify</button>`
+            ? `<button class="appt-icon-btn appt-icon-btn--blue" title="Modify" data-action="modify-${a.appointmentId}" onclick="openModifyModal(${a.appointmentId})"><i class="fas fa-edit"></i></button>`
+            : "";
+
+        const checkInBtn = status === "Confirmed" && !isPastApt && !a.isCheckedIn
+            ? `<button class="appt-icon-btn appt-icon-btn--green" title="Check In" data-action="checkin-${a.appointmentId}" onclick="handleCheckIn(${a.appointmentId})"><i class="fas fa-user-check"></i></button>`
+            : "";
+
+        const reinstateBtn = canReinstate && !isPastApt
+            ? `<button class="appt-icon-btn appt-icon-btn--teal" title="Reinstate" data-action="reinstate-${a.appointmentId}" onclick="handleReinstateAppointment(${a.appointmentId})"><i class="fas fa-undo"></i></button>`
             : "";
 
         const cancelBtn = canCancel && !isPastApt
-            ? `<button class="btn btn-danger btn-sm" data-action="cancel-${a.appointmentId}" onclick="quickCancelAppointment(${a.appointmentId})"><i class="fas fa-times"></i> Cancel</button>`
+            ? `<button class="appt-icon-btn appt-icon-btn--red" title="Cancel" data-action="cancel-${a.appointmentId}" onclick="quickCancelAppointment(${a.appointmentId})"><i class="fas fa-times"></i></button>`
             : "";
 
+        const phoneHtml = a.patientPhone
+            ? `<div class="appt-row-phone"><i class="fas fa-phone"></i> ${escapeHtml(a.patientPhone)}</div>`
+            : `<div class="appt-row-phone appt-row-phone--nil">—</div>`;
+
         return `
-            <div class="request-item" data-appointment-id="${a.appointmentId}" data-search="${escapeHtml(((a.patientName || "") + " " + (a.doctorName || "") + " " + (a.patientPhone || "")).toLowerCase())}">
-                <div class="appt-stripe ${getStripeClass(a.status)}"></div>
-                <div class="appt-body">
-                    <div class="request-header">
-                        <div class="patient-info">
-                            <div class="patient-avatar"><i class="fas fa-user"></i></div>
-                            <div>
-                                <h4>${escapeHtml(a.patientName)}</h4>
-                                <p class="appointment-secondary-text">
-                                    <i class="fas fa-user-md"></i> ${escapeHtml(a.doctorName)}
-                                    ${a.doctorSpecialization ? `&nbsp;·&nbsp;${escapeHtml(a.doctorSpecialization)}` : ""}
-                                </p>
-                            </div>
-                        </div>
-                        <div class="request-meta">${badges}</div>
-                    </div>
-                    <div class="request-details">${details}</div>
-                    <div class="request-actions">${modifyBtn}${cancelBtn}</div>
-                </div>
-            </div>`;
+<div class="appt-row" data-appointment-id="${a.appointmentId}"
+     data-search="${escapeHtml(((a.patientName || "") + " " + (a.doctorName || "") + " " + (a.patientPhone || "")).toLowerCase())}">
+  <div class="appt-row-avatar" style="background:${avatarBg}">${initials}</div>
+  <div class="appt-row-patient">
+    <span class="appt-row-pname">${escapeHtml(a.patientName)}</span>
+    <span class="appt-row-pdoc">${escapeHtml(a.doctorName)}${a.doctorSpecialization ? " · " + escapeHtml(a.doctorSpecialization) : ""}</span>
+  </div>
+  <div class="appt-row-time"><i class="fas fa-clock"></i> ${fmt.time} <small>${fmt.period}</small></div>
+  ${phoneHtml}
+  <div class="appt-row-status">
+    <span class="appt-row-sbadge" style="background:${s.bg};color:${s.fg}">
+      <span class="appt-row-sdot" style="background:${s.dot}"></span>${escapeHtml(a.status)}
+    </span>
+    ${todayChip}${pastChip}${checkinChip}
+  </div>
+  <div class="appt-row-actions">${modifyBtn}${checkInBtn}${reinstateBtn}${cancelBtn}</div>
+</div>`;
     }).join("");
 }
 
@@ -562,6 +574,69 @@ async function doCancelAppointment(appointmentId, reason) {
         }
     } catch {
         showToast("An error occurred. Please try again.", "error");
+    }
+}
+
+async function handleReinstateAppointment(appointmentId) {
+    if (!confirm("Reinstate this appointment to Confirmed status?")) return;
+    const btn = document.querySelector(`[data-action="reinstate-${appointmentId}"]`);
+
+    if (isBusy) return;
+    isBusy = true;
+    setButtonLoading(btn, true);
+
+    try {
+        const result = await api(urls.reinstateAppointment, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+                id: assistantId,
+                appointmentId,
+                __RequestVerificationToken: antiForgeryToken
+            })
+        });
+        if (result.success) {
+            showToast(result.message, "success");
+            reloadAfterMutation();
+        } else {
+            showToast(result.message || "Failed to reinstate appointment.", "error");
+        }
+    } catch {
+        showToast("An error occurred. Please try again.", "error");
+    } finally {
+        isBusy = false;
+        setButtonLoading(btn, false);
+    }
+}
+
+async function handleCheckIn(appointmentId) {
+    const btn = document.querySelector(`[data-action="checkin-${appointmentId}"]`);
+
+    if (isBusy) return;
+    isBusy = true;
+    setButtonLoading(btn, true);
+
+    try {
+        const result = await api(urls.checkInPatient, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+                id: assistantId,
+                appointmentId,
+                __RequestVerificationToken: antiForgeryToken
+            })
+        });
+        if (result.success) {
+            showToast(result.message + (result.checkedInAt ? ` at ${result.checkedInAt}` : ""), "success");
+            reloadAfterMutation();
+        } else {
+            showToast(result.message || "Failed to check in patient.", "error");
+        }
+    } catch {
+        showToast("An error occurred. Please try again.", "error");
+    } finally {
+        isBusy = false;
+        setButtonLoading(btn, false);
     }
 }
 

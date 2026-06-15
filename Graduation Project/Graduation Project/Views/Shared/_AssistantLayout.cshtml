@@ -111,6 +111,7 @@
 
 </div>
 
+@Html.AntiForgeryToken()
 <script src="~/js/shared.js" asp-append-version="true"></script>
 <script src="~/js/push-notifications.js" asp-append-version="true"></script>
 @await RenderSectionAsync("Scripts", required: false)

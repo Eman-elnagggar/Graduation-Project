@@ -30,6 +30,24 @@
     </div>
 </header>
 
+<!-- ══════════════════ APPOINTMENTS FEATURE CARD ══════════════════ -->
+<section style="margin-bottom:1.25rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:14px;padding:1rem 1.25rem;box-shadow:0 6px 20px rgba(15,23,42,.06);border:1px solid rgba(2,6,23,.04)">
+        <div style="display:flex;align-items:center;gap:1rem">
+            <div style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff;font-size:20px;box-shadow:0 6px 18px rgba(124,58,237,.15)">
+                <i class="fas fa-calendar-alt"></i>
+            </div>
+            <div>
+                <h3 style="margin:0;font-size:1.05rem;color:var(--al-text)">Appointments</h3>
+                <p style="margin:2px 0 0;color:var(--al-muted);font-size:.95rem">Manage patient appointments for MamaCare Central</p>
+            </div>
+        </div>
+        <div>
+            <a href="/Patient/Appointments" class="al-btn al-btn-outline" style="text-decoration:none">View Appointments</a>
+        </div>
+    </div>
+</section>
+
 <!-- ══════════════════ STAT CARDS ══════════════════ -->
 <section class="al-stats-grid">
     <div class="al-stat-card al-stat-critical">
@@ -233,7 +251,17 @@ document.addEventListener("DOMContentLoaded", function () {
                 }));
                 updateCounts();
                 showNotif("Alert marked as read", "success");
+            } else {
+                showNotif("Failed to mark alert as read", "error");
+                btn.innerHTML = '<i class="fas fa-check"></i> Mark as Read';
+                btn.disabled = false;
             }
+        })
+        .catch(err => {
+            console.error("Error marking alert as read:", err);
+            showNotif("Error marking alert as read", "error");
+            btn.innerHTML = '<i class="fas fa-check"></i> Mark as Read';
+            btn.disabled = false;
         });
     });
 
@@ -263,7 +291,15 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
                 updateCounts();
                 showNotif("All alerts marked as read", "success");
+            } else {
+                showNotif("Failed to mark alerts as read", "error");
+                self.innerHTML = '<i class="fas fa-check-double"></i> Mark All Read';
+                self.disabled = false;
             }
+        })
+        .catch(err => {
+            console.error("Error marking all alerts as read:", err);
+            showNotif("Error marking alerts as read", "error");
             self.innerHTML = '<i class="fas fa-check-double"></i> Mark All Read';
             self.disabled = false;
         });

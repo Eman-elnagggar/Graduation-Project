@@ -9,6 +9,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Identity;
+using System.ComponentModel.DataAnnotations;
+using System.Text.RegularExpressions;
 
 namespace Graduation_Project.Controllers
 {
@@ -27,6 +30,9 @@ namespace Graduation_Project.Controllers
         private readonly AppDbContext _context;
         private readonly IChatMessageCrypto _chatMessageCrypto;
         private readonly IWebHostEnvironment _env;
+        private readonly IEmailService _emailService;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
 
         public AssistantController(
             IAssistant assistantRepository,
@@ -40,7 +46,10 @@ namespace Graduation_Project.Controllers
             IDoctorNotificationService doctorNotificationService,
             AppDbContext context,
             IChatMessageCrypto chatMessageCrypto,
-            IWebHostEnvironment env)
+            IWebHostEnvironment env,
+            IEmailService emailService,
+            UserManager<ApplicationUser> userManager,
+            RoleManager<IdentityRole> roleManager)
         {
             _assistantRepository = assistantRepository;
             _clinicRepository = clinicRepository;
@@ -54,21 +63,16 @@ namespace Graduation_Project.Controllers
             _context = context;
             _chatMessageCrypto = chatMessageCrypto;
             _env = env;
+            _emailService = emailService;
+            _userManager = userManager;
+            _roleManager = roleManager;
         }
 
         public IActionResult Index(int id, int? doctorId, DateTime? date, string? status)
         {
             // Fast initial load � only 2 DB queries (assistant + clinic)
-            var assistant = _assistantRepository.GetByIdWithDoctors(id);
-            if (assistant == null)
-                return NotFound();
-
-            if (assistant.ClinicID is not int clinicId)
-                return NotFound();
-
-            var clinic = _clinicRepository.GetByIdWithDoctor(clinicId);
-            if (clinic == null)
-                return NotFound();
+            var accessResult = TryResolveAssistantClinic(id, out var assistant, out var clinic);
+            if (accessResult != null) return accessResult;
 
             var selectedDate = date?.Date ?? DateTime.Today;
             var selectedStatus = NormalizeScheduleStatus(status);
@@ -82,6 +86,18 @@ namespace Graduation_Project.Controllers
                 : "All Doctors";
 
             // Return page skeleton � heavy data (stats, schedule) loaded via AJAX
+            var patientIds = _patientDoctorRepository
+                .GetApprovedByDoctors(relevantDoctorIds)
+                .Select(pd => pd.PatientID)
+                .Distinct()
+                .ToList();
+
+            var recentAlerts = _alertRepository
+                .GetUnreadByPatientIds(patientIds, 10)
+                .Where(a => a.Category == "Operational")
+                .Take(5)
+                .ToList();
+
             var viewModel = new AssistantDashboardViewModel
             {
                 Assistant = assistant,
@@ -92,7 +108,8 @@ namespace Graduation_Project.Controllers
                 SelectedScheduleStatus = selectedStatus,
                 Doctors = doctorSummaries,
                 SelectedDoctorID = isFiltered ? doctorId : null,
-                SelectedDoctorName = selectedDoctorName
+                SelectedDoctorName = selectedDoctorName,
+                RecentAlerts = recentAlerts
             };
 
             return View(viewModel);
@@ -354,7 +371,7 @@ namespace Graduation_Project.Controllers
             var pendingAlertsCount = uniquePatientIds.Any()
                 ? _context.Alerts
                     .AsNoTracking()
-                    .Count(a => uniquePatientIds.Contains(a.PatientID) && !a.IsRead)
+                    .Count(a => uniquePatientIds.Contains(a.PatientID) && !a.IsRead && a.Category == "Operational")
                 : 0;
 
             var testsThisWeek = isFiltered
@@ -394,10 +411,50 @@ namespace Graduation_Project.Controllers
             var unreadCount = patientIds.Any()
                 ? _context.Alerts
                     .AsNoTracking()
-                    .Count(a => patientIds.Contains(a.PatientID) && !a.IsRead)
+                    .Count(a => patientIds.Contains(a.PatientID) && !a.IsRead && a.Category == "Operational")
                 : 0;
 
             return Json(new { unreadCount });
+        }
+
+        [HttpGet]
+        public IActionResult GetNotificationsJson(int id)
+        {
+            var accessResult = TryResolveAssistantClinic(id, out var assistant, out var clinic, true);
+            if (accessResult != null) return accessResult;
+
+            var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
+            var patientIds = _patientDoctorRepository
+                .GetApprovedByDoctors(relevantDoctorIds)
+                .Select(pd => pd.PatientID)
+                .Distinct()
+                .ToList();
+
+            var alerts = patientIds.Any()
+                ? _context.Alerts
+                    .AsNoTracking()
+                    .Include(a => a.Patient)
+                        .ThenInclude(p => p.User)
+                    .Where(a => patientIds.Contains(a.PatientID) && a.Category == "Operational")
+                    .OrderByDescending(a => a.DateCreated)
+                    .Take(20)
+                    .ToList()
+                : new List<Alert>();
+
+            var result = alerts.Select(a => new
+            {
+                alertId   = a.AlertID,
+                title     = a.Title,
+                message   = a.Message,
+                alertType = a.AlertType ?? "info",
+                dateCreated = a.DateCreated.ToString("o"),
+                isRead    = a.IsRead,
+                patientName = a.Patient?.User != null
+                    ? $"{a.Patient.User.FirstName} {a.Patient.User.LastName}".Trim()
+                    : "Patient"
+            });
+
+            return Json(result);
         }
 
         [HttpGet]
@@ -689,6 +746,8 @@ namespace Graduation_Project.Controllers
                     .Where(s => !string.IsNullOrWhiteSpace(s))).Trim()
                 : "Patient";
 
+            var patientAlerts = _alertRepository.GetByPatientId(patientId).ToList();
+
             var vm = new AssistantPatientDetailsViewModel
             {
                 Assistant = assistant,
@@ -700,7 +759,8 @@ namespace Graduation_Project.Controllers
                 AssignedDoctors = assignedDoctors,
                 Appointments = appointments,
                 Medications = medications,
-                PregnancyRecords = pregnancyRecords
+                PregnancyRecords = pregnancyRecords,
+                Alerts = patientAlerts
             };
 
             return View(vm);
@@ -733,6 +793,9 @@ namespace Graduation_Project.Controllers
         [HttpGet]
         public IActionResult GetAppointments(int id, int? doctorId, string status = "Confirmed", string? date = null, int page = 1, int pageSize = 20, string? search = null)
         {
+            var accessResult = TryResolveAssistantClinic(id, out _, out _, true);
+            if (accessResult != null) return accessResult;
+
             var targetDate = ParseDashboardDate(date);
             var scope = _assistantScheduleService.BuildScope(id, doctorId);
             if (scope == null) return NotFound();
@@ -755,6 +818,9 @@ namespace Graduation_Project.Controllers
         [HttpGet]
         public IActionResult GetAppointmentCounts(int id, int? doctorId, string? date = null)
         {
+            var accessResult = TryResolveAssistantClinic(id, out _, out _, true);
+            if (accessResult != null) return accessResult;
+
             var targetDate = ParseDashboardDate(date);
             var scope = _assistantScheduleService.BuildScope(id, doctorId);
             if (scope == null) return NotFound();
@@ -832,6 +898,14 @@ namespace Graduation_Project.Controllers
             if (_appointmentRepository.HasDoctorConflict(appointment.DoctorID, parsedDate, parsedTime, appointmentId))
                 return Json(new { success = false, message = "The doctor already has an appointment at this time in another clinic." });
 
+            var modifyPatientId = appointment.Booking?.PatientID ?? appointment.Patient?.PatientID ?? 0;
+            var modifyPatientName = appointment.Patient?.User != null
+                ? $"{appointment.Patient.User.FirstName} {appointment.Patient.User.LastName}".Trim()
+                : "Patient";
+            var modifyDoctorName = appointment.Doctor?.User != null
+                ? $"Dr. {appointment.Doctor.User.FirstName} {appointment.Doctor.User.LastName}".Trim()
+                : "Doctor";
+
             appointment.Date = parsedDate;
             appointment.Time = parsedTime;
             _appointmentRepository.Update(appointment);
@@ -845,6 +919,15 @@ namespace Graduation_Project.Controllers
             }
 
             _appointmentRepository.Save();
+
+            if (modifyPatientId > 0)
+            {
+                var reasonNote = string.IsNullOrWhiteSpace(reason) ? "" : $" Reason: {reason}";
+                CreateOperationalAlert(modifyPatientId,
+                    "Appointment Rescheduled",
+                    $"Appointment for {modifyPatientName} with {modifyDoctorName} has been rescheduled to {parsedDate:MMM dd, yyyy} at {parsedTime:hh\\:mm}.{reasonNote}",
+                    AlertTypes.Warning);
+            }
 
             return Json(new { success = true, message = "Appointment modified successfully." });
         }
@@ -864,6 +947,15 @@ namespace Graduation_Project.Controllers
             if (!relevantDoctorIds.Contains(appointment.DoctorID))
                 return Json(new { success = false, message = "Access denied." });
 
+            var cancelPatientId = appointment.Booking?.PatientID ?? appointment.Patient?.PatientID ?? 0;
+            var cancelPatientName = appointment.Patient?.User != null
+                ? $"{appointment.Patient.User.FirstName} {appointment.Patient.User.LastName}".Trim()
+                : "Patient";
+            var cancelDoctorName = appointment.Doctor?.User != null
+                ? $"Dr. {appointment.Doctor.User.FirstName} {appointment.Doctor.User.LastName}".Trim()
+                : "Doctor";
+            var cancelDate = appointment.Date;
+
             appointment.isBooked = false;
             appointment.PatientID = null;
             _appointmentRepository.Update(appointment);
@@ -879,9 +971,237 @@ namespace Graduation_Project.Controllers
 
             _appointmentRepository.Save();
 
+            if (cancelPatientId > 0)
+            {
+                var reasonNote = string.IsNullOrWhiteSpace(reason) ? "" : $" Reason: {reason}";
+                CreateOperationalAlert(cancelPatientId,
+                    "Appointment Cancelled",
+                    $"Appointment for {cancelPatientName} with {cancelDoctorName} on {cancelDate:MMM dd, yyyy} has been cancelled.{reasonNote}",
+                    AlertTypes.Warning);
+            }
+
             return Json(new { success = true, message = "Appointment cancelled successfully." });
         }
 
+        [HttpGet]
+        public IActionResult ExportAppointmentsCsv(int id, int? doctorId, string status = "Confirmed", string? date = null, string? search = null)
+        {
+            var accessResult = TryResolveAssistantClinic(id, out _, out _, true);
+            if (accessResult != null) return accessResult;
+
+            var scope = _assistantScheduleService.BuildScope(id, doctorId);
+            if (scope == null) return NotFound();
+
+            var targetDate = ParseDashboardDate(date);
+
+            var appointments = _appointmentRepository
+                .GetPagedByClinicDoctorsStatusAndDate(scope.ClinicId, scope.ActiveDoctorIds, status, targetDate, search, 1, 1000)
+                .ToList();
+
+            var lines = new System.Text.StringBuilder();
+            lines.AppendLine("Appointment ID,Patient Name,Patient Phone,Doctor,Specialization,Date,Time,Status,Reason,Notes");
+
+            foreach (var a in appointments)
+            {
+                var patientName = a.Patient?.User != null
+                    ? $"{a.Patient.User.FirstName} {a.Patient.User.LastName}".Trim() : "Unknown";
+                var phone = a.Patient?.User?.PhoneNumber ?? string.Empty;
+                var doctorName = a.Doctor?.User != null
+                    ? $"Dr. {a.Doctor.User.FirstName} {a.Doctor.User.LastName}".Trim() : "Unknown";
+                var spec = a.Doctor?.Specialization ?? string.Empty;
+                var aStatus = a.Booking?.Status ?? "Confirmed";
+                var reason = a.Booking?.Reason ?? string.Empty;
+                var notes = a.Booking?.Notes ?? string.Empty;
+
+                string Esc(string s) => $"\"{s.Replace("\"", "\"\"")}\"";
+                lines.AppendLine($"{a.AppointmentID},{Esc(patientName)},{Esc(phone)},{Esc(doctorName)},{Esc(spec)},{a.Date:yyyy-MM-dd},{a.Time:hh\\:mm},{Esc(aStatus)},{Esc(reason)},{Esc(notes)}");
+            }
+
+            var bytes = System.Text.Encoding.UTF8.GetPreamble().Concat(System.Text.Encoding.UTF8.GetBytes(lines.ToString())).ToArray();
+            var fileName = $"appointments_{targetDate:yyyy-MM-dd}_{status}.csv";
+            return File(bytes, "text/csv", fileName);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult ReinstateAppointment(int id, int appointmentId)
+        {
+            var accessResult = TryResolveAssistantClinic(id, out var assistant, out var clinic, true);
+            if (accessResult != null) return accessResult;
+
+            var appointment = _appointmentRepository.GetByIdWithBooking(appointmentId);
+            if (appointment == null || appointment.ClinicID != clinic.ClinicID)
+                return Json(new { success = false, message = "Appointment not found." });
+
+            var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
+            if (!relevantDoctorIds.Contains(appointment.DoctorID))
+                return Json(new { success = false, message = "Access denied." });
+
+            if (appointment.Booking == null)
+                return Json(new { success = false, message = "No booking found for this appointment." });
+
+            appointment.isBooked = true;
+            if (appointment.Booking.PatientID > 0)
+                appointment.PatientID = appointment.Booking.PatientID;
+
+            appointment.Booking.Status = "Confirmed";
+            appointment.Booking.IsActive = true;
+
+            _appointmentRepository.Update(appointment);
+            _bookingRepository.Update(appointment.Booking);
+            _appointmentRepository.Save();
+
+            var reinstatePatientId = appointment.Booking.PatientID > 0 ? appointment.Booking.PatientID : (appointment.Patient?.PatientID ?? 0);
+            if (reinstatePatientId > 0)
+            {
+                var reinstatePatientName = appointment.Patient?.User != null
+                    ? $"{appointment.Patient.User.FirstName} {appointment.Patient.User.LastName}".Trim()
+                    : "Patient";
+                var reinstateDoctorName = appointment.Doctor?.User != null
+                    ? $"Dr. {appointment.Doctor.User.FirstName} {appointment.Doctor.User.LastName}".Trim()
+                    : "Doctor";
+                CreateOperationalAlert(reinstatePatientId,
+                    "Appointment Reinstated",
+                    $"Appointment for {reinstatePatientName} with {reinstateDoctorName} on {appointment.Date:MMM dd, yyyy} has been reinstated.",
+                    AlertTypes.Info);
+            }
+
+            return Json(new { success = true, message = "Appointment reinstated successfully." });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult CheckInPatient(int id, int appointmentId)
+        {
+            var accessResult = TryResolveAssistantClinic(id, out var assistant, out var clinic, true);
+            if (accessResult != null) return accessResult;
+
+            var appointment = _appointmentRepository.GetByIdWithBooking(appointmentId);
+            if (appointment == null || appointment.ClinicID != clinic.ClinicID)
+                return Json(new { success = false, message = "Appointment not found." });
+
+            var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
+            if (!relevantDoctorIds.Contains(appointment.DoctorID))
+                return Json(new { success = false, message = "Access denied." });
+
+            if (appointment.Booking == null)
+                return Json(new { success = false, message = "No booking found for this appointment." });
+
+            appointment.Booking.IsCheckedIn = true;
+            appointment.Booking.CheckedInAt = DateTime.Now;
+            _bookingRepository.Update(appointment.Booking);
+            _appointmentRepository.Save();
+
+            var checkInPatientId = appointment.Booking.PatientID > 0 ? appointment.Booking.PatientID : (appointment.Patient?.PatientID ?? 0);
+            if (checkInPatientId > 0)
+            {
+                var checkInPatientName = appointment.Patient?.User != null
+                    ? $"{appointment.Patient.User.FirstName} {appointment.Patient.User.LastName}".Trim()
+                    : "Patient";
+                var checkInDoctorName = appointment.Doctor?.User != null
+                    ? $"Dr. {appointment.Doctor.User.FirstName} {appointment.Doctor.User.LastName}".Trim()
+                    : "Doctor";
+                CreateOperationalAlert(checkInPatientId,
+                    "Patient Checked In",
+                    $"{checkInPatientName} has checked in for their appointment with {checkInDoctorName} on {appointment.Date:MMM dd, yyyy}.",
+                    AlertTypes.Info);
+            }
+
+            return Json(new
+            {
+                success = true,
+                message = "Patient checked in.",
+                checkedInAt = appointment.Booking.CheckedInAt?.ToString("hh:mm tt")
+            });
+        }
+
+        public IActionResult Alerts(int id)
+        {
+            var accessResult = TryResolveAssistantClinic(id, out var assistant, out var clinic);
+            if (accessResult != null) return accessResult;
+
+            var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
+            var patientIds = _patientDoctorRepository
+                .GetApprovedByDoctors(relevantDoctorIds)
+                .Select(pd => pd.PatientID)
+                .Distinct()
+                .ToList();
+
+            var alerts = _alertRepository.GetByPatientIds(patientIds)
+                .Where(a => a.Category == "Operational")
+                .ToList();
+
+            var vm = new AssistantAlertsViewModel
+            {
+                Assistant = assistant,
+                AssistantName = BuildAssistantDisplayName(assistant.User),
+                ClinicName = clinic.Name ?? "Clinic",
+                Alerts = alerts,
+                UnreadCount = alerts.Count(a => !a.IsRead)
+            };
+
+            ViewData["Title"] = "Alerts";
+            ViewData["AssistantId"] = assistant.AssistantID;
+            ViewData["AssistantName"] = vm.AssistantName;
+            ViewData["ActivePage"] = "Alerts";
+            ViewData["PageTitle"] = "Clinic Notifications";
+            ViewData["PageSubtitle"] = "Appointment and patient activity for " + clinic.Name;
+
+            return View(vm);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult MarkAlertRead(int id, int alertId)
+        {
+            var accessResult = TryResolveAssistantClinic(id, out var assistant, out var clinic, true);
+            if (accessResult != null) return accessResult;
+
+            var alert = _alertRepository.GetById(alertId);
+            if (alert == null)
+                return Json(new { success = false, message = "Alert not found." });
+
+            var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
+            var patientIds = _patientDoctorRepository
+                .GetApprovedByDoctors(relevantDoctorIds)
+                .Select(pd => pd.PatientID)
+                .ToHashSet();
+
+            if (!patientIds.Contains(alert.PatientID))
+                return Json(new { success = false, message = "Access denied." });
+
+            alert.IsRead = true;
+            _alertRepository.Update(alert);
+            _alertRepository.Save();
+
+            return Json(new { success = true });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult MarkAllAlertsRead(int id)
+        {
+            var accessResult = TryResolveAssistantClinic(id, out var assistant, out var clinic, true);
+            if (accessResult != null) return accessResult;
+
+            var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
+            var patientIds = _patientDoctorRepository
+                .GetApprovedByDoctors(relevantDoctorIds)
+                .Select(pd => pd.PatientID)
+                .ToList();
+
+            var unread = _alertRepository.GetUnreadByPatientIds(patientIds, int.MaxValue)
+                .Where(a => a.Category == "Operational")
+                .ToList();
+            foreach (var alert in unread)
+            {
+                alert.IsRead = true;
+                _alertRepository.Update(alert);
+            }
+            _alertRepository.Save();
+
+            return Json(new { success = true, count = unread.Count });
+        }
 
         public IActionResult Availability(int id, int? doctorId)
         {
@@ -1184,46 +1504,520 @@ namespace Graduation_Project.Controllers
         }
 
 
-        public IActionResult Details(int id)
+        [HttpGet]
+        public IActionResult CreatePatient(int id)
         {
-            throw new NotImplementedException();
-        }
+            var accessResult = TryResolveAssistantClinic(id, out var assistant, out var clinic);
+            if (accessResult != null) return accessResult;
 
-        public IActionResult Create()
-        {
-            throw new NotImplementedException();
+            var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
+            var doctorSummaries = BuildDoctorSummaries(assistant, clinic, relevantDoctorIds);
+
+            var viewModel = new AssistantCreatePatientViewModel
+            {
+                Assistant = assistant,
+                AssistantName = BuildAssistantDisplayName(assistant.User),
+                Clinic = clinic,
+                ClinicName = clinic.Name ?? "Clinic",
+                Doctors = doctorSummaries
+            };
+
+            return View(viewModel);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Create(Assistant assistant)
+        public async Task<IActionResult> CreatePatient(int id, AssistantCreatePatientViewModel model)
         {
-            throw new NotImplementedException();
+            var accessResult = TryResolveAssistantClinic(id, out var assistant, out var clinic);
+            if (accessResult != null) return accessResult;
+
+            var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
+            var doctorSummaries = BuildDoctorSummaries(assistant, clinic, relevantDoctorIds);
+
+            model.Assistant = assistant;
+            model.AssistantName = BuildAssistantDisplayName(assistant.User);
+            model.Clinic = clinic;
+            model.ClinicName = clinic.Name ?? "Clinic";
+            model.Doctors = doctorSummaries;
+
+            if (string.IsNullOrWhiteSpace(model.FirstName) || string.IsNullOrWhiteSpace(model.LastName) ||
+                string.IsNullOrWhiteSpace(model.Email) || string.IsNullOrWhiteSpace(model.PhoneNumber))
+            {
+                model.ErrorMessage = "Please fill in all required fields.";
+                return View(model);
+            }
+
+            if (!model.SelectedDoctorID.HasValue || !relevantDoctorIds.Contains(model.SelectedDoctorID.Value))
+            {
+                model.ErrorMessage = "Invalid doctor selection.";
+                return View(model);
+            }
+
+            var existingUser = await _userManager.FindByEmailAsync(model.Email);
+            if (existingUser != null)
+            {
+                model.ErrorMessage = $"Email {model.Email} is already registered. Please use a different email or link the existing patient.";
+                return View(model);
+            }
+
+            try
+            {
+                var tempPassword = GenerateTemporaryPassword();
+                var user = new ApplicationUser
+                {
+                    UserName = model.Email,
+                    Email = model.Email,
+                    FirstName = model.FirstName.Trim(),
+                    LastName = model.LastName.Trim(),
+                    PhoneNumber = model.PhoneNumber.Trim(),
+                    DateOfBirth = model.DateOfBirth ?? DateTime.UtcNow.Date,
+                    IsActive = true,
+                    CreatedDate = DateTime.UtcNow
+                };
+
+                var createResult = await _userManager.CreateAsync(user, tempPassword);
+                if (!createResult.Succeeded)
+                {
+                    model.ErrorMessage = $"Failed to create user: {string.Join(", ", createResult.Errors.Select(e => e.Description))}";
+                    return View(model);
+                }
+
+                await EnsureRoleAsync("Patient");
+                await _userManager.AddToRoleAsync(user, "Patient");
+
+                var patient = new Patient
+                {
+                    UserID = user.Id,
+                    Address = model.Address ?? string.Empty,
+                    WeightKg = model.WeightKg ?? 0,
+                    HeightCm = model.HeightCm ?? 0,
+                    BloodPressureIssue = model.BloodPressureIssue,
+                    Smoking = model.Smoking,
+                    AlcoholUse = model.AlcoholUse
+                };
+
+                if (model.IsPregnant && model.PregnancyDate.HasValue)
+                {
+                    patient.DateOfPregnancy = model.PregnancyDate;
+                    patient.LastPregnancyStartedAt = model.PregnancyDate;
+                    patient.IsFirstPregnancy = true;
+                    patient.PregnancyCount = 1;
+                    patient.GestationalWeeks = model.GestationalWeeks ?? 0;
+                }
+
+                _context.Patients.Add(patient);
+                await _context.SaveChangesAsync();
+
+                var patientDoctor = new PatientDoctor
+                {
+                    PatientID = patient.PatientID,
+                    DoctorID = model.SelectedDoctorID.Value,
+                    Status = "Approved",
+                    RequestDate = DateTime.Now
+                };
+
+                _context.PatientDoctors.Add(patientDoctor);
+                await _context.SaveChangesAsync();
+
+                var newPatientDoctorName = doctorSummaries.FirstOrDefault(d => d.DoctorID == model.SelectedDoctorID.Value)?.FullName ?? "Doctor";
+                var newPatientFullName = $"{model.FirstName} {model.LastName}".Trim();
+                CreateOperationalAlert(patient.PatientID,
+                    "New Patient Registered",
+                    $"{newPatientFullName} has been registered and assigned to {newPatientDoctorName}.",
+                    AlertTypes.Info);
+
+                if (model.IsPregnant && model.PregnancyDate.HasValue)
+                {
+                    _context.PregnancyRecords.Add(new PregnancyRecord
+                    {
+                        PatientID = patient.PatientID,
+                        StartDate = model.PregnancyDate.Value,
+                        CreatedAt = DateTime.Now
+                    });
+                    await _context.SaveChangesAsync();
+                }
+
+                var patientName = $"{model.FirstName} {model.LastName}".Trim();
+                model.SuccessMessage = $"Patient {patientName} created. Login: {model.Email} | Temporary password: {tempPassword}";
+
+                // Send temporary password to patient's email
+                try
+                {
+                    var loginUrl = Url.Action("Login", "Account", null, Request.Scheme) ?? string.Empty;
+                    var htmlBody = $@"<p>Hello {patientName},</p>
+<p>Your account has been created on NABD نبض.</p>
+<p><strong>Login email:</strong> {model.Email}<br/>
+<strong>Temporary password:</strong> {tempPassword}</p>
+<p>Please sign in and change your password immediately: <a href='{loginUrl}'>Sign in</a></p>
+<p>If you did not request this, please contact support.</p>";
+
+                    await _emailService.SendAsync(model.Email, patientName, "Your NABD نبض account — temporary password", htmlBody);
+                }
+                catch
+                {
+                    // Email failures are logged by EmailService; do not block user creation
+                }
+
+                TempData["SuccessMessage"] = model.SuccessMessage;
+                return RedirectToAction(nameof(Patients), new { id = id });
+            }
+            catch (Exception ex)
+            {
+                model.ErrorMessage = $"An error occurred: {ex.Message}";
+                return View(model);
+            }
         }
 
-        public IActionResult Edit(int id)
+        private void CreateOperationalAlert(int patientId, string title, string message, string alertType = AlertTypes.Info)
         {
-            throw new NotImplementedException();
+            _alertRepository.Add(new Alert
+            {
+                PatientID   = patientId,
+                Title       = title,
+                Message     = message,
+                AlertType   = alertType,
+                Category    = "Operational",
+                DateCreated = DateTime.Now,
+                IsRead      = false
+            });
+            _alertRepository.Save();
+        }
+
+        private static string GenerateTemporaryPassword()
+        {
+            const string upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            const string lower = "abcdefghijklmnopqrstuvwxyz";
+            const string digits = "0123456789";
+            const string all = upper + lower + digits;
+
+            var bytes = new byte[12];
+            System.Security.Cryptography.RandomNumberGenerator.Fill(bytes);
+
+            var password = new System.Text.StringBuilder();
+            password.Append(upper[bytes[0] % upper.Length]);
+            password.Append(lower[bytes[1] % lower.Length]);
+            password.Append(digits[bytes[2] % digits.Length]);
+            for (int i = 3; i < 12; i++)
+                password.Append(all[bytes[i] % all.Length]);
+
+            return password.ToString();
+        }
+
+        private async Task EnsureRoleAsync(string roleName)
+        {
+            if (!await _roleManager.RoleExistsAsync(roleName))
+                await _roleManager.CreateAsync(new IdentityRole(roleName));
+        }
+
+        [HttpGet]
+        public IActionResult CreateAppointment(int id)
+        {
+            var accessResult = TryResolveAssistantClinic(id, out var assistant, out var clinic);
+            if (accessResult != null) return accessResult;
+
+            var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
+            var doctorSummaries = BuildDoctorSummaries(assistant, clinic, relevantDoctorIds);
+
+            var approvedLinks = _patientDoctorRepository
+                .GetApprovedByDoctors(relevantDoctorIds)
+                .Where(pd => pd.Patient != null)
+                .GroupBy(pd => pd.PatientID)
+                .Select(g => g.First())
+                .ToList();
+
+            var existingPatients = approvedLinks
+                .Select(link =>
+                {
+                    var patient = link.Patient!;
+                    var firstName = patient.User?.FirstName?.Trim();
+                    var lastName = patient.User?.LastName?.Trim();
+                    var fullName = string.Join(" ", new[] { firstName, lastName }
+                        .Where(x => !string.IsNullOrWhiteSpace(x))).Trim();
+
+                    var doctor = link.Doctor;
+                    var doctorFullName = doctor?.User != null
+                        ? $"Dr. {doctor.User.FirstName} {doctor.User.LastName}".Trim()
+                        : "Doctor";
+
+                    return new AssistantPatientAppointmentsSummary
+                    {
+                        PatientID = patient.PatientID,
+                        FullName = string.IsNullOrWhiteSpace(fullName) ? "Patient" : fullName,
+                        PhoneNumber = patient.User?.PhoneNumber,
+                        DoctorID = link.DoctorID,
+                        DoctorName = doctorFullName,
+                        Appointments = new List<Appointment>()
+                    };
+                })
+                .OrderBy(p => p.FullName)
+                .ToList();
+
+            var viewModel = new AssistantCreateAppointmentViewModel
+            {
+                Assistant = assistant,
+                AssistantName = BuildAssistantDisplayName(assistant.User),
+                Clinic = clinic,
+                ClinicName = clinic.Name ?? "Clinic",
+                Doctors = doctorSummaries,
+                ExistingPatients = existingPatients,
+                PatientOption = "existing"
+            };
+
+            return View(viewModel);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Edit(int id, Assistant assistant)
+        public async Task<IActionResult> CreateAppointment(int id, AssistantCreateAppointmentViewModel model)
         {
-            throw new NotImplementedException();
+            var accessResult = TryResolveAssistantClinic(id, out var assistant, out var clinic);
+            if (accessResult != null) return accessResult;
+
+            var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
+            var doctorSummaries = BuildDoctorSummaries(assistant, clinic, relevantDoctorIds);
+
+            var approvedLinks = _patientDoctorRepository
+                .GetApprovedByDoctors(relevantDoctorIds)
+                .Where(pd => pd.Patient != null)
+                .GroupBy(pd => pd.PatientID)
+                .Select(g => g.First())
+                .ToList();
+
+            var existingPatients = approvedLinks
+                .Select(link =>
+                {
+                    var patient = link.Patient!;
+                    var firstName = patient.User?.FirstName?.Trim();
+                    var lastName = patient.User?.LastName?.Trim();
+                    var fullName = string.Join(" ", new[] { firstName, lastName }
+                        .Where(x => !string.IsNullOrWhiteSpace(x))).Trim();
+
+                    var doctor = link.Doctor;
+                    var doctorFullName = doctor?.User != null
+                        ? $"Dr. {doctor.User.FirstName} {doctor.User.LastName}".Trim()
+                        : "Doctor";
+
+                    return new AssistantPatientAppointmentsSummary
+                    {
+                        PatientID = patient.PatientID,
+                        FullName = string.IsNullOrWhiteSpace(fullName) ? "Patient" : fullName,
+                        PhoneNumber = patient.User?.PhoneNumber,
+                        DoctorID = link.DoctorID,
+                        DoctorName = doctorFullName,
+                        Appointments = new List<Appointment>()
+                    };
+                })
+                .OrderBy(p => p.FullName)
+                .ToList();
+
+            model.Assistant = assistant;
+            model.AssistantName = BuildAssistantDisplayName(assistant.User);
+            model.Clinic = clinic;
+            model.ClinicName = clinic.Name ?? "Clinic";
+            model.Doctors = doctorSummaries;
+            model.ExistingPatients = existingPatients;
+
+            if (!model.DoctorID.HasValue || !relevantDoctorIds.Contains(model.DoctorID.Value))
+            {
+                model.ErrorMessage = "Invalid doctor selection.";
+                return View(model);
+            }
+
+            if (!model.AppointmentDate.HasValue || !model.AppointmentTime.HasValue)
+            {
+                model.ErrorMessage = "Please select appointment date and time.";
+                return View(model);
+            }
+
+            var appointmentDateTime = model.AppointmentDate.Value.Add(model.AppointmentTime.Value);
+            if (appointmentDateTime < DateTime.Now)
+            {
+                model.ErrorMessage = "Appointment cannot be in the past.";
+                return View(model);
+            }
+
+            int patientId;
+            string? newPatientTempPassword = null;
+
+            if (model.PatientOption == "new")
+            {
+                if (string.IsNullOrWhiteSpace(model.NewPatientFirstName) ||
+                    string.IsNullOrWhiteSpace(model.NewPatientLastName) ||
+                    string.IsNullOrWhiteSpace(model.NewPatientEmail) ||
+                    string.IsNullOrWhiteSpace(model.NewPatientPhoneNumber))
+                {
+                    model.ErrorMessage = "Please fill all required fields for new patient.";
+                    return View(model);
+                }
+
+                var existingUser = await _userManager.FindByEmailAsync(model.NewPatientEmail);
+                if (existingUser != null)
+                {
+                    model.ErrorMessage = $"Email {model.NewPatientEmail} is already registered.";
+                    return View(model);
+                }
+
+                try
+                {
+                    var tempPassword = GenerateTemporaryPassword();
+                    newPatientTempPassword = tempPassword;
+                    var user = new ApplicationUser
+                    {
+                        UserName = model.NewPatientEmail,
+                        Email = model.NewPatientEmail,
+                        FirstName = model.NewPatientFirstName.Trim(),
+                        LastName = model.NewPatientLastName.Trim(),
+                        PhoneNumber = model.NewPatientPhoneNumber.Trim(),
+                        DateOfBirth = model.NewPatientDateOfBirth ?? DateTime.UtcNow.Date,
+                        IsActive = true,
+                        CreatedDate = DateTime.UtcNow
+                    };
+
+                    var createResult = await _userManager.CreateAsync(user, tempPassword);
+                    if (!createResult.Succeeded)
+                    {
+                        model.ErrorMessage = $"Failed to create user: {string.Join(", ", createResult.Errors.Select(e => e.Description))}";
+                        return View(model);
+                    }
+
+                    await EnsureRoleAsync("Patient");
+                    await _userManager.AddToRoleAsync(user, "Patient");
+
+                    var patient = new Patient
+                    {
+                        UserID = user.Id,
+                        Address = model.NewPatientAddress ?? string.Empty,
+                        WeightKg = 0,
+                        HeightCm = 0
+                    };
+
+                    _context.Patients.Add(patient);
+                    await _context.SaveChangesAsync();
+
+                    var patientDoctor = new PatientDoctor
+                    {
+                        PatientID = patient.PatientID,
+                        DoctorID = model.DoctorID.Value,
+                        Status = "Approved",
+                        RequestDate = DateTime.Now
+                    };
+
+                    _context.PatientDoctors.Add(patientDoctor);
+                    await _context.SaveChangesAsync();
+
+                    patientId = patient.PatientID;
+                    model.PatientName = $"{model.NewPatientFirstName} {model.NewPatientLastName}".Trim();
+                }
+                catch (Exception ex)
+                {
+                    model.ErrorMessage = $"Failed to create patient: {ex.Message}";
+                    return View(model);
+                }
+            }
+            else
+            {
+                if (!model.ExistingPatientID.HasValue)
+                {
+                    model.ErrorMessage = "Please select a patient.";
+                    return View(model);
+                }
+
+                var patientDoctorLink = approvedLinks.FirstOrDefault(pd => pd.PatientID == model.ExistingPatientID.Value);
+                if (patientDoctorLink == null || patientDoctorLink.Patient == null)
+                {
+                    model.ErrorMessage = "Patient not found or not accessible.";
+                    return View(model);
+                }
+
+                patientId = model.ExistingPatientID.Value;
+                var patient = patientDoctorLink.Patient;
+                model.PatientName = string.IsNullOrWhiteSpace(patient.User?.FirstName)
+                    ? "Patient"
+                    : $"{patient.User?.FirstName} {patient.User?.LastName}".Trim();
+            }
+
+            var conflictExists = _appointmentRepository
+                .GetByDoctorAndDate(model.DoctorID.Value, model.AppointmentDate.Value)
+                .Any(a => a.Time == model.AppointmentTime);
+
+            if (conflictExists)
+            {
+                model.ErrorMessage = "Doctor already has an appointment at this time.";
+                return View(model);
+            }
+
+            try
+            {
+                var appointment = new Appointment
+                {
+                    DoctorID = model.DoctorID.Value,
+                    ClinicID = clinic.ClinicID,
+                    PatientID = patientId,
+                    Date = model.AppointmentDate.Value,
+                    Time = model.AppointmentTime.Value,
+                    isBooked = true,
+                    CreatedByAssistantID = id
+                };
+
+                _appointmentRepository.Add(appointment);
+                _appointmentRepository.Save();
+
+                var booking = new Booking
+                {
+                    AppointmentID = appointment.AppointmentID,
+                    PatientID = patientId,
+                    DoctorID = model.DoctorID.Value,
+                    ClinicID = clinic.ClinicID,
+                    IsActive = true,
+                    Status = "Confirmed",
+                    Reason = model.Reason ?? string.Empty,
+                    Notes = model.Notes ?? string.Empty
+                };
+
+                _bookingRepository.Add(booking);
+                _bookingRepository.Save();
+
+                var apptDoctorName = doctorSummaries.FirstOrDefault(d => d.DoctorID == model.DoctorID.Value)?.FullName ?? "Doctor";
+                CreateOperationalAlert(patientId,
+                    "Appointment Scheduled",
+                    $"Appointment for {model.PatientName} with {apptDoctorName} on {model.AppointmentDate.Value:MMM dd, yyyy} at {model.AppointmentTime.Value:hh\\:mm} has been confirmed.",
+                    AlertTypes.Info);
+
+                model.CreatedAppointmentID = appointment.AppointmentID;
+                var pwNote = newPatientTempPassword != null
+                    ? $" New patient login: {model.NewPatientEmail} / {newPatientTempPassword}"
+                    : string.Empty;
+                TempData["SuccessMessage"] = $"Appointment created successfully for {model.PatientName} on {model.AppointmentDate:MMM dd, yyyy} at {model.AppointmentTime:hh\\:mm}.{pwNote}";
+
+                return RedirectToAction(nameof(Appointments), new { id = id });
+            }
+            catch (Exception ex)
+            {
+                model.ErrorMessage = $"Failed to create appointment: {ex.Message}";
+                return View(model);
+            }
         }
 
-        public IActionResult Delete(int id)
-        {
-            throw new NotImplementedException();
-        }
+        public IActionResult Details(int id) => NotFound();
+
+        public IActionResult Create() => NotFound();
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Create(Assistant assistant) => NotFound();
+
+        public IActionResult Edit(int id) => NotFound();
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Edit(int id, Assistant assistant) => NotFound();
+
+        public IActionResult Delete(int id) => NotFound();
 
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public IActionResult DeleteConfirmed(int id)
-        {
-            throw new NotImplementedException();
-        }
+        public IActionResult DeleteConfirmed(int id) => NotFound();
 
         private IActionResult? TryResolveAssistant(int id, out Assistant? assistant, bool returnJsonOnFailure = false)
         {
@@ -1411,7 +2205,7 @@ namespace Graduation_Project.Controllers
                 "invitation_accepted",
                 "/Doctor/ClinicTeam");
 
-            TempData["InviteSuccess"] = "Invitation accepted. You are now part of the doctor�s clinic team.";
+            TempData["InviteSuccess"] = "Invitation accepted. You are now part of the doctor's clinic team.";
             return RedirectToAction(nameof(ClinicInvitations), new { id = assistant.AssistantID });
         }
 

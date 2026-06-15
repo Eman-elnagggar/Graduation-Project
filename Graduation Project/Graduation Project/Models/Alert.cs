@@ -17,6 +17,8 @@ namespace Graduation_Project.Models
         public DateTime DateCreated { get; set; }
         public bool IsRead { get; set; }
 
+        public string? Category { get; set; }
+
         // Navigation
         public virtual Patient Patient { get; set; }
     }

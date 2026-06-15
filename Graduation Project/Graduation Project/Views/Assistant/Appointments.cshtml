@@ -1,189 +1,203 @@
-﻿@model Graduation_Project.ViewModels.AssistantAppointmentsViewModel
+@using System.Globalization
+@model Graduation_Project.ViewModels.AssistantAppointmentsViewModel
 @{
     Layout = "~/Views/Shared/_AssistantLayout.cshtml";
     ViewData["Title"] = "Appointments";
     ViewData["AssistantId"] = Model.Assistant.AssistantID;
     ViewData["AssistantName"] = Model.AssistantName;
     ViewData["ActivePage"] = "Appointments";
+    ViewData["PageSubtitle"] = "Manage patient appointments for " + Model.ClinicName;
 }
 
+@* Hidden CSRF token for JS fetch calls *@
 <div class="is-hidden">
     @Html.AntiForgeryToken()
 </div>
 
-<div class="ad-wrap">
+@* Hidden elements preserving hero IDs consumed by applyCountsToUI() in assistant-appointments.js *@
+<span id="heroConfirmedCount" class="is-hidden"></span>
+<span id="heroModifiedCount"  class="is-hidden"></span>
+<span id="heroCancelledCount" class="is-hidden"></span>
+<span id="appointmentsHeroDate" class="is-hidden"></span>
 
-<!-- Page Header -->
-<header class="header">
-    <div class="header-left">
-        <div class="header-page-icon">
+<div class="dash-v2">
+
+    @* Feedback banners *@
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="appt-banner appt-banner--success">
+            <i class="fas fa-check-circle"></i>
+            <span>@TempData["SuccessMessage"]</span>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="appt-banner appt-banner--error">
+            <i class="fas fa-exclamation-circle"></i>
+            <span>@TempData["ErrorMessage"]</span>
+        </div>
+    }
+
+    <!-- Page Hero -->
+    <div class="dcard page-hero">
+        <div class="page-hero-icon">
             <i class="fas fa-calendar-alt"></i>
         </div>
-        <div class="header-title-group">
-            <h1>Appointments</h1>
-            <p>Manage patient appointments for @Model.ClinicName</p>
+        <div class="page-hero-text">
+            <h1 class="page-hero-title">Appointments</h1>
+            <p class="page-hero-sub">Manage patient appointments for @Model.ClinicName</p>
         </div>
     </div>
-</header>
 
-<!-- Hero Banner -->
-<section class="pregnancy-progress">
-    <div class="progress-card assistant-hero">
-        <div class="progress-info">
-            <h3><i class="fas fa-calendar-check icon-inline-gap"></i>Appointments Overview</h3>
-            <p>
-                <span class="week-number" id="appointmentsHeroDate">@Model.SelectedDate.ToString("dddd, MMMM dd, yyyy")</span>
-            </p>
+    <!-- KPI Strip -->
+    <div class="kpi-row">
+        <div class="kpi-card kpi-card--primary">
+            <div class="kpi-icon"><i class="fas fa-clipboard-list"></i></div>
+            <div class="kpi-body">
+                <div class="kpi-value" id="statTotal">--</div>
+                <div class="kpi-label">Total</div>
+            </div>
         </div>
-        <div class="progress-details">
-            <div class="hero-stat-pill">
-                <i class="fas fa-check-circle"></i>
-                <span class="hero-stat-value" id="heroConfirmedCount">--</span> Confirmed
+        <div class="kpi-card kpi-card--success">
+            <div class="kpi-icon"><i class="fas fa-calendar-check"></i></div>
+            <div class="kpi-body">
+                <div class="kpi-value" id="statConfirmed">--</div>
+                <div class="kpi-label">Confirmed</div>
             </div>
-            <div class="hero-divider"></div>
-            <div class="hero-stat-pill">
-                <i class="fas fa-edit"></i>
-                <span class="hero-stat-value" id="heroModifiedCount">--</span> Modified
+        </div>
+        <div class="kpi-card kpi-card--blue">
+            <div class="kpi-icon"><i class="fas fa-pen-square"></i></div>
+            <div class="kpi-body">
+                <div class="kpi-value" id="statModified">--</div>
+                <div class="kpi-label">Modified</div>
             </div>
-            <div class="hero-divider"></div>
-            <div class="hero-stat-pill">
-                <i class="fas fa-times-circle"></i>
-                <span class="hero-stat-value" id="heroCancelledCount">--</span> Cancelled
+        </div>
+        <div class="kpi-card kpi-card--warning">
+            <div class="kpi-icon"><i class="fas fa-times-circle"></i></div>
+            <div class="kpi-body">
+                <div class="kpi-value" id="statCancelled">--</div>
+                <div class="kpi-label">Cancelled</div>
             </div>
         </div>
     </div>
-</section>
 
-<section class="card section-spacing">
-    <div class="card-header">
-        <h3><i class="fas fa-calendar-day"></i> Appointments Date</h3>
-    </div>
-    <div class="toolbar-row">
-        <button type="button" class="btn btn-outline btn-sm" id="prevAppointmentsDateBtn">
-            <i class="fas fa-chevron-left"></i> Previous
-        </button>
-        <input type="date" id="appointmentsDatePicker" class="form-input date-input" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
-        <button type="button" class="btn btn-outline btn-sm" id="nextAppointmentsDateBtn">
-            Next <i class="fas fa-chevron-right"></i>
-        </button>
-        <button type="button" class="btn btn-outline btn-sm" id="todayAppointmentsDateBtn">
-            <i class="fas fa-calendar-day"></i> Today
-        </button>
-    </div>
-</section>
+    <!-- Main Appointments Card -->
+    <div class="dcard">
 
-<!-- Quick Stats -->
-<div class="quick-stats appt-stats">
-    <div class="quick-stat-card stat-confirmed">
-        <div class="stat-header">
-            <div class="stat-icon stat-icon-confirmed">
-                <i class="fas fa-calendar-check"></i>
+        <!-- Header: title + primary actions -->
+        <div class="dcard-header appt-card-header">
+            <div class="dcard-title-group">
+                <h3 class="dcard-title">
+                    <i class="fas fa-calendar-alt"></i> Appointments
+                </h3>
+                <span class="dcard-subtitle" id="appointmentsHeaderDate">
+                    @Model.SelectedDate.ToString("ddd, MMM d", CultureInfo.InvariantCulture)
+                </span>
             </div>
-        </div>
-        <div class="stat-value" id="statConfirmed">--</div>
-        <div class="stat-label">Confirmed</div>
-        <div class="stat-bg-icon"><i class="fas fa-calendar-check"></i></div>
-    </div>
-    <div class="quick-stat-card stat-modified">
-        <div class="stat-header">
-            <div class="stat-icon stat-icon-modified">
-                <i class="fas fa-pen-square"></i>
-            </div>
-        </div>
-        <div class="stat-value" id="statModified">--</div>
-        <div class="stat-label">Modified</div>
-        <div class="stat-bg-icon"><i class="fas fa-pen-square"></i></div>
-    </div>
-    <div class="quick-stat-card stat-cancelled">
-        <div class="stat-header">
-            <div class="stat-icon stat-icon-cancelled">
-                <i class="fas fa-times-circle"></i>
-            </div>
-        </div>
-        <div class="stat-value" id="statCancelled">--</div>
-        <div class="stat-label">Cancelled</div>
-        <div class="stat-bg-icon"><i class="fas fa-times-circle"></i></div>
-    </div>
-    <div class="quick-stat-card stat-total">
-        <div class="stat-header">
-            <div class="stat-icon stat-icon-total">
-                <i class="fas fa-clipboard-list"></i>
-            </div>
-        </div>
-        <div class="stat-value" id="statTotal">--</div>
-        <div class="stat-label">Total</div>
-        <div class="stat-bg-icon"><i class="fas fa-clipboard-list"></i></div>
-    </div>
-</div>
-
-
-
-<!-- Doctor Selector (only shown when managing multiple doctors) -->
-@if (Model.Doctors.Count > 1)
-{
-    <section class="card">
-        <div class="card-header">
-            <h3><i class="fas fa-user-md"></i> Filter by Doctor</h3>
-        </div>
-        <div class="doctor-filter-pills">
-            <a href="@Url.Action("Appointments", new { id = Model.Assistant.AssistantID, date = Model.SelectedDate.ToString("yyyy-MM-dd") })"
-               data-doctor-id=""
-               class="doctor-pill @(Model.SelectedDoctorID == null ? "active" : "")">
-                <i class="fas fa-users"></i> All Doctors
-            </a>
-            @foreach (var doc in Model.Doctors)
-            {
-                var isSelected = Model.SelectedDoctorID == doc.DoctorID;
-                <a href="@Url.Action("Appointments", new { id = Model.Assistant.AssistantID, doctorId = doc.DoctorID, date = Model.SelectedDate.ToString("yyyy-MM-dd") })"
-                   data-doctor-id="@doc.DoctorID"
-                   class="doctor-pill @(isSelected ? "active-blue" : "")">
-                    <i class="fas fa-user-md"></i> @doc.FullName
+            <div class="dcard-controls">
+                <a href="@Url.Action("CreateAppointment", new { id = Model.Assistant.AssistantID })"
+                   class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus"></i> New Appointment
                 </a>
-            }
+                <button class="appt-export-btn" onclick="exportAppointmentsCsv()" title="Export CSV">
+                    <i class="fas fa-download"></i>
+                    <span>Export</span>
+                </button>
+            </div>
         </div>
-    </section>
-}
 
-<!-- Status Tabs -->
-<div class="card card-no-padding card-overflow-hidden">
-    <div class="appt-search-bar">
-        <div class="appt-search-wrap">
-            <i class="fas fa-search"></i>
-            <input type="text" id="appointmentSearch" placeholder="Search by patient name, doctor, or phone…"
-                   oninput="handleSearchInput(this.value)" />
+        <!-- Unified toolbar: date nav + doctor filter + search -->
+        <div class="appt-toolbar">
+            <div class="date-nav-group">
+                <button type="button" class="icon-btn-sm" id="prevAppointmentsDateBtn" title="Previous day">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <input type="date" id="appointmentsDatePicker"
+                       class="date-nav-input"
+                       value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
+                <button type="button" class="icon-btn-sm" id="nextAppointmentsDateBtn" title="Next day">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                <button type="button" class="btn-today" id="todayAppointmentsDateBtn">Today</button>
+            </div>
+
+            @if (Model.Doctors.Count > 1)
+            {
+                <div class="toolbar-divider"></div>
+                <div class="toolbar-doctors">
+                    <a href="@Url.Action("Appointments", new { id = Model.Assistant.AssistantID, date = Model.SelectedDate.ToString("yyyy-MM-dd") })"
+                       data-doctor-id=""
+                       class="filter-pill @(Model.SelectedDoctorID == null ? "filter-pill--active" : "") doctor-pill">
+                        All
+                    </a>
+                    @foreach (var doc in Model.Doctors)
+                    {
+                        var isSelected = Model.SelectedDoctorID == doc.DoctorID;
+                        <a href="@Url.Action("Appointments", new { id = Model.Assistant.AssistantID, doctorId = doc.DoctorID, date = Model.SelectedDate.ToString("yyyy-MM-dd") })"
+                           data-doctor-id="@doc.DoctorID"
+                           class="filter-pill @(isSelected ? "filter-pill--active" : "") doctor-pill">
+                            @doc.FullName
+                        </a>
+                    }
+                </div>
+            }
+
+            <div class="toolbar-search">
+                <i class="fas fa-search"></i>
+                <input type="text" id="appointmentSearch"
+                       placeholder="Search patient, doctor, phone…"
+                       oninput="handleSearchInput(this.value)" />
+            </div>
         </div>
-    </div>
-    <div class="tabs-bar">
-        <button class="tab-btn active" data-tab="Confirmed" onclick="switchTab('Confirmed')">
-            <i class="fas fa-calendar-check"></i> Confirmed
-            <span class="status-badge confirmed" id="confirmedTabCount">–</span>
-        </button>
-        <button class="tab-btn" data-tab="Modified" onclick="switchTab('Modified')">
-            <i class="fas fa-edit"></i> Modified
-            <span class="status-badge reviewed" id="modifiedTabCount">–</span>
-        </button>
-        <button class="tab-btn" data-tab="Cancelled" onclick="switchTab('Cancelled')">
-            <i class="fas fa-times-circle"></i> Cancelled
-            <span class="status-badge danger" id="cancelledTabCount">–</span>
-        </button>
-    </div>
-    <div class="appt-body-wrap">
-        <div class="tab-content active" id="Confirmed-tab">
-            <div class="request-list" id="ConfirmedAppointmentsList">
-                <div class="empty-state">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    <p>Loading appointments…</p>
+
+        <!-- Column headers (matches .appt-row grid) -->
+        <div class="appt-list-header">
+            <div></div>
+            <div>Patient</div>
+            <div>Time</div>
+            <div class="appt-col-phone">Phone</div>
+            <div>Status</div>
+            <div></div>
+        </div>
+
+        <!-- Segmented tab controls -->
+        <div class="appt-tabs">
+            <button class="appt-tab tab-btn active" data-tab="Confirmed" onclick="switchTab('Confirmed')">
+                <i class="fas fa-calendar-check"></i>
+                Confirmed
+                <span class="appt-tab-badge appt-tab-badge--success" id="confirmedTabCount">–</span>
+            </button>
+            <button class="appt-tab tab-btn" data-tab="Modified" onclick="switchTab('Modified')">
+                <i class="fas fa-edit"></i>
+                Modified
+                <span class="appt-tab-badge appt-tab-badge--blue" id="modifiedTabCount">–</span>
+            </button>
+            <button class="appt-tab tab-btn" data-tab="Cancelled" onclick="switchTab('Cancelled')">
+                <i class="fas fa-times-circle"></i>
+                Cancelled
+                <span class="appt-tab-badge appt-tab-badge--danger" id="cancelledTabCount">–</span>
+            </button>
+        </div>
+
+        <!-- Tab content panes -->
+        <div class="appt-tab-body">
+            <div class="tab-content active" id="Confirmed-tab">
+                <div class="appt-list" id="ConfirmedAppointmentsList">
+                    <div class="empty-state">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading appointments…</p>
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="tab-content is-hidden" id="Modified-tab">
-            <div class="request-list" id="ModifiedAppointmentsList"></div>
-        </div>
-        <div class="tab-content is-hidden" id="Cancelled-tab">
-            <div class="request-list" id="CancelledAppointmentsList"></div>
+            <div class="tab-content is-hidden" id="Modified-tab">
+                <div class="appt-list" id="ModifiedAppointmentsList"></div>
+            </div>
+            <div class="tab-content is-hidden" id="Cancelled-tab">
+                <div class="appt-list" id="CancelledAppointmentsList"></div>
+            </div>
+            <div id="appointmentsPager" class="appointments-pager"></div>
         </div>
 
-        <div id="appointmentsPager" class="appointments-pager"></div>
     </div>
 </div>
 
@@ -233,8 +247,6 @@
     </div>
 </div>
 
-</div>
-
 @section Scripts {
     <script>
         window.assistantAppointmentsConfig = {
@@ -242,12 +254,14 @@
             selectedDoctorId: @(Model.SelectedDoctorID.HasValue ? Model.SelectedDoctorID.Value.ToString() : "null"),
             selectedDate: '@Model.SelectedDate.ToString("yyyy-MM-dd")',
             urls: {
-                getAppointments: '@Url.Action("GetAppointments", "Assistant")',
-                getAppointmentCounts: '@Url.Action("GetAppointmentCounts", "Assistant")',
-                getAppointmentDetail: '@Url.Action("GetAppointmentDetail", "Assistant")',
-                modifyAppointment: '@Url.Action("ModifyAppointment", "Assistant")',
-                cancelAppointment: '@Url.Action("CancelAppointment", "Assistant")',
-                exportAppointmentsCsv: '@Url.Action("ExportAppointmentsCsv", "Assistant")'
+                getAppointments:       '@Url.Action("GetAppointments",       "Assistant")',
+                getAppointmentCounts:  '@Url.Action("GetAppointmentCounts",  "Assistant")',
+                getAppointmentDetail:  '@Url.Action("GetAppointmentDetail",  "Assistant")',
+                modifyAppointment:     '@Url.Action("ModifyAppointment",     "Assistant")',
+                cancelAppointment:     '@Url.Action("CancelAppointment",     "Assistant")',
+                reinstateAppointment:  '@Url.Action("ReinstateAppointment",  "Assistant")',
+                checkInPatient:        '@Url.Action("CheckInPatient",        "Assistant")',
+                exportAppointmentsCsv: '@Url.Action("ExportAppointmentsCsv","Assistant")'
             }
         };
     </script>

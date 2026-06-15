@@ -1,0 +1,558 @@
+@model Graduation_Project.ViewModels.AssistantCreatePatientViewModel
+@{
+	Layout = "~/Views/Shared/_AssistantLayout.cshtml";
+	ViewData["Title"] = "Register Patient";
+	ViewData["AssistantId"] = Model.Assistant.AssistantID;
+	ViewData["AssistantName"] = Model.AssistantName;
+	ViewData["ActivePage"] = "CreatePatient";
+	ViewData["PageTitle"] = "Register Patient";
+	ViewData["PageSubtitle"] = "Create a new patient account for " + Model.ClinicName;
+}
+
+<div class="ad-wrap">
+
+<!-- Error/Success Messages -->
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+	<div class="form-alert form-alert-error">
+		<i class="fas fa-exclamation-circle"></i>
+		<span>@Model.ErrorMessage</span>
+	</div>
+}
+@if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+{
+	<div class="form-alert form-alert-success">
+		<i class="fas fa-check-circle"></i>
+		<span>@Model.SuccessMessage</span>
+	</div>
+}
+
+<!-- Form Card -->
+<section class="card cp-form-card">
+	<form method="post" asp-action="CreatePatient" asp-controller="Assistant" asp-route-id="@Model.Assistant.AssistantID">
+		@Html.AntiForgeryToken()
+
+		<!-- Personal Information -->
+		<div class="cp-section">
+			<div class="cp-section-header">
+				<div class="cp-section-icon cp-icon-purple">
+					<i class="fas fa-user"></i>
+				</div>
+				<div>
+					<div class="cp-section-title">Personal Information</div>
+					<div class="cp-section-sub">Identity and contact details</div>
+				</div>
+			</div>
+
+			<div class="cp-grid-2">
+				<div class="cp-field">
+					<label for="firstName">First Name <span class="req">*</span></label>
+					<input type="text" id="firstName" name="FirstName" class="cp-input"
+						   placeholder="Enter first name" value="@Model.FirstName" required />
+					<span class="cp-error">@Html.ValidationMessageFor(m => m.FirstName)</span>
+				</div>
+				<div class="cp-field">
+					<label for="lastName">Last Name <span class="req">*</span></label>
+					<input type="text" id="lastName" name="LastName" class="cp-input"
+						   placeholder="Enter last name" value="@Model.LastName" required />
+					<span class="cp-error">@Html.ValidationMessageFor(m => m.LastName)</span>
+				</div>
+			</div>
+
+			<div class="cp-grid-2">
+				<div class="cp-field">
+					<label for="email">Email Address <span class="req">*</span></label>
+					<div class="cp-input-icon-wrap">
+						<i class="fas fa-envelope cp-input-icon"></i>
+						<input type="email" id="email" name="Email" class="cp-input cp-input-has-icon"
+							   placeholder="patient@example.com" value="@Model.Email" required />
+					</div>
+					<span class="cp-error">@Html.ValidationMessageFor(m => m.Email)</span>
+				</div>
+				<div class="cp-field">
+					<label for="phone">Phone Number <span class="req">*</span></label>
+					<div class="cp-input-icon-wrap">
+						<i class="fas fa-phone cp-input-icon"></i>
+						<input type="tel" id="phone" name="PhoneNumber" class="cp-input cp-input-has-icon"
+							   placeholder="+20 123 456 7890" value="@Model.PhoneNumber" required />
+					</div>
+					<span class="cp-error">@Html.ValidationMessageFor(m => m.PhoneNumber)</span>
+				</div>
+			</div>
+
+			<div class="cp-grid-2">
+				<div class="cp-field">
+					<label for="dob">Date of Birth <span class="cp-optional">(optional)</span></label>
+					<div class="cp-input-icon-wrap">
+						<i class="fas fa-calendar cp-input-icon"></i>
+						<input type="date" id="dob" name="DateOfBirth" class="cp-input cp-input-has-icon"
+							   value="@Model.DateOfBirth?.ToString("yyyy-MM-dd")" />
+					</div>
+				</div>
+				<div class="cp-field">
+					<label for="address">Address <span class="cp-optional">(optional)</span></label>
+					<div class="cp-input-icon-wrap">
+						<i class="fas fa-map-marker-alt cp-input-icon"></i>
+						<input type="text" id="address" name="Address" class="cp-input cp-input-has-icon"
+							   placeholder="Street address" value="@Model.Address" />
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Health Information -->
+		<div class="cp-section">
+			<div class="cp-section-header">
+				<div class="cp-section-icon cp-icon-rose">
+					<i class="fas fa-heart"></i>
+				</div>
+				<div>
+					<div class="cp-section-title">Health Information</div>
+					<div class="cp-section-sub">Physical measurements and habits</div>
+				</div>
+			</div>
+
+			<div class="cp-grid-2">
+				<div class="cp-field">
+					<label for="weight">Weight <span class="cp-unit">(kg)</span></label>
+					<div class="cp-input-icon-wrap">
+						<i class="fas fa-weight cp-input-icon"></i>
+						<input type="number" id="weight" name="WeightKg" class="cp-input cp-input-has-icon"
+							   placeholder="e.g. 65.0" value="@Model.WeightKg" step="0.1" min="0" />
+					</div>
+				</div>
+				<div class="cp-field">
+					<label for="height">Height <span class="cp-unit">(cm)</span></label>
+					<div class="cp-input-icon-wrap">
+						<i class="fas fa-ruler-vertical cp-input-icon"></i>
+						<input type="number" id="height" name="HeightCm" class="cp-input cp-input-has-icon"
+							   placeholder="e.g. 165.0" value="@Model.HeightCm" step="0.1" min="0" />
+					</div>
+				</div>
+			</div>
+
+			<div class="cp-field">
+				<label>Health Habits</label>
+				<div class="cp-checkbox-group">
+					<label class="cp-checkbox-card">
+						<input type="checkbox" name="BloodPressureIssue" value="true"
+							   @(Model.BloodPressureIssue ? "checked" : "") />
+						<div class="cp-checkbox-body">
+							<i class="fas fa-heartbeat"></i>
+							<span>Blood Pressure Issues</span>
+						</div>
+					</label>
+					<label class="cp-checkbox-card">
+						<input type="checkbox" name="Smoking" value="true"
+							   @(Model.Smoking ? "checked" : "") />
+						<div class="cp-checkbox-body">
+							<i class="fas fa-smoking"></i>
+							<span>Smoker</span>
+						</div>
+					</label>
+					<label class="cp-checkbox-card">
+						<input type="checkbox" name="AlcoholUse" value="true"
+							   @(Model.AlcoholUse ? "checked" : "") />
+						<div class="cp-checkbox-body">
+							<i class="fas fa-wine-glass-alt"></i>
+							<span>Alcohol Use</span>
+						</div>
+					</label>
+				</div>
+			</div>
+		</div>
+
+		<!-- Pregnancy Information -->
+		<div class="cp-section">
+			<div class="cp-section-header">
+				<div class="cp-section-icon cp-icon-pink">
+					<i class="fas fa-baby"></i>
+				</div>
+				<div>
+					<div class="cp-section-title">Pregnancy Information</div>
+					<div class="cp-section-sub">Optional — fill in if patient is currently pregnant</div>
+				</div>
+			</div>
+
+			<label class="cp-toggle-label">
+				<input type="checkbox" id="isPregnant" name="IsPregnant" value="true"
+					   @(Model.IsPregnant ? "checked" : "")
+					   onchange="togglePregnancyFields()" />
+				<span class="cp-toggle-track"><span class="cp-toggle-thumb"></span></span>
+				<span class="cp-toggle-text">Patient is currently pregnant</span>
+			</label>
+
+			<div id="pregnancyFields" class="cp-pregnancy-fields" style="@(Model.IsPregnant ? "" : "display:none;")">
+				<div class="cp-grid-2">
+					<div class="cp-field">
+						<label for="pregnancyDate">Pregnancy Start Date</label>
+						<div class="cp-input-icon-wrap">
+							<i class="fas fa-calendar-alt cp-input-icon"></i>
+							<input type="date" id="pregnancyDate" name="PregnancyDate" class="cp-input cp-input-has-icon"
+								   value="@Model.PregnancyDate?.ToString("yyyy-MM-dd")" />
+						</div>
+					</div>
+					<div class="cp-field">
+						<label for="gestationalWeeks">Gestational Weeks</label>
+						<div class="cp-input-icon-wrap">
+							<i class="fas fa-baby-carriage cp-input-icon"></i>
+							<input type="number" id="gestationalWeeks" name="GestationalWeeks" class="cp-input cp-input-has-icon"
+								   placeholder="0–40" value="@Model.GestationalWeeks" min="0" max="40" />
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Doctor Assignment -->
+		<div class="cp-section cp-section-last">
+			<div class="cp-section-header">
+				<div class="cp-section-icon cp-icon-teal">
+					<i class="fas fa-user-md"></i>
+				</div>
+				<div>
+					<div class="cp-section-title">Doctor Assignment <span class="req">*</span></div>
+					<div class="cp-section-sub">The patient will be automatically linked to this doctor</div>
+				</div>
+			</div>
+
+			<div class="cp-field">
+				<label for="doctorSelect">Select Doctor <span class="req">*</span></label>
+				<div class="cp-input-icon-wrap">
+					<i class="fas fa-stethoscope cp-input-icon"></i>
+					<select id="doctorSelect" name="SelectedDoctorID" class="cp-input cp-input-has-icon cp-select" required>
+						<option value="">-- Choose a Doctor --</option>
+						@foreach (var doctor in Model.Doctors)
+						{
+							if (Model.SelectedDoctorID == doctor.DoctorID)
+							{
+								<option value="@doctor.DoctorID" selected>
+									@doctor.FullName — @doctor.Specialization
+								</option>
+							}
+							else
+							{
+								<option value="@doctor.DoctorID">
+									@doctor.FullName — @doctor.Specialization
+								</option>
+							}
+						}
+					</select>
+				</div>
+				<span class="cp-error">@Html.ValidationMessageFor(m => m.SelectedDoctorID)</span>
+			</div>
+
+			@if (!Model.Doctors.Any())
+			{
+				<div class="cp-notice cp-notice-warning">
+					<i class="fas fa-exclamation-triangle"></i>
+					<span>No doctors available. Please contact the clinic administrator.</span>
+				</div>
+			}
+		</div>
+
+		<!-- Form Actions -->
+		<div class="cp-actions">
+			<a href="@Url.Action("Patients", "Assistant", new { id = Model.Assistant.AssistantID })"
+			   class="cp-btn cp-btn-ghost">
+				<i class="fas fa-arrow-left"></i> Cancel
+			</a>
+			<button type="submit" class="cp-btn cp-btn-primary" @(Model.Doctors.Any() ? "" : "disabled")>
+				<i class="fas fa-user-plus"></i> Create Patient Account
+			</button>
+		</div>
+	</form>
+</section>
+
+<!-- Info Panel -->
+<section class="card cp-info-card">
+	<div class="cp-info-header">
+		<i class="fas fa-shield-alt"></i>
+		<span>Registration Notes</span>
+	</div>
+	<ul class="cp-info-list">
+		<li><i class="fas fa-key"></i> A secure temporary password is generated — the patient can change it on first login</li>
+		<li><i class="fas fa-link"></i> The patient is automatically linked to the selected doctor</li>
+		<li><i class="fas fa-edit"></i> Health information can be updated by the patient at any time</li>
+		<li><i class="fas fa-envelope"></i> A confirmation email will be sent to the provided address</li>
+	</ul>
+</section>
+
+</div>
+
+@section Scripts {
+<script>
+	function togglePregnancyFields() {
+		const isPregnant = document.getElementById('isPregnant').checked;
+		document.getElementById('pregnancyFields').style.display = isPregnant ? 'block' : 'none';
+	}
+
+	// Sync checkbox card visual state on page load (for post-back values)
+	document.querySelectorAll('.cp-checkbox-card input[type="checkbox"]').forEach(cb => {
+		updateCheckboxCard(cb);
+		cb.addEventListener('change', () => updateCheckboxCard(cb));
+	});
+
+	function updateCheckboxCard(cb) {
+		cb.closest('.cp-checkbox-card').classList.toggle('checked', cb.checked);
+	}
+</script>
+}
+
+<style>
+/* ---- Layout ---- */
+.cp-form-card { border-top: 3px solid #7c3aed; }
+
+.cp-section {
+	padding: 28px 0;
+	border-bottom: 1px solid #f0edf8;
+}
+.cp-section-last { border-bottom: none; }
+
+/* ---- Section header ---- */
+.cp-section-header {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	margin-bottom: 24px;
+}
+.cp-section-icon {
+	width: 42px; height: 42px;
+	border-radius: 10px;
+	display: flex; align-items: center; justify-content: center;
+	font-size: 17px;
+	flex-shrink: 0;
+}
+.cp-icon-purple { background: #ede9fe; color: #7c3aed; }
+.cp-icon-rose   { background: #fde8f0; color: #e11d6a; }
+.cp-icon-pink   { background: #fce7f3; color: #db2777; }
+.cp-icon-teal   { background: #d1fae5; color: #059669; }
+
+.cp-section-title {
+	font-size: 15px;
+	font-weight: 700;
+	color: #1e1b4b;
+}
+.cp-section-sub {
+	font-size: 12.5px;
+	color: #6b7280;
+	margin-top: 1px;
+}
+
+/* ---- Grid ---- */
+.cp-grid-2 {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	gap: 18px;
+	margin-bottom: 18px;
+}
+
+/* ---- Field ---- */
+.cp-field {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+.cp-field label {
+	font-size: 13px;
+	font-weight: 600;
+	color: #374151;
+	letter-spacing: 0.01em;
+}
+.req { color: #e74c3c; margin-left: 2px; }
+.cp-optional, .cp-unit {
+	font-size: 11.5px;
+	font-weight: 400;
+	color: #9ca3af;
+	margin-left: 4px;
+}
+
+/* ---- Inputs ---- */
+.cp-input-icon-wrap { position: relative; }
+.cp-input-icon {
+	position: absolute;
+	left: 12px; top: 50%; transform: translateY(-50%);
+	color: #9ca3af;
+	font-size: 13px;
+	pointer-events: none;
+}
+.cp-input {
+	width: 100%; box-sizing: border-box;
+	padding: 11px 14px;
+	border: 1.5px solid #e5e7eb;
+	border-radius: 8px;
+	font-size: 14px;
+	color: #1f2937;
+	background: #fafafa;
+	transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+	font-family: inherit;
+}
+.cp-input-has-icon { padding-left: 38px; }
+.cp-input:focus {
+	outline: none;
+	border-color: #7c3aed;
+	background: #fff;
+	box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+}
+.cp-select { cursor: pointer; appearance: auto; }
+
+.cp-error {
+	font-size: 12px;
+	color: #e74c3c;
+	min-height: 16px;
+}
+
+/* ---- Checkbox cards ---- */
+.cp-checkbox-group {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-top: 4px;
+}
+.cp-checkbox-card {
+	cursor: pointer;
+	border: 1.5px solid #e5e7eb;
+	border-radius: 8px;
+	background: #fafafa;
+	transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+	user-select: none;
+}
+.cp-checkbox-card input[type="checkbox"] { display: none; }
+.cp-checkbox-body {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 16px;
+	font-size: 13.5px;
+	font-weight: 500;
+	color: #374151;
+}
+.cp-checkbox-body i { font-size: 14px; color: #9ca3af; transition: color 0.2s; }
+.cp-checkbox-card:hover { border-color: #7c3aed; background: #faf5ff; }
+.cp-checkbox-card.checked {
+	border-color: #7c3aed;
+	background: #ede9fe;
+	box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+.cp-checkbox-card.checked .cp-checkbox-body { color: #5b21b6; }
+.cp-checkbox-card.checked .cp-checkbox-body i { color: #7c3aed; }
+
+/* ---- Toggle switch ---- */
+.cp-toggle-label {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	cursor: pointer;
+	margin-bottom: 18px;
+	user-select: none;
+}
+.cp-toggle-label input[type="checkbox"] { display: none; }
+.cp-toggle-track {
+	width: 44px; height: 24px;
+	border-radius: 12px;
+	background: #d1d5db;
+	position: relative;
+	transition: background 0.25s;
+	flex-shrink: 0;
+}
+.cp-toggle-thumb {
+	width: 18px; height: 18px;
+	border-radius: 50%;
+	background: #fff;
+	position: absolute;
+	top: 3px; left: 3px;
+	box-shadow: 0 1px 3px rgba(0,0,0,.25);
+	transition: transform 0.25s;
+}
+.cp-toggle-label input:checked ~ .cp-toggle-track { background: #7c3aed; }
+.cp-toggle-label input:checked ~ .cp-toggle-track .cp-toggle-thumb { transform: translateX(20px); }
+.cp-toggle-text { font-size: 14px; font-weight: 500; color: #374151; }
+
+/* ---- Pregnancy fields reveal ---- */
+.cp-pregnancy-fields {
+	background: #faf5ff;
+	border: 1px solid #ddd6fe;
+	border-radius: 10px;
+	padding: 18px;
+	margin-top: 4px;
+}
+
+/* ---- Notice ---- */
+.cp-notice {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 12px 16px;
+	border-radius: 8px;
+	font-size: 13.5px;
+	margin-top: 12px;
+}
+.cp-notice-warning { background: #fffbeb; border: 1px solid #fbbf24; color: #92400e; }
+
+/* ---- Actions ---- */
+.cp-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 10px;
+	padding-top: 24px;
+	margin-top: 4px;
+	border-top: 1px solid #f0edf8;
+}
+.cp-btn {
+	display: inline-flex; align-items: center; gap: 8px;
+	padding: 11px 24px;
+	border-radius: 8px;
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+	border: none;
+	text-decoration: none;
+	transition: all 0.2s;
+}
+.cp-btn-primary {
+	background: #7c3aed;
+	color: #fff;
+	box-shadow: 0 2px 8px rgba(124,58,237,0.25);
+}
+.cp-btn-primary:hover:not(:disabled) {
+	background: #5b21b6;
+	box-shadow: 0 4px 12px rgba(124,58,237,0.35);
+	transform: translateY(-1px);
+}
+.cp-btn-primary:disabled { background: #c4b5fd; cursor: not-allowed; box-shadow: none; }
+.cp-btn-ghost {
+	background: transparent;
+	color: #6b7280;
+	border: 1.5px solid #e5e7eb;
+}
+.cp-btn-ghost:hover { background: #f9fafb; color: #374151; }
+
+/* ---- Alert messages ---- */
+.form-alert {
+	display: flex; align-items: center; gap: 10px;
+	padding: 13px 16px;
+	border-radius: 8px;
+	font-size: 14px;
+	font-weight: 500;
+	margin-bottom: 16px;
+}
+.form-alert-error { background: #fef2f2; border: 1px solid #fca5a5; color: #b91c1c; }
+.form-alert-success { background: #f0fdf4; border: 1px solid #86efac; color: #15803d; }
+
+/* ---- Info card ---- */
+.cp-info-card { margin-top: 0; }
+.cp-info-header {
+	display: flex; align-items: center; gap: 8px;
+	font-size: 14px; font-weight: 600; color: #5b21b6;
+	margin-bottom: 12px;
+}
+.cp-info-list {
+	list-style: none; padding: 0; margin: 0;
+	display: flex; flex-direction: column; gap: 10px;
+}
+.cp-info-list li {
+	display: flex; align-items: flex-start; gap: 10px;
+	font-size: 13.5px; color: #4b5563;
+}
+.cp-info-list li i { color: #7c3aed; margin-top: 2px; flex-shrink: 0; }
+</style>
