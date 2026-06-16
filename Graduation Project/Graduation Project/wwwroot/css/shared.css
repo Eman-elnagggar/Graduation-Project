@@ -713,7 +713,7 @@ body.sidebar-collapsed .main-content {
   }
 
   .page-content {
-    padding-top: calc(var(--content-padding-y) + 64px); /* 64px clears the mobile toggle */
+    padding-top: calc(var(--content-padding-y) + 5px); /* 64px clears the mobile toggle */
   }
 
   body.sidebar-collapsed .main-content {
