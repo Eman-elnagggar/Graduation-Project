@@ -1,411 +1,322 @@
 @model Graduation_Project.ViewModels.PrescriptionsViewModel
+@using System.Linq
 @{
     Layout = "~/Views/Shared/_PatientLayout.cshtml";
     ViewData["Title"] = "My Prescriptions";
     ViewData["PatientId"]  = Model.Patient.PatientID;
     ViewData["ActivePage"] = "Prescriptions";
     ViewData["HidePageHeader"] = true;
+
+    var firstName = (Model.UserName ?? "Mama").Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Mama";
+    var totalCount = Model.TotalCount;
+    var doctorCount = Model.Prescriptions.Select(r => r.Doctor?.DoctorID).Where(id => id != null).Distinct().Count();
+    var recentCount = Model.Prescriptions.Count(r => (DateTime.Today - r.PrescriptionDate.Date).TotalDays <= 30);
 }
 
 @section Styles {
     <link rel="stylesheet" href="~/css/patient-prescriptions.css" asp-append-version="true" />
 }
 
-<div class="rx-wrap">
+<div class="px">
 
-    <!-- HERO BANNER -->
-    <div class="rx-hero">
-        <div class="rx-hero-left">
-            <span class="rx-hero-eyebrow"><i class="fas fa-prescription-bottle-alt"></i> My Prescriptions</span>
-            <h2 class="rx-hero-title">Prescriptions <span>Overview</span></h2>
-            <p class="rx-hero-sub">
-                <i class="fas fa-circle"></i>
-                <span>View all prescriptions issued by your doctors</span>
-            </p>
+    <!-- ════════ HEADER ════════ -->
+    <header class="px-head">
+        <div class="px-head-botanical" aria-hidden="true">
+            <svg viewBox="0 0 100 140" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+                <path d="M50 138 C50 104 50 72 50 32" />
+                <path d="M50 112 C35 107 27 95 31 80 C47 84 54 98 50 112Z" />
+                <path d="M50 112 C65 107 73 95 69 80 C53 84 46 98 50 112Z" />
+                <path d="M50 88 C37 83 31 71 35 58 C49 62 54 76 50 88Z" />
+                <path d="M50 88 C63 83 69 71 65 58 C51 62 46 76 50 88Z" />
+            </svg>
         </div>
-        <div class="rx-hero-right">
-            <div class="rx-hero-stat">
-                <div class="rx-hero-stat-ico"><i class="fas fa-file-prescription"></i></div>
-                <div class="rx-hero-stat-body">
-                    <span class="rx-hero-stat-val">@Model.TotalCount</span>
-                    <span class="rx-hero-stat-lbl">Total Prescriptions</span>
-                </div>
+        <div class="px-head-bar">
+            <div class="px-head-intro">
+                <span class="px-eyebrow"><i class="fas fa-prescription"></i> My Health Records</span>
+                <h1 class="px-head-title">@firstName's <b>Prescriptions</b></h1>
+                <p class="px-head-sub">Every medication your doctors have prescribed, gathered in one place.</p>
             </div>
-            <div class="rx-hero-stat">
-                <div class="rx-hero-stat-ico"><i class="fas fa-calendar-alt"></i></div>
-                <div class="rx-hero-stat-body">
-                    <span class="rx-hero-stat-val rx-hero-stat-val-md">
-                        @(Model.LatestDate.HasValue ? Model.LatestDate.Value.ToString("MMM dd") : "—")
+            <div class="px-head-chips">
+                <div class="px-chip">
+                    <span class="px-chip-ico rose"><i class="fas fa-file-prescription"></i></span>
+                    <span>
+                        <span class="px-chip-val">@totalCount</span>
+                        <span class="px-chip-lbl">Prescription@(totalCount != 1 ? "s" : "")</span>
                     </span>
-                    <span class="rx-hero-stat-lbl">Latest Prescription</span>
+                </div>
+                <div class="px-chip">
+                    <span class="px-chip-ico violet"><i class="fas fa-user-md"></i></span>
+                    <span>
+                        <span class="px-chip-val">@doctorCount</span>
+                        <span class="px-chip-lbl">Doctor@(doctorCount != 1 ? "s" : "")</span>
+                    </span>
+                </div>
+                <div class="px-chip">
+                    <span class="px-chip-ico sky"><i class="fas fa-calendar-day"></i></span>
+                    <span>
+                        <span class="px-chip-val px-chip-val-sm">@(Model.LatestDate.HasValue ? Model.LatestDate.Value.ToString("MMM dd") : "—")</span>
+                        <span class="px-chip-lbl">Latest</span>
+                    </span>
                 </div>
             </div>
         </div>
-    </div>
+    </header>
 
-    <!-- KPI GRID -->
-    <div class="rx-kpi-grid">
-
-        <!-- Total Prescriptions -->
-        <div class="rx-kpi">
-            <div class="rx-kpi-top">
-                <div class="rx-kpi-ico teal"><i class="fas fa-file-prescription"></i></div>
-                <span class="rx-kpi-trend neu"><i class="fas fa-list"></i> All Time</span>
+    @if (!Model.Prescriptions.Any())
+    {
+        <div class="px-empty">
+            <div class="px-empty-ico"><i class="fas fa-prescription-bottle"></i></div>
+            <h3>No prescriptions yet</h3>
+            <p>When a doctor issues you a prescription, it will appear here — neatly organised and ready whenever you need it.</p>
+        </div>
+    }
+    else
+    {
+        <!-- ════════ TOOLBAR ════════ -->
+        <div class="px-toolbar">
+            <div class="px-search">
+                <i class="fas fa-search"></i>
+                <input type="text" id="pxSearch" placeholder="Search by medicine, doctor or date…" />
+                <button class="px-search-clear" id="pxClear" type="button" style="display:none;"><i class="fas fa-times"></i></button>
             </div>
-            <div class="rx-kpi-mid">
-                <div class="rx-kpi-val">@Model.TotalCount</div>
-                <div class="rx-kpi-label">Total Prescriptions</div>
+            <div class="px-tabs">
+                <button class="px-tab active" data-filter="all" type="button">All <span class="px-tab-count">@totalCount</span></button>
+                <button class="px-tab" data-filter="recent" type="button">Last 30 Days <span class="px-tab-count">@recentCount</span></button>
             </div>
-            <div class="rx-kpi-foot"><i class="fas fa-info-circle"></i> All issued prescriptions</div>
-            <div class="rx-kpi-glow teal"></div>
+            <div class="px-expand-controls">
+                <button class="px-ctl" id="pxExpandAll" type="button"><i class="fas fa-chevron-down"></i> Expand</button>
+                <button class="px-ctl" id="pxCollapseAll" type="button"><i class="fas fa-chevron-up"></i> Collapse</button>
+            </div>
         </div>
 
-        <!-- Latest Date -->
-        <div class="rx-kpi">
-            <div class="rx-kpi-top">
-                <div class="rx-kpi-ico amber"><i class="fas fa-calendar-alt"></i></div>
-                <span class="rx-kpi-trend up"><i class="fas fa-clock"></i> Latest</span>
-            </div>
-            <div class="rx-kpi-mid">
-                <div class="rx-kpi-val rx-kpi-val-md">
-                    @(Model.LatestDate.HasValue ? Model.LatestDate.Value.ToString("MMM dd") : "—")
-                </div>
-                <div class="rx-kpi-label">Latest Prescription</div>
-            </div>
-            <div class="rx-kpi-foot">
-                <i class="fas fa-calendar"></i>
-                @(Model.LatestDate.HasValue ? Model.LatestDate.Value.ToString("yyyy") : "No prescriptions yet")
-            </div>
-            <div class="rx-kpi-glow amber"></div>
-        </div>
-
-        <!-- Recent (last 30 days) -->
-        <div class="rx-kpi">
-            <div class="rx-kpi-top">
-                <div class="rx-kpi-ico blue"><i class="fas fa-star"></i></div>
-                <span class="rx-kpi-trend up"><i class="fas fa-check-circle"></i> Active</span>
-            </div>
-            <div class="rx-kpi-mid">
-                <div class="rx-kpi-val">
-                    @(Model.Prescriptions.Count(r => (DateTime.Today - r.PrescriptionDate.Date).TotalDays <= 30))
-                </div>
-                <div class="rx-kpi-label">Last 30 Days</div>
-            </div>
-            <div class="rx-kpi-foot"><i class="fas fa-history"></i> Recent prescriptions</div>
-            <div class="rx-kpi-glow blue"></div>
-        </div>
-
-        <!-- Unique Doctors -->
-        <div class="rx-kpi">
-            <div class="rx-kpi-top">
-                <div class="rx-kpi-ico purple"><i class="fas fa-user-md"></i></div>
-                <span class="rx-kpi-trend neu"><i class="fas fa-minus"></i> Doctors</span>
-            </div>
-            <div class="rx-kpi-mid">
-                <div class="rx-kpi-val">
-                    @(Model.Prescriptions.Select(r => r.Doctor?.DoctorID).Distinct().Count())
-                </div>
-                <div class="rx-kpi-label">Unique Doctors</div>
-            </div>
-            <div class="rx-kpi-foot"><i class="fas fa-stethoscope"></i> Prescribing physicians</div>
-            <div class="rx-kpi-glow purple"></div>
-        </div>
-
-    </div>
-
-    <!-- FILTER / SEARCH CARD -->
-    <div class="rx-card rx-filter-card">
-        <div class="rx-filter-body">
-            <div class="rx-search-wrap">
-                <i class="fas fa-search rx-search-icon"></i>
-                <input type="text" id="rxSearch" class="rx-search-input"
-                       placeholder="Search by medicine, doctor or date…" />
-                <button class="rx-clear-btn" id="clearSearch" style="display:none;">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="rx-filter-controls">
-                <div class="rx-filter-tabs">
-                    <button class="rx-tab active" data-filter="all">
-                        <i class="fas fa-list"></i> All
-                        <span class="rx-tab-count">@Model.TotalCount</span>
-                    </button>
-                    <button class="rx-tab" data-filter="recent">
-                        <i class="fas fa-clock"></i> Last 30 Days
-                    </button>
-                </div>
-                <div class="rx-expand-controls">
-                    <button class="rx-control-btn" id="expandAll">
-                        <i class="fas fa-chevron-down"></i> Expand All
-                    </button>
-                    <button class="rx-control-btn" id="collapseAll">
-                        <i class="fas fa-chevron-up"></i> Collapse All
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- PRESCRIPTIONS LIST -->
-    <div class="rx-prescriptions-container">
-
-        @if (!Model.Prescriptions.Any())
-        {
-            <div class="rx-empty-state">
-                <div class="rx-empty-icon"><i class="fas fa-prescription-bottle"></i></div>
-                <h3>No prescriptions yet</h3>
-                <p>Your doctor-issued prescriptions will appear here.</p>
-            </div>
-        }
-        else
-        {
+        <!-- ════════ PRESCRIPTIONS ════════ -->
+        <div class="px-list">
+            @{ var first = true; }
             @foreach (var rx in Model.Prescriptions)
             {
                 var doctorName = rx.Doctor?.User != null
-                    ? $"Dr. {rx.Doctor.User.FirstName} {rx.Doctor.User.LastName}"
+                    ? $"Dr. {rx.Doctor.User.FirstName} {rx.Doctor.User.LastName}".Trim()
                     : "Unknown Doctor";
                 var specialization = rx.Doctor?.Specialization ?? "";
                 var itemCount = rx.Items?.Count ?? 0;
                 var isRecent = (DateTime.Today - rx.PrescriptionDate.Date).TotalDays <= 30;
+                var medsSearch = string.Join(" ", rx.Items?.Select(i => i.MedicineName?.ToLower() ?? "") ?? Enumerable.Empty<string>());
+                var open = first;
+                first = false;
 
-                <div class="rx-card rx-prescription-card prescription-card"
-                     data-date="@rx.PrescriptionDate.ToString("yyyy-MM-dd")"
-                     data-doctor="@doctorName.ToLower()"
-                     data-medicines="@string.Join(" ", rx.Items?.Select(i => i.MedicineName?.ToLower() ?? "") ?? Enumerable.Empty<string>())"
-                     data-recent="@isRecent.ToString().ToLower()">
+                <article class="px-rx @(open ? "open" : "")"
+                         data-date="@rx.PrescriptionDate.ToString("yyyy-MM-dd")"
+                         data-doctor="@doctorName.ToLower()"
+                         data-medicines="@medsSearch"
+                         data-recent="@isRecent.ToString().ToLower()">
 
-                    <!-- Card Header -->
-                    <div class="rx-pcard-header" data-target="rx-body-@rx.PrescriptionID">
-                        <div class="rx-pcard-main">
-                            <div class="rx-pcard-title-row">
-                                <h3 class="rx-pcard-title">
-                                    <i class="fas fa-file-prescription"></i>
-                                    Prescription #@rx.PrescriptionID
-                                </h3>
-                                @if (isRecent)
+                    <!-- top / always visible -->
+                    <div class="px-rx-top" role="button" tabindex="0" aria-expanded="@(open ? "true" : "false")">
+                        <div class="px-rx-doctor">
+                            <div class="px-rx-avatar">@(doctorName.Replace("Dr. ", "").Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Substring(0, 1).ToUpper() ?? "D")</div>
+                            <div class="px-rx-doctor-info">
+                                <span class="px-rx-doctor-name">@doctorName</span>
+                                @if (!string.IsNullOrWhiteSpace(specialization))
                                 {
-                                    <span class="rx-badge-recent">
-                                        <i class="fas fa-star"></i> Recent
-                                    </span>
+                                    <span class="px-rx-doctor-spec"><i class="fas fa-stethoscope"></i> @specialization</span>
                                 }
                             </div>
-                            <div class="rx-pcard-meta">
-                                <span class="rx-meta-item">
-                                    <i class="fas fa-calendar-alt"></i>
-                                    @rx.PrescriptionDate.ToString("MMMM dd, yyyy")
-                                </span>
-                                <span class="rx-meta-divider">·</span>
-                                <span class="rx-meta-item">
-                                    <i class="fas fa-pills"></i>
-                                    @itemCount medication@(itemCount != 1 ? "s" : "")
-                                </span>
+                        </div>
+
+                        <div class="px-rx-summary">
+                            <div class="px-rx-meta">
+                                <span class="px-rx-no">Prescription #@rx.PrescriptionID</span>
+                                @if (isRecent)
+                                {
+                                    <span class="px-rx-recent"><i class="fas fa-star"></i> Recent</span>
+                                }
+                            </div>
+                            <div class="px-rx-meta-line">
+                                <span><i class="fas fa-calendar-alt"></i> @rx.PrescriptionDate.ToString("MMMM dd, yyyy")</span>
+                                <span class="px-dot">·</span>
+                                <span><i class="fas fa-pills"></i> @itemCount medication@(itemCount != 1 ? "s" : "")</span>
                             </div>
                         </div>
-                        <button class="rx-expand-btn" data-target="rx-body-@rx.PrescriptionID"
-                                aria-expanded="false" title="Toggle details">
-                            <i class="fas fa-chevron-down"></i>
-                        </button>
-                    </div>
 
-                    <!-- Doctor Info -->
-                    <div class="rx-doctor-info">
-                        <div class="rx-doctor-avatar">
-                            <i class="fas fa-user-md"></i>
-                        </div>
-                        <div class="rx-doctor-details">
-                            <span class="rx-doctor-name">@doctorName</span>
-                            @if (!string.IsNullOrWhiteSpace(specialization))
-                            {
-                                <span class="rx-doctor-spec">@specialization</span>
-                            }
-                        </div>
-                        <div class="rx-doctor-actions">
-                            <a class="rx-print-btn"
+                        <div class="px-rx-actions">
+                            <a class="px-print"
                                href="@Url.Action("Print", "Prescription", new { id = Model.Patient.PatientID, prescriptionId = rx.PrescriptionID })"
-                               target="_blank"
-                               rel="noopener noreferrer">
-                                <i class="fas fa-print"></i> Print
+                               target="_blank" rel="noopener noreferrer"
+                               onclick="event.stopPropagation();">
+                                <i class="fas fa-print"></i><span>Print</span>
                             </a>
+                            <button class="px-toggle" type="button" aria-label="Toggle details"><i class="fas fa-chevron-down"></i></button>
                         </div>
                     </div>
 
-                    <!-- Collapsible Body -->
-                    <div class="rx-pcard-body" id="rx-body-@rx.PrescriptionID">
-
-                        @if (!string.IsNullOrWhiteSpace(rx.Notes))
-                        {
-                            <div class="rx-notes-section">
-                                <div class="rx-section-label">
-                                    <i class="fas fa-sticky-note"></i> Doctor's Notes
+                    <!-- collapsible body -->
+                    <div class="px-rx-body">
+                        <div class="px-rx-body-inner">
+                            @if (!string.IsNullOrWhiteSpace(rx.Notes))
+                            {
+                                <div class="px-note">
+                                    <i class="fas fa-quote-left"></i>
+                                    <div>
+                                        <span class="px-note-lbl">Doctor's note</span>
+                                        <p class="px-note-text">@rx.Notes</p>
+                                    </div>
                                 </div>
-                                <p class="rx-notes-text">@rx.Notes</p>
-                            </div>
-                        }
+                            }
 
-                        @if (rx.Items != null && rx.Items.Any())
-                        {
-                            <div class="rx-meds-section">
-                                <div class="rx-section-label">
-                                    <i class="fas fa-pills"></i> Medications (@itemCount)
-                                </div>
-                                <div class="rx-meds-list">
+                            @if (rx.Items != null && rx.Items.Any())
+                            {
+                                <div class="px-meds">
                                     @foreach (var item in rx.Items)
                                     {
-                                        <div class="rx-med-row">
-                                            <div class="rx-med-icon">
-                                                <i class="fas fa-capsules"></i>
-                                            </div>
-                                            <div class="rx-med-content">
-                                                <div class="rx-med-name">@item.MedicineName</div>
-                                                <div class="rx-med-details">
+                                        <div class="px-med">
+                                            <div class="px-med-ico"><i class="fas fa-capsules"></i></div>
+                                            <div class="px-med-main">
+                                                <div class="px-med-name">@item.MedicineName</div>
+                                                <div class="px-med-pills">
                                                     @if (!string.IsNullOrWhiteSpace(item.Dosage))
                                                     {
-                                                        <span class="rx-detail-item">
-                                                            <i class="fas fa-weight"></i> @item.Dosage
-                                                        </span>
+                                                        <span class="px-pill"><i class="fas fa-weight-hanging"></i> @item.Dosage</span>
                                                     }
                                                     @if (!string.IsNullOrWhiteSpace(item.Frequency))
                                                     {
-                                                        <span class="rx-detail-item">
-                                                            <i class="fas fa-redo"></i> @item.Frequency
-                                                        </span>
+                                                        <span class="px-pill"><i class="fas fa-redo"></i> @item.Frequency</span>
                                                     }
                                                     @if (item.DurationDays > 0)
                                                     {
-                                                        <span class="rx-detail-item">
-                                                            <i class="fas fa-hourglass-half"></i> @item.DurationDays day@(item.DurationDays != 1 ? "s" : "")
-                                                        </span>
+                                                        <span class="px-pill"><i class="fas fa-hourglass-half"></i> @item.DurationDays day@(item.DurationDays != 1 ? "s" : "")</span>
                                                     }
                                                 </div>
                                                 @if (!string.IsNullOrWhiteSpace(item.Instructions))
                                                 {
-                                                    <div class="rx-med-instructions">
-                                                        <i class="fas fa-info-circle"></i>
-                                                        <span>@item.Instructions</span>
-                                                    </div>
+                                                    <div class="px-med-instr"><i class="fas fa-circle-info"></i> <span>@item.Instructions</span></div>
                                                 }
                                             </div>
                                         </div>
                                     }
                                 </div>
-                            </div>
-                        }
-                        else
-                        {
-                            <p class="rx-no-items">
-                                <i class="fas fa-info-circle"></i> No medication items recorded for this prescription.
-                            </p>
-                        }
-
-                    </div><!-- /rx-pcard-body -->
-                </div><!-- /rx-prescription-card -->
+                            }
+                            else
+                            {
+                                <p class="px-no-items"><i class="fas fa-circle-info"></i> No medication items recorded for this prescription.</p>
+                            }
+                        </div>
+                    </div>
+                </article>
             }
-        }
-    </div>
+        </div>
 
-</div><!-- /rx-wrap -->
+        <div class="px-no-results" id="pxNoResults" hidden>
+            <i class="fas fa-search"></i>
+            <p>No prescriptions match your search.</p>
+        </div>
+    }
+
+</div>
 
 @section Scripts {
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
-    // Expand / Collapse cards
-    function toggleCard(btn) {
-        const targetId = btn.dataset.target;
-        const body = document.getElementById(targetId);
+    function setOpen(card, open) {
+        const body = card.querySelector(".px-rx-body");
+        const top = card.querySelector(".px-rx-top");
+        const icon = card.querySelector(".px-toggle i");
         if (!body) return;
-
-        const expanded = btn.getAttribute("aria-expanded") === "true";
-
-        if (expanded) {
+        if (open) {
+            card.classList.add("open");
             body.style.maxHeight = body.scrollHeight + "px";
-            requestAnimationFrame(() => { body.style.maxHeight = "0"; });
-            btn.setAttribute("aria-expanded", "false");
-            btn.querySelector("i").style.transform = "rotate(0deg)";
+            top?.setAttribute("aria-expanded", "true");
+            if (icon) icon.style.transform = "rotate(180deg)";
         } else {
+            card.classList.remove("open");
             body.style.maxHeight = body.scrollHeight + "px";
-            btn.setAttribute("aria-expanded", "true");
-            btn.querySelector("i").style.transform = "rotate(180deg)";
+            requestAnimationFrame(() => { body.style.maxHeight = "0px"; });
+            top?.setAttribute("aria-expanded", "false");
+            if (icon) icon.style.transform = "rotate(0deg)";
         }
     }
 
-    document.querySelectorAll(".rx-expand-btn").forEach(btn => {
-        btn.addEventListener("click", function(e) {
-            e.stopPropagation();
-            toggleCard(this);
+    // initialise: open cards get their natural height
+    document.querySelectorAll(".px-rx").forEach(card => {
+        const body = card.querySelector(".px-rx-body");
+        if (!body) return;
+        if (card.classList.contains("open")) {
+            body.style.maxHeight = body.scrollHeight + "px";
+            card.querySelector(".px-toggle i").style.transform = "rotate(180deg)";
+        } else {
+            body.style.maxHeight = "0px";
+        }
+    });
+
+    function toggle(card) {
+        setOpen(card, !card.classList.contains("open"));
+    }
+
+    document.querySelectorAll(".px-rx-top").forEach(top => {
+        top.addEventListener("click", () => toggle(top.closest(".px-rx")));
+        top.addEventListener("keydown", e => {
+            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(top.closest(".px-rx")); }
         });
     });
 
-    // Click header to expand/collapse
-    document.querySelectorAll(".rx-pcard-header").forEach(header => {
-        header.addEventListener("click", function() {
-            const btn = this.querySelector(".rx-expand-btn");
-            if (btn) toggleCard(btn);
-        });
+    document.getElementById("pxExpandAll")?.addEventListener("click", () => {
+        document.querySelectorAll(".px-rx").forEach(c => { if (c.style.display !== "none") setOpen(c, true); });
+    });
+    document.getElementById("pxCollapseAll")?.addEventListener("click", () => {
+        document.querySelectorAll(".px-rx").forEach(c => setOpen(c, false));
     });
 
-    // Expand All / Collapse All
-    document.getElementById("expandAll")?.addEventListener("click", function() {
-        document.querySelectorAll(".rx-expand-btn").forEach(btn => {
-            if (btn.getAttribute("aria-expanded") !== "true") {
-                toggleCard(btn);
-            }
-        });
+    // recalc heights on resize so open cards stay correct
+    let rt;
+    window.addEventListener("resize", () => {
+        clearTimeout(rt);
+        rt = setTimeout(() => {
+            document.querySelectorAll(".px-rx.open .px-rx-body").forEach(b => { b.style.maxHeight = b.scrollHeight + "px"; });
+        }, 150);
     });
 
-    document.getElementById("collapseAll")?.addEventListener("click", function() {
-        document.querySelectorAll(".rx-expand-btn").forEach(btn => {
-            if (btn.getAttribute("aria-expanded") === "true") {
-                toggleCard(btn);
-            }
-        });
-    });
+    // ── search + filter ──
+    const search = document.getElementById("pxSearch");
+    const clearBtn = document.getElementById("pxClear");
+    const noResults = document.getElementById("pxNoResults");
 
-    // Filter tabs
-    document.querySelectorAll(".rx-tab").forEach(tab => {
+    function applyFilters() {
+        const query = (search?.value || "").toLowerCase().trim();
+        const filter = document.querySelector(".px-tab.active")?.dataset.filter ?? "all";
+        let visible = 0;
+
+        document.querySelectorAll(".px-rx").forEach(card => {
+            const doctor = card.dataset.doctor ?? "";
+            const meds = card.dataset.medicines ?? "";
+            const date = card.dataset.date ?? "";
+            const isRecent = card.dataset.recent === "true";
+
+            const matchesSearch = !query || doctor.includes(query) || meds.includes(query) || date.includes(query);
+            const matchesFilter = filter === "all" || (filter === "recent" && isRecent);
+            const show = matchesSearch && matchesFilter;
+            card.style.display = show ? "" : "none";
+            if (show) visible++;
+        });
+
+        if (noResults) noResults.hidden = visible !== 0;
+    }
+
+    search?.addEventListener("input", function () {
+        clearBtn.style.display = this.value ? "flex" : "none";
+        applyFilters();
+    });
+    clearBtn?.addEventListener("click", function () {
+        search.value = "";
+        this.style.display = "none";
+        applyFilters();
+    });
+    document.querySelectorAll(".px-tab").forEach(tab => {
         tab.addEventListener("click", function () {
-            document.querySelectorAll(".rx-tab").forEach(t => t.classList.remove("active"));
+            document.querySelectorAll(".px-tab").forEach(t => t.classList.remove("active"));
             this.classList.add("active");
             applyFilters();
         });
     });
-
-    // Search
-    const searchInput = document.getElementById("rxSearch");
-    const clearBtn = document.getElementById("clearSearch");
-
-    searchInput.addEventListener("input", function() {
-        clearBtn.style.display = this.value ? "flex" : "none";
-        applyFilters();
-    });
-
-    clearBtn?.addEventListener("click", function() {
-        searchInput.value = "";
-        this.style.display = "none";
-        applyFilters();
-    });
-
-    function applyFilters() {
-        const query = searchInput.value.toLowerCase().trim();
-        const filter = document.querySelector(".rx-tab.active")?.dataset.filter ?? "all";
-
-        document.querySelectorAll(".prescription-card").forEach(card => {
-            const doctor = card.dataset.doctor ?? "";
-            const medicines = card.dataset.medicines ?? "";
-            const date = card.dataset.date ?? "";
-            const isRecent = card.dataset.recent === "true";
-
-            const matchesSearch = !query ||
-                doctor.includes(query) ||
-                medicines.includes(query) ||
-                date.includes(query);
-
-            const matchesFilter = filter === "all" ||
-                (filter === "recent" && isRecent);
-
-            card.style.display = (matchesSearch && matchesFilter) ? "block" : "none";
-        });
-    }
 });
 </script>
 }

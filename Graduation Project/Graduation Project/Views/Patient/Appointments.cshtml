@@ -115,15 +115,6 @@
             ("🌸","Delivery Preparation","Final steps before you meet your baby."),
         };
 
-    // ── This week's care plan items ──
-    var weekPlan = new (string Icon, string Title, string Sub)[]
-    {
-        ("fa-heart-pulse", "Log your blood pressure", "A quick daily check-in"),
-        ("fa-droplet",     "Review your blood sugar", "Keep your levels balanced"),
-        ("fa-calendar-check", "Attend your prenatal visit", nextAppt != null ? $"On {nextAppt.Date:MMM dd}" : "Book one when you're ready"),
-        ("fa-notes-medical", "Note any new symptoms", "So nothing gets forgotten"),
-        ("fa-circle-question", "Prepare questions to ask", "Make the most of your visit"),
-    };
 }
 
 @section Head {
@@ -157,88 +148,49 @@
             text-transform:uppercase; letter-spacing:1.2px; color:var(--rose-d);
         }
 
-        /* ── 1 · HERO ── */
+        /* ── 1 · HEADER (compact) ── */
         .pj-hero {
-            position:relative; overflow:hidden; border-radius:30px; padding:38px 44px;
-            border:1px solid rgba(255,255,255,.7); box-shadow:var(--sh);
+            position:relative; overflow:hidden; border-radius:24px; padding:22px 28px;
+            border:1px solid rgba(255,255,255,.7); box-shadow:var(--sh-sm);
             background:
-                radial-gradient(125% 150% at 0% 0%, #ffe4ea 0%, transparent 55%),
-                radial-gradient(130% 150% at 100% 100%, #efe2ff 0%, transparent 55%),
-                linear-gradient(120deg, #ffeef1 0%, #fde7ec 48%, #f6ecff 100%);
+                radial-gradient(120% 160% at 0% 0%, #ffe4ea 0%, transparent 52%),
+                radial-gradient(120% 160% at 100% 100%, #efe2ff 0%, transparent 52%),
+                linear-gradient(120deg, #fff3f5 0%, #fde9ee 48%, #f6effe 100%);
         }
         .pj-hero-botanical { position:absolute; inset:0; z-index:0; pointer-events:none; }
-        .pj-hero-botanical .pj-bot { position:absolute; color:#dc9bb6; opacity:.4; }
-        .pj-bot-1 { width:96px; height:134px; left:-16px; bottom:-30px; transform:rotate(-13deg); }
-        .pj-bot-2 { width:82px; height:115px; right:-14px; top:-26px; transform:rotate(166deg); opacity:.34; }
-        .pj-hero-grid {
-            position:relative; z-index:1; display:grid;
-            grid-template-columns:1.4fr .9fr; gap:38px; align-items:center;
+        .pj-hero-botanical .pj-bot { position:absolute; color:#dc9bb6; opacity:.32; }
+        .pj-bot-1 { width:70px; height:98px; left:-14px; bottom:-26px; transform:rotate(-13deg); }
+        .pj-bot-2 { width:60px; height:84px; right:-12px; top:-22px; transform:rotate(166deg); opacity:.26; }
+        .pj-hero-bar {
+            position:relative; z-index:1; display:flex; align-items:center; justify-content:space-between;
+            gap:24px; flex-wrap:wrap;
         }
-        .pj-hero-week {
-            font-size:3.2rem; font-weight:800; line-height:1; letter-spacing:-1.8px;
-            margin:12px 0 0; display:flex; align-items:baseline; gap:12px;
-        }
-        .pj-hero-week-num { background:linear-gradient(120deg,var(--rose),#c084fc); -webkit-background-clip:text; background-clip:text; color:transparent; }
-        .pj-hero-week-of { font-size:1.05rem; font-weight:700; color:var(--ink-3); letter-spacing:0; }
-        .pj-hero-lead { font-size:1.02rem; color:var(--ink-2); margin:6px 0 0; }
-        .pj-hero-tri {
-            display:inline-block; margin-top:14px; font-size:.8rem; font-weight:800; color:var(--violet-d);
-            background:rgba(167,139,250,.16); padding:6px 16px; border-radius:30px;
-        }
-        .pj-hero-facts { display:flex; flex-wrap:wrap; gap:14px; margin-top:24px; }
-        .pj-hero-fact {
-            display:flex; align-items:center; gap:12px; background:rgba(255,255,255,.72);
-            border:1px solid rgba(255,255,255,.9); border-radius:18px; padding:13px 17px; min-width:200px;
+        .pj-hero-intro { min-width:240px; }
+        .pj-hero-title { font-size:1.7rem; font-weight:800; letter-spacing:-.6px; margin:4px 0 0; }
+        .pj-hero-title b { background:linear-gradient(120deg,var(--rose),#c084fc); -webkit-background-clip:text; background-clip:text; color:transparent; font-weight:800; }
+        .pj-hero-sub { font-size:.92rem; color:var(--ink-2); margin:4px 0 0; }
+
+        .pj-hero-chips { display:flex; flex-wrap:wrap; gap:12px; }
+        .pj-hchip {
+            display:flex; align-items:center; gap:11px; background:rgba(255,255,255,.78);
+            border:1px solid rgba(255,255,255,.9); border-radius:16px; padding:10px 15px;
             box-shadow:var(--sh-sm); backdrop-filter:blur(4px);
         }
-        .pj-hero-fact-ico {
-            width:42px; height:42px; flex-shrink:0; border-radius:13px; display:flex;
-            align-items:center; justify-content:center; font-size:1.05rem;
+        .pj-hchip-ico {
+            width:38px; height:38px; flex-shrink:0; border-radius:11px; display:flex;
+            align-items:center; justify-content:center; font-size:1rem;
         }
-        .pj-hero-fact-ico.rose { background:var(--rose-lt); color:var(--rose); }
-        .pj-hero-fact-ico.violet { background:var(--violet-lt); color:var(--violet-d); }
-        .pj-hero-fact-ico.sky { background:var(--sky-lt); color:var(--sky); }
-        .pj-hero-fact-lbl { font-size:.7rem; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.6px; }
-        .pj-hero-fact-val { font-size:1.02rem; font-weight:800; color:var(--ink); line-height:1.25; }
-
-        .pj-hero-art { display:flex; flex-direction:column; align-items:center; gap:18px; }
-        .pj-hero-orb {
-            position:relative; width:178px; height:178px; border-radius:50%; display:flex;
-            align-items:center; justify-content:center;
-            background:radial-gradient(circle at 30% 25%, #fff, #fdeef4 58%, #f1e9ff);
-            box-shadow:inset 0 2px 12px rgba(255,255,255,.9), 0 18px 38px rgba(120,80,110,.18);
-        }
-        .pj-hero-orb-ring {
-            position:absolute; inset:-9px; border-radius:50%;
-            background:conic-gradient(from 90deg,
-                #fb7185 0%,
-                #f472b6 calc(var(--ring,70) * .5%),
-                #c084fc calc(var(--ring,70) * 1%),
-                rgba(192,132,252,.14) calc(var(--ring,70) * 1%) 100%);
-            -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px));
-                    mask:radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px));
-        }
-        .pj-hero-orb-emoji { font-size:4.6rem; line-height:1; animation:pjFloat 4s ease-in-out infinite; }
-        .pj-hero-orb-pct {
-            position:absolute; bottom:6px; left:50%; transform:translateX(-50%);
-            background:#fff; color:var(--rose-d); font-size:.72rem; font-weight:800;
-            padding:4px 12px; border-radius:20px; box-shadow:var(--sh-sm); white-space:nowrap;
-        }
-        .pj-hero-step {
-            text-align:center; background:rgba(255,255,255,.78); border:1px solid rgba(255,255,255,.9);
-            border-radius:20px; padding:14px 22px; box-shadow:var(--sh-sm); min-width:230px; backdrop-filter:blur(4px);
-        }
-        .pj-hero-step-lbl { font-size:.7rem; font-weight:800; text-transform:uppercase; letter-spacing:.8px; color:var(--ink-3); }
-        .pj-hero-step-name { font-size:1.12rem; font-weight:800; color:var(--ink); margin-top:3px; }
-        .pj-hero-step-meta { font-size:.84rem; font-weight:700; color:var(--rose-d); margin-top:3px; }
-        @@keyframes pjFloat { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-9px);} }
+        .pj-hchip-ico.rose { background:var(--rose-lt); color:var(--rose); }
+        .pj-hchip-ico.violet { background:var(--violet-lt); color:var(--violet-d); }
+        .pj-hchip-ico.sky { background:var(--sky-lt); color:var(--sky); }
+        .pj-hchip-lbl { display:block; font-size:.66rem; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.6px; }
+        .pj-hchip-val { display:block; font-size:.94rem; font-weight:800; color:var(--ink); line-height:1.25; }
 
         @@media (max-width:860px) {
-            .pj-hero { padding:30px 24px; }
-            .pj-hero-grid { grid-template-columns:1fr; gap:28px; text-align:center; }
-            .pj-hero-week { justify-content:center; }
-            .pj-hero-facts { justify-content:center; }
-            .pj-hero-art { order:-1; }
+            .pj-hero { padding:20px 20px; }
+            .pj-hero-bar { justify-content:flex-start; }
+            .pj-hero-chips { width:100%; }
+            .pj-hchip { flex:1; min-width:150px; }
         }
 
         /* ── Generic card / section ── */
@@ -516,52 +468,37 @@
             </svg>
         </div>
 
-        <div class="pj-hero-grid">
-            <div class="pj-hero-main">
-                <span class="pj-eyebrow"><i class="fas fa-heart"></i> Your Pregnancy Care Journey</span>
-                @if (Model.HasActivePregnancy || week > 0)
-                {
-                    <h1 class="pj-hero-week">
-                        Week <span class="pj-hero-week-num">@week</span>
-                        <span class="pj-hero-week-of">of 40</span>
-                    </h1>
-                    <p class="pj-hero-lead">@firstName, here's what's next on your path to meeting your baby.</p>
-                    <span class="pj-hero-tri">@Model.Trimester</span>
-                }
-                else
-                {
-                    <h1 class="pj-hero-week">Hello, <span class="pj-hero-week-num">@firstName</span></h1>
-                    <p class="pj-hero-lead">When your journey begins, your care milestones will appear here to guide you every step of the way.</p>
-                }
-
-                <div class="pj-hero-facts">
-                    <div class="pj-hero-fact">
-                        <span class="pj-hero-fact-ico rose"><i class="fas fa-user-md"></i></span>
-                        <span>
-                            <span class="pj-hero-fact-lbl">Primary Doctor</span>
-                            <span class="pj-hero-fact-val">@(primaryDocName ?? "Not chosen yet")</span>
-                        </span>
-                    </div>
-                    <div class="pj-hero-fact">
-                        <span class="pj-hero-fact-ico violet"><i class="fas fa-baby-carriage"></i></span>
-                        <span>
-                            <span class="pj-hero-fact-lbl">Expected Delivery</span>
-                            <span class="pj-hero-fact-val">@(Model.DueDate.HasValue ? Model.DueDate.Value.ToString("MMMM dd, yyyy") : "To be confirmed")</span>
-                        </span>
-                    </div>
-                </div>
+        <div class="pj-hero-bar">
+            <div class="pj-hero-intro">
+                <span class="pj-eyebrow"><i class="fas fa-calendar-heart"></i> Your Care Journey</span>
+                <h1 class="pj-hero-title">@firstName's <b>Appointments</b></h1>
+                <p class="pj-hero-sub">Keep every visit on track — here's what's coming up next.</p>
             </div>
 
-            <div class="pj-hero-art">
-                <div class="pj-hero-orb" style="--ring:@percent">
-                    <span class="pj-hero-orb-ring"></span>
-                    <span class="pj-hero-orb-emoji">🤰</span>
-                    <span class="pj-hero-orb-pct">@percent% of your journey</span>
+            <div class="pj-hero-chips">
+                @if (Model.HasActivePregnancy || week > 0)
+                {
+                    <div class="pj-hchip">
+                        <span class="pj-hchip-ico violet">🤰</span>
+                        <span>
+                            <span class="pj-hchip-lbl">Pregnancy</span>
+                            <span class="pj-hchip-val">Week @week · @Model.Trimester</span>
+                        </span>
+                    </div>
+                }
+                <div class="pj-hchip">
+                    <span class="pj-hchip-ico rose"><i class="fas fa-user-md"></i></span>
+                    <span>
+                        <span class="pj-hchip-lbl">Primary Doctor</span>
+                        <span class="pj-hchip-val">@(primaryDocName ?? "Not chosen yet")</span>
+                    </span>
                 </div>
-                <div class="pj-hero-step">
-                    <div class="pj-hero-step-lbl">Next Care Step</div>
-                    <div class="pj-hero-step-name">@nextStepName</div>
-                    <div class="pj-hero-step-meta"><i class="fas fa-clock"></i> @nextStepMeta</div>
+                <div class="pj-hchip">
+                    <span class="pj-hchip-ico sky"><i class="fas fa-calendar-check"></i></span>
+                    <span>
+                        <span class="pj-hchip-lbl">Next Visit</span>
+                        <span class="pj-hchip-val">@(nextAppt != null ? (daysToNext == 0 ? "Today" : daysToNext == 1 ? "Tomorrow" : $"In {daysToNext} days") : "Not scheduled")</span>
+                    </span>
                 </div>
             </div>
         </div>
@@ -774,31 +711,86 @@
     <section class="pj-card" data-progress-group>
         <div class="pj-card-head">
             <h2><span class="pj-dot mint"></span> This Week's Care Plan</h2>
-            <span class="pj-card-sub">Week @week · small loving steps</span>
+            <span class="pj-card-sub">Week @week · prepare &amp; care for your next visit</span>
         </div>
         <div class="pj-progress">
             <div class="pj-progress-track"><div class="pj-progress-fill"></div></div>
-            <span class="pj-progress-count">0/@weekPlan.Length</span>
+            <span class="pj-progress-count">0/6</span>
         </div>
         <div class="pj-checklist">
-            @for (int i = 0; i < weekPlan.Length; i++)
-            {
-                var item = weekPlan[i];
-                <div class="pj-check-row">
-                    <button type="button" class="pj-check" data-key="pj_week_@(patientId)_@(week)_@i">
-                        <span class="pj-check-box"><i class="fas fa-check"></i></span>
-                        <span class="pj-check-ico"><i class="fas @item.Icon"></i></span>
-                        <span class="pj-check-body">
-                            <span class="pj-check-title">@item.Title</span>
-                            <span class="pj-check-sub">@item.Sub</span>
-                        </span>
-                    </button>
-                </div>
-            }
+            <div class="pj-check-row">
+                <button type="button" class="pj-check" data-key="pj_care_@(patientId)_@(week)_readings">
+                    <span class="pj-check-box"><i class="fas fa-check"></i></span>
+                    <span class="pj-check-ico"><i class="fas fa-heart-pulse"></i></span>
+                    <span class="pj-check-body">
+                        <span class="pj-check-title">Update your health readings</span>
+                        <span class="pj-check-sub">Log your blood pressure &amp; blood sugar</span>
+                    </span>
+                </button>
+                <a class="pj-check-link" href="/Patient/Index/@patientId" title="Log readings"><i class="fas fa-arrow-right"></i></a>
+            </div>
+
+            <div class="pj-check-row">
+                <button type="button" class="pj-check" data-key="pj_care_@(patientId)_@(week)_visit">
+                    <span class="pj-check-box"><i class="fas fa-check"></i></span>
+                    <span class="pj-check-ico"><i class="fas fa-calendar-check"></i></span>
+                    <span class="pj-check-body">
+                        <span class="pj-check-title">Attend your prenatal visit</span>
+                        <span class="pj-check-sub">@(nextAppt != null ? $"On {nextAppt.Date:MMM dd}" : "Book one when you're ready")</span>
+                    </span>
+                </button>
+            </div>
+
+            <div class="pj-check-row">
+                <button type="button" class="pj-check" data-key="pj_care_@(patientId)_@(week)_sym">
+                    <span class="pj-check-box"><i class="fas fa-check"></i></span>
+                    <span class="pj-check-ico"><i class="fas fa-notes-medical"></i></span>
+                    <span class="pj-check-body">
+                        <span class="pj-check-title">Note symptoms to discuss</span>
+                        <span class="pj-check-sub">Anything new or unusual this week</span>
+                    </span>
+                </button>
+            </div>
+
+            <div class="pj-check-row">
+                <button type="button" class="pj-check" data-key="pj_care_@(patientId)_@(week)_q">
+                    <span class="pj-check-box"><i class="fas fa-check"></i></span>
+                    <span class="pj-check-ico"><i class="fas fa-circle-question"></i></span>
+                    <span class="pj-check-body">
+                        <span class="pj-check-title">Prepare questions to ask</span>
+                        <span class="pj-check-sub">Jot them below so you don't forget</span>
+                    </span>
+                </button>
+            </div>
+            <textarea class="pj-notes" data-key="pj_prep_notes_@(patientId)" placeholder="e.g. Is my weight gain on track? Which symptoms should I watch for?"></textarea>
+
+            <div class="pj-check-row">
+                <button type="button" class="pj-check" data-key="pj_care_@(patientId)_@(week)_rep">
+                    <span class="pj-check-box"><i class="fas fa-check"></i></span>
+                    <span class="pj-check-ico"><i class="fas fa-file-medical"></i></span>
+                    <span class="pj-check-body">
+                        <span class="pj-check-title">Upload recent reports</span>
+                        <span class="pj-check-sub">Let your doctor see your latest results</span>
+                    </span>
+                </button>
+                <a class="pj-check-link" href="/PatientTests/TestsUpload/@patientId" title="Upload reports"><i class="fas fa-arrow-right"></i></a>
+            </div>
+
+            <div class="pj-check-row">
+                <button type="button" class="pj-check" data-key="pj_care_@(patientId)_@(week)_med">
+                    <span class="pj-check-box"><i class="fas fa-check"></i></span>
+                    <span class="pj-check-ico"><i class="fas fa-pills"></i></span>
+                    <span class="pj-check-body">
+                        <span class="pj-check-title">Review your medication notes</span>
+                        <span class="pj-check-sub">Bring an up-to-date list</span>
+                    </span>
+                </button>
+                <a class="pj-check-link" href="/PatientMedication/Index/@patientId" title="View medications"><i class="fas fa-arrow-right"></i></a>
+            </div>
         </div>
     </section>
 
-    
+
 
 
 
@@ -846,78 +838,6 @@
                 <p>Your visit memories will gather here. Each appointment becomes a gentle milestone in your story.</p>
             </div>
         }
-    </section>
-
-    <!-- ════════ 8 · PREPARE FOR YOUR NEXT VISIT ════════ -->
-    <section class="pj-card" id="pj-prepare" data-progress-group>
-        <div class="pj-card-head">
-            <h2><span class="pj-dot sky"></span> Prepare for Your Next Visit</h2>
-            <span class="pj-card-sub">A little prep goes a long way</span>
-        </div>
-        <div class="pj-progress">
-            <div class="pj-progress-track"><div class="pj-progress-fill"></div></div>
-            <span class="pj-progress-count">0/5</span>
-        </div>
-        <div class="pj-checklist">
-            <div class="pj-check-row">
-                <button type="button" class="pj-check" data-key="pj_prep_@(patientId)_q">
-                    <span class="pj-check-box"><i class="fas fa-check"></i></span>
-                    <span class="pj-check-ico"><i class="fas fa-circle-question"></i></span>
-                    <span class="pj-check-body">
-                        <span class="pj-check-title">Write down your questions</span>
-                        <span class="pj-check-sub">Jot them below so you don't forget</span>
-                    </span>
-                </button>
-            </div>
-            <textarea class="pj-notes" data-key="pj_prep_notes_@(patientId)" placeholder="e.g. Is my weight gain on track? Which symptoms should I watch for?"></textarea>
-
-            <div class="pj-check-row">
-                <button type="button" class="pj-check" data-key="pj_prep_@(patientId)_sym">
-                    <span class="pj-check-box"><i class="fas fa-check"></i></span>
-                    <span class="pj-check-ico"><i class="fas fa-notes-medical"></i></span>
-                    <span class="pj-check-body">
-                        <span class="pj-check-title">Note symptoms to discuss</span>
-                        <span class="pj-check-sub">Anything new or unusual this week</span>
-                    </span>
-                </button>
-            </div>
-
-            <div class="pj-check-row">
-                <button type="button" class="pj-check" data-key="pj_prep_@(patientId)_rep">
-                    <span class="pj-check-box"><i class="fas fa-check"></i></span>
-                    <span class="pj-check-ico"><i class="fas fa-file-medical"></i></span>
-                    <span class="pj-check-body">
-                        <span class="pj-check-title">Upload recent reports</span>
-                        <span class="pj-check-sub">Let your doctor see your latest results</span>
-                    </span>
-                </button>
-                <a class="pj-check-link" href="/PatientTests/TestsUpload/@patientId" title="Upload reports"><i class="fas fa-arrow-right"></i></a>
-            </div>
-
-            <div class="pj-check-row">
-                <button type="button" class="pj-check" data-key="pj_prep_@(patientId)_read">
-                    <span class="pj-check-box"><i class="fas fa-check"></i></span>
-                    <span class="pj-check-ico"><i class="fas fa-heart-pulse"></i></span>
-                    <span class="pj-check-body">
-                        <span class="pj-check-title">Update your health readings</span>
-                        <span class="pj-check-sub">Blood pressure & blood sugar</span>
-                    </span>
-                </button>
-                <a class="pj-check-link" href="/Patient/Index/@patientId" title="Log readings"><i class="fas fa-arrow-right"></i></a>
-            </div>
-
-            <div class="pj-check-row">
-                <button type="button" class="pj-check" data-key="pj_prep_@(patientId)_med">
-                    <span class="pj-check-box"><i class="fas fa-check"></i></span>
-                    <span class="pj-check-ico"><i class="fas fa-pills"></i></span>
-                    <span class="pj-check-body">
-                        <span class="pj-check-title">Review your medication notes</span>
-                        <span class="pj-check-sub">Bring an up-to-date list</span>
-                    </span>
-                </button>
-                <a class="pj-check-link" href="/PatientMedication/Index/@patientId" title="View medications"><i class="fas fa-arrow-right"></i></a>
-            </div>
-        </div>
     </section>
 
 </div>

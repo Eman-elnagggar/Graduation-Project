@@ -336,7 +336,22 @@
     .nai-emg { grid-column:1 / -1; }
 }
 @media (max-width:600px) {
-    .nai-rail { grid-template-columns:1fr; }
+    .nai-rail { display:none; }
+
+    /* Focus the page on the chat — fill the screen, no trailing empty space.
+       These overrides only load on the chatbot page (page-scoped stylesheet). */
+    body.patient-app .main-content { min-height:0; }
+    body.patient-app .page-content { padding:0; }
+    .nai-shell {
+        height:calc(100vh - 68px);
+        height:calc(100dvh - 68px); /* 68px = sticky top nav */
+        min-height:0;
+    }
+    .nai-chat {
+        height:100%; min-height:0;
+        border-radius:0; border-left:0; border-right:0; border-bottom:0;
+    }
+
     .nai-msg-body { max-width:86%; }
     .nai-head { padding:13px 16px; }
     .nai-stream { padding:14px 16px 20px; }
