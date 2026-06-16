@@ -4,6 +4,7 @@
     ViewData["Title"] = "My Places";
     ViewData["PatientId"] = Model.Patient.PatientID;
     ViewData["ActivePage"] = "Places";
+    ViewData["HidePageHeader"] = true;
 
     var total = Model.Places.Count();
     var hospitals = Model.Places.Count(p => p.Type?.ToLower() == "hospital");
