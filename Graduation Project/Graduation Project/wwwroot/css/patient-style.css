@@ -5017,7 +5017,7 @@ body.patient-app .main-content {
 .pnav-brand-icon img { width: 44px; height: 44px; object-fit: contain; }
 
 /* Menu */
-.pnav-menu { margin-left: 8px; }
+.pnav-menu { flex: 1; display: flex; justify-content: center; }
 .pnav-list {
   list-style: none; margin: 0; padding: 0;
   display: flex; align-items: center; gap: 2px;
@@ -5168,6 +5168,7 @@ body.patient-app .main-content {
   .pnav-user .pnav-caret { display: none; }
 
   .pnav-menu {
+    display: block;
     position: fixed; top: var(--pn-h); left: 0; bottom: 0;
     width: min(330px, 86vw);
     background: #fff;

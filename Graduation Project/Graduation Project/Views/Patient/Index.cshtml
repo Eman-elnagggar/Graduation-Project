@@ -83,23 +83,28 @@
     if (insights.Count > 3) insights = insights.Take(3).ToList();
 
     // ── Weekly trend points (chronological) ──
-    var bpSeries = (Model.WeeklyBloodPressureReadings ?? new List<PatientBloodPressure>())
+    // We keep the plotted value (systolic for BP) plus a human-readable label
+    // ("120/80", "95") and the reading date, so every point on the sparkline
+    // can show its own value instead of only the latest reading.
+    var bpPoints = (Model.WeeklyBloodPressureReadings ?? new List<PatientBloodPressure>())
         .OrderByDescending(r => r.DateTime).Take(8)
         .Select(r => {
             var pp = (r.BloodPressure ?? "").Split('/');
             int sys = 0; if (pp.Length == 2) int.TryParse(pp[0], out sys);
-            return new { r.DateTime, Val = (double)sys };
+            return new { r.DateTime, Val = (double)sys, Label = (r.BloodPressure ?? "").Trim() };
         })
         .Where(x => x.Val > 0)
         .OrderBy(x => x.DateTime)
-        .Select(x => x.Val).ToList();
+        .Select(x => (Val: x.Val, Label: x.Label, Date: x.DateTime)).ToList();
+    var bpSeries = bpPoints.Select(x => x.Val).ToList();
 
-    var bsSeries = (Model.WeeklyBloodSugarReadings ?? new List<PatientBloodSugar>())
+    var bsPoints = (Model.WeeklyBloodSugarReadings ?? new List<PatientBloodSugar>())
         .OrderByDescending(r => r.DateTime).Take(8)
         .Select(r => new { r.DateTime, Val = r.BloodSugar })
         .Where(x => x.Val > 0)
         .OrderBy(x => x.DateTime)
-        .Select(x => x.Val).ToList();
+        .Select(x => (Val: x.Val, Label: x.Val.ToString("0"), Date: x.DateTime)).ToList();
+    var bsSeries = bsPoints.Select(x => x.Val).ToList();
 
     // Pregnancy tips (curated, swipeable)
     var tips = new List<(string Cat, string Emoji, string Title, string Text)>
@@ -190,6 +195,28 @@
             pts.Add($"0,{height}");
         }
         return string.Join(" ", pts);
+    }
+
+    // Returns each point's position as a percentage of the chart box (so HTML
+    // labels can be overlaid on the non-uniformly-stretched SVG without being
+    // distorted) together with its display label.
+    private List<(double XPct, double YPct, string Label, string Date)> BuildLabels(
+        List<(double Val, string Label, DateTime Date)> pts)
+    {
+        var result = new List<(double, double, string, string)>();
+        if (pts == null || pts.Count == 0) return result;
+        double max = pts.Max(p => p.Val);
+        double min = pts.Min(p => p.Val);
+        double range = Math.Max(1, max - min);
+        double pad = 6, height = 90;
+        for (int i = 0; i < pts.Count; i++)
+        {
+            double xPct = pts.Count == 1 ? 50 : i * (100.0 / (pts.Count - 1));
+            double norm = (pts[i].Val - min) / range;
+            double y = height - pad - norm * (height - pad * 2);
+            result.Add((xPct, y / height * 100.0, pts[i].Label, pts[i].Date.ToString("MMM d")));
+        }
+        return result;
     }
 }
 
@@ -681,16 +708,24 @@
                 </div>
                 @if (bpSeries.Count >= 2)
                 {
-                    <svg class="ph-spark" viewBox="0 0 300 90" preserveAspectRatio="none">
-                        <defs>
-                            <linearGradient id="phGradBp" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stop-color="#fb7185" stop-opacity="0.35"></stop>
-                                <stop offset="100%" stop-color="#fb7185" stop-opacity="0"></stop>
-                            </linearGradient>
-                        </defs>
-                        <polygon fill="url(#phGradBp)" points="@BuildAreaPoints(bpSeries, 300, 90, true)"></polygon>
-                        <polyline fill="none" stroke="#fb7185" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="@BuildAreaPoints(bpSeries, 300, 90, false)"></polyline>
-                    </svg>
+                    <div class="ph-spark-wrap">
+                        <svg class="ph-spark" viewBox="0 0 300 90" preserveAspectRatio="none">
+                            <defs>
+                                <linearGradient id="phGradBp" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="#fb7185" stop-opacity="0.35"></stop>
+                                    <stop offset="100%" stop-color="#fb7185" stop-opacity="0"></stop>
+                                </linearGradient>
+                            </defs>
+                            <polygon fill="url(#phGradBp)" points="@BuildAreaPoints(bpSeries, 300, 90, true)"></polygon>
+                            <polyline fill="none" stroke="#fb7185" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="@BuildAreaPoints(bpSeries, 300, 90, false)"></polyline>
+                        </svg>
+                        @foreach (var p in BuildLabels(bpPoints))
+                        {
+                            <div class="ph-spark-pt bp" style="left:@p.XPct.ToString("0.#", CultureInfo.InvariantCulture)%; top:@p.YPct.ToString("0.#", CultureInfo.InvariantCulture)%;">
+                                <span class="ph-spark-val" title="@p.Date">@p.Label</span>
+                            </div>
+                        }
+                    </div>
                 }
                 else
                 {
@@ -705,16 +740,24 @@
                 </div>
                 @if (bsSeries.Count >= 2)
                 {
-                    <svg class="ph-spark" viewBox="0 0 300 90" preserveAspectRatio="none">
-                        <defs>
-                            <linearGradient id="phGradBs" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.35"></stop>
-                                <stop offset="100%" stop-color="#a78bfa" stop-opacity="0"></stop>
-                            </linearGradient>
-                        </defs>
-                        <polygon fill="url(#phGradBs)" points="@BuildAreaPoints(bsSeries, 300, 90, true)"></polygon>
-                        <polyline fill="none" stroke="#a78bfa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="@BuildAreaPoints(bsSeries, 300, 90, false)"></polyline>
-                    </svg>
+                    <div class="ph-spark-wrap">
+                        <svg class="ph-spark" viewBox="0 0 300 90" preserveAspectRatio="none">
+                            <defs>
+                                <linearGradient id="phGradBs" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.35"></stop>
+                                    <stop offset="100%" stop-color="#a78bfa" stop-opacity="0"></stop>
+                                </linearGradient>
+                            </defs>
+                            <polygon fill="url(#phGradBs)" points="@BuildAreaPoints(bsSeries, 300, 90, true)"></polygon>
+                            <polyline fill="none" stroke="#a78bfa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="@BuildAreaPoints(bsSeries, 300, 90, false)"></polyline>
+                        </svg>
+                        @foreach (var p in BuildLabels(bsPoints))
+                        {
+                            <div class="ph-spark-pt bs" style="left:@p.XPct.ToString("0.#", CultureInfo.InvariantCulture)%; top:@p.YPct.ToString("0.#", CultureInfo.InvariantCulture)%;">
+                                <span class="ph-spark-val" title="@p.Date">@p.Label</span>
+                            </div>
+                        }
+                    </div>
                 }
                 else
                 {
@@ -1427,6 +1470,15 @@ document.addEventListener('DOMContentLoaded', function () {
 .ph-trend-title { font-weight:700; font-size:.95rem; }
 .ph-trend-now { font-weight:700; color:var(--ink-2); font-size:.95rem; }
 .ph-spark { width:100%; height:90px; display:block; }
+.ph-spark-wrap { position:relative; margin-top:24px; }
+.ph-spark-pt { position:absolute; width:7px; height:7px; border-radius:50%; transform:translate(-50%,-50%); z-index:1; }
+.ph-spark-pt.bp { background:#fb7185; box-shadow:0 0 0 3px rgba(251,113,133,.18); }
+.ph-spark-pt.bs { background:#a78bfa; box-shadow:0 0 0 3px rgba(167,139,250,.18); }
+.ph-spark-val {
+    position:absolute; left:50%; bottom:calc(100% + 5px); transform:translateX(-50%);
+    font-size:.66rem; font-weight:700; line-height:1; white-space:nowrap; color:var(--ink-2);
+    background:#fff; padding:2px 6px; border-radius:7px; box-shadow:0 1px 5px rgba(0,0,0,.10);
+}
 .ph-trend-empty { padding:28px 0; text-align:center; color:var(--ink-3); font-size:.86rem; }
 
 /* ── TIPS ── */

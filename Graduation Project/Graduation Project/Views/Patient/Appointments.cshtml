@@ -1,942 +1,1195 @@
-﻿@model Graduation_Project.ViewModels.PatientAppointmentsViewModel
+@model Graduation_Project.ViewModels.PatientAppointmentsViewModel
+@using System.Linq
 @{
     Layout = "~/Views/Shared/_PatientLayout.cshtml";
-    ViewData["Title"] = "My Appointments";
+    ViewData["Title"] = "Care Journey";
     ViewData["PatientId"] = Model.Patient.PatientID;
     ViewData["ActivePage"] = "Appointments";
     ViewData["UserName"] = Model.UserName;
-
-    var nameParts = (Model.UserName ?? "Patient").Split(' ', StringSplitOptions.RemoveEmptyEntries);
-    var firstName = nameParts.Length > 0 ? nameParts[0] : "Patient";
-    ViewData["PageTitle"] = "Appointments";
-    ViewData["PageTitleHtml"] = $"Appointments for <span class='topbar-accent'>{firstName}</span>";
-    ViewData["PageSubtitle"] = "Manage upcoming and past visits";
+    ViewData["HidePageHeader"] = true;
 
     var patientId = Model.Patient.PatientID;
+    var firstName = (Model.UserName ?? "Mama").Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Mama";
+
+    var week = Math.Clamp(Model.PregnancyWeek, 0, 40);
+    var percent = Math.Clamp(Model.PregnancyProgressPercent, 0, 100);
+    var weeksLeft = Math.Max(0, 40 - week);
+
+    // ── Next visit (soonest upcoming) ──
+    var nextAppt = Model.UpcomingAppointments.FirstOrDefault();
+    int? daysToNext = nextAppt != null ? Math.Max(0, (int)(nextAppt.Date.Date - DateTime.Today).TotalDays) : (int?)null;
+
+    var nextDocName = nextAppt?.Doctor?.User != null
+        ? $"Dr. {nextAppt.Doctor.User.FirstName} {nextAppt.Doctor.User.LastName}".Trim()
+        : "Your doctor";
+    var nextReason = nextAppt?.Booking?.Reason;
+    if (string.IsNullOrWhiteSpace(nextReason)) nextReason = "Prenatal Visit";
+    var nextStatus = nextAppt?.Booking?.Status ?? "Confirmed";
+    var nextCanCancel = string.Equals(nextStatus, "Confirmed", StringComparison.OrdinalIgnoreCase)
+                     || string.Equals(nextStatus, "Modified", StringComparison.OrdinalIgnoreCase);
+    var nextCanReschedule = string.Equals(nextStatus, "Modified", StringComparison.OrdinalIgnoreCase);
+    var nextNotes = nextAppt?.Booking?.Notes;
+
+    var clinicName = nextAppt?.Clinic?.Name ?? "Clinic";
+    var clinicLoc = nextAppt?.Clinic?.Location ?? "";
+    var mapsQuery = Uri.EscapeDataString(string.IsNullOrWhiteSpace(clinicLoc) ? clinicName : $"{clinicName} {clinicLoc}");
+    var mapsUrl = $"https://www.google.com/maps/search/?api=1&query={mapsQuery}";
+
+    // ── Primary doctor for hero ──
+    var primaryDoc = Model.PrimaryDoctor?.Doctor;
+    var primaryDocName = primaryDoc?.User != null
+        ? $"Dr. {primaryDoc.User.FirstName} {primaryDoc.User.LastName}".Trim()
+        : null;
+
+    // ── Care roadmap milestones (standard antenatal journey) ──
+    var milestones = new (int Week, string Title, string Sub, string Emoji)[]
+    {
+        (8,  "First Trimester Consultation", "Confirm your pregnancy & first checkup", "🩺"),
+        (11, "Booking Blood Tests",          "Baseline screening bloodwork",           "🩸"),
+        (13, "Dating & NT Scan",             "Your very first ultrasound",             "📡"),
+        (20, "Anatomy Scan",                 "Detailed mid-pregnancy scan",            "👶"),
+        (28, "Prenatal Checkup",             "Third trimester begins",                 "💗"),
+        (34, "Growth Ultrasound",            "Baby's growth & position",               "📏"),
+        (37, "Birth Planning Session",       "Prepare your birth plan",                "📝"),
+        (40, "Delivery Day",                 "Meeting your little one",                "🌸"),
+    };
+    int currentIdx = Array.FindIndex(milestones, m => week < m.Week);
+    if (currentIdx < 0) currentIdx = milestones.Length - 1;
+
+    // ── Hero "next care step" ──
+    string nextStepName;
+    string nextStepMeta;
+    if (nextAppt != null)
+    {
+        nextStepName = nextReason;
+        nextStepMeta = daysToNext == 0 ? "Today" : daysToNext == 1 ? "Tomorrow" : $"{daysToNext} days remaining";
+    }
+    else
+    {
+        nextStepName = milestones[currentIdx].Title;
+        nextStepMeta = "Not scheduled yet";
+    }
+
+    // ── Preparation note by trimester ──
+    string prepNote = week <= 13
+        ? "Bring a photo ID and any previous medical records. Note the first day of your last period and any nausea or symptoms you've had."
+        : week <= 26
+            ? "Prepare your questions about the anatomy scan, bring recent test or lab results, and note any movements you've started to feel."
+            : "Bring your maternity notes, track your baby's movements, and be ready to talk through your birth preferences.";
+
+    // ── Smart recommendations for this week ──
+    var recs = week <= 13 ? new[]
+        {
+            ("📡","Dating Ultrasound","Confirm your due date and baby's heartbeat."),
+            ("🩸","First Trimester Bloodwork","Baseline screening for a healthy start."),
+            ("🥗","Nutrition & Folic Acid","Talk through your diet and supplements."),
+        }
+        : week <= 19 ? new[]
+        {
+            ("👶","Schedule Anatomy Scan","Book your detailed 18–22 week scan."),
+            ("💗","Routine Prenatal Check","Blood pressure, weight & baby's heartbeat."),
+            ("🥗","Nutrition Consultation","Keep your energy and iron levels up."),
+        }
+        : week <= 26 ? new[]
+        {
+            ("🧪","Glucose Screening","Gestational diabetes test around now."),
+            ("👶","Anatomy Scan Review","Go over your scan results together."),
+            ("💗","Wellness & Iron Check","Stay ahead of tiredness and anemia."),
+        }
+        : week <= 32 ? new[]
+        {
+            ("📏","Growth Ultrasound","Check baby's growth and position."),
+            ("📅","Prenatal Checkup","Visits become a little more frequent."),
+            ("🧘‍♀️","Birth Class Enrollment","Prepare for labor with confidence."),
+        }
+        : week <= 36 ? new[]
+        {
+            ("📏","Growth Monitoring","Keep an eye on baby's size and position."),
+            ("🧫","Group B Strep Test","A simple, routine swab around 36 weeks."),
+            ("📝","Birth Plan Discussion","Share your preferences with your team."),
+        }
+        : new[]
+        {
+            ("📅","Weekly Prenatal Visit","Close monitoring as you near the finish."),
+            ("👶","Position & Growth Check","Confirm baby is ready for arrival."),
+            ("🌸","Delivery Preparation","Final steps before you meet your baby."),
+        };
+
+    // ── This week's care plan items ──
+    var weekPlan = new (string Icon, string Title, string Sub)[]
+    {
+        ("fa-heart-pulse", "Log your blood pressure", "A quick daily check-in"),
+        ("fa-droplet",     "Review your blood sugar", "Keep your levels balanced"),
+        ("fa-calendar-check", "Attend your prenatal visit", nextAppt != null ? $"On {nextAppt.Date:MMM dd}" : "Book one when you're ready"),
+        ("fa-notes-medical", "Note any new symptoms", "So nothing gets forgotten"),
+        ("fa-circle-question", "Prepare questions to ask", "Make the most of your visit"),
+    };
 }
+
 @section Head {
     @Html.AntiForgeryToken()
     <style>
-        #rescheduleModal {
-            backdrop-filter: blur(2px);
-            -webkit-backdrop-filter: blur(2px);
+        /* ══════════════════════════════════════════════════════════
+           NABD — Pregnancy Care Journey (Appointments)
+           Warm, guided, companion-app aesthetic — matches Home
+        ══════════════════════════════════════════════════════════ */
+        .pj {
+            --rose:#fb7185; --rose-lt:#fff1f3; --rose-d:#e11d62;
+            --violet:#a78bfa; --violet-lt:#f4f0ff; --violet-d:#7c3aed;
+            --mint:#34d399; --mint-lt:#ecfdf5;
+            --amber:#fbbf24; --amber-lt:#fffaf0;
+            --sky:#60a5fa; --sky-lt:#eff6ff;
+            --peach:#fb923c; --peach-lt:#fff4ec;
+            --ink:#4A4453; --ink-2:#6b6478; --ink-3:#9a93a8;
+            --bg:#FFF9FA; --cream:#fffaf7; --line:#f0e9ef;
+            --r:24px; --r-sm:18px;
+            --sh:0 10px 30px rgba(120,80,110,.08);
+            --sh-sm:0 4px 16px rgba(120,80,110,.06);
+            font-family:'Inter',system-ui,sans-serif; color:var(--ink);
+            display:flex; flex-direction:column; gap:26px; padding-bottom:42px;
+        }
+        .pj h1,.pj h2,.pj h3,.pj h4 { margin:0; }
+        .pj-section-head { margin-bottom:2px; }
+        .pj-section-head h2 { font-size:1.32rem; font-weight:800; letter-spacing:-.3px; }
+        .pj-section-head p { margin:3px 0 0; color:var(--ink-3); font-size:.92rem; }
+        .pj-eyebrow {
+            display:inline-flex; align-items:center; gap:7px; font-size:.74rem; font-weight:800;
+            text-transform:uppercase; letter-spacing:1.2px; color:var(--rose-d);
         }
 
-        #rescheduleModal .pa-modal {
-            max-width: 640px;
-            border-radius: 16px;
-            overflow: hidden;
-            border: 1px solid #dbe7f3;
-            box-shadow: 0 20px 55px rgba(15, 23, 42, 0.2);
+        /* ── 1 · HERO ── */
+        .pj-hero {
+            position:relative; overflow:hidden; border-radius:30px; padding:38px 44px;
+            border:1px solid rgba(255,255,255,.7); box-shadow:var(--sh);
+            background:
+                radial-gradient(125% 150% at 0% 0%, #ffe4ea 0%, transparent 55%),
+                radial-gradient(130% 150% at 100% 100%, #efe2ff 0%, transparent 55%),
+                linear-gradient(120deg, #ffeef1 0%, #fde7ec 48%, #f6ecff 100%);
+        }
+        .pj-hero-botanical { position:absolute; inset:0; z-index:0; pointer-events:none; }
+        .pj-hero-botanical .pj-bot { position:absolute; color:#dc9bb6; opacity:.4; }
+        .pj-bot-1 { width:96px; height:134px; left:-16px; bottom:-30px; transform:rotate(-13deg); }
+        .pj-bot-2 { width:82px; height:115px; right:-14px; top:-26px; transform:rotate(166deg); opacity:.34; }
+        .pj-hero-grid {
+            position:relative; z-index:1; display:grid;
+            grid-template-columns:1.4fr .9fr; gap:38px; align-items:center;
+        }
+        .pj-hero-week {
+            font-size:3.2rem; font-weight:800; line-height:1; letter-spacing:-1.8px;
+            margin:12px 0 0; display:flex; align-items:baseline; gap:12px;
+        }
+        .pj-hero-week-num { background:linear-gradient(120deg,var(--rose),#c084fc); -webkit-background-clip:text; background-clip:text; color:transparent; }
+        .pj-hero-week-of { font-size:1.05rem; font-weight:700; color:var(--ink-3); letter-spacing:0; }
+        .pj-hero-lead { font-size:1.02rem; color:var(--ink-2); margin:6px 0 0; }
+        .pj-hero-tri {
+            display:inline-block; margin-top:14px; font-size:.8rem; font-weight:800; color:var(--violet-d);
+            background:rgba(167,139,250,.16); padding:6px 16px; border-radius:30px;
+        }
+        .pj-hero-facts { display:flex; flex-wrap:wrap; gap:14px; margin-top:24px; }
+        .pj-hero-fact {
+            display:flex; align-items:center; gap:12px; background:rgba(255,255,255,.72);
+            border:1px solid rgba(255,255,255,.9); border-radius:18px; padding:13px 17px; min-width:200px;
+            box-shadow:var(--sh-sm); backdrop-filter:blur(4px);
+        }
+        .pj-hero-fact-ico {
+            width:42px; height:42px; flex-shrink:0; border-radius:13px; display:flex;
+            align-items:center; justify-content:center; font-size:1.05rem;
+        }
+        .pj-hero-fact-ico.rose { background:var(--rose-lt); color:var(--rose); }
+        .pj-hero-fact-ico.violet { background:var(--violet-lt); color:var(--violet-d); }
+        .pj-hero-fact-ico.sky { background:var(--sky-lt); color:var(--sky); }
+        .pj-hero-fact-lbl { font-size:.7rem; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.6px; }
+        .pj-hero-fact-val { font-size:1.02rem; font-weight:800; color:var(--ink); line-height:1.25; }
+
+        .pj-hero-art { display:flex; flex-direction:column; align-items:center; gap:18px; }
+        .pj-hero-orb {
+            position:relative; width:178px; height:178px; border-radius:50%; display:flex;
+            align-items:center; justify-content:center;
+            background:radial-gradient(circle at 30% 25%, #fff, #fdeef4 58%, #f1e9ff);
+            box-shadow:inset 0 2px 12px rgba(255,255,255,.9), 0 18px 38px rgba(120,80,110,.18);
+        }
+        .pj-hero-orb-ring {
+            position:absolute; inset:-9px; border-radius:50%;
+            background:conic-gradient(from 90deg,
+                #fb7185 0%,
+                #f472b6 calc(var(--ring,70) * .5%),
+                #c084fc calc(var(--ring,70) * 1%),
+                rgba(192,132,252,.14) calc(var(--ring,70) * 1%) 100%);
+            -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px));
+                    mask:radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px));
+        }
+        .pj-hero-orb-emoji { font-size:4.6rem; line-height:1; animation:pjFloat 4s ease-in-out infinite; }
+        .pj-hero-orb-pct {
+            position:absolute; bottom:6px; left:50%; transform:translateX(-50%);
+            background:#fff; color:var(--rose-d); font-size:.72rem; font-weight:800;
+            padding:4px 12px; border-radius:20px; box-shadow:var(--sh-sm); white-space:nowrap;
+        }
+        .pj-hero-step {
+            text-align:center; background:rgba(255,255,255,.78); border:1px solid rgba(255,255,255,.9);
+            border-radius:20px; padding:14px 22px; box-shadow:var(--sh-sm); min-width:230px; backdrop-filter:blur(4px);
+        }
+        .pj-hero-step-lbl { font-size:.7rem; font-weight:800; text-transform:uppercase; letter-spacing:.8px; color:var(--ink-3); }
+        .pj-hero-step-name { font-size:1.12rem; font-weight:800; color:var(--ink); margin-top:3px; }
+        .pj-hero-step-meta { font-size:.84rem; font-weight:700; color:var(--rose-d); margin-top:3px; }
+        @@keyframes pjFloat { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-9px);} }
+
+        @@media (max-width:860px) {
+            .pj-hero { padding:30px 24px; }
+            .pj-hero-grid { grid-template-columns:1fr; gap:28px; text-align:center; }
+            .pj-hero-week { justify-content:center; }
+            .pj-hero-facts { justify-content:center; }
+            .pj-hero-art { order:-1; }
         }
 
-        #rescheduleModal .pa-modal-header {
-            background: linear-gradient(135deg, #f8fbff 0%, #f0f9ff 100%);
-            border-bottom: 1px solid #e2e8f0;
-            padding: 16px 20px;
+        /* ── Generic card / section ── */
+        .pj-card { background:#fff; border:1px solid var(--line); border-radius:var(--r); padding:26px 28px; box-shadow:var(--sh-sm); }
+        .pj-card-head { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:20px; }
+        .pj-card-head h2 { font-size:1.18rem; font-weight:800; display:flex; align-items:center; gap:10px; }
+        .pj-dot { width:11px; height:11px; border-radius:50%; }
+        .pj-dot.rose{background:var(--rose);} .pj-dot.violet{background:var(--violet);}
+        .pj-dot.mint{background:var(--mint);} .pj-dot.amber{background:var(--amber);} .pj-dot.sky{background:var(--sky);}
+        .pj-card-sub { font-size:.82rem; font-weight:700; color:var(--ink-3); }
+        .pj-link { font-size:.84rem; font-weight:700; color:var(--rose-d); text-decoration:none; display:inline-flex; align-items:center; gap:6px; }
+        .pj-link:hover { gap:9px; color:var(--rose-d); }
+
+        /* ── 2 · ROADMAP ── */
+        .pj-road { position:relative; padding-left:6px; }
+        .pj-road-item { position:relative; display:flex; gap:18px; padding:0 0 24px 0; }
+        .pj-road-item:last-child { padding-bottom:0; }
+        .pj-road-rail { position:relative; display:flex; flex-direction:column; align-items:center; flex-shrink:0; }
+        .pj-road-bubble {
+            width:54px; height:54px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+            font-size:1.45rem; background:#fff; border:3px solid var(--line); z-index:1;
+            transition:transform .3s, border-color .3s, box-shadow .3s;
+        }
+        .pj-road-line { flex:1; width:3px; background:var(--line); margin:4px 0; border-radius:3px; min-height:18px; }
+        .pj-road-item:last-child .pj-road-line { display:none; }
+        .pj-road-body {
+            flex:1; background:var(--cream); border:1px solid var(--line); border-radius:var(--r-sm);
+            padding:15px 18px; transition:transform .25s, box-shadow .25s, background .25s; align-self:flex-start;
+        }
+        .pj-road-tags { display:flex; align-items:center; gap:8px; margin-bottom:5px; flex-wrap:wrap; }
+        .pj-road-wk { font-size:.7rem; font-weight:800; color:var(--ink-3); text-transform:uppercase; letter-spacing:.6px; }
+        .pj-road-state { font-size:.66rem; font-weight:800; padding:3px 9px; border-radius:20px; text-transform:uppercase; letter-spacing:.4px; }
+        .pj-road-title { font-size:1rem; font-weight:800; color:var(--ink); }
+        .pj-road-sub { font-size:.84rem; color:var(--ink-2); margin-top:2px; line-height:1.45; }
+
+        /* done */
+        .pj-road-item.done .pj-road-bubble { border-color:var(--mint); background:var(--mint-lt); }
+        .pj-road-item.done .pj-road-line { background:linear-gradient(var(--mint),var(--line)); }
+        .pj-road-item.done .pj-road-state { background:var(--mint-lt); color:#059669; }
+        .pj-road-check { position:absolute; right:-3px; bottom:-3px; width:22px; height:22px; border-radius:50%;
+            background:var(--mint); color:#fff; display:flex; align-items:center; justify-content:center; font-size:.66rem;
+            border:2px solid #fff; }
+        /* current */
+        .pj-road-item.current .pj-road-bubble {
+            border-color:var(--violet); transform:scale(1.08);
+            box-shadow:0 0 0 6px rgba(167,139,250,.16), 0 10px 22px rgba(167,139,250,.4);
+            animation:pjBeat 2.6s ease-in-out infinite;
+        }
+        .pj-road-item.current .pj-road-body { background:var(--violet-lt); border-color:rgba(167,139,250,.4); }
+        .pj-road-item.current .pj-road-state { background:var(--violet); color:#fff; }
+        .pj-road-item.current .pj-road-title { color:var(--violet-d); }
+        /* upcoming */
+        .pj-road-item.upcoming .pj-road-bubble { filter:grayscale(.55); opacity:.62; }
+        .pj-road-item.upcoming .pj-road-state { background:#fff; color:var(--ink-3); border:1px solid var(--line); }
+        .pj-road-item.upcoming .pj-road-title { color:var(--ink-2); }
+        @@keyframes pjBeat { 0%,100%{transform:scale(1.08);} 50%{transform:scale(1.16);} }
+
+        /* ── 3 · NEXT CARE STEP (ticket) ── */
+        .pj-ticket {
+            position:relative; overflow:hidden; border-radius:28px; box-shadow:var(--sh);
+            background:linear-gradient(135deg,#fff 0%,#fff7fb 100%); border:1px solid var(--line);
+            display:grid; grid-template-columns:230px 1fr;
+        }
+        .pj-ticket-stub {
+            position:relative; padding:30px 26px; color:#fff;
+            background:linear-gradient(150deg,#fb7185 0%,#f472b6 52%,#c084fc 100%);
+            display:flex; flex-direction:column; justify-content:center; gap:6px; text-align:center;
+        }
+        .pj-ticket-stub::after {
+            content:''; position:absolute; top:0; right:-1px; bottom:0; width:2px;
+            background:repeating-linear-gradient(to bottom,#fff 0 7px,transparent 7px 16px); opacity:.55;
+        }
+        .pj-ticket-stub-lbl { font-size:.7rem; font-weight:800; text-transform:uppercase; letter-spacing:1.2px; opacity:.92; }
+        .pj-ticket-day { font-size:3.4rem; font-weight:800; line-height:1; }
+        .pj-ticket-mon { font-size:1.05rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; }
+        .pj-ticket-year { font-size:.82rem; opacity:.9; font-weight:600; }
+        .pj-ticket-count { margin-top:12px; font-size:.78rem; font-weight:700; background:rgba(255,255,255,.22); padding:6px 12px; border-radius:20px; display:inline-block; }
+        .pj-ticket-body { padding:28px 30px; display:flex; flex-direction:column; gap:16px; }
+        .pj-ticket-reason { font-size:1.4rem; font-weight:800; letter-spacing:-.4px; }
+        .pj-ticket-status { font-size:.7rem; font-weight:800; text-transform:uppercase; letter-spacing:.5px; padding:4px 11px; border-radius:20px; background:var(--mint-lt); color:#059669; margin-left:10px; vertical-align:middle; }
+        .pj-ticket-status.modified { background:var(--amber-lt); color:#d97706; }
+        .pj-ticket-meta { display:grid; grid-template-columns:1fr 1fr; gap:14px 18px; }
+        .pj-ticket-meta-item { display:flex; gap:12px; align-items:flex-start; }
+        .pj-ticket-meta-ico { width:38px; height:38px; flex-shrink:0; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:.95rem; background:var(--rose-lt); color:var(--rose); }
+        .pj-ticket-meta-lbl { font-size:.7rem; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.5px; }
+        .pj-ticket-meta-val { font-size:.96rem; font-weight:700; color:var(--ink); line-height:1.3; }
+        .pj-ticket-prep {
+            display:flex; gap:12px; align-items:flex-start; background:var(--violet-lt);
+            border-radius:var(--r-sm); padding:14px 16px;
+        }
+        .pj-ticket-prep i { color:var(--violet-d); font-size:1rem; margin-top:2px; }
+        .pj-ticket-prep-t { font-size:.82rem; font-weight:800; color:var(--violet-d); }
+        .pj-ticket-prep-d { font-size:.85rem; color:var(--ink-2); line-height:1.5; margin-top:2px; }
+        .pj-ticket-extra { font-size:.85rem; color:var(--ink-2); line-height:1.5; }
+        .pj-ticket-extra[hidden] { display:none; }
+        .pj-ticket-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:2px; }
+
+        .pj-btn {
+            display:inline-flex; align-items:center; justify-content:center; gap:8px; cursor:pointer;
+            border:1px solid var(--line); background:#fff; color:var(--ink); text-decoration:none;
+            padding:11px 18px; border-radius:26px; font-weight:700; font-size:.86rem; transition:.2s; font-family:inherit;
+        }
+        .pj-btn:hover { transform:translateY(-2px); box-shadow:var(--sh-sm); color:var(--ink); }
+        .pj-btn-primary {
+            border:0; color:#fff; background:linear-gradient(90deg,var(--rose),#f472b6);
+            box-shadow:0 6px 16px rgba(251,113,133,.32);
+        }
+        .pj-btn-primary:hover { color:#fff; box-shadow:0 10px 22px rgba(251,113,133,.42); }
+        .pj-btn-ghost { background:transparent; border:0; color:var(--ink-3); padding:11px 8px; }
+        .pj-btn-ghost:hover { color:var(--rose-d); box-shadow:none; transform:none; }
+        .pj-btn.danger:hover { color:var(--rose-d); border-color:var(--rose); }
+
+        .pj-ticket-empty { padding:44px 30px; text-align:center; grid-column:1 / -1; }
+        .pj-ticket-empty-emoji { font-size:3rem; }
+        .pj-ticket-empty h3 { font-size:1.2rem; margin:10px 0 6px; }
+        .pj-ticket-empty p { color:var(--ink-2); max-width:440px; margin:0 auto 18px; line-height:1.55; }
+        @@media (max-width:720px) {
+            .pj-ticket { grid-template-columns:1fr; }
+            .pj-ticket-stub { flex-direction:row; justify-content:center; align-items:center; gap:14px; padding:20px; }
+            .pj-ticket-stub::after { top:auto; bottom:-1px; left:0; right:0; width:auto; height:2px; background:repeating-linear-gradient(to right,#fff 0 7px,transparent 7px 16px); }
+            .pj-ticket-day { font-size:2.6rem; }
+            .pj-ticket-meta { grid-template-columns:1fr; }
         }
 
-        #rescheduleModal .pa-modal-header h3 {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin: 0;
-            color: #1e293b;
-            font-size: 1.1rem;
-            font-weight: 700;
+        /* ── 4 · CARE PLAN + 8 · PREP (checklists) ── */
+        .pj-progress { display:flex; align-items:center; gap:12px; margin-bottom:18px; }
+        .pj-progress-track { flex:1; height:9px; border-radius:20px; background:rgba(120,80,110,.09); overflow:hidden; }
+        .pj-progress-fill { height:100%; border-radius:20px; background:linear-gradient(90deg,var(--rose),#c084fc); width:0; transition:width .5s cubic-bezier(.4,0,.2,1); }
+        .pj-progress-count { font-size:.82rem; font-weight:800; color:var(--ink-2); white-space:nowrap; }
+        .pj-checklist { display:flex; flex-direction:column; gap:10px; }
+        .pj-check-row { display:flex; align-items:center; gap:4px; }
+        .pj-check {
+            flex:1; display:flex; align-items:center; gap:14px; cursor:pointer; text-align:left;
+            border:1.5px solid var(--line); background:#fff; border-radius:16px; padding:13px 16px;
+            font-family:inherit; transition:.2s; color:var(--ink);
         }
-
-        #rescheduleModal .pa-modal-body {
-            padding: 18px 20px;
-            background: #ffffff;
+        .pj-check:hover { border-color:var(--rose); transform:translateY(-1px); }
+        .pj-check-box {
+            width:26px; height:26px; flex-shrink:0; border-radius:9px; border:2px solid var(--line);
+            display:flex; align-items:center; justify-content:center; color:#fff; font-size:.72rem; transition:.2s; background:#fff;
         }
-
-        .reschedule-current-box {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 10px 12px;
-            margin-bottom: 14px;
-            color: #334155;
-            font-weight: 500;
+        .pj-check-ico { width:34px; height:34px; flex-shrink:0; border-radius:11px; display:flex; align-items:center; justify-content:center; background:var(--rose-lt); color:var(--rose); font-size:.9rem; }
+        .pj-check-body { flex:1; min-width:0; }
+        .pj-check-title { font-weight:700; font-size:.94rem; line-height:1.25; transition:.2s; }
+        .pj-check-sub { font-size:.78rem; color:var(--ink-3); margin-top:1px; }
+        .pj-check.pj-checked { background:var(--mint-lt); border-color:rgba(52,211,153,.5); }
+        .pj-check.pj-checked .pj-check-box { background:var(--mint); border-color:var(--mint); }
+        .pj-check.pj-checked .pj-check-title { text-decoration:line-through; color:var(--ink-3); }
+        .pj-check-link { width:38px; height:38px; flex-shrink:0; border-radius:12px; display:flex; align-items:center; justify-content:center; color:var(--ink-3); text-decoration:none; transition:.2s; }
+        .pj-check-link:hover { background:var(--rose-lt); color:var(--rose-d); }
+        .pj-notes {
+            width:100%; box-sizing:border-box; margin-top:10px; border:1.5px solid var(--line); border-radius:14px;
+            padding:13px 15px; font-family:inherit; font-size:.9rem; color:var(--ink); background:var(--cream);
+            resize:vertical; min-height:84px; transition:.18s;
         }
+        .pj-notes:focus { outline:0; border-color:var(--violet); background:#fff; box-shadow:0 0 0 4px rgba(167,139,250,.12); }
+        .pj-notes::placeholder { color:var(--ink-3); }
 
-        .reschedule-current-box i {
-            color: #0ea5e9;
+        /* ── 5 · CARE TEAM ── */
+        .pj-team-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:18px; }
+        .pj-team-card {
+            position:relative; background:#fff; border:1px solid var(--line); border-radius:var(--r);
+            padding:22px; box-shadow:var(--sh-sm); transition:transform .25s, box-shadow .25s; overflow:hidden;
         }
+        .pj-team-card::before { content:''; position:absolute; top:0; left:0; right:0; height:64px; background:linear-gradient(120deg,#ffeef3,#f4ecff); }
+        .pj-team-card:hover { transform:translateY(-4px); box-shadow:var(--sh); }
+        .pj-team-top { position:relative; display:flex; flex-direction:column; align-items:center; text-align:center; gap:4px; }
+        .pj-team-avatar { width:84px; height:84px; border-radius:50%; border:4px solid #fff; box-shadow:0 8px 20px rgba(120,80,110,.16); margin-top:18px; object-fit:cover; }
+        .pj-team-name { font-size:1.05rem; font-weight:800; color:var(--ink); }
+        .pj-team-name a { color:inherit; text-decoration:none; }
+        .pj-team-spec { font-size:.82rem; font-weight:700; color:var(--rose-d); }
+        .pj-team-clinic { font-size:.8rem; color:var(--ink-3); display:flex; align-items:center; gap:5px; justify-content:center; }
+        .pj-team-primary { position:absolute; top:0; right:0; font-size:.66rem; font-weight:800; color:#fff; background:var(--violet); padding:4px 11px; border-radius:0 0 0 14px; text-transform:uppercase; letter-spacing:.4px; z-index:2; }
+        .pj-team-actions { display:flex; gap:9px; margin-top:18px; }
+        .pj-team-actions .pj-btn { flex:1; padding:10px; font-size:.84rem; }
+        .pj-team-setprimary { width:100%; margin-top:9px; background:transparent; border:0; color:var(--ink-3); font-size:.78rem; font-weight:700; cursor:pointer; padding:6px; font-family:inherit; transition:.2s; }
+        .pj-team-setprimary:hover { color:var(--violet-d); }
 
-        .reschedule-hint {
-            margin-top: 8px;
-            font-size: 0.9rem;
-            color: #64748b;
-            min-height: 20px;
+        /* ── 6 · RECOMMENDATIONS ── */
+        .pj-recs { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; }
+        .pj-rec {
+            background:#fff; border:1px solid var(--line); border-radius:var(--r); padding:22px;
+            box-shadow:var(--sh-sm); transition:transform .25s, box-shadow .25s; display:flex; flex-direction:column; gap:8px;
+            border-top:4px solid var(--rose);
         }
+        .pj-rec:hover { transform:translateY(-4px); box-shadow:var(--sh); }
+        .pj-rec:nth-child(2) { border-top-color:var(--violet); }
+        .pj-rec:nth-child(3) { border-top-color:var(--mint); }
+        .pj-rec-emoji { font-size:2rem; }
+        .pj-rec-title { font-size:1.02rem; font-weight:800; }
+        .pj-rec-desc { font-size:.85rem; color:var(--ink-2); line-height:1.5; flex:1; }
+        .pj-rec-link { font-size:.84rem; font-weight:800; color:var(--rose-d); text-decoration:none; display:inline-flex; align-items:center; gap:6px; margin-top:4px; }
+        .pj-rec-link:hover { gap:9px; }
 
-        #rescheduleModal .form-group label {
-            display: block;
-            margin-bottom: 6px;
-            color: #334155;
-            font-weight: 600;
-            font-size: 0.92rem;
+        /* ── 7 · VISIT MEMORIES ── */
+        .pj-mem { position:relative; padding-left:8px; }
+        .pj-mem-item { position:relative; padding:0 0 18px 30px; }
+        .pj-mem-item:last-child { padding-bottom:0; }
+        .pj-mem-item::before { content:''; position:absolute; left:8px; top:20px; bottom:-2px; width:2px; background:var(--line); }
+        .pj-mem-item:last-child::before { display:none; }
+        .pj-mem-marker { position:absolute; left:0; top:8px; width:18px; height:18px; border-radius:50%; background:#fff; border:3px solid var(--rose); box-shadow:0 0 0 4px var(--rose-lt); z-index:1; }
+        .pj-mem-item.cancelled .pj-mem-marker { border-color:var(--ink-3); box-shadow:0 0 0 4px var(--cream); }
+        .pj-mem-card { background:var(--cream); border:1px solid var(--line); border-radius:var(--r-sm); padding:15px 18px; }
+        .pj-mem-date { font-size:.76rem; font-weight:800; color:var(--rose-d); text-transform:uppercase; letter-spacing:.5px; }
+        .pj-mem-title { font-size:1rem; font-weight:800; margin:3px 0 4px; }
+        .pj-mem-note { font-size:.86rem; color:var(--ink-2); line-height:1.5; }
+        .pj-mem-doc { font-size:.78rem; color:var(--ink-3); margin-top:6px; display:flex; gap:14px; flex-wrap:wrap; }
+        .pj-mem-doc i { margin-right:4px; }
+
+        .pj-empty { text-align:center; padding:34px 20px; color:var(--ink-3); }
+        .pj-empty span { font-size:2.2rem; display:block; margin-bottom:8px; }
+        .pj-empty p { margin:0; font-size:.9rem; line-height:1.55; }
+
+        /* ── Reschedule modal ── */
+        .pj-modal-overlay { position:fixed; inset:0; z-index:1300; background:rgba(63,53,80,.42); backdrop-filter:blur(3px);
+            display:flex; align-items:center; justify-content:center; padding:20px; opacity:0; visibility:hidden; transition:.28s; }
+        .pj-modal-overlay.open { opacity:1; visibility:visible; }
+        .pj-modal { width:min(480px,100%); background:#fff; border-radius:24px; overflow:hidden; box-shadow:0 28px 60px rgba(63,53,80,.32);
+            transform:scale(.96); transition:transform .28s cubic-bezier(.4,0,.2,1); }
+        .pj-modal-overlay.open .pj-modal { transform:scale(1); }
+        .pj-modal-head { display:flex; align-items:center; justify-content:space-between; padding:20px 24px;
+            background:linear-gradient(135deg,#fff1f3,#f4f0ff); border-bottom:1px solid var(--line); }
+        .pj-modal-head h3 { font-size:1.1rem; font-weight:800; display:flex; align-items:center; gap:9px; }
+        .pj-modal-close { border:0; background:#fff; width:34px; height:34px; border-radius:50%; cursor:pointer; color:var(--ink-3); transition:.2s; }
+        .pj-modal-close:hover { background:var(--rose-lt); color:var(--rose-d); }
+        .pj-modal-body { padding:22px 24px; }
+        .pj-modal-current { display:flex; gap:10px; align-items:center; background:var(--cream); border:1px solid var(--line);
+            border-radius:13px; padding:12px 14px; margin-bottom:16px; font-weight:600; color:var(--ink-2); }
+        .pj-modal-current i { color:var(--violet-d); }
+        .pj-modal-body label { display:block; font-size:.85rem; font-weight:700; color:var(--ink-2); margin-bottom:7px; }
+        .pj-modal-body input, .pj-modal-body select {
+            width:100%; box-sizing:border-box; border:1.5px solid var(--line); border-radius:13px; padding:12px 14px;
+            font-size:.95rem; font-family:inherit; font-weight:600; color:var(--ink); background:var(--cream); transition:.18s;
         }
+        .pj-modal-body input:focus, .pj-modal-body select:focus { outline:0; border-color:var(--rose); background:#fff; box-shadow:0 0 0 4px rgba(251,113,133,.12); }
+        .pj-modal-field { margin-top:14px; }
+        .pj-modal-hint { margin-top:8px; font-size:.82rem; color:var(--ink-3); min-height:18px; }
+        .pj-modal-foot { display:flex; justify-content:space-between; gap:10px; padding:16px 24px; border-top:1px solid var(--line); background:var(--cream); }
 
-        #rescheduleModal .form-select {
-            width: 100%;
-            height: 42px;
-            border: 1px solid #cbd5e1;
-            border-radius: 10px;
-            padding: 0 12px;
-            background: #fff;
-            color: #1e293b;
-            transition: border-color .2s ease, box-shadow .2s ease;
-        }
+        /* ── Toast ── */
+        .pj-toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#fff; border-radius:30px;
+            padding:12px 22px; display:flex; align-items:center; gap:10px; box-shadow:0 10px 30px rgba(63,53,80,.18);
+            z-index:1400; font-size:.9rem; font-weight:600; color:var(--ink); animation:pjToast .3s ease; }
+        .pj-toast i { font-size:1.1rem; }
+        .pj-toast.success i { color:#059669; } .pj-toast.error i { color:#dc2626; } .pj-toast.info i { color:var(--sky); }
+        @@keyframes pjToast { from{transform:translate(-50%,16px);opacity:0;} to{transform:translate(-50%,0);opacity:1;} }
 
-        .reschedule-select-wrap {
-            position: relative;
-        }
-
-        .reschedule-time-select {
-            appearance: none;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            padding-right: 40px !important;
-            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-            cursor: pointer;
-            font-weight: 500;
-        }
-
-        .reschedule-select-wrap::after {
-            content: "\f078";
-            font-family: "Font Awesome 6 Free";
-            font-weight: 900;
-            position: absolute;
-            right: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            pointer-events: none;
-            color: #64748b;
-            font-size: 0.8rem;
-        }
-
-        .reschedule-time-select option {
-            color: #1e293b;
-        }
-
-        #rescheduleModal .form-select:focus {
-            outline: none;
-            border-color: #22b8cf;
-            box-shadow: 0 0 0 3px rgba(34, 184, 207, 0.16);
-        }
-
-        .reschedule-field {
-            margin-top: 12px;
-        }
-
-        .reschedule-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 14px 20px;
-            border-top: 1px solid #e5e7eb;
-            background: #fafcff;
-        }
-
-        .btn-reschedule-cancel,
-        .btn-reschedule-save {
-            min-width: 92px;
-            border-radius: 10px;
-            font-weight: 600;
-        }
-
-        .btn-reschedule-save {
-            background: linear-gradient(135deg, #14b8a6 0%, #06b6d4 100%);
-            border: none;
-            color: #fff;
-        }
-
-        .btn-reschedule-save:hover {
-            filter: brightness(0.97);
-        }
-
-        .btn-reschedule-save:disabled {
-            opacity: .75;
-            cursor: not-allowed;
+        @@media (max-width:560px) {
+            .pj-card { padding:20px; }
+            .pj-hero-week { font-size:2.6rem; }
         }
     </style>
 }
 
-<header class="header pa-header pa-hero">
-    <div class="header-left pa-hero-left">
-        <div class="pa-hero-icon">
-            <i class="fas fa-calendar-check"></i>
+<div class="pj">
+
+    <!-- ════════ 1 · JOURNEY HEADER ════════ -->
+    <section class="pj-hero">
+        <div class="pj-hero-botanical" aria-hidden="true">
+            <svg class="pj-bot pj-bot-1" viewBox="0 0 100 140" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+                <path d="M50 138 C50 104 50 72 50 32"/>
+                <path d="M50 112 C35 107 27 95 31 80 C47 84 54 98 50 112Z"/>
+                <path d="M50 112 C65 107 73 95 69 80 C53 84 46 98 50 112Z"/>
+                <path d="M50 88 C37 83 31 71 35 58 C49 62 54 76 50 88Z"/>
+                <path d="M50 88 C63 83 69 71 65 58 C51 62 46 76 50 88Z"/>
+                <path d="M50 66 C40 60 36 50 40 39 C50 43 54 55 50 66Z"/>
+                <path d="M50 66 C60 60 64 50 60 39 C50 43 46 55 50 66Z"/>
+            </svg>
+            <svg class="pj-bot pj-bot-2" viewBox="0 0 100 140" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+                <path d="M50 138 C50 104 50 72 50 32"/>
+                <path d="M50 112 C35 107 27 95 31 80 C47 84 54 98 50 112Z"/>
+                <path d="M50 112 C65 107 73 95 69 80 C53 84 46 98 50 112Z"/>
+                <path d="M50 88 C37 83 31 71 35 58 C49 62 54 76 50 88Z"/>
+                <path d="M50 88 C63 83 69 71 65 58 C51 62 46 76 50 88Z"/>
+            </svg>
         </div>
-        <div>
-            <h1>My Appointments</h1>
-            <p>View and manage your medical appointments</p>
-        </div>
-    </div>
-    <div class="header-right pa-hero-right">
-        <button class="btn btn-primary"
-                onclick="window.location.href='@Url.Action("BookAppointment", "PatientAppointments", new { id = patientId })'">
-            <i class="fas fa-plus-circle"></i> Book New Appointment
-        </button>
-    </div>
-</header>
 
-<div class="patient-appointments-page">
+        <div class="pj-hero-grid">
+            <div class="pj-hero-main">
+                <span class="pj-eyebrow"><i class="fas fa-heart"></i> Your Pregnancy Care Journey</span>
+                @if (Model.HasActivePregnancy || week > 0)
+                {
+                    <h1 class="pj-hero-week">
+                        Week <span class="pj-hero-week-num">@week</span>
+                        <span class="pj-hero-week-of">of 40</span>
+                    </h1>
+                    <p class="pj-hero-lead">@firstName, here's what's next on your path to meeting your baby.</p>
+                    <span class="pj-hero-tri">@Model.Trimester</span>
+                }
+                else
+                {
+                    <h1 class="pj-hero-week">Hello, <span class="pj-hero-week-num">@firstName</span></h1>
+                    <p class="pj-hero-lead">When your journey begins, your care milestones will appear here to guide you every step of the way.</p>
+                }
 
-            <section class="pa-overview-grid">
-                <div class="pa-overview-card">
-                    <div class="pa-overview-icon"><i class="fas fa-clock"></i></div>
-                    <div class="pa-overview-content">
-                        <span class="pa-overview-label">Upcoming</span>
-                        <strong>@Model.UpcomingAppointments.Count</strong>
-                    </div>
-                </div>
-                <div class="pa-overview-card">
-                    <div class="pa-overview-icon"><i class="fas fa-history"></i></div>
-                    <div class="pa-overview-content">
-                        <span class="pa-overview-label">Past Visits</span>
-                        <strong>@Model.PastAppointments.Count</strong>
-                    </div>
-                </div>
-                <div class="pa-overview-card">
-                    <div class="pa-overview-icon"><i class="fas fa-user-md"></i></div>
-                    <div class="pa-overview-content">
-                        <span class="pa-overview-label">My Doctors</span>
-                        <strong>@Model.MyDoctors.Count</strong>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Primary Doctor Section -->
-            <section class="primary-doctor-section">
-                <div class="card primary-doctor-card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-user-md"></i> Your Primary Doctor</h3>
-                        <span class="primary-badge"><i class="fas fa-star"></i> Primary</span>
-                    </div>
-                    @if (Model.PrimaryDoctor?.Doctor != null)
-                    {
-                        var doc = Model.PrimaryDoctor.Doctor;
-                        var docName = doc.User != null ? $"Dr. {doc.User.FirstName} {doc.User.LastName}".Trim() : "Doctor";
-                        var clinicDoc = doc.ClinicDoctors?.FirstOrDefault();
-                        var docApptCount = Model.UpcomingAppointments.Count(a => a.DoctorID == doc.DoctorID)
-                                         + Model.PastAppointments.Count(a => a.DoctorID == doc.DoctorID);
-                        <div class="primary-doctor-content">
-                            <div class="primary-doctor-info">
-                                <div class="primary-doctor-details">
-                                    <div class="primary-doctor-avatar">
-                                        <a href="@Url.Action("Details", "PublicDoctor", new { doctorId = doc.DoctorID, patientId = patientId })" style="display:block;">
-                                            <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(docName)&background=1BAEBE&color=fff&size=80"
-                                                 alt="@docName" />
-                                        </a>
-                                        <span class="online-status"></span>
-                                    </div>
-                                    <div class="primary-info">
-                                        <h4>
-                                            <a href="@Url.Action("Details", "PublicDoctor", new { doctorId = doc.DoctorID, patientId = patientId })" style="text-decoration:none; color:inherit;">
-                                                @docName
-                                            </a>
-                                        </h4>
-                                        <p class="specialty"><i class="fas fa-stethoscope"></i> @doc.Specialization</p>
-                                        <p class="location"><i class="fas fa-map-marker-alt"></i> @(clinicDoc?.Clinic?.Name ?? "Clinic")</p>
-                                        <div class="quick-stats pa-quick-stats">
-                                            <span>
-                                                <i class="fas fa-calendar-check"></i>
-                                                @docApptCount appointment@(docApptCount != 1 ? "s" : "")
-                                            </span>
-                                            <span><i class="fas fa-star"></i> Receives alerts</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="primary-doctor-actions">
-                                    <button class="btn btn-primary"
-                                            onclick="window.location.href='@Url.Action("BookAppointment", "PatientAppointments", new { id = patientId, doctorId = doc.DoctorID })'">
-                                        <i class="fas fa-calendar-plus"></i> Book Appointment
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="primary-doctor-content">
-                            <div class="no-primary-doctor">
-                                <i class="fas fa-user-md"></i>
-                                <h4>No Primary Doctor Set</h4>
-                                <p>
-                                    Select a doctor from the list below to set as your primary
-                                    care provider
-                                </p>
-                                <button class="btn btn-primary"
-                                        onclick="window.location.href='@Url.Action("BookAppointment", "PatientAppointments", new { id = patientId })'">
-                                    <i class="fas fa-search"></i> Find &amp; Select Doctor
-                                </button>
-                            </div>
-                        </div>
-                    }
-                </div>
-            </section>
-
-            <!-- My Doctors (Previously Visited) -->
-            @if (Model.MyDoctors.Count > 0)
-            {
-                <section class="my-doctors-section">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3><i class="fas fa-history"></i> My Doctors</h3>
-                            <span class="doctors-count" id="myDoctorsCount">
-                                @Model.MyDoctors.Count doctor@(Model.MyDoctors.Count != 1 ? "s" : "")
-                            </span>
-                        </div>
-                        <div class="my-doctors-grid">
-                            @foreach (var pd in Model.MyDoctors)
-                            {
-                                var doc = pd.Doctor;
-                                if (doc == null) { continue; }
-                                var docName = doc.User != null ? $"Dr. {doc.User.FirstName} {doc.User.LastName}".Trim() : "Doctor";
-                                var clinicDoc = doc.ClinicDoctors?.FirstOrDefault();
-                                <div class="doctor-mini-card" data-doctor-id="@doc.DoctorID">
-                                    <a asp-controller="PublicDoctor" asp-action="Details" asp-route-doctorId="@doc.DoctorID" asp-route-patientId="@patientId">
-                                        <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(docName)&background=1BAEBE&color=fff&size=60"
-                                             alt="@docName" />
-                                    </a>
-                                    <div class="doctor-mini-info">
-                                        <h5>
-                                            <a asp-controller="PublicDoctor" asp-action="Details" asp-route-doctorId="@doc.DoctorID" asp-route-patientId="@patientId" style="text-decoration:none; color:inherit;">
-                                                @docName
-                                            </a>
-                                            @if (pd.IsPrimary) { <span class="primary-tag">Primary</span> }
-                                        </h5>
-                                        <p>@doc.Specialization</p>
-                                        <p>@(clinicDoc?.Clinic?.Name ?? "")</p>
-                                    </div>
-                                    <div class="doctor-mini-actions">
-                                        <button class="btn btn-sm btn-outline"
-                                                onclick="window.location.href='@Url.Action("BookAppointment", "PatientAppointments", new { id = patientId, doctorId = doc.DoctorID })'">
-                                            Book
-                                        </button>
-                                        <button class="btn btn-sm btn-outline"
-                                                onclick="window.location.href='@Url.Action("Details", "PublicDoctor", new { doctorId = doc.DoctorID, patientId = patientId })'">
-                                            View Dr. Profile
-                                        </button>
-                                        @if (!pd.IsPrimary)
-                                        {
-                                            <button class="btn btn-sm btn-outline set-primary-btn"
-                                                    data-doctor-id="@doc.DoctorID"
-                                                    data-patient-id="@patientId">
-                                                Set Primary
-                                            </button>
-                                        }
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    </div>
-                </section>
-            }
-
-            <!-- Upcoming Appointments -->
-            <section class="upcoming-section">
-                <div class="card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-clock"></i> Upcoming Appointments</h3>
-                        <span class="appointments-count" id="upcomingCount">
-                            @Model.UpcomingAppointments.Count appointment@(Model.UpcomingAppointments.Count != 1 ? "s" : "")
+                <div class="pj-hero-facts">
+                    <div class="pj-hero-fact">
+                        <span class="pj-hero-fact-ico rose"><i class="fas fa-user-md"></i></span>
+                        <span>
+                            <span class="pj-hero-fact-lbl">Primary Doctor</span>
+                            <span class="pj-hero-fact-val">@(primaryDocName ?? "Not chosen yet")</span>
                         </span>
                     </div>
-                    <div class="appointments-list">
-                        @if (!Model.UpcomingAppointments.Any())
-                        {
-                            <div class="appointment-empty-state">
-                                <i class="fas fa-calendar-times"></i>
-                                <p>No upcoming appointments.
-                                    <a href="@Url.Action("BookAppointment", "PatientAppointments", new { id = patientId })">Book one now</a>
-                                </p>
-                            </div>
-                        }
-                        else
-                        {
-                            @foreach (var appt in Model.UpcomingAppointments)
-                            {
-                                var docName = appt.Doctor?.User != null
-                                    ? $"Dr. {appt.Doctor.User.FirstName} {appt.Doctor.User.LastName}".Trim()
-                                    : "Doctor";
-                                var status = appt.Booking?.Status ?? "Confirmed";
-                                var canCancel = string.Equals(status, "Confirmed", StringComparison.OrdinalIgnoreCase)
-                                             || string.Equals(status, "Modified", StringComparison.OrdinalIgnoreCase);
-                                var canReschedule = string.Equals(status, "Modified", StringComparison.OrdinalIgnoreCase);
-                                var timeDisplay = DateTime.Today.Add(appt.Time).ToString("h:mm tt");
-                                var reason = appt.Booking?.Reason;
-                                if (string.IsNullOrWhiteSpace(reason)) reason = "Appointment";
-                                <div class="appointment-card upcoming" id="appt-@appt.AppointmentID">
-                                    <div class="appointment-date">
-                                        <span class="day">@appt.Date.Day</span>
-                                        <span class="month">@appt.Date.ToString("MMM")</span>
-                                    </div>
-                                    <div class="appointment-info">
-                                        <h4>@reason</h4>
-                                        <p class="doctor-name">
-                                            <i class="fas fa-user-md"></i> @docName
-                                        </p>
-                                        <p class="appointment-time">
-                                            <i class="fas fa-clock"></i> @timeDisplay
-                                        </p>
-                                        <p class="appointment-location">
-                                            <i class="fas fa-map-marker-alt"></i> @(appt.Clinic?.Name ?? "Clinic")
-                                        </p>
-                                    </div>
-                                    <div class="appointment-status">
-                                        <span class="status-badge @status.ToLower()">@status</span>
-                                    </div>
-                                    <div class="appointment-actions">
-                                        @if (canCancel)
-                                        {
-                                            @if (canReschedule)
-                                            {
-                                                <button class="btn btn-sm btn-outline reschedule-btn"
-                                                        data-appointment-id="@appt.AppointmentID"
-                                                        data-patient-id="@patientId"
-                                                        data-doctor-id="@appt.DoctorID"
-                                                        data-clinic-id="@appt.ClinicID"
-                                                        data-date="@appt.Date.ToString("yyyy-MM-dd")"
-                                                        data-time="@DateTime.Today.Add(appt.Time).ToString("hh:mm tt")">
-                                                    <i class="fas fa-edit"></i> Change Time
-                                                </button>
-                                            }
-                                            <button class="btn btn-sm btn-outline danger cancel-btn"
-                                                    data-appointment-id="@appt.AppointmentID"
-                                                    data-patient-id="@patientId">
-                                                <i class="fas fa-times"></i> Cancel
-                                            </button>
-                                        }
-                                    </div>
-                                </div>
-                            }
-                        }
-                    </div>
-                </div>
-            </section>
-
-            <!-- Past Appointments -->
-            @if (Model.PastAppointments.Count > 0)
-            {
-                <section class="past-appointments" id="pastAppointmentsSection">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3><i class="fas fa-history"></i> Past Appointments</h3>
-                            <button class="btn btn-sm btn-outline" id="openPastModalBtn" type="button">
-                                <i class="fas fa-eye"></i> View All
-                            </button>
-                        </div>
-                        <div class="pa-table-wrap">
-                            <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Doctor</th>
-                                        <th>Reason</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var appt in Model.PastAppointments.Take(3))
-                                    {
-                                        var docName = appt.Doctor?.User != null
-                                            ? $"Dr. {appt.Doctor.User.FirstName} {appt.Doctor.User.LastName}".Trim()
-                                            : "Doctor";
-                                        var status = appt.Booking?.Status ?? "Completed";
-                                        var normalizedStatus = status.Trim().ToLowerInvariant();
-                                        var badgeClass = normalizedStatus switch
-                                        {
-                                            "cancelled" or "canceled" => "cancelled",
-                                            "missed" => "cancelled",
-                                            "modified" => "modified",
-                                            "confirmed" => "confirmed",
-                                            _ => "completed"
-                                        };
-                                        var badgeLabel = normalizedStatus switch
-                                        {
-                                            "cancelled" or "canceled" => "Cancelled",
-                                            "missed" => "Missed",
-                                            "modified" => "Modified",
-                                            "confirmed" => "Confirmed",
-                                            _ => "Completed"
-                                        };
-                                        var reason = appt.Booking?.Reason;
-                                        if (string.IsNullOrWhiteSpace(reason)) reason = "Visit";
-                                        <tr>
-                                            <td>@appt.Date.ToString("MMM dd, yyyy")</td>
-                                            <td>@docName</td>
-                                            <td>@reason</td>
-                                            <td><span class="status-badge @badgeClass">@badgeLabel</span></td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="past-summary">
-                            <i class="fas fa-calendar-check"></i>
-                            <span>Showing last @(Math.Min(3, Model.PastAppointments.Count)) of @Model.PastAppointments.Count appointments.</span>
-                        </div>
-                    </div>
-                </section>
-
-                <div class="pa-modal-overlay" id="pastAppointmentsModal" aria-hidden="true">
-                    <div class="pa-modal" role="dialog" aria-modal="true" aria-labelledby="pastAppointmentsModalTitle">
-                        <div class="pa-modal-header">
-                            <h3 id="pastAppointmentsModalTitle"><i class="fas fa-history"></i> All Past Appointments</h3>
-                            <button class="pa-modal-close" id="closePastModalBtn" type="button" aria-label="Close">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                        <div class="pa-modal-body pa-table-wrap">
-                            <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Doctor</th>
-                                        <th>Reason</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var appt in Model.PastAppointments)
-                                    {
-                                        var docName = appt.Doctor?.User != null
-                                            ? $"Dr. {appt.Doctor.User.FirstName} {appt.Doctor.User.LastName}".Trim()
-                                            : "Doctor";
-                                        var status = appt.Booking?.Status ?? "Completed";
-                                        var normalizedStatus = status.Trim().ToLowerInvariant();
-                                        var badgeClass = normalizedStatus switch
-                                        {
-                                            "cancelled" or "canceled" => "cancelled",
-                                            "missed" => "cancelled",
-                                            "modified" => "modified",
-                                            "confirmed" => "confirmed",
-                                            _ => "completed"
-                                        };
-                                        var badgeLabel = normalizedStatus switch
-                                        {
-                                            "cancelled" or "canceled" => "Cancelled",
-                                            "missed" => "Missed",
-                                            "modified" => "Modified",
-                                            "confirmed" => "Confirmed",
-                                            _ => "Completed"
-                                        };
-                                        var reason = appt.Booking?.Reason;
-                                        if (string.IsNullOrWhiteSpace(reason)) reason = "Visit";
-                                        <tr>
-                                            <td>@appt.Date.ToString("MMM dd, yyyy")</td>
-                                            <td>@docName</td>
-                                            <td>@reason</td>
-                                            <td><span class="status-badge @badgeClass">@badgeLabel</span></td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            }
-
-            <div class="pa-modal-overlay" id="rescheduleModal" aria-hidden="true">
-                <div class="pa-modal" role="dialog" aria-modal="true" aria-labelledby="rescheduleModalTitle">
-                    <div class="pa-modal-header">
-                        <h3 id="rescheduleModalTitle"><i class="fas fa-edit"></i> Change Appointment Time</h3>
-                        <button class="pa-modal-close" id="closeRescheduleModalBtn" type="button" aria-label="Close">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <div class="pa-modal-body">
-                        <div class="reschedule-current-box">
-                            <i class="fas fa-clock"></i>
-                            <span id="rescheduleCurrentInfo">Current time:</span>
-                        </div>
-                        <div class="form-group">
-                            <label for="rescheduleDate">Date</label>
-                            <input id="rescheduleDate" type="date" class="form-select" />
-                        </div>
-                        <div class="form-group reschedule-field">
-                            <label for="rescheduleSlot">Available Times</label>
-                            <div class="reschedule-select-wrap">
-                                <select id="rescheduleSlot" class="form-select reschedule-time-select">
-                                    <option value="">Choose a time</option>
-                                </select>
-                            </div>
-                            <p id="rescheduleHint" class="reschedule-hint">Pick a date to load available times.</p>
-                        </div>
-                    </div>
-                    <div class="booking-navigation reschedule-footer">
-                        <button type="button" class="btn btn-outline btn-reschedule-cancel" id="cancelRescheduleBtn">Cancel</button>
-                        <button type="button" class="btn btn-primary btn-reschedule-save" id="confirmRescheduleBtn">
-                            <i class="fas fa-check"></i> Save
-                        </button>
+                    <div class="pj-hero-fact">
+                        <span class="pj-hero-fact-ico violet"><i class="fas fa-baby-carriage"></i></span>
+                        <span>
+                            <span class="pj-hero-fact-lbl">Expected Delivery</span>
+                            <span class="pj-hero-fact-val">@(Model.DueDate.HasValue ? Model.DueDate.Value.ToString("MMMM dd, yyyy") : "To be confirmed")</span>
+                        </span>
                     </div>
                 </div>
             </div>
+
+            <div class="pj-hero-art">
+                <div class="pj-hero-orb" style="--ring:@percent">
+                    <span class="pj-hero-orb-ring"></span>
+                    <span class="pj-hero-orb-emoji">🤰</span>
+                    <span class="pj-hero-orb-pct">@percent% of your journey</span>
+                </div>
+                <div class="pj-hero-step">
+                    <div class="pj-hero-step-lbl">Next Care Step</div>
+                    <div class="pj-hero-step-name">@nextStepName</div>
+                    <div class="pj-hero-step-meta"><i class="fas fa-clock"></i> @nextStepMeta</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ════════ 3 · NEXT CARE STEP (spotlight ticket) ════════ -->
+    <section>
+        <div class="pj-section-head" style="margin-bottom:14px;">
+            <span class="pj-eyebrow"><i class="fas fa-star"></i> Your Next Important Step</span>
+            <h2 style="font-size:1.32rem;font-weight:800;margin-top:6px;">The visit to look forward to</h2>
+        </div>
+
+        <div class="pj-ticket">
+            @if (nextAppt != null)
+            {
+                <div class="pj-ticket-stub">
+                    <span class="pj-ticket-stub-lbl">Care Pass</span>
+                    <span class="pj-ticket-day">@nextAppt.Date.Day</span>
+                    <span class="pj-ticket-mon">@nextAppt.Date.ToString("MMM")</span>
+                    <span class="pj-ticket-year">@nextAppt.Date.ToString("yyyy")</span>
+                    <span class="pj-ticket-count">@(daysToNext == 0 ? "Today" : daysToNext == 1 ? "Tomorrow" : $"In {daysToNext} days")</span>
+                </div>
+                <div class="pj-ticket-body">
+                    <div>
+                        <span class="pj-ticket-reason">@nextReason</span>
+                        <span class="pj-ticket-status @(string.Equals(nextStatus,"Modified",StringComparison.OrdinalIgnoreCase) ? "modified" : "")">@nextStatus</span>
+                    </div>
+                    <div class="pj-ticket-meta">
+                        <div class="pj-ticket-meta-item">
+                            <span class="pj-ticket-meta-ico"><i class="fas fa-user-md"></i></span>
+                            <span>
+                                <span class="pj-ticket-meta-lbl">With</span><br />
+                                <span class="pj-ticket-meta-val">@nextDocName</span>
+                            </span>
+                        </div>
+                        <div class="pj-ticket-meta-item">
+                            <span class="pj-ticket-meta-ico"><i class="fas fa-clock"></i></span>
+                            <span>
+                                <span class="pj-ticket-meta-lbl">Time</span><br />
+                                <span class="pj-ticket-meta-val">@DateTime.Today.Add(nextAppt.Time).ToString("h:mm tt")</span>
+                            </span>
+                        </div>
+                        <div class="pj-ticket-meta-item">
+                            <span class="pj-ticket-meta-ico"><i class="fas fa-calendar-day"></i></span>
+                            <span>
+                                <span class="pj-ticket-meta-lbl">Date</span><br />
+                                <span class="pj-ticket-meta-val">@nextAppt.Date.ToString("dddd, MMM dd")</span>
+                            </span>
+                        </div>
+                        <div class="pj-ticket-meta-item">
+                            <span class="pj-ticket-meta-ico"><i class="fas fa-map-marker-alt"></i></span>
+                            <span>
+                                <span class="pj-ticket-meta-lbl">Location</span><br />
+                                <span class="pj-ticket-meta-val">@clinicName</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="pj-ticket-prep">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span>
+                            <span class="pj-ticket-prep-t">How to prepare</span>
+                            <span class="pj-ticket-prep-d">@prepNote</span>
+                        </span>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(nextNotes))
+                    {
+                        <div class="pj-ticket-extra" id="pjTicketExtra" hidden>
+                            <strong>Your note:</strong> @nextNotes
+                        </div>
+                    }
+
+                    <div class="pj-ticket-actions">
+                        @if (!string.IsNullOrWhiteSpace(nextNotes))
+                        {
+                            <button type="button" class="pj-btn" id="pjViewDetailsBtn"><i class="fas fa-circle-info"></i> View Details</button>
+                        }
+                        @if (nextCanReschedule)
+                        {
+                            <button type="button" class="pj-btn pj-btn-primary reschedule-btn"
+                                    data-appointment-id="@nextAppt.AppointmentID"
+                                    data-patient-id="@patientId"
+                                    data-doctor-id="@nextAppt.DoctorID"
+                                    data-clinic-id="@nextAppt.ClinicID"
+                                    data-date="@nextAppt.Date.ToString("yyyy-MM-dd")"
+                                    data-time="@DateTime.Today.Add(nextAppt.Time).ToString("hh:mm tt")">
+                                <i class="fas fa-edit"></i> Reschedule
+                            </button>
+                        }
+                        <a class="pj-btn" href="@mapsUrl" target="_blank" rel="noopener"><i class="fas fa-route"></i> Get Directions</a>
+                        <a class="pj-btn" href="/Patient/Messages/@patientId"><i class="fas fa-comment-medical"></i> Contact Clinic</a>
+                        @if (nextCanCancel)
+                        {
+                            <button type="button" class="pj-btn pj-btn-ghost danger cancel-btn"
+                                    data-appointment-id="@nextAppt.AppointmentID"
+                                    data-patient-id="@patientId">
+                                <i class="fas fa-times"></i> Cancel visit
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="pj-ticket-empty">
+                    <div class="pj-ticket-empty-emoji">🌸</div>
+                    <h3>No visit scheduled yet</h3>
+                    <p>Regular check-ups are the heartbeat of a healthy pregnancy. Let's find a time that works for you and your little one.</p>
+                    <a class="pj-btn pj-btn-primary" href="@Url.Action("BookAppointment", "PatientAppointments", new { id = patientId })">
+                        <i class="fas fa-plus-circle"></i> Book your next visit
+                    </a>
+                </div>
+            }
+        </div>
+    </section>
+
+    <!-- ════════ 5 · CARE TEAM ════════ -->
+    <section>
+        <div class="pj-card-head" style="margin-bottom:16px;">
+            <h2 style="font-size:1.32rem;font-weight:800;display:flex;align-items:center;gap:10px;"><span class="pj-dot violet"></span> Your Care Team</h2>
+            <a class="pj-link" href="@Url.Action("BookAppointment", "PatientAppointments", new { id = patientId })">Find a doctor <i class="fas fa-arrow-right"></i></a>
+        </div>
+        @if (Model.MyDoctors.Any())
+        {
+            <div class="pj-team-grid">
+                @foreach (var pd in Model.MyDoctors)
+                {
+                    var doc = pd.Doctor;
+                    if (doc == null) { continue; }
+                    var docName = doc.User != null ? $"Dr. {doc.User.FirstName} {doc.User.LastName}".Trim() : "Doctor";
+                    var docClinic = doc.ClinicDoctors?.FirstOrDefault()?.Clinic?.Name ?? "Clinic";
+                    var profileUrl = Url.Action("Details", "PublicDoctor", new { doctorId = doc.DoctorID, patientId = patientId });
+                    <div class="pj-team-card" data-doctor-id="@doc.DoctorID">
+                        @if (pd.IsPrimary)
+                        {
+                            <span class="pj-team-primary"><i class="fas fa-star"></i> Primary</span>
+                        }
+                        <div class="pj-team-top">
+                            <a href="@profileUrl">
+                                <img class="pj-team-avatar" src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(docName)&background=fb7185&color=fff&size=120" alt="@docName" />
+                            </a>
+                            <div class="pj-team-name"><a href="@profileUrl">@docName</a></div>
+                            <div class="pj-team-spec"><i class="fas fa-stethoscope"></i> @doc.Specialization</div>
+                            <div class="pj-team-clinic"><i class="fas fa-map-marker-alt"></i> @docClinic</div>
+                        </div>
+                        <div class="pj-team-actions">
+                            <a class="pj-btn" href="/Patient/Messages/@patientId"><i class="fas fa-comment"></i> Message</a>
+                            <a class="pj-btn pj-btn-primary" href="@Url.Action("BookAppointment", "PatientAppointments", new { id = patientId, doctorId = doc.DoctorID })"><i class="fas fa-calendar-plus"></i> Book</a>
+                        </div>
+                        @if (!pd.IsPrimary)
+                        {
+                            <button type="button" class="pj-team-setprimary set-primary-btn" data-doctor-id="@doc.DoctorID" data-patient-id="@patientId">
+                                <i class="fas fa-star"></i> Make primary doctor
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="pj-card">
+                <div class="pj-empty">
+                    <span>👩‍⚕️</span>
+                    <p>You haven't connected with a doctor yet. Choosing a doctor lets you book visits and receive personal care guidance.</p>
+                    <a class="pj-btn pj-btn-primary" style="margin-top:14px;" href="@Url.Action("BookAppointment", "PatientAppointments", new { id = patientId })"><i class="fas fa-search"></i> Find your doctor</a>
+                </div>
+            </div>
+        }
+    </section>
+
+    <!-- ════════ 2 · CARE ROADMAP ════════ -->
+    <section class="pj-card">
+        <div class="pj-card-head">
+            <h2><span class="pj-dot rose"></span> Your Care Roadmap</h2>
+            <span class="pj-card-sub">@(currentIdx + (week >= milestones[currentIdx].Week ? 1 : 0)) of @milestones.Length milestones reached</span>
+        </div>
+        <div class="pj-road">
+            @for (int i = 0; i < milestones.Length; i++)
+            {
+                var m = milestones[i];
+                var state = i < currentIdx ? "done" : i == currentIdx ? "current" : "upcoming";
+                var stateLabel = state == "done" ? "Completed" : state == "current" ? "Up next" : "Upcoming";
+                <div class="pj-road-item @state">
+                    <div class="pj-road-rail">
+                        <div class="pj-road-bubble">
+                            @m.Emoji
+                            @if (state == "done")
+                            {
+                                <span class="pj-road-check"><i class="fas fa-check"></i></span>
+                            }
+                        </div>
+                        <div class="pj-road-line"></div>
+                    </div>
+                    <div class="pj-road-body">
+                        <div class="pj-road-tags">
+                            <span class="pj-road-wk">Around week @m.Week</span>
+                            <span class="pj-road-state">@stateLabel</span>
+                        </div>
+                        <div class="pj-road-title">@m.Title</div>
+                        <div class="pj-road-sub">@m.Sub</div>
+                    </div>
+                </div>
+            }
+        </div>
+    </section>
+
+    <!-- ════════ 4 · THIS WEEK'S CARE PLAN ════════ -->
+    <section class="pj-card" data-progress-group>
+        <div class="pj-card-head">
+            <h2><span class="pj-dot mint"></span> This Week's Care Plan</h2>
+            <span class="pj-card-sub">Week @week · small loving steps</span>
+        </div>
+        <div class="pj-progress">
+            <div class="pj-progress-track"><div class="pj-progress-fill"></div></div>
+            <span class="pj-progress-count">0/@weekPlan.Length</span>
+        </div>
+        <div class="pj-checklist">
+            @for (int i = 0; i < weekPlan.Length; i++)
+            {
+                var item = weekPlan[i];
+                <div class="pj-check-row">
+                    <button type="button" class="pj-check" data-key="pj_week_@(patientId)_@(week)_@i">
+                        <span class="pj-check-box"><i class="fas fa-check"></i></span>
+                        <span class="pj-check-ico"><i class="fas @item.Icon"></i></span>
+                        <span class="pj-check-body">
+                            <span class="pj-check-title">@item.Title</span>
+                            <span class="pj-check-sub">@item.Sub</span>
+                        </span>
+                    </button>
+                </div>
+            }
+        </div>
+    </section>
+
+    
+
+
+
+    <!-- ════════ 7 · VISIT MEMORIES ════════ -->
+    <section class="pj-card">
+        <div class="pj-card-head">
+            <h2><span class="pj-dot amber"></span> Visit Memories</h2>
+            <span class="pj-card-sub">Moments from your journey so far</span>
+        </div>
+        @if (Model.PastAppointments.Any())
+        {
+            <div class="pj-mem">
+                @foreach (var ap in Model.PastAppointments.Take(6))
+                {
+                    var dn = ap.Doctor?.User != null ? $"Dr. {ap.Doctor.User.FirstName} {ap.Doctor.User.LastName}".Trim() : "Your doctor";
+                    var status = (ap.Booking?.Status ?? "Completed").Trim().ToLowerInvariant();
+                    var reason = ap.Booking?.Reason;
+                    if (string.IsNullOrWhiteSpace(reason)) reason = "Prenatal Visit";
+                    var isCancelled = status is "cancelled" or "canceled" or "missed";
+                    string note = status switch
+                    {
+                        "cancelled" or "canceled" => "This visit was cancelled — you can rebook whenever you're ready. 💛",
+                        "missed" => "This visit was missed. Reaching out to rebook keeps your care on track.",
+                        _ => "Everything was reviewed and noted — thank you for taking care of yourself and your baby. 💚"
+                    };
+                    <div class="pj-mem-item @(isCancelled ? "cancelled" : "")">
+                        <span class="pj-mem-marker"></span>
+                        <div class="pj-mem-card">
+                            <div class="pj-mem-date">@ap.Date.ToString("MMMM dd, yyyy")</div>
+                            <div class="pj-mem-title">@reason</div>
+                            <div class="pj-mem-note">@note</div>
+                            <div class="pj-mem-doc">
+                                <span><i class="fas fa-user-md"></i> @dn</span>
+                                <span><i class="fas fa-map-marker-alt"></i> @(ap.Clinic?.Name ?? "Clinic")</span>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="pj-empty">
+                <span>📖</span>
+                <p>Your visit memories will gather here. Each appointment becomes a gentle milestone in your story.</p>
+            </div>
+        }
+    </section>
+
+    <!-- ════════ 8 · PREPARE FOR YOUR NEXT VISIT ════════ -->
+    <section class="pj-card" id="pj-prepare" data-progress-group>
+        <div class="pj-card-head">
+            <h2><span class="pj-dot sky"></span> Prepare for Your Next Visit</h2>
+            <span class="pj-card-sub">A little prep goes a long way</span>
+        </div>
+        <div class="pj-progress">
+            <div class="pj-progress-track"><div class="pj-progress-fill"></div></div>
+            <span class="pj-progress-count">0/5</span>
+        </div>
+        <div class="pj-checklist">
+            <div class="pj-check-row">
+                <button type="button" class="pj-check" data-key="pj_prep_@(patientId)_q">
+                    <span class="pj-check-box"><i class="fas fa-check"></i></span>
+                    <span class="pj-check-ico"><i class="fas fa-circle-question"></i></span>
+                    <span class="pj-check-body">
+                        <span class="pj-check-title">Write down your questions</span>
+                        <span class="pj-check-sub">Jot them below so you don't forget</span>
+                    </span>
+                </button>
+            </div>
+            <textarea class="pj-notes" data-key="pj_prep_notes_@(patientId)" placeholder="e.g. Is my weight gain on track? Which symptoms should I watch for?"></textarea>
+
+            <div class="pj-check-row">
+                <button type="button" class="pj-check" data-key="pj_prep_@(patientId)_sym">
+                    <span class="pj-check-box"><i class="fas fa-check"></i></span>
+                    <span class="pj-check-ico"><i class="fas fa-notes-medical"></i></span>
+                    <span class="pj-check-body">
+                        <span class="pj-check-title">Note symptoms to discuss</span>
+                        <span class="pj-check-sub">Anything new or unusual this week</span>
+                    </span>
+                </button>
+            </div>
+
+            <div class="pj-check-row">
+                <button type="button" class="pj-check" data-key="pj_prep_@(patientId)_rep">
+                    <span class="pj-check-box"><i class="fas fa-check"></i></span>
+                    <span class="pj-check-ico"><i class="fas fa-file-medical"></i></span>
+                    <span class="pj-check-body">
+                        <span class="pj-check-title">Upload recent reports</span>
+                        <span class="pj-check-sub">Let your doctor see your latest results</span>
+                    </span>
+                </button>
+                <a class="pj-check-link" href="/PatientTests/TestsUpload/@patientId" title="Upload reports"><i class="fas fa-arrow-right"></i></a>
+            </div>
+
+            <div class="pj-check-row">
+                <button type="button" class="pj-check" data-key="pj_prep_@(patientId)_read">
+                    <span class="pj-check-box"><i class="fas fa-check"></i></span>
+                    <span class="pj-check-ico"><i class="fas fa-heart-pulse"></i></span>
+                    <span class="pj-check-body">
+                        <span class="pj-check-title">Update your health readings</span>
+                        <span class="pj-check-sub">Blood pressure & blood sugar</span>
+                    </span>
+                </button>
+                <a class="pj-check-link" href="/Patient/Index/@patientId" title="Log readings"><i class="fas fa-arrow-right"></i></a>
+            </div>
+
+            <div class="pj-check-row">
+                <button type="button" class="pj-check" data-key="pj_prep_@(patientId)_med">
+                    <span class="pj-check-box"><i class="fas fa-check"></i></span>
+                    <span class="pj-check-ico"><i class="fas fa-pills"></i></span>
+                    <span class="pj-check-body">
+                        <span class="pj-check-title">Review your medication notes</span>
+                        <span class="pj-check-sub">Bring an up-to-date list</span>
+                    </span>
+                </button>
+                <a class="pj-check-link" href="/PatientMedication/Index/@patientId" title="View medications"><i class="fas fa-arrow-right"></i></a>
+            </div>
+        </div>
+    </section>
+
 </div>
+
+<!-- ════════ Reschedule modal ════════ -->
+<div class="pj-modal-overlay" id="rescheduleModal" aria-hidden="true">
+    <div class="pj-modal" role="dialog" aria-modal="true" aria-labelledby="rescheduleModalTitle">
+        <div class="pj-modal-head">
+            <h3 id="rescheduleModalTitle"><i class="fas fa-edit"></i> Change Appointment Time</h3>
+            <button class="pj-modal-close" id="closeRescheduleModalBtn" type="button" aria-label="Close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="pj-modal-body">
+            <div class="pj-modal-current">
+                <i class="fas fa-clock"></i>
+                <span id="rescheduleCurrentInfo">Current time:</span>
+            </div>
+            <div>
+                <label for="rescheduleDate">Pick a new date</label>
+                <input id="rescheduleDate" type="date" />
+            </div>
+            <div class="pj-modal-field">
+                <label for="rescheduleSlot">Available times</label>
+                <select id="rescheduleSlot"><option value="">Choose a time</option></select>
+                <p id="rescheduleHint" class="pj-modal-hint">Pick a date to load available times.</p>
+            </div>
+        </div>
+        <div class="pj-modal-foot">
+            <button type="button" class="pj-btn" id="cancelRescheduleBtn">Cancel</button>
+            <button type="button" class="pj-btn pj-btn-primary" id="confirmRescheduleBtn"><i class="fas fa-check"></i> Save</button>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-          const pastModal = document.getElementById("pastAppointmentsModal");
-          const openPastModalBtn = document.getElementById("openPastModalBtn");
-          const closePastModalBtn = document.getElementById("closePastModalBtn");
+            const antiForgeryToken = document.querySelector('[name="__RequestVerificationToken"]')?.value ?? "";
 
-          function openPastModal() {
-            if (!pastModal) return;
-            pastModal.classList.add("open");
-            pastModal.setAttribute("aria-hidden", "false");
-            document.body.style.overflow = "hidden";
-          }
+            // ── Toast fallback ──
+            window.showNotification = window.showNotification || function (message, type = "info") {
+                document.querySelector(".pj-toast")?.remove();
+                const icons = { success: "fa-check-circle", error: "fa-times-circle", info: "fa-info-circle" };
+                const n = document.createElement("div");
+                n.className = "pj-toast " + type;
+                n.innerHTML = '<i class="fas ' + (icons[type] || icons.info) + '"></i><span>' + message + "</span>";
+                document.body.appendChild(n);
+                setTimeout(() => n.remove(), 3800);
+            };
 
-          function closePastModal() {
-            if (!pastModal) return;
-            pastModal.classList.remove("open");
-            pastModal.setAttribute("aria-hidden", "true");
-            document.body.style.overflow = "";
-          }
-
-          openPastModalBtn?.addEventListener("click", openPastModal);
-          closePastModalBtn?.addEventListener("click", closePastModal);
-          pastModal?.addEventListener("click", function (e) {
-            if (e.target === pastModal) closePastModal();
-          });
-
-          document.addEventListener("keydown", function (e) {
-            if (e.key === "Escape" && pastModal?.classList.contains("open")) {
-              closePastModal();
-            }
-          });
-
-          // ================================
-          // Cancel Appointment
-          // ================================
-          const antiForgeryToken = document.querySelector(
-            '[name="__RequestVerificationToken"]'
-          )?.value ?? "";
-
-          // ================================
-          // Reschedule Modal
-          // ================================
-          const rescheduleModal = document.getElementById("rescheduleModal");
-          const closeRescheduleModalBtn = document.getElementById("closeRescheduleModalBtn");
-          const cancelRescheduleBtn = document.getElementById("cancelRescheduleBtn");
-          const confirmRescheduleBtn = document.getElementById("confirmRescheduleBtn");
-          const rescheduleDate = document.getElementById("rescheduleDate");
-          const rescheduleSlot = document.getElementById("rescheduleSlot");
-          const rescheduleCurrentInfo = document.getElementById("rescheduleCurrentInfo");
-          const rescheduleHint = document.getElementById("rescheduleHint");
-
-          let rescheduleContext = {
-            patientId: null,
-            currentAppointmentId: null,
-            doctorId: null,
-            clinicId: null,
-          };
-
-          function openRescheduleModal() {
-            if (!rescheduleModal) return;
-            rescheduleModal.classList.add("open");
-            rescheduleModal.setAttribute("aria-hidden", "false");
-            document.body.style.overflow = "hidden";
-          }
-
-          function closeRescheduleModal() {
-            if (!rescheduleModal) return;
-            rescheduleModal.classList.remove("open");
-            rescheduleModal.setAttribute("aria-hidden", "true");
-            document.body.style.overflow = "";
-
-            if (rescheduleSlot) {
-              rescheduleSlot.innerHTML = '<option value="">Choose a time</option>';
-            }
-
-            if (rescheduleHint) {
-              rescheduleHint.textContent = "Pick a date to load available times.";
-            }
-          }
-
-          async function loadRescheduleSlots() {
-            if (!rescheduleDate || !rescheduleSlot) return;
-            if (!rescheduleDate.value || !rescheduleContext.patientId || !rescheduleContext.doctorId) return;
-
-            rescheduleSlot.innerHTML = '<option value="">Loading...</option>';
-            if (rescheduleHint) rescheduleHint.textContent = "Loading available times...";
-
-            try {
-              let url = `/PatientAppointments/GetDoctorSlots?patientId=${rescheduleContext.patientId}&doctorId=${rescheduleContext.doctorId}&date=${rescheduleDate.value}`;
-              if (rescheduleContext.clinicId) {
-                url += `&clinicId=${rescheduleContext.clinicId}`;
-              }
-
-              const response = await fetch(url);
-              const slots = await response.json();
-              rescheduleSlot.innerHTML = '<option value="">Choose a time</option>';
-
-              if (!Array.isArray(slots) || slots.length === 0) {
-                if (rescheduleHint) rescheduleHint.textContent = "No available times on this date.";
-                window.showNotification?.("No available slots for this date.", "info");
-                return;
-              }
-
-              if (rescheduleHint) rescheduleHint.textContent = `${slots.length} available time slot(s).`;
-
-              slots.forEach((slot) => {
-                const option = document.createElement("option");
-                option.value = String(slot.appointmentId);
-                option.textContent = slot.timeDisplay;
-                rescheduleSlot.appendChild(option);
-              });
-            } catch {
-              rescheduleSlot.innerHTML = '<option value="">Choose a time</option>';
-              if (rescheduleHint) rescheduleHint.textContent = "Unable to load times. Please try another date.";
-              window.showNotification?.("Error loading available times.", "error");
-            }
-          }
-
-          async function dateHasAvailability(dateValue) {
-            if (!dateValue || !rescheduleContext.patientId || !rescheduleContext.doctorId) return false;
-
-            const selected = new Date(dateValue + "T00:00:00");
-            const month = selected.getMonth() + 1;
-            const year = selected.getFullYear();
-
-            try {
-              let url = `/PatientAppointments/GetAvailableDates?patientId=${rescheduleContext.patientId}&doctorId=${rescheduleContext.doctorId}&year=${year}&month=${month}`;
-              if (rescheduleContext.clinicId) {
-                url += `&clinicId=${rescheduleContext.clinicId}`;
-              }
-
-              const response = await fetch(url);
-              const dates = await response.json();
-              return Array.isArray(dates) && dates.includes(dateValue);
-            } catch {
-              return false;
-            }
-          }
-
-          document.querySelectorAll(".reschedule-btn").forEach((btn) => {
-            btn.addEventListener("click", async function () {
-              rescheduleContext.patientId = parseInt(this.dataset.patientId);
-              rescheduleContext.currentAppointmentId = parseInt(this.dataset.appointmentId);
-              rescheduleContext.doctorId = parseInt(this.dataset.doctorId);
-              rescheduleContext.clinicId = parseInt(this.dataset.clinicId);
-
-              if (rescheduleCurrentInfo) {
-                rescheduleCurrentInfo.textContent = `Current slot: ${this.dataset.date} at ${this.dataset.time}`;
-              }
-
-              const today = new Date().toISOString().split("T")[0];
-              if (rescheduleDate) {
-                rescheduleDate.min = today;
-                rescheduleDate.value = this.dataset.date || today;
-              }
-
-              if (rescheduleSlot) {
-                rescheduleSlot.innerHTML = '<option value="">Choose a time</option>';
-              }
-
-              openRescheduleModal();
-              const hasAvailability = await dateHasAvailability(rescheduleDate?.value || "");
-              if (hasAvailability) {
-                await loadRescheduleSlots();
-              } else {
-                if (rescheduleHint) rescheduleHint.textContent = "No available times on this date.";
-                window.showNotification?.("No available slots on this date. Please choose another date.", "info");
-              }
+            // ── View details (expand note on ticket) ──
+            const viewDetailsBtn = document.getElementById("pjViewDetailsBtn");
+            const ticketExtra = document.getElementById("pjTicketExtra");
+            viewDetailsBtn?.addEventListener("click", function () {
+                if (!ticketExtra) return;
+                const show = ticketExtra.hasAttribute("hidden");
+                ticketExtra.toggleAttribute("hidden", !show);
+                this.innerHTML = show
+                    ? '<i class="fas fa-circle-info"></i> Hide Details'
+                    : '<i class="fas fa-circle-info"></i> View Details';
             });
-          });
 
-          rescheduleDate?.addEventListener("change", async function () {
-            if (!rescheduleDate?.value) return;
-            const hasAvailability = await dateHasAvailability(rescheduleDate.value);
-            if (!hasAvailability) {
-              if (rescheduleSlot) {
-                rescheduleSlot.innerHTML = '<option value="">Choose a time</option>';
-              }
-              if (rescheduleHint) rescheduleHint.textContent = "No available times on this date.";
-              window.showNotification?.("No available slots on this date. Please choose another date.", "info");
-              return;
+            // ── Interactive checklists (localStorage) ──
+            function updateGroup(group) {
+                if (!group) return;
+                const checks = group.querySelectorAll(".pj-check");
+                const done = group.querySelectorAll(".pj-check.pj-checked").length;
+                const fill = group.querySelector(".pj-progress-fill");
+                const count = group.querySelector(".pj-progress-count");
+                if (fill) fill.style.width = checks.length ? (done / checks.length * 100) + "%" : "0%";
+                if (count) count.textContent = done + "/" + checks.length;
             }
 
-            await loadRescheduleSlots();
-          });
-          closeRescheduleModalBtn?.addEventListener("click", closeRescheduleModal);
-          cancelRescheduleBtn?.addEventListener("click", closeRescheduleModal);
-          rescheduleModal?.addEventListener("click", function (e) {
-            if (e.target === rescheduleModal) closeRescheduleModal();
-          });
-
-          confirmRescheduleBtn?.addEventListener("click", async function () {
-            const newAppointmentId = parseInt(rescheduleSlot?.value || "0");
-            if (!newAppointmentId) {
-              window.showNotification?.("Please select a new time.", "error");
-              return;
-            }
-
-            confirmRescheduleBtn.disabled = true;
-            confirmRescheduleBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-            try {
-              const response = await fetch("/PatientAppointments/RescheduleAppointment", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/x-www-form-urlencoded",
-                },
-                body: new URLSearchParams({
-                  __RequestVerificationToken: antiForgeryToken,
-                  patientId: String(rescheduleContext.patientId),
-                  currentAppointmentId: String(rescheduleContext.currentAppointmentId),
-                  newAppointmentId: String(newAppointmentId),
-                }),
-              });
-
-              const result = await response.json();
-              if (result.success) {
-                window.showNotification?.("Appointment rescheduled.", "success");
-                closeRescheduleModal();
-                setTimeout(() => window.location.reload(), 700);
-              } else {
-                window.showNotification?.(result.message || "Failed to reschedule.", "error");
-              }
-            } catch {
-              window.showNotification?.("Error while rescheduling.", "error");
-            } finally {
-              confirmRescheduleBtn.disabled = false;
-              confirmRescheduleBtn.innerHTML = '<i class="fas fa-check"></i> Save';
-            }
-          });
-
-          document.querySelectorAll(".cancel-btn").forEach(function (btn) {
-            btn.addEventListener("click", async function () {
-              if (!confirm("Are you sure you want to cancel this appointment?"))
-                return;
-
-              const appointmentId = parseInt(this.dataset.appointmentId);
-              const patientId = parseInt(this.dataset.patientId);
-
-              try {
-                const response = await fetch("/PatientAppointments/CancelAppointment", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/x-www-form-urlencoded",
-                  },
-                  body: new URLSearchParams({
-                    __RequestVerificationToken: antiForgeryToken,
-                    patientId: patientId,
-                    appointmentId: appointmentId,
-                  }),
+            document.querySelectorAll(".pj-check").forEach(function (btn) {
+                const key = btn.dataset.key;
+                if (key && localStorage.getItem(key) === "1") btn.classList.add("pj-checked");
+                btn.addEventListener("click", function () {
+                    const on = btn.classList.toggle("pj-checked");
+                    if (key) {
+                        if (on) localStorage.setItem(key, "1");
+                        else localStorage.removeItem(key);
+                    }
+                    updateGroup(btn.closest("[data-progress-group]"));
                 });
-                const result = await response.json();
-
-                if (result.success) {
-                  const card = document.getElementById("appt-" + appointmentId);
-                  if (card) card.remove();
-                  const remaining = document.querySelectorAll(
-                    ".appointment-card.upcoming"
-                  ).length;
-                  const countEl = document.getElementById("upcomingCount");
-                  if (countEl)
-                    countEl.textContent =
-                      remaining + " appointment" + (remaining !== 1 ? "s" : "");
-                  window.showNotification?.("Appointment cancelled.", "success");
-                } else {
-                  window.showNotification?.(
-                    result.message || "Failed to cancel.",
-                    "error"
-                  );
-                }
-              } catch {
-                window.showNotification?.(
-                  "Error cancelling appointment.",
-                  "error"
-                );
-              }
             });
-          });
+            document.querySelectorAll("[data-progress-group]").forEach(updateGroup);
 
-          // ================================
-          // Set Primary Doctor
-          // ================================
-          document.querySelectorAll(".set-primary-btn").forEach(function (btn) {
-            btn.addEventListener("click", async function () {
-              const doctorId = parseInt(this.dataset.doctorId);
-              const patientId = parseInt(this.dataset.patientId);
-
-              try {
-                const response = await fetch("/PatientAppointments/SetPrimaryDoctor", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/x-www-form-urlencoded",
-                  },
-                  body: new URLSearchParams({
-                    __RequestVerificationToken: antiForgeryToken,
-                    patientId: patientId,
-                    doctorId: doctorId,
-                  }),
-                });
-
-                const result = await response.json();
-                if (!result.success) {
-                  window.showNotification?.(result.message || "Failed to set primary doctor.", "error");
-                  return;
+            // ── Prep notes autosave ──
+            document.querySelectorAll(".pj-notes").forEach(function (area) {
+                const key = area.dataset.key;
+                if (key) {
+                    area.value = localStorage.getItem(key) || "";
+                    area.addEventListener("input", function () { localStorage.setItem(key, area.value); });
                 }
-
-                document.querySelectorAll(".doctor-mini-card").forEach((card) => {
-                  card.querySelector(".primary-tag")?.remove();
-                });
-
-                document.querySelectorAll(".set-primary-btn").forEach((b) => {
-                  b.style.display = "inline-flex";
-                });
-
-                const selectedCard = document.querySelector(`.doctor-mini-card[data-doctor-id='${doctorId}']`);
-                if (selectedCard) {
-                  const nameEl = selectedCard.querySelector(".doctor-mini-info h5");
-                  if (nameEl && !nameEl.querySelector(".primary-tag")) {
-                    nameEl.insertAdjacentHTML("beforeend", ' <span class="primary-tag">Primary</span>');
-                  }
-
-                  const selectedBtn = selectedCard.querySelector(".set-primary-btn");
-                  if (selectedBtn) selectedBtn.style.display = "none";
-                }
-
-                window.showNotification?.("Primary doctor updated.", "success");
-              } catch {
-                window.showNotification?.("Error updating primary doctor.", "error");
-              }
             });
-          });
 
-          // ================================
-          // Global Notification
-          // ================================
-          window.showNotification = function (message, type = "info") {
-            const existing = document.querySelector(".global-notification");
-            if (existing) existing.remove();
-            const notification = document.createElement("div");
-            notification.className = "global-notification " + type;
-            let icon = "fa-info-circle";
-            if (type === "success") icon = "fa-check-circle";
-            if (type === "error") icon = "fa-exclamation-circle";
-            notification.innerHTML =
-              '<i class="fas ' +
-              icon +
-              '"></i><span>' +
-              message +
-              '</span><button class="notification-close"><i class="fas fa-times"></i></button>';
-            document.body.appendChild(notification);
-            notification
-              .querySelector(".notification-close")
-              .addEventListener("click", () => notification.remove());
-            setTimeout(() => {
-              if (notification.parentNode) notification.remove();
-            }, 4000);
-          };
+            // ── Reschedule modal ──
+            const rescheduleModal = document.getElementById("rescheduleModal");
+            const closeRescheduleModalBtn = document.getElementById("closeRescheduleModalBtn");
+            const cancelRescheduleBtn = document.getElementById("cancelRescheduleBtn");
+            const confirmRescheduleBtn = document.getElementById("confirmRescheduleBtn");
+            const rescheduleDate = document.getElementById("rescheduleDate");
+            const rescheduleSlot = document.getElementById("rescheduleSlot");
+            const rescheduleCurrentInfo = document.getElementById("rescheduleCurrentInfo");
+            const rescheduleHint = document.getElementById("rescheduleHint");
+
+            let ctx = { patientId: null, currentAppointmentId: null, doctorId: null, clinicId: null };
+
+            function openModal() {
+                rescheduleModal.classList.add("open");
+                rescheduleModal.setAttribute("aria-hidden", "false");
+                document.body.style.overflow = "hidden";
+            }
+            function closeModal() {
+                rescheduleModal.classList.remove("open");
+                rescheduleModal.setAttribute("aria-hidden", "true");
+                document.body.style.overflow = "";
+                if (rescheduleSlot) rescheduleSlot.innerHTML = '<option value="">Choose a time</option>';
+                if (rescheduleHint) rescheduleHint.textContent = "Pick a date to load available times.";
+            }
+
+            async function loadSlots() {
+                if (!rescheduleDate.value || !ctx.patientId || !ctx.doctorId) return;
+                rescheduleSlot.innerHTML = '<option value="">Loading...</option>';
+                if (rescheduleHint) rescheduleHint.textContent = "Loading available times...";
+                try {
+                    let url = `/PatientAppointments/GetDoctorSlots?patientId=${ctx.patientId}&doctorId=${ctx.doctorId}&date=${rescheduleDate.value}`;
+                    if (ctx.clinicId) url += `&clinicId=${ctx.clinicId}`;
+                    const slots = await (await fetch(url)).json();
+                    rescheduleSlot.innerHTML = '<option value="">Choose a time</option>';
+                    if (!Array.isArray(slots) || slots.length === 0) {
+                        if (rescheduleHint) rescheduleHint.textContent = "No available times on this date.";
+                        return;
+                    }
+                    if (rescheduleHint) rescheduleHint.textContent = `${slots.length} available time slot(s).`;
+                    slots.forEach(function (slot) {
+                        const o = document.createElement("option");
+                        o.value = String(slot.appointmentId);
+                        o.textContent = slot.timeDisplay;
+                        rescheduleSlot.appendChild(o);
+                    });
+                } catch {
+                    rescheduleSlot.innerHTML = '<option value="">Choose a time</option>';
+                    if (rescheduleHint) rescheduleHint.textContent = "Unable to load times. Please try another date.";
+                }
+            }
+
+            async function dateHasAvailability(dateValue) {
+                if (!dateValue || !ctx.patientId || !ctx.doctorId) return false;
+                const sel = new Date(dateValue + "T00:00:00");
+                try {
+                    let url = `/PatientAppointments/GetAvailableDates?patientId=${ctx.patientId}&doctorId=${ctx.doctorId}&year=${sel.getFullYear()}&month=${sel.getMonth() + 1}`;
+                    if (ctx.clinicId) url += `&clinicId=${ctx.clinicId}`;
+                    const dates = await (await fetch(url)).json();
+                    return Array.isArray(dates) && dates.includes(dateValue);
+                } catch { return false; }
+            }
+
+            document.querySelectorAll(".reschedule-btn").forEach(function (btn) {
+                btn.addEventListener("click", async function () {
+                    ctx.patientId = parseInt(this.dataset.patientId);
+                    ctx.currentAppointmentId = parseInt(this.dataset.appointmentId);
+                    ctx.doctorId = parseInt(this.dataset.doctorId);
+                    ctx.clinicId = parseInt(this.dataset.clinicId);
+                    if (rescheduleCurrentInfo) rescheduleCurrentInfo.textContent = `Current: ${this.dataset.date} at ${this.dataset.time}`;
+                    const today = new Date().toISOString().split("T")[0];
+                    rescheduleDate.min = today;
+                    rescheduleDate.value = this.dataset.date || today;
+                    rescheduleSlot.innerHTML = '<option value="">Choose a time</option>';
+                    openModal();
+                    if (await dateHasAvailability(rescheduleDate.value)) await loadSlots();
+                    else { if (rescheduleHint) rescheduleHint.textContent = "No available times on this date."; }
+                });
+            });
+
+            rescheduleDate?.addEventListener("change", async function () {
+                if (!rescheduleDate.value) return;
+                if (await dateHasAvailability(rescheduleDate.value)) await loadSlots();
+                else {
+                    rescheduleSlot.innerHTML = '<option value="">Choose a time</option>';
+                    if (rescheduleHint) rescheduleHint.textContent = "No available times on this date.";
+                }
+            });
+
+            closeRescheduleModalBtn?.addEventListener("click", closeModal);
+            cancelRescheduleBtn?.addEventListener("click", closeModal);
+            rescheduleModal?.addEventListener("click", function (e) { if (e.target === rescheduleModal) closeModal(); });
+            document.addEventListener("keydown", function (e) { if (e.key === "Escape" && rescheduleModal.classList.contains("open")) closeModal(); });
+
+            confirmRescheduleBtn?.addEventListener("click", async function () {
+                const newAppointmentId = parseInt(rescheduleSlot.value || "0");
+                if (!newAppointmentId) { window.showNotification("Please select a new time.", "error"); return; }
+                confirmRescheduleBtn.disabled = true;
+                confirmRescheduleBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                try {
+                    const r = await fetch("/PatientAppointments/RescheduleAppointment", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                        body: new URLSearchParams({
+                            __RequestVerificationToken: antiForgeryToken,
+                            patientId: String(ctx.patientId),
+                            currentAppointmentId: String(ctx.currentAppointmentId),
+                            newAppointmentId: String(newAppointmentId),
+                        }),
+                    });
+                    const result = await r.json();
+                    if (result.success) {
+                        window.showNotification("Appointment rescheduled. 💗", "success");
+                        closeModal();
+                        setTimeout(() => window.location.reload(), 700);
+                    } else {
+                        window.showNotification(result.message || "Failed to reschedule.", "error");
+                    }
+                } catch {
+                    window.showNotification("Error while rescheduling.", "error");
+                } finally {
+                    confirmRescheduleBtn.disabled = false;
+                    confirmRescheduleBtn.innerHTML = '<i class="fas fa-check"></i> Save';
+                }
+            });
+
+            // ── Cancel appointment ──
+            document.querySelectorAll(".cancel-btn").forEach(function (btn) {
+                btn.addEventListener("click", async function () {
+                    if (!confirm("Are you sure you want to cancel this visit?")) return;
+                    try {
+                        const r = await fetch("/PatientAppointments/CancelAppointment", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                            body: new URLSearchParams({
+                                __RequestVerificationToken: antiForgeryToken,
+                                patientId: this.dataset.patientId,
+                                appointmentId: this.dataset.appointmentId,
+                            }),
+                        });
+                        const result = await r.json();
+                        if (result.success) {
+                            window.showNotification("Visit cancelled.", "success");
+                            setTimeout(() => window.location.reload(), 700);
+                        } else {
+                            window.showNotification(result.message || "Failed to cancel.", "error");
+                        }
+                    } catch {
+                        window.showNotification("Error cancelling visit.", "error");
+                    }
+                });
+            });
+
+            // ── Set primary doctor ──
+            document.querySelectorAll(".set-primary-btn").forEach(function (btn) {
+                btn.addEventListener("click", async function () {
+                    try {
+                        const r = await fetch("/PatientAppointments/SetPrimaryDoctor", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                            body: new URLSearchParams({
+                                __RequestVerificationToken: antiForgeryToken,
+                                patientId: this.dataset.patientId,
+                                doctorId: this.dataset.doctorId,
+                            }),
+                        });
+                        const result = await r.json();
+                        if (result.success) {
+                            window.showNotification("Primary doctor updated. 💜", "success");
+                            setTimeout(() => window.location.reload(), 700);
+                        } else {
+                            window.showNotification(result.message || "Failed to set primary doctor.", "error");
+                        }
+                    } catch {
+                        window.showNotification("Error updating primary doctor.", "error");
+                    }
+                });
+            });
         });
     </script>
 }
