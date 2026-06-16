@@ -1,19 +1,180 @@
-﻿@using System.Globalization
+@using System.Globalization
 @using System.Linq
 @model PatientDashboardViewModel
 @{
     Layout = "~/Views/Shared/_PatientLayout.cshtml";
-    ViewData["Title"] = "Dashboard";
+    ViewData["Title"] = "My Journey";
     ViewData["PatientId"]  = Model.Patient.PatientID;
     ViewData["ActivePage"] = "Dashboard";
     ViewData["UserName"] = Model.UserName;
 
     var now = DateTime.Now;
-    var greeting = now.Hour < 12 ? "Good morning" : now.Hour < 17 ? "Good afternoon" : "Good evening";
-    var patientFirstName = (Model.UserName ?? "Patient").Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Patient";
-    ViewData["PageTitle"] = $"{greeting}, {patientFirstName} 👋";
-    ViewData["PageTitleHtml"] = $"{greeting}, <span class='topbar-accent'>{patientFirstName}</span> 👋";
-    ViewData["PageSubtitle"] = now.ToString("dddd, MMMM dd, yyyy", CultureInfo.InvariantCulture);
+    var greeting = now.Hour < 12 ? "Good morning" : now.Hour < 18 ? "Good afternoon" : "Good evening";
+    var greetFlower = now.Hour < 12 ? "🌅" : now.Hour < 18 ? "🌷" : "🌙";
+    var patientFirstName = (Model.UserName ?? "Mama").Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Mama";
+
+    ViewData["PageTitle"] = "My Journey";
+    ViewData["PageTitleHtml"] = $"{greeting}, <span class='topbar-accent'>{patientFirstName}</span> {greetFlower}";
+    ViewData["PageSubtitle"] = "Your pregnancy journey companion";
+
+    var week = Math.Clamp(Model.PregnancyWeek, 0, 40);
+    var percent = Math.Clamp(Model.PregnancyProgressPercent, 0, 100);
+    var weeksLeft = Math.Max(0, 40 - week);
+
+    // Due date + countdown
+    DateTime dueParsed;
+    bool hasDue = DateTime.TryParse(Model.DueDate, CultureInfo.InvariantCulture, DateTimeStyles.None, out dueParsed);
+    int daysRemaining = hasDue
+        ? Math.Max(0, (int)(dueParsed.Date - DateTime.Today).TotalDays)
+        : Math.Max(0, weeksLeft * 7);
+
+    var baby = GetBabyInfo(week);
+    var babyShort = baby.Size;
+    if (babyShort.StartsWith("a ", StringComparison.OrdinalIgnoreCase)) babyShort = babyShort.Substring(2);
+    else if (babyShort.StartsWith("an ", StringComparison.OrdinalIgnoreCase)) babyShort = babyShort.Substring(3);
+
+    // ── Trimester-aware narrative for the hero "This week" bridge (no new data) ──
+    string momPhase = week < 13
+        ? "Baby's major organs and neural tube are taking shape, so early symptoms like nausea are common."
+        : week < 27
+            ? "Often the most comfortable stretch — energy tends to return and you may start to feel movement."
+            : "Baby is gaining weight quickly while your body gently prepares for birth.";
+    string goodToKnow = week < 13
+        ? "Folic acid, hydration, and rest matter most during these first weeks."
+        : week < 27
+            ? "A good window to schedule your mid-pregnancy anomaly scan."
+            : "A great time to plan your birth preferences and pack your hospital bag.";
+
+    // ── Health insights derived from latest readings ──
+    var insights = new List<(string Icon, string Type, string Title, string Text)>();
+    {
+        var bpRaw = Model.LastBloodPressureValue;
+        if (!string.IsNullOrWhiteSpace(bpRaw) && bpRaw != "N/A" && bpRaw.Contains('/'))
+        {
+            var p = bpRaw.Split('/');
+            if (p.Length == 2 && int.TryParse(p[0], out int s) && int.TryParse(p[1], out int d))
+            {
+                if (s < 90 || d < 60)
+                    insights.Add(("fa-arrow-down", "info", "Blood pressure is a little low", $"Your last reading was {bpRaw}. Rest and stay nourished — let your doctor know if you feel dizzy."));
+                else if (s <= 120 && d <= 80)
+                    insights.Add(("fa-check", "good", "Blood pressure looks stable", $"Your last reading was {bpRaw} mmHg — right where we love to see it. 💚"));
+                else if (s <= 139 || d <= 89)
+                    insights.Add(("fa-exclamation", "warn", "Blood pressure is slightly up", $"Your last reading was {bpRaw}. Try to rest, hydrate, and keep an eye on it."));
+                else
+                    insights.Add(("fa-exclamation", "warn", "Blood pressure was elevated", $"Your last reading was {bpRaw}. Please monitor closely and reach out to your doctor."));
+            }
+        }
+
+        var bs = Model.LastBloodSugarValue;
+        if (bs > 0)
+        {
+            if (bs < 70)
+                insights.Add(("fa-arrow-down", "info", "Blood sugar was low", $"Last reading {bs:0} mg/dL. Have a small snack and check again soon."));
+            else if (bs <= 140)
+                insights.Add(("fa-check", "good", "Blood sugar looks healthy", $"Last reading {bs:0} mg/dL — nicely within range. Keep it up!"));
+            else
+                insights.Add(("fa-exclamation", "warn", "Blood sugar was elevated", $"Last reading {bs:0} mg/dL. Light movement and balanced meals can help bring it down."));
+        }
+    }
+    // Always end on a gentle, supportive note
+    insights.Add(("fa-tint", "tip", "Remember to stay hydrated", "Aim for 8–10 glasses of water today — it helps you and baby feel your best. 💧"));
+    if (insights.Count > 3) insights = insights.Take(3).ToList();
+
+    // ── Weekly trend points (chronological) ──
+    var bpSeries = (Model.WeeklyBloodPressureReadings ?? new List<PatientBloodPressure>())
+        .OrderByDescending(r => r.DateTime).Take(8)
+        .Select(r => {
+            var pp = (r.BloodPressure ?? "").Split('/');
+            int sys = 0; if (pp.Length == 2) int.TryParse(pp[0], out sys);
+            return new { r.DateTime, Val = (double)sys };
+        })
+        .Where(x => x.Val > 0)
+        .OrderBy(x => x.DateTime)
+        .Select(x => x.Val).ToList();
+
+    var bsSeries = (Model.WeeklyBloodSugarReadings ?? new List<PatientBloodSugar>())
+        .OrderByDescending(r => r.DateTime).Take(8)
+        .Select(r => new { r.DateTime, Val = r.BloodSugar })
+        .Where(x => x.Val > 0)
+        .OrderBy(x => x.DateTime)
+        .Select(x => x.Val).ToList();
+
+    // Pregnancy tips (curated, swipeable)
+    var tips = new List<(string Cat, string Emoji, string Title, string Text)>
+    {
+        ("Nutrition", "🥗", "Eat the rainbow", "Colorful fruits and veggies give you and baby a rich mix of vitamins and antioxidants."),
+        ("Movement", "🚶‍♀️", "Gentle daily walks", "A 20-minute walk boosts circulation, mood, and sleep — no need to push hard."),
+        ("Rest", "😴", "Sleep on your side", "Resting on your left side improves blood flow to your baby. Hug a pillow for comfort."),
+        ("Wellness", "🧘‍♀️", "Breathe slowly", "Two minutes of slow breathing can ease tension and calm both of you."),
+        ("Nutrition", "🥛", "Calcium counts", "Dairy, leafy greens, and fortified foods help build your baby's bones and teeth.")
+    };
+}
+
+@functions {
+    private (string Size, string Emoji, string Fact, string Milestone) GetBabyInfo(int w)
+    {
+        if (w >= 40) return ("a small pumpkin", "🎃", "Your baby is full-term and ready to meet you any day now.", "Fully developed & ready for birth");
+        if (w >= 39) return ("a mini watermelon", "🍉", "Baby's brain is still developing rapidly and will keep growing after birth.", "Building healthy fat stores");
+        if (w >= 38) return ("a leek", "🥬", "Your baby now has a firm grasp and may grab your finger after birth.", "Practicing grip & reflexes");
+        if (w >= 37) return ("a bunch of swiss chard", "🥬", "Baby is considered early-term — the lungs are nearly ready.", "Lungs almost fully mature");
+        if (w >= 36) return ("a head of romaine", "🥬", "Baby is shedding the soft downy hair and getting ready for the outside world.", "Settling into position");
+        if (w >= 35) return ("a honeydew melon", "🍈", "Most of baby's basic physical development is complete — now it's all about growing.", "Kidneys & liver maturing");
+        if (w >= 34) return ("a cantaloupe", "🍈", "Baby's central nervous system and lungs are maturing steadily.", "Lungs continuing to mature");
+        if (w >= 33) return ("a pineapple", "🍍", "Baby's bones are hardening, though the skull stays soft for delivery.", "Bones strengthening");
+        if (w >= 32) return ("a squash", "🎃", "You may feel more practice contractions as baby gets stronger.", "Toenails & real hair forming");
+        if (w >= 31) return ("a coconut", "🥥", "Baby can turn their head and is putting on soft, protective fat.", "Rapid brain development");
+        if (w >= 30) return ("a head of cabbage", "🥬", "Baby's eyesight keeps developing, though it stays blurry for a while.", "Eyes opening & focusing");
+        if (w >= 29) return ("a butternut squash", "🎃", "Muscles and lungs are maturing and baby's head is growing for the brain.", "Building muscle & bone");
+        if (w >= 28) return ("an eggplant", "🍆", "Baby can blink and may dream during REM sleep. Third trimester begins!", "Eyes can open & close");
+        if (w >= 27) return ("a cauliflower", "🥦", "Baby may now recognize your voice and your partner's.", "Hearing your voice");
+        if (w >= 26) return ("a head of lettuce", "🥬", "Baby's lungs are forming air sacs in preparation for that first breath.", "Lungs developing air sacs");
+        if (w >= 25) return ("a rutabaga", "🥔", "Baby is filling out and the skin is becoming less wrinkled.", "Gaining baby fat");
+        if (w >= 24) return ("an ear of corn", "🌽", "Baby's face is almost fully formed and is now considered viable.", "Face fully formed");
+        if (w >= 23) return ("a grapefruit", "🍊", "You may feel little kicks and flutters more often now.", "Sense of movement");
+        if (w >= 22) return ("a papaya", "🥭", "Baby's lips, eyelids and tiny eyebrows are becoming more distinct.", "Features taking shape");
+        if (w >= 21) return ("a carrot", "🥕", "Baby's taste buds are forming and they can swallow.", "Developing taste buds");
+        if (w >= 20) return ("a banana", "🍌", "You're halfway there! Baby can hear sounds from the outside world.", "Halfway milestone 🎉");
+        if (w >= 19) return ("a mango", "🥭", "A protective coating now covers baby's delicate skin.", "Protective vernix forming");
+        if (w >= 18) return ("a bell pepper", "🫑", "Baby is yawning, hiccuping, and may be moving a lot.", "Active movements begin");
+        if (w >= 17) return ("a pear", "🍐", "Baby's skeleton is shifting from soft cartilage to bone.", "Cartilage turning to bone");
+        if (w >= 16) return ("an avocado", "🥑", "Baby can make tiny facial expressions, though not on purpose yet.", "Facial muscles developing");
+        if (w >= 15) return ("an apple", "🍎", "Baby is forming taste buds and can sense light.", "Sensing light");
+        if (w >= 14) return ("a lemon", "🍋", "Baby's tiny body is now growing faster than the head.", "Body lengthening");
+        if (w >= 13) return ("a peapod", "🫛", "Welcome to the second trimester — baby has unique fingerprints!", "Fingerprints forming");
+        if (w >= 12) return ("a lime", "🍋", "Baby's reflexes are developing — fingers will soon open and close.", "Reflexes developing");
+        if (w >= 11) return ("a fig", "🟣", "Baby is now almost fully formed and busy kicking and stretching.", "Tiny fingers & toes");
+        if (w >= 10) return ("a strawberry", "🍓", "Vital organs are working and baby's tiny nails are starting to grow.", "Organs functioning");
+        if (w >= 9) return ("a cherry", "🍒", "Baby's heart has divided into four chambers.", "Heart fully chambered");
+        if (w >= 8) return ("a raspberry", "🫐", "Baby is now moving, though you can't feel it yet.", "First tiny movements");
+        if (w >= 7) return ("a blueberry", "🫐", "Baby's brain is forming and growing incredibly fast.", "Brain forming rapidly");
+        if (w >= 6) return ("a sweet pea", "🫛", "A tiny heartbeat has begun to flutter this week.", "Heartbeat begins 💗");
+        if (w >= 5) return ("a sesame seed", "🌱", "The neural tube — baby's brain and spine — is forming.", "Neural tube developing");
+        if (w >= 4) return ("a poppy seed", "🌱", "The journey has begun — baby is implanting and growing.", "Implantation");
+        return ("a tiny seed", "🌱", "Your beautiful journey is just beginning.", "Early days");
+    }
+
+    private string BuildAreaPoints(List<double> vals, double width, double height, bool closeArea)
+    {
+        if (vals == null || vals.Count == 0) return "";
+        double max = vals.Max();
+        double min = vals.Min();
+        double range = Math.Max(1, max - min);
+        var pts = new List<string>();
+        double pad = 6;
+        for (int i = 0; i < vals.Count; i++)
+        {
+            double x = vals.Count == 1 ? width / 2 : i * (width / (vals.Count - 1));
+            double norm = (vals[i] - min) / range;
+            double y = height - pad - norm * (height - pad * 2);
+            pts.Add($"{x.ToString("0.#", CultureInfo.InvariantCulture)},{y.ToString("0.#", CultureInfo.InvariantCulture)}");
+        }
+        if (closeArea)
+        {
+            pts.Add($"{width.ToString("0.#", CultureInfo.InvariantCulture)},{height}");
+            pts.Add($"0,{height}");
+        }
+        return string.Join(" ", pts);
+    }
 }
 
 @section Head {
@@ -21,834 +182,684 @@
     @Html.AntiForgeryToken()
 }
 
-<div class="pd-wrap" data-patient-dashboard>
+<div class="ph" data-patient-dashboard>
 
-    <!-- ══════════════════ HERO BANNER ══════════════════ -->
-    <div class="hero">
-        <div class="hero-top">
-            <div class="hero-left">
-                <span class="hero-eyebrow"><i class="fas fa-home"></i> Patient Dashboard</span>
-                <h2 class="hero-title">@greeting, <span>@Model.UserName</span> 👋</h2>
-                <p class="hero-sub">
-                    <i class="fas fa-circle"></i>
-                    <span>@now.ToString("dddd, MMMM dd, yyyy", CultureInfo.InvariantCulture)</span>
-                    &middot; Pregnancy Journey
-                </p>
+    @if (!Model.HasActivePregnancy)
+    {
+        <div class="ph-noactive">
+            <div class="ph-noactive-emoji">🌸</div>
+            <h2>Welcome, @patientFirstName</h2>
+            <p>You don't have an active pregnancy on record right now. When your journey begins, this space will fill with weekly milestones, gentle insights, and everything to support you and your little one.</p>
+            <a class="ph-btn-primary" href="/PatientProfile/Index/@Model.Patient.PatientID"><i class="fas fa-heart"></i> Update my profile</a>
+        </div>
+    }
+
+    <!-- ══════════════ 1. HERO — Mother (60) · Baby (40) ══════════════ -->
+    <section class="ph-hero">
+        <div class="ph-hero-aurora"></div>
+        <div class="ph-hero-grid">
+
+            <!-- ── LEFT · Mother focus ── -->
+            <div class="ph-hero-main">
+                <span class="ph-hero-eyebrow">@greeting, @patientFirstName</span>
+
+                <h1 class="ph-hero-week">
+                    Week <span class="ph-hero-week-num">@week</span>
+                    <span class="ph-hero-week-of">of 40</span>
+                </h1>
+                <p class="ph-hero-lead">of your pregnancy journey</p>
+                <span class="ph-hero-tri">@Model.Trimester</span>
+
+                <div class="ph-hero-facts">
+                    <div class="ph-hero-fact">
+                        <span class="ph-hero-fact-lbl">Expected delivery</span>
+                        <span class="ph-hero-fact-val">@(hasDue ? dueParsed.ToString("MMMM dd, yyyy") : "To be confirmed")</span>
+                    </div>
+                    <span class="ph-hero-fact-sep"></span>
+                    <div class="ph-hero-fact">
+                        <span class="ph-hero-fact-lbl">Time remaining</span>
+                        <span class="ph-hero-fact-val">@daysRemaining days</span>
+                    </div>
+                </div>
+
+                <div class="ph-hero-bar">
+                    <div class="ph-hero-bar-head">
+                        <span class="ph-hero-bar-title">Pregnancy progress</span>
+                        <span class="ph-hero-bar-count">Week @week of 40</span>
+                    </div>
+                    <div class="ph-hero-bar-track">
+                        <span class="ph-hero-bar-tick" style="left:32.5%"></span>
+                        <span class="ph-hero-bar-tick" style="left:67.5%"></span>
+                        <div class="ph-hero-bar-fill" style="width:@percent%">
+                            <span class="ph-hero-bar-dot"></span>
+                        </div>
+                    </div>
+                    <div class="ph-hero-bar-foot">
+                        <span class="@(week < 13 ? "on" : "")">1st trimester</span>
+                        <span class="@(week >= 13 && week < 27 ? "on" : "")">2nd</span>
+                        <span class="@(week >= 27 ? "on" : "")">3rd</span>
+                    </div>
+                    <div class="ph-hero-bar-stats">
+                        <span><strong>@week</strong> weeks completed</span>
+                        <span class="ph-hero-bar-pct">@percent% complete</span>
+                        <span><strong>@weeksLeft</strong> weeks to go</span>
+                    </div>
+                </div>
+
             </div>
 
-            <div class="hero-right">
-                <div class="hero-stat">
-                    <div class="hero-stat-ico"><i class="fas fa-baby"></i></div>
-                    <div class="hero-stat-body">
-                        <span class="hero-stat-val">@Model.PregnancyWeek</span>
-                        <span class="hero-stat-lbl">Week / 40</span>
+            <!-- ── CENTER · This week at a glance (bridge: mother ↔ baby) ── -->
+            <div class="ph-hero-bridge">
+                <div class="ph-hero-bridge-head">
+                    <span class="ph-hero-bridge-title">This week at a glance</span>
+                    <span class="ph-hero-bridge-sub">Week @week · @Model.Trimester</span>
+                </div>
+                <ul class="ph-hero-hl">
+                    <li>
+                        <span class="ph-hl-ico violet"><i class="fas fa-seedling"></i></span>
+                        <div class="ph-hl-body">
+                            <span class="ph-hl-t">This week's development</span>
+                            <p class="ph-hl-d">@baby.Fact</p>
+                        </div>
+                    </li>
+                    <li>
+                        <span class="ph-hl-ico rose"><i class="fas fa-heart"></i></span>
+                        <div class="ph-hl-body">
+                            <span class="ph-hl-t">@Model.Trimester</span>
+                            <p class="ph-hl-d">@momPhase</p>
+                        </div>
+                    </li>
+                    <li>
+                        <span class="ph-hl-ico amber"><i class="fas fa-lightbulb"></i></span>
+                        <div class="ph-hl-body">
+                            <span class="ph-hl-t">Good to know</span>
+                            <p class="ph-hl-d">@goodToKnow</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- ── RIGHT · Baby development ── -->
+            <aside class="ph-hero-baby">
+                <div class="ph-hero-baby-head">
+                    <span class="ph-hero-baby-tag"><i class="fas fa-heart"></i> Baby development</span>
+                    <span class="ph-hero-baby-wk">Week @week</span>
+                </div>
+                <div class="ph-hero-baby-main">
+                    <div class="ph-hero-baby-orb">
+                        <span class="ph-hero-baby-ring"></span>
+                        <span class="ph-hero-baby-emoji">@baby.Emoji</span>
+                    </div>
+                    <div class="ph-hero-baby-meta">
+                        <span class="ph-hero-baby-size">Size of @babyShort</span>
+                        <span class="ph-hero-baby-sub">@percent% to full term</span>
                     </div>
                 </div>
-                <div class="hero-stat">
-                    <div class="hero-stat-ico"><i class="fas fa-calendar-alt"></i></div>
-                    <div class="hero-stat-body">
-                        <span class="hero-stat-val hero-next">@Model.DueDate</span>
-                        <span class="hero-stat-lbl">Due Date</span>
-                    </div>
+                <ul class="ph-hero-baby-list">
+                    <li>
+                        <i class="fas fa-calendar-day"></i>
+                        <span class="bl-lbl">Current week</span>
+                        <span class="bl-val">Week @week of 40</span>
+                    </li>
+                    <li>
+                        <i class="fas fa-ruler-horizontal"></i>
+                        <span class="bl-lbl">Size this week</span>
+                        <span class="bl-val">@babyShort</span>
+                    </li>
+                    <li>
+                        <i class="fas fa-seedling"></i>
+                        <span class="bl-lbl">Milestone</span>
+                        <span class="bl-val">@baby.Milestone</span>
+                    </li>
+                </ul>
+            </aside>
+
+        </div>
+    </section>
+
+    <!-- ══════════════ Care cards — complement the hero ══════════════ -->
+    @{
+        int nextBoundary = week < 13 ? 13 : week < 27 ? 27 : 40;
+        string nextLabel = week < 13 ? "Second trimester begins" : week < 27 ? "Third trimester begins" : "Meeting your baby";
+        int weeksToNext = Math.Max(0, nextBoundary - week);
+        string nextDesc = week < 13
+            ? "Often brings renewed energy as early symptoms ease."
+            : week < 27
+                ? "Baby grows quickly and you'll start to feel more movement."
+                : "Baby reaches full term and prepares to meet you.";
+
+        bool hasBp = !string.IsNullOrWhiteSpace(Model.LastBloodPressureValue) && Model.LastBloodPressureValue != "N/A";
+        string bpStatus = ""; string bpStatusCls = "neutral";
+        if (hasBp && Model.LastBloodPressureValue.Contains('/'))
+        {
+            var pp = Model.LastBloodPressureValue.Split('/');
+            if (pp.Length == 2 && int.TryParse(pp[0], out int s) && int.TryParse(pp[1], out int d))
+            {
+                if (s < 90 || d < 60) { bpStatus = "Low"; bpStatusCls = "warn"; }
+                else if (s <= 120 && d <= 80) { bpStatus = "Normal"; bpStatusCls = "good"; }
+                else if (s <= 139 || d <= 89) { bpStatus = "Elevated"; bpStatusCls = "warn"; }
+                else { bpStatus = "High"; bpStatusCls = "bad"; }
+            }
+        }
+        string bpTrend = "";
+        if (bpSeries.Count >= 2)
+        {
+            var diff = bpSeries[bpSeries.Count - 1] - bpSeries[bpSeries.Count - 2];
+            bpTrend = diff > 3 ? "Trending up from last reading"
+                : diff < -3 ? "Trending down from last reading"
+                : "Stable since your last reading";
+        }
+    }
+    <div class="ph-snap">
+
+        <!-- Upcoming appointment -->
+        <div class="ph-snap-card">
+            <div class="ph-snap-head">
+                <span class="ph-snap-ico sky"><i class="fas fa-calendar-check"></i></span>
+                <span class="ph-snap-title">Upcoming appointment</span>
+            </div>
+            @if (Model.NextAppointment != null)
+            {
+                var na = Model.NextAppointment;
+                var docName = na.Doctor?.User != null ? $"Dr. {na.Doctor.User.FirstName} {na.Doctor.User.LastName}".Trim() : "Your doctor";
+                <div class="ph-snap-main">
+                    <span class="ph-snap-strong">@na.Date.ToString("dddd, MMM dd")</span>
+                    <span class="ph-snap-ctx">@docName · @DateTime.Today.Add(na.Time).ToString("hh:mm tt")</span>
+                    <span class="ph-snap-ctx"><i class="fas fa-map-marker-alt"></i> @(na.Clinic?.Name ?? "Clinic")</span>
                 </div>
-                <div class="hero-stat">
-                    <div class="hero-stat-ico"><i class="fas fa-heart"></i></div>
-                    <div class="hero-stat-body">
-                        <span class="hero-stat-val">@Model.PregnancyProgressPercent%</span>
-                        <span class="hero-stat-lbl">Complete</span>
-                    </div>
+                <a class="ph-snap-action" href="/PatientAppointments/Appointments/@Model.Patient.PatientID">View details <i class="fas fa-arrow-right"></i></a>
+            }
+            else
+            {
+                <div class="ph-snap-main">
+                    <span class="ph-snap-strong">No upcoming visit</span>
+                    <span class="ph-snap-ctx">Regular check-ups help keep you and your baby on track.</span>
                 </div>
+                <a class="ph-snap-action solid" href="/PatientAppointments/BookAppointment/@Model.Patient.PatientID"><i class="fas fa-plus"></i> Book appointment</a>
+            }
+        </div>
+
+        <!-- Pregnancy milestone -->
+        <div class="ph-snap-card">
+            <div class="ph-snap-head">
+                <span class="ph-snap-ico violet"><i class="fas fa-flag-checkered"></i></span>
+                <span class="ph-snap-title">Pregnancy milestone</span>
+            </div>
+            <div class="ph-snap-main">
+                <span class="ph-snap-strong">@nextLabel</span>
+                <div class="ph-snap-chips">
+                    <span class="ph-snap-chip">Expected week @nextBoundary</span>
+                    <span class="ph-snap-chip ghost">@weeksToNext @(weeksToNext == 1 ? "wk" : "wks") away</span>
+                </div>
+                <span class="ph-snap-ctx">@nextDesc</span>
             </div>
         </div>
 
-        <div class="hero-bottom">
-            <div class="hero-progress-main">
-                <div class="preg-icon-col">
-                    <div class="preg-icon"><i class="fas fa-baby"></i></div>
-                </div>
-                <div class="preg-info">
-                    <div class="preg-week-row">
-                        <span class="preg-label">Pregnancy Progress</span>
-                        <span class="preg-trimester">@Model.Trimester</span>
-                        <span class="hero-progress-remaining">@(40 - Model.PregnancyWeek) weeks remaining</span>
-                    </div>
-                    <div class="preg-week-display">
-                        <span class="preg-week-num">@Model.PregnancyWeek</span>
-                        <span class="preg-week-of">&nbsp;/ 40 weeks</span>
-                    </div>
-                    <div class="preg-bar-wrap">
-                        <div class="preg-bar">
-                            <div class="preg-bar-fill" style="width: @(Model.PregnancyProgressPercent)%"></div>
-                            <div class="preg-bar-dot" style="left: calc(@(Model.PregnancyProgressPercent)% - 8px)"></div>
-                        </div>
-                        <div class="preg-bar-labels">
-                            <span>Week 1</span><span>Week 13</span><span>Week 27</span><span>Week 40</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ══════════════════ KPI GRID ══════════════════ -->
-    <div class="kpi-grid">
-
-        <!-- Weight -->
-        <div class="kpi">
-            <div class="kpi-top">
-                <div class="kpi-ico green"><i class="fas fa-weight"></i></div>
-                <span class="kpi-trend up"><i class="fas fa-arrow-up"></i> +2kg</span>
-            </div>
-            <div class="kpi-mid">
-                <div class="kpi-val">@Model.Patient.WeightKg</div>
-                <div class="kpi-label">Weight (kg)</div>
-            </div>
-            <div class="kpi-foot"><i class="fas fa-info-circle"></i> +2kg this month</div>
-            <div class="kpi-glow green"></div>
-        </div>
-
-        <!-- Blood Pressure -->
-        <div class="kpi" style="cursor:pointer"
-             onclick="document.querySelector('.tracker-section').scrollIntoView({behavior:'smooth'})">
-            <div class="kpi-top">
-                <div class="kpi-ico blue"><i class="fas fa-heartbeat"></i></div>
-                <span class="kpi-trend up" id="bpStatChange"><i class="fas fa-check-circle"></i> Normal</span>
-            </div>
-            <div class="kpi-mid">
-                <div class="kpi-val kpi-val-md" id="bpStatValue">@Model.LastBloodPressureValue</div>
-                <div class="kpi-label">Blood Pressure</div>
-            </div>
-            <div class="kpi-foot"><i class="fas fa-mouse-pointer"></i> Click tracker to log</div>
-            <div class="kpi-glow blue"></div>
-        </div>
-
-        <!-- Blood Sugar -->
-        <div class="kpi" style="cursor:pointer"
-             onclick="document.querySelector('.tracker-section').scrollIntoView({behavior:'smooth'})">
-            <div class="kpi-top">
-                <div class="kpi-ico pink"><i class="fas fa-tint"></i></div>
-                <span class="kpi-trend up" id="bsStatChange"><i class="fas fa-check-circle"></i> Normal</span>
-            </div>
-            <div class="kpi-mid">
-                <div class="kpi-val kpi-val-md" id="bsStatValue">@Model.LastBloodSugarValue</div>
-                <div class="kpi-label">Blood Sugar (mg/dL)</div>
-            </div>
-            <div class="kpi-foot"><i class="fas fa-mouse-pointer"></i> Click tracker to log</div>
-            <div class="kpi-glow pink"></div>
-        </div>
-
-        <!-- Last Lab Test -->
-        <div class="kpi">
-            <div class="kpi-top">
-                <div class="kpi-ico amber"><i class="fas fa-flask"></i></div>
-                <span class="kpi-trend neu"><i class="fas fa-minus"></i> Latest</span>
-            </div>
-            <div class="kpi-mid">
-                <div class="kpi-val kpi-val-sm">@(Model.LastLabTest?.TestType ?? "—")</div>
-                <div class="kpi-label">Last Lab Test</div>
-            </div>
-            <div class="kpi-foot">
-                <i class="fas fa-calendar"></i>
-                @(Model.LastLabTest?.UploadDate.ToString("MMM dd, yyyy") ?? "No tests yet")
-            </div>
-            <div class="kpi-glow amber"></div>
-        </div>
-
-        <!-- Next Appointment -->
-        <div class="kpi">
-            <div class="kpi-top">
-                <div class="kpi-ico purple"><i class="fas fa-calendar-alt"></i></div>
-                <span class="kpi-trend up"><i class="fas fa-clock"></i> Soon</span>
-            </div>
-            <div class="kpi-mid">
-                <div class="kpi-val kpi-val-sm">
-                    @if (Model.NextAppointment != null)
-                    {
-                        @(Model.NextAppointment.Date.Date == DateTime.Today ? "Today" : Model.NextAppointment.Date.ToString("MMM dd"))
-                    }
-                    else
-                    {
-                        @:—
-                    }
-                </div>
-                <div class="kpi-label">Next Appointment</div>
-            </div>
-            <div class="kpi-foot">
-                <i class="fas fa-user-md"></i>
-                @(Model.NextAppointment != null ? "Dr. " + Model.NextAppointment.Doctor?.User?.FirstName : "None scheduled")
-            </div>
-            <div class="kpi-glow purple"></div>
-        </div>
-
-    </div>
-
-    <!-- ══════════════════ MAIN GRID ══════════════════ -->
-    <div class="main-grid">
-
-        <!-- LEFT COLUMN -->
-        <div style="display:flex;flex-direction:column;gap:16px">
-
-            <!-- ── RECENT ACTIVITY ── -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-header-left">
-                        <div class="card-ico blue"><i class="fas fa-history"></i></div>
-                        <div>
-                            <div class="card-title">Recent Activity</div>
-                            <div class="card-sub">Your latest health events</div>
-                        </div>
-                    </div>
-                    <a class="card-link" href="/PatientMedicalHistory/MedicalHistory/@Model.Patient.PatientID">
-                        View All <i class="fas fa-arrow-right"></i>
-                    </a>
-                </div>
-                <div class="activity-list">
-                    @if (Model.RecentActivities != null && Model.RecentActivities.Any())
-                    {
-                        @foreach (var activity in Model.RecentActivities)
-                        {
-                            <div class="activity-item">
-                                <div class="activity-icon" style="background:@activity.IconBgColor">
-                                    <i class="@activity.IconClass" style="color:@activity.IconColor"></i>
-                                </div>
-                                <div class="activity-info">
-                                    <h4>@activity.Title</h4>
-                                    <p>@activity.Description</p>
-                                </div>
-                                <span class="activity-time">@activity.RelativeTime</span>
-                            </div>
-                        }
-                    }
-                    else
-                    {
-                        <div class="empty-feed">
-                            <div class="empty-icon"><i class="fas fa-history"></i></div>
-                            <p>No recent activity found.</p>
-                        </div>
-                    }
-                </div>
-            </div>
-
-            <!-- ── HEALTH ALERTS ── -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-header-left">
-                        <div class="card-ico pink"><i class="fas fa-bell"></i></div>
-                        <div>
-                            <div class="card-title">Health Alerts</div>
-                            <div class="card-sub">
-                                @{
-                                    var unreadCount = Model.HealthAlerts?.Count(a => !a.IsRead) ?? 0;
-                                }
-                                @(unreadCount == 0 ? "All clear" : $"{unreadCount} unread")
-                            </div>
-                        </div>
-                    </div>
-                    <a class="card-link" href="/PatientAlerts/Alerts/@Model.Patient.PatientID">
-                        View All <i class="fas fa-arrow-right"></i>
-                    </a>
-                </div>
-                <div>
-                    @if (Model.HealthAlerts != null && Model.HealthAlerts.Any())
-                    {
-                        @foreach (var alert in Model.HealthAlerts)
-                        {
-                            string alertType = (alert.AlertType ?? "info").ToLower();
-                            bool isDanger    = alertType == "danger" || alertType == "critical";
-                            bool isWarning   = alertType == "warning";
-                            bool isSuccess   = alertType == "success";
-                            string itemClass = isDanger ? "critical" : isWarning ? "warning" : isSuccess ? "success" : "info";
-                            string iconCls   = isDanger ? "fas fa-exclamation-circle" : isWarning ? "fas fa-exclamation-triangle" : isSuccess ? "fas fa-check-circle" : "fas fa-info-circle";
-
-                            <div class="alert-item @itemClass">
-                                <div class="alert-strip"></div>
-                                <div class="alert-ico-wrap">
-                                    <div class="alert-ico"><i class="@iconCls"></i></div>
-                                </div>
-                                <div class="alert-body">
-                                    <div class="alert-title">@alert.Title</div>
-                                    <div class="alert-msg">@alert.Message</div>
-                                    <div class="alert-time"><i class="fas fa-clock"></i> @alert.DateCreated.ToString("g")</div>
-                                </div>
-                                @if (!alert.IsRead)
-                                {
-                                    <div class="alert-unread"></div>
-                                }
-                            </div>
-                        }
-                    }
-                    else
-                    {
-                        <div class="alert-item success">
-                            <div class="alert-strip"></div>
-                            <div class="alert-ico-wrap">
-                                <div class="alert-ico"><i class="fas fa-check-circle"></i></div>
-                            </div>
-                            <div class="alert-body">
-                                <div class="alert-title">All Clear!</div>
-                                <div class="alert-msg">No critical alerts at this time. Keep up the great prenatal care!</div>
-                            </div>
-                        </div>
-                    }
-                </div>
-            </div>
-
-            <!-- ── WEEKLY CHART CARD ── -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-header-left">
-                        <div class="card-ico teal"><i class="fas fa-chart-bar"></i></div>
-                        <div>
-                            <div class="card-title">Weekly BP Trend</div>
-                            <div class="card-sub">This week's readings</div>
-                        </div>
-                    </div>
-                    <div class="chart-legend">
-                        <span><span class="legend-dot low"></span>Low</span>
-                        <span><span class="legend-dot normal"></span>Normal</span>
-                        <span><span class="legend-dot elevated"></span>Elevated</span>
-                        <span><span class="legend-dot high"></span>High</span>
-                    </div>
-                </div>
-                @{
-                    var bpWeeklyPoints = (Model.WeeklyBloodPressureReadings ?? new List<PatientBloodPressure>())
-                        .OrderByDescending(r => r.DateTime)
-                        .Take(7)
-                        .Select(r =>
-                        {
-                            var parts = (r.BloodPressure ?? string.Empty).Split('/');
-                            int systolic = 0, diastolic = 0;
-                            if (parts.Length == 2) { int.TryParse(parts[0], out systolic); int.TryParse(parts[1], out diastolic); }
-                            return new { Date = r.DateTime, Systolic = systolic, Diastolic = diastolic };
-                        })
-                        .Where(x => x.Systolic > 0 && x.Diastolic > 0)
-                        .OrderBy(x => x.Date)
-                        .ToList();
-
-                    var bpAverageSys = bpWeeklyPoints.Any() ? (int)Math.Round(bpWeeklyPoints.Average(x => x.Systolic)) : 0;
-                    var bpAverageDia = bpWeeklyPoints.Any() ? (int)Math.Round(bpWeeklyPoints.Average(x => x.Diastolic)) : 0;
-                    var bpHighest    = bpWeeklyPoints.OrderByDescending(x => x.Systolic).FirstOrDefault();
-                    var bpLowest     = bpWeeklyPoints.OrderBy(x => x.Systolic).FirstOrDefault();
-                    var weeklyMax    = bpWeeklyPoints.Any() ? Math.Max(1, bpWeeklyPoints.Max(x => x.Systolic)) : 1;
+        <!-- Health snapshot -->
+        <div class="ph-snap-card">
+            <div class="ph-snap-head">
+                <span class="ph-snap-ico rose"><i class="fas fa-heartbeat"></i></span>
+                <span class="ph-snap-title">Health snapshot</span>
+                @if (hasBp)
+                {
+                    <span class="ph-snap-status @bpStatusCls">@bpStatus</span>
                 }
-                <div class="week-chart">
-                    <div class="week-chart-bars">
-                        @if (bpWeeklyPoints.Any())
-                        {
-                            @foreach (var point in bpWeeklyPoints)
-                            {
-                                var h = Math.Max(8, (int)Math.Round((point.Systolic / (double)weeklyMax) * 64));
-                                bool isToday = point.Date.Date == DateTime.Today;
-                                string bpRiskClass;
-                                if (point.Systolic < 90 || point.Diastolic < 60) bpRiskClass = "wbar-risk-low";
-                                else if (point.Systolic <= 120 && point.Diastolic <= 80) bpRiskClass = "wbar-risk-normal";
-                                else if (point.Systolic <= 139 || point.Diastolic <= 89) bpRiskClass = "wbar-risk-elevated";
-                                else bpRiskClass = "wbar-risk-high";
-                                <div class="wbar @bpRiskClass @(isToday ? "today" : "")"
-                                     style="height:@(h)px"
-                                     data-tip="@point.Systolic/@point.Diastolic"></div>
-                            }
-                        }
-                        else
-                        {
-                            <p class="no-data" style="margin:auto;width:100%;text-align:center;">No data yet</p>
-                        }
-                    </div>
-                    <div class="wbar-labels">
-                        @if (bpWeeklyPoints.Any())
-                        {
-                            @foreach (var point in bpWeeklyPoints)
-                            {
-                                bool isToday = point.Date.Date == DateTime.Today;
-                                <span class="wbar-label @(isToday ? "today" : "")">@point.Date.ToString("MM/dd")</span>
-                            }
-                        }
-                    </div>
-                    <div class="week-summary">
-                        <div class="wsumm">
-                            <div class="wsumm-val" id="bpSummaryAverage">
-                                @(bpWeeklyPoints.Any() ? $"{bpAverageSys}/{bpAverageDia}" : "—")
-                            </div>
-                            <div class="wsumm-lbl">Average</div>
-                        </div>
-                        <div class="wsumm">
-                            <div class="wsumm-val" id="bpSummaryHighest">
-                                @(bpHighest != null ? $"{bpHighest.Systolic}/{bpHighest.Diastolic}" : "—")
-                            </div>
-                            <div class="wsumm-lbl">Highest</div>
-                        </div>
-                        <div class="wsumm">
-                            <div class="wsumm-val" id="bpSummaryLowest">
-                                @(bpLowest != null ? $"{bpLowest.Systolic}/{bpLowest.Diastolic}" : "—")
-                            </div>
-                            <div class="wsumm-lbl">Lowest</div>
-                        </div>
-                    </div>
-                </div>
             </div>
-
-            <!-- ── WEEKLY BLOOD SUGAR CARD ── -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-header-left">
-                        <div class="card-ico pink"><i class="fas fa-chart-line"></i></div>
-                        <div>
-                            <div class="card-title">Weekly Blood Sugar Trend</div>
-                            <div class="card-sub">This week's readings</div>
-                        </div>
-                    </div>
-                    <div class="chart-legend">
-                        <span><span class="legend-dot low"></span>Low</span>
-                        <span><span class="legend-dot normal"></span>Normal</span>
-                        <span><span class="legend-dot elevated"></span>Elevated</span>
-                        <span><span class="legend-dot high"></span>High</span>
-                    </div>
+            @if (hasBp)
+            {
+                <div class="ph-snap-main">
+                    <span class="ph-snap-strong">@Model.LastBloodPressureValue <small>mmHg</small></span>
+                    <span class="ph-snap-ctx">Blood pressure@(bpTrend.Length > 0 ? " · " + bpTrend : "")</span>
                 </div>
-                @{
-                    var bsWeeklyPoints = (Model.WeeklyBloodSugarReadings ?? new List<PatientBloodSugar>())
-                        .OrderByDescending(r => r.DateTime)
-                        .Take(7)
-                        .Select(r => new { Date = r.DateTime, Value = r.BloodSugar })
-                        .Where(x => x.Value > 0)
-                        .OrderBy(x => x.Date)
-                        .ToList();
-
-                    var bsAverage = bsWeeklyPoints.Any() ? Math.Round(bsWeeklyPoints.Average(x => x.Value), 1) : 0;
-                    var bsHighest = bsWeeklyPoints.OrderByDescending(x => x.Value).FirstOrDefault();
-                    var bsLowest = bsWeeklyPoints.OrderBy(x => x.Value).FirstOrDefault();
-                    var bsWeeklyMax = bsWeeklyPoints.Any() ? Math.Max(1, bsWeeklyPoints.Max(x => x.Value)) : 1;
-                }
-                <div class="week-chart">
-                    <div class="week-chart-bars">
-                        @if (bsWeeklyPoints.Any())
-                        {
-                            @foreach (var point in bsWeeklyPoints)
-                            {
-                                var h = Math.Max(8, (int)Math.Round((point.Value / (double)bsWeeklyMax) * 64));
-                                bool isToday = point.Date.Date == DateTime.Today;
-                                string bsRiskClass;
-                                if (point.Value < 70) bsRiskClass = "wbar-risk-low";
-                                else if (point.Value <= 140) bsRiskClass = "wbar-risk-normal";
-                                else if (point.Value <= 180) bsRiskClass = "wbar-risk-elevated";
-                                else bsRiskClass = "wbar-risk-high";
-                                <div class="wbar bs @bsRiskClass @(isToday ? "today" : "")"
-                                     style="height:@(h)px"
-                                     data-tip="@point.Value mg/dL"></div>
-                            }
-                        }
-                        else
-                        {
-                            <p class="no-data" style="margin:auto;width:100%;text-align:center;">No data yet</p>
-                        }
-                    </div>
-                    <div class="wbar-labels">
-                        @if (bsWeeklyPoints.Any())
-                        {
-                            @foreach (var point in bsWeeklyPoints)
-                            {
-                                bool isToday = point.Date.Date == DateTime.Today;
-                                <span class="wbar-label @(isToday ? "today" : "")">@point.Date.ToString("MM/dd")</span>
-                            }
-                        }
-                    </div>
-                    <div class="week-summary">
-                        <div class="wsumm">
-                            <div class="wsumm-val" id="bsTrendSummaryAverage">
-                                @(bsWeeklyPoints.Any() ? $"{bsAverage} mg/dL" : "—")
-                            </div>
-                            <div class="wsumm-lbl">Average</div>
-                        </div>
-                        <div class="wsumm">
-                            <div class="wsumm-val" id="bsTrendSummaryHighest">
-                                @(bsHighest != null ? $"{bsHighest.Value} mg/dL" : "—")
-                            </div>
-                            <div class="wsumm-lbl">Highest</div>
-                        </div>
-                        <div class="wsumm">
-                            <div class="wsumm-val" id="bsTrendSummaryLowest">
-                                @(bsLowest != null ? $"{bsLowest.Value} mg/dL" : "—")
-                            </div>
-                            <div class="wsumm-lbl">Lowest</div>
-                        </div>
-                    </div>
+                <a class="ph-snap-action" href="javascript:void(0)" data-open-tracker="bp">Log new reading <i class="fas fa-arrow-right"></i></a>
+            }
+            else
+            {
+                <div class="ph-snap-main">
+                    <span class="ph-snap-strong">No readings yet</span>
+                    <span class="ph-snap-ctx">Track your blood pressure to spot trends early.</span>
                 </div>
-            </div>
-
+                <a class="ph-snap-action solid" href="javascript:void(0)" data-open-tracker="bp"><i class="fas fa-plus"></i> Log reading</a>
+            }
         </div>
-        <!-- / LEFT COLUMN -->
-
-        <!-- RIGHT COLUMN -->
-        <div class="right-col">
-
-            <!-- ── HEALTH TRACKER CARD ── -->
-            <div class="card tracker-section">
-                <div class="card-header">
-                    <div class="card-header-left">
-                        <div class="card-ico teal"><i class="fas fa-heartbeat"></i></div>
-                        <div>
-                            <div class="card-title">Health Tracker</div>
-                            <div class="card-sub" id="trackerDate"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div style="padding:12px 16px 4px">
-                    <div class="tracker-tabs">
-                        <button class="tracker-tab active" data-tab="bp-tab">
-                            <i class="fas fa-heartbeat"></i> Blood Pressure
-                        </button>
-                        <button class="tracker-tab" data-tab="bs-tab">
-                            <i class="fas fa-tint"></i> Blood Sugar
-                        </button>
-                    </div>
-                </div>
-
-                <!-- ─── Blood Pressure Tab ─── -->
-                <div class="tracker-tab-content active" id="bp-tab">
-                    <div style="padding:0 16px 16px">
-
-                        <div class="tracker-inputs bp-inputs">
-                            <div class="inp-group">
-                                <label>Systolic <small>(Top)</small></label>
-                                <div class="inp-wrap">
-                                    <input type="number" id="systolic" class="inp" placeholder="120" min="70" max="200" />
-                                    <span class="inp-unit">mmHg</span>
-                                </div>
-                                <span class="inp-hint">Normal: 90–120</span>
-                            </div>
-                            <div class="inp-divider"><span>/</span></div>
-                            <div class="inp-group">
-                                <label>Diastolic <small>(Bottom)</small></label>
-                                <div class="inp-wrap">
-                                    <input type="number" id="diastolic" class="inp" placeholder="80" min="40" max="130" />
-                                    <span class="inp-unit">mmHg</span>
-                                </div>
-                                <span class="inp-hint">Normal: 60–80</span>
-                            </div>
-                            <div class="inp-group inp-pulse">
-                                <label>Pulse <small>(Optional)</small></label>
-                                <div class="inp-wrap">
-                                    <input type="number" id="pulse" class="inp" placeholder="72" min="40" max="200" />
-                                    <span class="inp-unit">BPM</span>
-                                </div>
-                                <span class="inp-hint">Normal: 60–100</span>
-                            </div>
-                            <div class="inp-group inp-full">
-                                <label>When did you measure?</label>
-                                <select id="bpMeasurementTime" class="inp-select">
-                                    <option value="Morning">Morning</option>
-                                    <option value="Afternoon">Afternoon</option>
-                                    <option value="Evening">Evening</option>
-                                    <option value="Bedtime">Bedtime</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <button class="save-btn save-btn-bp" id="saveBP">
-                            <i class="fas fa-save"></i> Save Reading
-                        </button>
-
-                        <!-- Result banner -->
-                        <div class="result-banner" id="bpResult" style="display:none">
-                            <div class="result-left">
-                                <span class="result-value" id="bpValue">120/80</span>
-                                <span class="result-unit">mmHg</span>
-                            </div>
-                            <div class="result-right">
-                                <span class="result-status" id="bpStatus"><i class="fas fa-check-circle"></i> Normal</span>
-                                <p class="result-msg" id="bpMessage"></p>
-                            </div>
-                        </div>
-
-                        <!-- BP History -->
-                        <div class="history-section">
-                            <h4 class="history-title"><i class="fas fa-history"></i> Recent Readings</h4>
-                            <div class="history-list" id="bpHistoryList">
-                                @if (Model.RecentBloodPressureReadings != null && Model.RecentBloodPressureReadings.Any())
-                                {
-                                    @foreach (var bp in Model.RecentBloodPressureReadings)
-                                    {
-                                        var parts = bp.BloodPressure?.Split('/');
-                                        string cls = "normal", lbl = "Normal", ico = "fa-check-circle";
-                                        if (parts?.Length == 2 && int.TryParse(parts[0], out int s) && int.TryParse(parts[1], out int d))
-                                        {
-                                            if      (s < 90 || d < 60)        { cls = "low";      lbl = "Low";      ico = "fa-arrow-down"; }
-                                            else if (s <= 120 && d <= 80)     { cls = "normal";   lbl = "Normal";   ico = "fa-check-circle"; }
-                                            else if (s <= 139 || d <= 89)     { cls = "elevated"; lbl = "Elevated"; ico = "fa-exclamation-circle"; }
-                                            else                              { cls = "high";     lbl = "High";     ico = "fa-exclamation-triangle"; }
-                                        }
-                                        <div class="history-item">
-                                            <div class="hist-date">
-                                                <span class="hist-day">@bp.DateTime.Day</span>
-                                                <span class="hist-mon">@bp.DateTime.ToString("MMM")</span>
-                                            </div>
-                                            <div class="hist-reading">
-                                                <span class="hist-val">@bp.BloodPressure</span>
-                                                <span class="hist-time">
-                                                    @if (!string.IsNullOrWhiteSpace(bp.MeasurementTime)) { @(bp.MeasurementTime + " · ") }
-                                                    @bp.DateTime.ToString("h:mm tt")
-                                                </span>
-                                            </div>
-                                            <span class="hist-badge @cls"><i class="fas @ico"></i> @lbl</span>
-                                        </div>
-                                    }
-                                }
-                                else
-                                {
-                                    <p class="no-data">No readings recorded yet.</p>
-                                }
-                            </div>
-                            <a href="/PatientMedicalHistory/MedicalHistory/@Model.Patient.PatientID" class="view-all-link">
-                                View Full History <i class="fas fa-arrow-right"></i>
-                            </a>
-                        </div>
-
-                    </div>
-                </div>
-                <!-- / BP Tab -->
-
-                <!-- ─── Blood Sugar Tab ─── -->
-                <div class="tracker-tab-content" id="bs-tab">
-                    <div style="padding:0 16px 16px">
-
-                        <div class="tracker-inputs">
-                            <div class="inp-group">
-                                <label>Blood Sugar Level</label>
-                                <div class="inp-wrap">
-                                    <input type="number" id="bloodSugar" class="inp" placeholder="95" min="40" max="400" />
-                                    <span class="inp-unit">mg/dL</span>
-                                </div>
-                                <span class="inp-hint">Fasting: 70–100 · After meals: &lt;140</span>
-                            </div>
-                            <div class="inp-group">
-                                <label>When did you measure?</label>
-                                <select id="mealTime" class="inp-select">
-                                    <option value="Fasting (Before breakfast)">Fasting (Before breakfast)</option>
-                                    <option value="After Breakfast (2 hours)">After Breakfast (2 hours)</option>
-                                    <option value="Before Lunch">Before Lunch</option>
-                                    <option value="After Lunch (2 hours)">After Lunch (2 hours)</option>
-                                    <option value="Before Dinner">Before Dinner</option>
-                                    <option value="After Dinner (2 hours)">After Dinner (2 hours)</option>
-                                    <option value="Bedtime">Bedtime</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <button class="save-btn save-btn-bs" id="saveBS">
-                            <i class="fas fa-save"></i> Save Reading
-                        </button>
-
-                        <!-- Result banner -->
-                        <div class="result-banner" id="bsResult" style="display:none">
-                            <div class="result-left">
-                                <span class="result-value" id="bsValue">95</span>
-                                <span class="result-unit">mg/dL</span>
-                            </div>
-                            <div class="result-right">
-                                <span class="result-status" id="bsStatus"><i class="fas fa-check-circle"></i> Normal</span>
-                                <p class="result-msg" id="bsMessage"></p>
-                            </div>
-                        </div>
-
-                        <!-- BS History -->
-                        <div class="history-section">
-                            <h4 class="history-title"><i class="fas fa-history"></i> Recent Readings</h4>
-                            <div class="history-list" id="bsHistoryList">
-                                @if (Model.RecentBloodSugarReadings != null && Model.RecentBloodSugarReadings.Any())
-                                {
-                                    @foreach (var bs in Model.RecentBloodSugarReadings)
-                                    {
-                                        bool isFast = bs.MeasurementTime != null && (bs.MeasurementTime.Contains("Fasting") || bs.MeasurementTime.Contains("Before Lunch") || bs.MeasurementTime.Contains("Before Dinner"));
-                                        string cls, lbl, ico;
-                                        if      (bs.BloodSugar < 70)  { cls = "low";      lbl = "Low";          ico = "fa-arrow-down"; }
-                                        else if (isFast)
-                                        {
-                                            if      (bs.BloodSugar <= 100) { cls = "normal";   lbl = "Normal";   ico = "fa-check-circle"; }
-                                            else if (bs.BloodSugar <= 125) { cls = "elevated"; lbl = "Elevated"; ico = "fa-exclamation-circle"; }
-                                            else                            { cls = "high";     lbl = "High";     ico = "fa-exclamation-triangle"; }
-                                        }
-                                        else
-                                        {
-                                            if      (bs.BloodSugar <= 140) { cls = "normal";   lbl = "Normal";        ico = "fa-check-circle"; }
-                                            else if (bs.BloodSugar <= 180) { cls = "elevated"; lbl = "Slightly High"; ico = "fa-exclamation-circle"; }
-                                            else                            { cls = "high";     lbl = "High";          ico = "fa-exclamation-triangle"; }
-                                        }
-                                        <div class="history-item">
-                                            <div class="hist-date">
-                                                <span class="hist-day">@bs.DateTime.Day</span>
-                                                <span class="hist-mon">@bs.DateTime.ToString("MMM")</span>
-                                            </div>
-                                            <div class="hist-reading">
-                                                <span class="hist-val">@bs.BloodSugar mg/dL</span>
-                                                <span class="hist-time">
-                                                    @if (!string.IsNullOrWhiteSpace(bs.MeasurementTime)) { @(bs.MeasurementTime + " · ") }
-                                                    @bs.DateTime.ToString("h:mm tt")
-                                                </span>
-                                            </div>
-                                            <span class="hist-badge @cls"><i class="fas @ico"></i> @lbl</span>
-                                        </div>
-                                    }
-                                }
-                                else
-                                {
-                                    <p class="no-data">No readings recorded yet.</p>
-                                }
-                            </div>
-                            <a href="/PatientMedicalHistory/MedicalHistory/@Model.Patient.PatientID" class="view-all-link">
-                                View Full History <i class="fas fa-arrow-right"></i>
-                            </a>
-                        </div>
-
-                    </div>
-                </div>
-                <!-- / BS Tab -->
-
-            </div>
-            <!-- / Health Tracker Card -->
-
-            <!-- ── APPOINTMENTS CARD ── -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-header-left">
-                        <div class="card-ico purple"><i class="fas fa-calendar-check"></i></div>
-                        <div>
-                            <div class="card-title">Last Appointments</div>
-                            <div class="card-sub">Your recent visits</div>
-                        </div>
-                    </div>
-                    <a class="card-link" href="/PatientAppointments/Appointments/@Model.Patient.PatientID">
-                        View All <i class="fas fa-arrow-right"></i>
-                    </a>
-                </div>
-
-                <div class="appt-mini-list">
-                    @if (Model.RecentPastAppointments != null && Model.RecentPastAppointments.Any())
-                    {
-                        @foreach (var appointment in Model.RecentPastAppointments)
-                        {
-                            var doctorName = appointment.Doctor?.User != null
-                                ? $"Dr. {appointment.Doctor.User.FirstName} {appointment.Doctor.User.LastName}".Trim()
-                                : "Doctor";
-
-                            <div class="appt-mini-item">
-                                <div class="appt-mini-date">
-                                    <span class="day">@appointment.Date.Day</span>
-                                    <span class="mon">@appointment.Date.ToString("MMM")</span>
-                                </div>
-                                <div class="appt-mini-body">
-                                    <div class="appt-mini-title">@doctorName</div>
-                                    <div class="appt-mini-meta">
-                                        <span><i class="fas fa-clock"></i> @DateTime.Today.Add(appointment.Time).ToString("hh:mm tt")</span>
-                                        <span><i class="fas fa-map-marker-alt"></i> @(appointment.Clinic?.Name ?? "Clinic")</span>
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                    }
-                    else
-                    {
-                        <p class="no-data" style="padding:10px 16px;">No past appointments yet.</p>
-                    }
-                </div>
-
-                <div class="appt-mini-actions">
-                    <a href="/PatientAppointments/BookAppointment/@Model.Patient.PatientID" class="book-new-appt-btn">
-                        <i class="fas fa-plus-circle"></i> Book New Appointment
-                    </a>
-                </div>
-            </div>
-
-        </div>
-        <!-- / RIGHT COLUMN -->
-
     </div>
-    <!-- / MAIN GRID -->
+
+    <!-- ══════════════ 2. PREGNANCY JOURNEY PATH ══════════════ -->
+    <section class="ph-card ph-journey">
+        <div class="ph-card-head">
+            <h2><span class="ph-dot rose"></span> Your Pregnancy Journey</h2>
+            <span class="ph-card-sub">@Model.Trimester · Week @week</span>
+        </div>
+        @{
+            var milestones = new (int Week, string Label, string Emoji)[]
+            {
+                (1, "It begins", "🌱"),
+                (13, "2nd trimester", "🌷"),
+                (27, "3rd trimester", "🌻"),
+                (40, "Meet baby", "👶")
+            };
+        }
+        <div class="ph-path">
+            <div class="ph-path-line"><div class="ph-path-line-fill" style="width:@percent%"></div></div>
+            <div class="ph-path-nodes">
+                @for (int i = 0; i < milestones.Length; i++)
+                {
+                    var m = milestones[i];
+                    var nextWeek = i + 1 < milestones.Length ? milestones[i + 1].Week : 41;
+                    var reached = week >= m.Week;
+                    var current = week >= m.Week && week < nextWeek;
+                    <div class="ph-path-node @(reached ? "reached" : "") @(current ? "current" : "")">
+                        <div class="ph-path-bubble">@m.Emoji</div>
+                        <span class="ph-path-wk">Week @m.Week</span>
+                        <span class="ph-path-lbl">@m.Label</span>
+                    </div>
+                }
+            </div>
+            <div class="ph-path-you" style="left:@percent%;">
+                <span class="ph-path-you-flag">You're here</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══════════════ 3. TODAY'S CARE ══════════════ -->
+    <section class="ph-section">
+        <div class="ph-section-head">
+            <h2>Today's Care</h2>
+            <p>Small loving steps for you and baby</p>
+        </div>
+        <div class="ph-care-grid">
+            <button type="button" class="ph-care ph-care-rose" data-open-tracker="bp">
+                <span class="ph-care-ico">🩺</span>
+                <span class="ph-care-body">
+                    <span class="ph-care-title">Log Blood Pressure</span>
+                    <span class="ph-care-desc">Quick check-in</span>
+                </span>
+                <i class="fas fa-chevron-right ph-care-arrow"></i>
+            </button>
+            <button type="button" class="ph-care ph-care-violet" data-open-tracker="bs">
+                <span class="ph-care-ico">🩸</span>
+                <span class="ph-care-body">
+                    <span class="ph-care-title">Log Blood Sugar</span>
+                    <span class="ph-care-desc">Keep levels balanced</span>
+                </span>
+                <i class="fas fa-chevron-right ph-care-arrow"></i>
+            </button>
+            <a class="ph-care ph-care-amber" href="/PatientProfile/Index/@Model.Patient.PatientID">
+                <span class="ph-care-ico">⚖️</span>
+                <span class="ph-care-body">
+                    <span class="ph-care-title">Log Weight</span>
+                    <span class="ph-care-desc">@(Model.Patient.WeightKg > 0 ? $"Now {Model.Patient.WeightKg:0.#} kg" : "Track your healthy gain")</span>
+                </span>
+                <i class="fas fa-chevron-right ph-care-arrow"></i>
+            </a>
+            <a class="ph-care ph-care-mint" href="/PatientTests/TestsUpload/@Model.Patient.PatientID">
+                <span class="ph-care-ico">🧪</span>
+                <span class="ph-care-body">
+                    <span class="ph-care-title">Upload Test Results</span>
+                    <span class="ph-care-desc">AI reads them for you</span>
+                </span>
+                <i class="fas fa-chevron-right ph-care-arrow"></i>
+            </a>
+            <button type="button" class="ph-care ph-care-sky" data-open-kick>
+                <span class="ph-care-ico">👣</span>
+                <span class="ph-care-body">
+                    <span class="ph-care-title">Track Baby Movement</span>
+                    <span class="ph-care-desc">Count those kicks</span>
+                </span>
+                <i class="fas fa-chevron-right ph-care-arrow"></i>
+            </button>
+            <a class="ph-care ph-care-peach" href="/Chatbot/Index/@Model.Patient.PatientID">
+                <span class="ph-care-ico">💬</span>
+                <span class="ph-care-body">
+                    <span class="ph-care-title">Record Symptoms</span>
+                    <span class="ph-care-desc">Talk to your assistant</span>
+                </span>
+                <i class="fas fa-chevron-right ph-care-arrow"></i>
+            </a>
+        </div>
+    </section>
+
+    <!-- ══════════════ 5 + 9. INSIGHTS & MOOD ══════════════ -->
+    <div class="ph-two">
+        <section class="ph-card ph-insights">
+            <div class="ph-card-head">
+                <h2><span class="ph-dot mint"></span> Health Insights</h2>
+                <a class="ph-link" href="/PatientMedicalHistory/MedicalHistory/@Model.Patient.PatientID">History <i class="fas fa-arrow-right"></i></a>
+            </div>
+            <div class="ph-insight-list">
+                @foreach (var ins in insights)
+                {
+                    <div class="ph-insight ph-ins-@ins.Type">
+                        <div class="ph-insight-ico"><i class="fas @ins.Icon"></i></div>
+                        <div class="ph-insight-body">
+                            <span class="ph-insight-title">@ins.Title</span>
+                            <span class="ph-insight-text">@ins.Text</span>
+                        </div>
+                    </div>
+                }
+            </div>
+        </section>
+
+        <section class="ph-card ph-mood">
+            <div class="ph-card-head">
+                <h2><span class="ph-dot amber"></span> How are you feeling today?</h2>
+            </div>
+            <div class="ph-mood-row" id="phMoodRow">
+                <button class="ph-mood-btn" data-mood="happy"><span>😊</span><small>Happy</small></button>
+                <button class="ph-mood-btn" data-mood="calm"><span>😌</span><small>Calm</small></button>
+                <button class="ph-mood-btn" data-mood="tired"><span>😴</span><small>Tired</small></button>
+                <button class="ph-mood-btn" data-mood="uncomfortable"><span>🤕</span><small>Achy</small></button>
+                <button class="ph-mood-btn" data-mood="worried"><span>😟</span><small>Worried</small></button>
+            </div>
+            <div class="ph-mood-history">
+                <span class="ph-mood-history-lbl">This week</span>
+                <div class="ph-mood-week" id="phMoodWeek"></div>
+            </div>
+        </section>
+    </div>
+
+    <!-- ══════════════ 6. APPOINTMENTS TIMELINE ══════════════ -->
+    <section class="ph-card ph-appts">
+        <div class="ph-card-head">
+            <h2><span class="ph-dot sky"></span> Upcoming Care</h2>
+            <a class="ph-link" href="/PatientAppointments/Appointments/@Model.Patient.PatientID">All visits <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div class="ph-timeline">
+            @if (Model.NextAppointment != null)
+            {
+                var na = Model.NextAppointment;
+                var docName = na.Doctor?.User != null ? $"Dr. {na.Doctor.User.FirstName} {na.Doctor.User.LastName}".Trim() : "Your doctor";
+                <div class="ph-tl-item next">
+                    <div class="ph-tl-marker"></div>
+                    <div class="ph-tl-card">
+                        <div class="ph-tl-date">@na.Date.ToString("ddd, MMM dd")</div>
+                        <div class="ph-tl-title">@docName</div>
+                        <div class="ph-tl-meta">
+                            <span><i class="fas fa-clock"></i> @DateTime.Today.Add(na.Time).ToString("hh:mm tt")</span>
+                            <span><i class="fas fa-map-marker-alt"></i> @(na.Clinic?.Name ?? "Clinic")</span>
+                        </div>
+                        <span class="ph-tl-badge">Next up</span>
+                    </div>
+                </div>
+            }
+            @if (Model.RecentPastAppointments != null && Model.RecentPastAppointments.Any())
+            {
+                @foreach (var ap in Model.RecentPastAppointments.Take(3))
+                {
+                    var dn = ap.Doctor?.User != null ? $"Dr. {ap.Doctor.User.FirstName} {ap.Doctor.User.LastName}".Trim() : "Doctor";
+                    <div class="ph-tl-item past">
+                        <div class="ph-tl-marker"></div>
+                        <div class="ph-tl-card">
+                            <div class="ph-tl-date">@ap.Date.ToString("ddd, MMM dd")</div>
+                            <div class="ph-tl-title">@dn</div>
+                            <div class="ph-tl-meta">
+                                <span><i class="fas fa-map-marker-alt"></i> @(ap.Clinic?.Name ?? "Clinic")</span>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+            else if (Model.NextAppointment == null)
+            {
+                <div class="ph-empty">
+                    <span>🗓️</span>
+                    <p>No appointments yet. Booking a check-up keeps you and baby on track.</p>
+                </div>
+            }
+        </div>
+        <a class="ph-btn-primary ph-appt-btn" href="/PatientAppointments/BookAppointment/@Model.Patient.PatientID">
+            <i class="fas fa-plus"></i> Book an appointment
+        </a>
+    </section>
+
+    <!-- ══════════════ 7. WEEKLY HEALTH TRENDS ══════════════ -->
+    <section class="ph-section">
+        <div class="ph-section-head">
+            <h2>Your Wellness Trends</h2>
+            <p>A gentle look at this week</p>
+        </div>
+        <div class="ph-two">
+            <div class="ph-card ph-trend">
+                <div class="ph-trend-head">
+                    <span class="ph-trend-title">🩺 Blood Pressure</span>
+                    <span class="ph-trend-now">@(string.IsNullOrWhiteSpace(Model.LastBloodPressureValue) || Model.LastBloodPressureValue == "N/A" ? "—" : Model.LastBloodPressureValue)</span>
+                </div>
+                @if (bpSeries.Count >= 2)
+                {
+                    <svg class="ph-spark" viewBox="0 0 300 90" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="phGradBp" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#fb7185" stop-opacity="0.35"></stop>
+                                <stop offset="100%" stop-color="#fb7185" stop-opacity="0"></stop>
+                            </linearGradient>
+                        </defs>
+                        <polygon fill="url(#phGradBp)" points="@BuildAreaPoints(bpSeries, 300, 90, true)"></polygon>
+                        <polyline fill="none" stroke="#fb7185" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="@BuildAreaPoints(bpSeries, 300, 90, false)"></polyline>
+                    </svg>
+                }
+                else
+                {
+                    <div class="ph-trend-empty">Log a few readings to see your trend bloom 🌱</div>
+                }
+            </div>
+
+            <div class="ph-card ph-trend">
+                <div class="ph-trend-head">
+                    <span class="ph-trend-title">🩸 Blood Sugar</span>
+                    <span class="ph-trend-now">@(Model.LastBloodSugarValue > 0 ? $"{Model.LastBloodSugarValue:0} mg/dL" : "—")</span>
+                </div>
+                @if (bsSeries.Count >= 2)
+                {
+                    <svg class="ph-spark" viewBox="0 0 300 90" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="phGradBs" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.35"></stop>
+                                <stop offset="100%" stop-color="#a78bfa" stop-opacity="0"></stop>
+                            </linearGradient>
+                        </defs>
+                        <polygon fill="url(#phGradBs)" points="@BuildAreaPoints(bsSeries, 300, 90, true)"></polygon>
+                        <polyline fill="none" stroke="#a78bfa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="@BuildAreaPoints(bsSeries, 300, 90, false)"></polyline>
+                    </svg>
+                }
+                else
+                {
+                    <div class="ph-trend-empty">Log a few readings to see your trend bloom 🌱</div>
+                }
+            </div>
+        </div>
+    </section>
+
+    <!-- ══════════════ 8. PREGNANCY TIPS ══════════════ -->
+    <section class="ph-section">
+        <div class="ph-section-head">
+            <h2>Daily Tips for You</h2>
+            <p>Swipe through gentle reminders</p>
+        </div>
+        <div class="ph-tips" id="phTips">
+            @foreach (var t in tips)
+            {
+                <div class="ph-tip">
+                    <span class="ph-tip-cat">@t.Cat</span>
+                    <span class="ph-tip-emoji">@t.Emoji</span>
+                    <h3>@t.Title</h3>
+                    <p>@t.Text</p>
+                </div>
+            }
+        </div>
+    </section>
 
 </div>
-<!-- / pd-wrap -->
+
+<!-- ══════════════ TRACKER SHEET (BP / BS logging) ══════════════ -->
+<div class="ph-sheet-overlay" id="phSheetOverlay"></div>
+<div class="ph-sheet" id="phSheet" aria-hidden="true" role="dialog">
+    <div class="ph-sheet-grip"></div>
+    <button class="ph-sheet-close" id="phSheetClose" aria-label="Close"><i class="fas fa-times"></i></button>
+
+    <div class="ph-sheet-head">
+        <h3>Log a reading</h3>
+        <p>It only takes a moment 💗</p>
+    </div>
+
+    <div class="ph-sheet-tabs">
+        <button class="ph-sheet-tab active" data-tab="bp"><i class="fas fa-heartbeat"></i> Blood Pressure</button>
+        <button class="ph-sheet-tab" data-tab="bs"><i class="fas fa-tint"></i> Blood Sugar</button>
+    </div>
+
+    <!-- BP -->
+    <div class="ph-tab-pane active" id="phPaneBp">
+        <div class="ph-field-row">
+            <div class="ph-field">
+                <label>Systolic <small>top</small></label>
+                <input type="number" id="systolic" placeholder="120" min="70" max="200" />
+                <span class="ph-field-hint">Normal 90–120</span>
+            </div>
+            <span class="ph-field-slash">/</span>
+            <div class="ph-field">
+                <label>Diastolic <small>bottom</small></label>
+                <input type="number" id="diastolic" placeholder="80" min="40" max="130" />
+                <span class="ph-field-hint">Normal 60–80</span>
+            </div>
+        </div>
+        <div class="ph-field-row">
+            <div class="ph-field">
+                <label>Pulse <small>optional</small></label>
+                <input type="number" id="pulse" placeholder="72" min="40" max="200" />
+            </div>
+            <div class="ph-field">
+                <label>When?</label>
+                <select id="bpMeasurementTime">
+                    <option value="Morning">Morning</option>
+                    <option value="Afternoon">Afternoon</option>
+                    <option value="Evening">Evening</option>
+                    <option value="Bedtime">Bedtime</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+        </div>
+        <button class="ph-save" id="saveBP"><i class="fas fa-heart"></i> Save reading</button>
+        <div class="ph-result" id="bpResult" style="display:none">
+            <span class="ph-result-val" id="bpValue">120/80</span>
+            <span class="ph-result-status" id="bpStatus"></span>
+            <p class="ph-result-msg" id="bpMessage"></p>
+        </div>
+    </div>
+
+    <!-- BS -->
+    <div class="ph-tab-pane" id="phPaneBs">
+        <div class="ph-field-row">
+            <div class="ph-field">
+                <label>Blood sugar level</label>
+                <input type="number" id="bloodSugar" placeholder="95" min="40" max="400" />
+                <span class="ph-field-hint">Fasting 70–100 · After meals &lt;140</span>
+            </div>
+        </div>
+        <div class="ph-field-row">
+            <div class="ph-field">
+                <label>When did you measure?</label>
+                <select id="mealTime">
+                    <option value="Fasting (Before breakfast)">Fasting (Before breakfast)</option>
+                    <option value="After Breakfast (2 hours)">After Breakfast (2 hours)</option>
+                    <option value="Before Lunch">Before Lunch</option>
+                    <option value="After Lunch (2 hours)">After Lunch (2 hours)</option>
+                    <option value="Before Dinner">Before Dinner</option>
+                    <option value="After Dinner (2 hours)">After Dinner (2 hours)</option>
+                    <option value="Bedtime">Bedtime</option>
+                </select>
+            </div>
+        </div>
+        <button class="ph-save ph-save-violet" id="saveBS"><i class="fas fa-heart"></i> Save reading</button>
+        <div class="ph-result" id="bsResult" style="display:none">
+            <span class="ph-result-val" id="bsValue">95</span>
+            <span class="ph-result-status" id="bsStatus"></span>
+            <p class="ph-result-msg" id="bsMessage"></p>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════ KICK COUNTER SHEET ══════════════ -->
+<div class="ph-sheet-overlay" id="phKickOverlay"></div>
+<div class="ph-sheet ph-kick-sheet" id="phKickSheet" aria-hidden="true" role="dialog">
+    <div class="ph-sheet-grip"></div>
+    <button class="ph-sheet-close" id="phKickClose" aria-label="Close"><i class="fas fa-times"></i></button>
+    <h3 class="ph-kick-h">Baby Movement</h3>
+    <p class="ph-kick-sub">Tap each time you feel your baby move today 👣</p>
+    <button class="ph-kick-big" id="phKickBtn">
+        <span class="ph-kick-count" id="phKickCount">0</span>
+        <span class="ph-kick-emoji">👶</span>
+        <span class="ph-kick-tap">Tap when baby kicks</span>
+    </button>
+    <p class="ph-kick-note">Most days you'll feel 10 movements within a couple of hours. Reach out to your doctor if movements feel reduced.</p>
+    <button class="ph-kick-reset" id="phKickReset">Reset today's count</button>
+</div>
 
 @section Scripts {
 <script>
-// ── Shared helpers ──────────────────────────────────────────
 const PATIENT_ID        = parseInt(document.querySelector('meta[name="patient-id"]').content, 10);
 const ANTIFORGERY_TOKEN = document.querySelector('input[name="__RequestVerificationToken"]').value;
 
-// Set today label in tracker header
-(function () {
-    const short = 'Today, ' + new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
-    const el    = document.getElementById('trackerDate');
-    if (el) el.textContent = short;
-})();
-
-// Global toast
-window.showNotification = function (message, type = "info") {
-    document.querySelector('.pd-toast')?.remove();
+window.showNotification = window.showNotification || function (message, type = "info") {
+    document.querySelector('.ph-toast')?.remove();
     const icons = { success:'fa-check-circle', error:'fa-times-circle', warning:'fa-exclamation-triangle', info:'fa-info-circle' };
     const n = document.createElement('div');
-    n.className = `pd-toast pd-toast-${type}`;
-    n.innerHTML = `<i class="fas ${icons[type]||icons.info}"></i><span>${message}</span><button class="pd-toast-close"><i class="fas fa-times"></i></button>`;
+    n.className = `ph-toast ph-toast-${type}`;
+    n.innerHTML = `<i class="fas ${icons[type]||icons.info}"></i><span>${message}</span>`;
     document.body.appendChild(n);
-    n.querySelector('.pd-toast-close').addEventListener('click', () => n.remove());
-    setTimeout(() => n?.remove(), 4000);
+    setTimeout(() => n?.remove(), 3800);
 };
 
 document.addEventListener('DOMContentLoaded', function () {
 
-    // ── Tab switching ──────────────────────────────────────
-    document.querySelectorAll('.tracker-tab').forEach(btn => {
-        btn.addEventListener('click', function () {
-            document.querySelectorAll('.tracker-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tracker-tab-content').forEach(c => c.classList.remove('active'));
-            this.classList.add('active');
-            document.getElementById(this.dataset.tab).classList.add('active');
-        });
-    });
+    /* ───── Tracker sheet ───── */
+    const sheet   = document.getElementById('phSheet');
+    const overlay = document.getElementById('phSheetOverlay');
 
-    // ── Blood Pressure ──────────────────────────────────────
-    const sysIn   = document.getElementById('systolic');
-    const diaIn   = document.getElementById('diastolic');
+    function openSheet(tab) {
+        switchTab(tab || 'bp');
+        sheet.classList.add('open');
+        overlay.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeSheet() {
+        sheet.classList.remove('open');
+        overlay.classList.remove('open');
+        document.body.style.overflow = '';
+    }
+    function switchTab(tab) {
+        document.querySelectorAll('.ph-sheet-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+        document.getElementById('phPaneBp').classList.toggle('active', tab === 'bp');
+        document.getElementById('phPaneBs').classList.toggle('active', tab === 'bs');
+    }
+
+    document.querySelectorAll('[data-open-tracker]').forEach(b =>
+        b.addEventListener('click', () => openSheet(b.dataset.openTracker)));
+    document.querySelectorAll('.ph-sheet-tab').forEach(t =>
+        t.addEventListener('click', () => switchTab(t.dataset.tab)));
+    document.getElementById('phSheetClose').addEventListener('click', closeSheet);
+    overlay.addEventListener('click', closeSheet);
+
+    /* ───── Blood Pressure ───── */
+    const sysIn = document.getElementById('systolic');
+    const diaIn = document.getElementById('diastolic');
     const pulseIn = document.getElementById('pulse');
-    const bpTime  = document.getElementById('bpMeasurementTime');
-    const bpRes   = document.getElementById('bpResult');
+    const bpTime = document.getElementById('bpMeasurementTime');
+    const bpRes = document.getElementById('bpResult');
 
-    [sysIn, diaIn, pulseIn].forEach(i => i?.addEventListener('input', () => { if (i) i.value = i.value.replace(/[^0-9]/g, ''); }));
-    sysIn?.addEventListener('input',  () => { if (sysIn.value.length  >= 3) diaIn?.focus(); });
-    diaIn?.addEventListener('input',  () => { if (diaIn.value.length  >= 2) pulseIn?.focus(); });
-
-    [sysIn, diaIn].forEach(inp => {
-        if (!inp) return;
-        inp.addEventListener('blur', function () {
-            const v = parseInt(this.value), w = this.closest('.inp-wrap');
-            if (!w) return;
-            w.classList.remove('hint-normal','hint-elevated','hint-high','hint-low');
-            if (!v) return;
-            if (this === sysIn) {
-                if (v < 90) w.classList.add('hint-low'); else if (v <= 120) w.classList.add('hint-normal'); else if (v <= 139) w.classList.add('hint-elevated'); else w.classList.add('hint-high');
-            } else {
-                if (v < 60) w.classList.add('hint-low'); else if (v <= 80) w.classList.add('hint-normal'); else if (v <= 89) w.classList.add('hint-elevated'); else w.classList.add('hint-high');
-            }
-        });
-    });
+    [sysIn, diaIn, pulseIn].forEach(i => i?.addEventListener('input', () => { i.value = i.value.replace(/[^0-9]/g,''); }));
 
     document.getElementById('saveBP')?.addEventListener('click', async function () {
-        const sys  = parseInt(sysIn.value);
-        const dia  = parseInt(diaIn.value);
-        const meas = bpTime?.value || '';
-        if (!sys || !dia)           { window.showNotification('Please enter both values.', 'error'); return; }
-        if (sys < 70  || sys > 200) { window.showNotification('Systolic must be 70–200.',  'error'); return; }
-        if (dia < 40  || dia > 130) { window.showNotification('Diastolic must be 40–130.', 'error'); return; }
+        const sys = parseInt(sysIn.value), dia = parseInt(diaIn.value), meas = bpTime?.value || '';
+        if (!sys || !dia) { window.showNotification('Please enter both values.', 'error'); return; }
+        if (sys < 70 || sys > 200) { window.showNotification('Systolic must be 70–200.', 'error'); return; }
+        if (dia < 40 || dia > 130) { window.showNotification('Diastolic must be 40–130.', 'error'); return; }
 
         const a = analyzeBP(sys, dia);
-        document.getElementById('bpValue').textContent = `${sys}/${dia}`;
-        const bpSt = document.getElementById('bpStatus');
-        bpSt.className = 'result-status ' + a.status;
-        bpSt.innerHTML = `<i class="fas ${a.icon}"></i> ${a.label}`;
+        document.getElementById('bpValue').textContent = `${sys}/${dia} mmHg`;
+        const st = document.getElementById('bpStatus');
+        st.className = 'ph-result-status ' + a.status;
+        st.innerHTML = `<i class="fas ${a.icon}"></i> ${a.label}`;
         document.getElementById('bpMessage').textContent = a.message;
-        bpRes.style.display = 'flex';
-
-        document.getElementById('bpStatValue').textContent  = `${sys}/${dia}`;
-        document.getElementById('bpStatChange').textContent = a.label;
+        bpRes.style.display = 'block';
 
         try {
             const fd = new FormData();
@@ -857,70 +868,35 @@ document.addEventListener('DOMContentLoaded', function () {
             const r = await fetch('/Patient/SaveBloodPressure', { method:'POST', body:fd });
             if (!r.ok) throw new Error();
             const d = await r.json();
-            if (d.success) {
-                addBPRow(sys, dia, d.day, d.month, d.time, meas, a);
-                window.refreshPatientRiskAlerts?.();
-                window.showNotification('Blood pressure saved!', 'success');
-            }
+            if (d.success) { window.refreshPatientRiskAlerts?.(); window.showNotification('Blood pressure saved 💚', 'success'); }
         } catch { window.showNotification('Could not save. Please try again.', 'error'); }
-
-        bpRes.scrollIntoView({ behavior:'smooth', block:'center' });
     });
 
     function analyzeBP(s, d) {
-        if (s < 90 || d < 60)             return { status:'low',      label:'Low',            icon:'fa-arrow-down',           message:'Blood pressure is low. If you feel dizzy, consult your doctor.' };
-        if (s <= 120 && d <= 80)           return { status:'normal',   label:'Normal',         icon:'fa-check-circle',         message:'Excellent! Your blood pressure is within the normal range.' };
-        if (s <= 129 && d < 80)            return { status:'elevated', label:'Elevated',       icon:'fa-exclamation-circle',   message:'Slightly elevated. Consider reducing salt and increasing activity.' };
-        if (s <= 139 || d <= 89)           return { status:'elevated', label:'High (Stage 1)', icon:'fa-exclamation-triangle', message:'High blood pressure. Monitor regularly and consult your provider.' };
-        return                                    { status:'high',     label:'High (Stage 2)', icon:'fa-exclamation-triangle', message:'Significantly elevated. Please contact your doctor immediately.' };
+        if (s < 90 || d < 60)   return { status:'low',  label:'Low',      icon:'fa-arrow-down',   message:'A little low. Rest and stay nourished — tell your doctor if you feel dizzy.' };
+        if (s <= 120 && d <= 80) return { status:'good', label:'Normal',  icon:'fa-check-circle', message:'Lovely! Your blood pressure is right where we want it. 💚' };
+        if (s <= 139 || d <= 89) return { status:'warn', label:'Elevated',icon:'fa-exclamation-circle', message:'Slightly elevated. Rest, hydrate, and keep an eye on it.' };
+        return                          { status:'warn', label:'High',    icon:'fa-exclamation-triangle', message:'High — please monitor closely and contact your doctor.' };
     }
 
-    function addBPRow(sys, dia, day, month, time, meas, a) {
-        const list = document.getElementById('bpHistoryList');
-        if (!list) return;
-        list.querySelector('p.no-data')?.remove();
-        const row = document.createElement('div');
-        row.className = 'history-item';
-        row.style.animation = 'pdFadeIn .3s ease';
-        row.innerHTML = `
-            <div class="hist-date"><span class="hist-day">${day}</span><span class="hist-mon">${month}</span></div>
-            <div class="hist-reading"><span class="hist-val">${sys}/${dia}</span><span class="hist-time">${meas ? meas+' · ' : ''}${time}</span></div>
-            <span class="hist-badge ${a.status}"><i class="fas ${a.icon}"></i> ${a.label}</span>`;
-        list.insertBefore(row, list.firstChild);
-        const items = list.querySelectorAll('.history-item');
-        if (items.length > 10) items[items.length-1].remove();
-    }
-
-    // ── Blood Sugar ─────────────────────────────────────────
-    const bsIn   = document.getElementById('bloodSugar');
-    const bsTime = document.getElementById('mealTime');
-    const bsRes  = document.getElementById('bsResult');
-
-    bsIn?.addEventListener('input', () => { bsIn.value = bsIn.value.replace(/[^0-9]/g, ''); });
-    bsIn?.addEventListener('blur', function () {
-        const v = parseInt(this.value), w = this.closest('.inp-wrap');
-        if (!w) return;
-        w.classList.remove('hint-normal','hint-elevated','hint-high','hint-low');
-        if (!v) return;
-        if (v < 70) w.classList.add('hint-low'); else if (v <= 100) w.classList.add('hint-normal'); else if (v <= 140) w.classList.add('hint-elevated'); else w.classList.add('hint-high');
-    });
+    /* ───── Blood Sugar ───── */
+    const bsIn = document.getElementById('bloodSugar');
+    const bsTimeSel = document.getElementById('mealTime');
+    const bsRes = document.getElementById('bsResult');
+    bsIn?.addEventListener('input', () => { bsIn.value = bsIn.value.replace(/[^0-9]/g,''); });
 
     document.getElementById('saveBS')?.addEventListener('click', async function () {
-        const val  = parseInt(bsIn.value);
-        const meal = bsTime.value;
-        if (!val)                  { window.showNotification('Please enter a blood sugar value.', 'error'); return; }
+        const val = parseInt(bsIn.value), meal = bsTimeSel.value;
+        if (!val) { window.showNotification('Please enter a blood sugar value.', 'error'); return; }
         if (val < 40 || val > 400) { window.showNotification('Value must be 40–400 mg/dL.', 'error'); return; }
 
         const a = analyzeBS(val, meal);
-        document.getElementById('bsValue').textContent = val;
-        const bsSt = document.getElementById('bsStatus');
-        bsSt.className = 'result-status ' + a.status;
-        bsSt.innerHTML = `<i class="fas ${a.icon}"></i> ${a.label}`;
+        document.getElementById('bsValue').textContent = `${val} mg/dL`;
+        const st = document.getElementById('bsStatus');
+        st.className = 'ph-result-status ' + a.status;
+        st.innerHTML = `<i class="fas ${a.icon}"></i> ${a.label}`;
         document.getElementById('bsMessage').textContent = a.message;
-        bsRes.style.display = 'flex';
-
-        document.getElementById('bsStatValue').textContent  = val;
-        document.getElementById('bsStatChange').textContent = a.label;
+        bsRes.style.display = 'block';
 
         try {
             const fd = new FormData();
@@ -929,643 +905,580 @@ document.addEventListener('DOMContentLoaded', function () {
             const r = await fetch('/Patient/SaveBloodSugar', { method:'POST', body:fd });
             if (!r.ok) throw new Error();
             const d = await r.json();
-            if (d.success) {
-                addBSRow(val, meal, d.day, d.month, d.time, a);
-                window.refreshPatientRiskAlerts?.();
-                window.showNotification('Blood sugar saved!', 'success');
-            }
+            if (d.success) { window.refreshPatientRiskAlerts?.(); window.showNotification('Blood sugar saved 💜', 'success'); }
         } catch { window.showNotification('Could not save. Please try again.', 'error'); }
-
-        bsRes.scrollIntoView({ behavior:'smooth', block:'center' });
     });
 
     function analyzeBS(v, meal) {
         const isFast = meal.includes('Fasting') || meal.includes('Before Lunch') || meal.includes('Before Dinner');
-        if (v < 70)   return { status:'low',      label:'Low',           icon:'fa-arrow-down',           message:'Blood sugar is low. Eat carbohydrates and monitor closely.' };
+        if (v < 70) return { status:'low', label:'Low', icon:'fa-arrow-down', message:'Low — have a small snack and check again soon.' };
         if (isFast) {
-            if (v <= 100) return { status:'normal',   label:'Normal',    icon:'fa-check-circle',         message:'Fasting blood sugar is in normal range. Great job!' };
-            if (v <= 125) return { status:'elevated', label:'Elevated',  icon:'fa-exclamation-circle',   message:'Slightly elevated fasting sugar. Monitor your diet.' };
-            return              { status:'high',     label:'High',       icon:'fa-exclamation-triangle', message:'High fasting sugar. Please consult your provider.' };
+            if (v <= 100) return { status:'good', label:'Normal',   icon:'fa-check-circle', message:'Fasting sugar is in a healthy range. Great job!' };
+            if (v <= 125) return { status:'warn', label:'Elevated', icon:'fa-exclamation-circle', message:'Slightly elevated fasting sugar. Keep an eye on your meals.' };
+            return              { status:'warn', label:'High',     icon:'fa-exclamation-triangle', message:'High fasting sugar — please consult your provider.' };
         }
-        if (v <= 140) return { status:'normal',   label:'Normal',        icon:'fa-check-circle',         message:'Post-meal blood sugar is within normal range.' };
-        if (v <= 180) return { status:'elevated', label:'Slightly High', icon:'fa-exclamation-circle',   message:'Slightly high post-meal sugar. Reduce refined carbs.' };
-        return              { status:'high',     label:'High',           icon:'fa-exclamation-triangle', message:'High post-meal sugar. Consult your healthcare provider.' };
+        if (v <= 140) return { status:'good', label:'Normal',        icon:'fa-check-circle', message:'Post-meal sugar is within a healthy range.' };
+        if (v <= 180) return { status:'warn', label:'Slightly High', icon:'fa-exclamation-circle', message:'A bit high after eating. Gentle movement can help.' };
+        return              { status:'warn', label:'High',          icon:'fa-exclamation-triangle', message:'High post-meal sugar — consult your healthcare provider.' };
     }
 
-    function addBSRow(val, meal, day, month, time, a) {
-        const list = document.getElementById('bsHistoryList');
-        if (!list) return;
-        list.querySelector('p.no-data')?.remove();
-        const row = document.createElement('div');
-        row.className = 'history-item';
-        row.style.animation = 'pdFadeIn .3s ease';
-        row.innerHTML = `
-            <div class="hist-date"><span class="hist-day">${day}</span><span class="hist-mon">${month}</span></div>
-            <div class="hist-reading"><span class="hist-val">${val} mg/dL</span><span class="hist-time">${meal} · ${time}</span></div>
-            <span class="hist-badge ${a.status}"><i class="fas ${a.icon}"></i> ${a.label}</span>`;
-        list.insertBefore(row, list.firstChild);
-        const items = list.querySelectorAll('.history-item');
-        if (items.length > 10) items[items.length-1].remove();
+    /* ───── Kick counter ───── */
+    const kickSheet = document.getElementById('phKickSheet');
+    const kickOverlay = document.getElementById('phKickOverlay');
+    const kickKey = () => 'ph_kicks_' + PATIENT_ID + '_' + new Date().toISOString().slice(0,10);
+    const kickCountEl = document.getElementById('phKickCount');
+
+    function renderKicks() { kickCountEl.textContent = parseInt(localStorage.getItem(kickKey()) || '0', 10); }
+    function openKick() { renderKicks(); kickSheet.classList.add('open'); kickOverlay.classList.add('open'); document.body.style.overflow='hidden'; }
+    function closeKick() { kickSheet.classList.remove('open'); kickOverlay.classList.remove('open'); document.body.style.overflow=''; }
+
+    document.querySelector('[data-open-kick]')?.addEventListener('click', openKick);
+    document.getElementById('phKickClose').addEventListener('click', closeKick);
+    kickOverlay.addEventListener('click', closeKick);
+    document.getElementById('phKickBtn').addEventListener('click', function () {
+        const n = parseInt(localStorage.getItem(kickKey()) || '0', 10) + 1;
+        localStorage.setItem(kickKey(), n);
+        kickCountEl.textContent = n;
+        this.classList.remove('pulse'); void this.offsetWidth; this.classList.add('pulse');
+    });
+    document.getElementById('phKickReset').addEventListener('click', function () {
+        localStorage.setItem(kickKey(), '0'); renderKicks();
+    });
+
+    /* ───── Mood ───── */
+    const moodKey = () => 'ph_mood_' + PATIENT_ID + '_' + new Date().toISOString().slice(0,10);
+    const moodEmoji = { happy:'😊', calm:'😌', tired:'😴', uncomfortable:'🤕', worried:'😟' };
+
+    function paintMood() {
+        const today = localStorage.getItem(moodKey());
+        document.querySelectorAll('.ph-mood-btn').forEach(b => b.classList.toggle('sel', b.dataset.mood === today));
+        const wrap = document.getElementById('phMoodWeek');
+        wrap.innerHTML = '';
+        for (let i = 6; i >= 0; i--) {
+            const dt = new Date(); dt.setDate(dt.getDate() - i);
+            const key = 'ph_mood_' + PATIENT_ID + '_' + dt.toISOString().slice(0,10);
+            const m = localStorage.getItem(key);
+            const cell = document.createElement('div');
+            cell.className = 'ph-mood-cell' + (m ? ' has' : '');
+            cell.innerHTML = `<span>${m ? moodEmoji[m] : '·'}</span><small>${dt.toLocaleDateString('en-US',{weekday:'narrow'})}</small>`;
+            wrap.appendChild(cell);
+        }
     }
+    document.querySelectorAll('.ph-mood-btn').forEach(b => b.addEventListener('click', () => {
+        const cur = localStorage.getItem(moodKey());
+        if (cur === b.dataset.mood) localStorage.removeItem(moodKey());
+        else localStorage.setItem(moodKey(), b.dataset.mood);
+        paintMood();
+    }));
+    paintMood();
+
+    /* ───── Countdown soft fade-in ───── */
+    const cn = document.getElementById('phCountNum');
+    if (cn) { cn.style.opacity = 0; requestAnimationFrame(() => { cn.style.transition='opacity .6s ease'; cn.style.opacity=1; }); }
 });
 </script>
+}
 
 <style>
-/* ═══════════════════════════════════════════════════════════════
-   PATIENT DASHBOARD — design system mirroring Doctor Portal
-   Patient color palette (#1BAEBE teal/cyan) preserved throughout
-═══════════════════════════════════════════════════════════════ */
-
-.pd-wrap {
-    /* Patient color tokens */
-    --p:       #1BAEBE;
-    --p-dk:    #138fa0;
-    --p-mid:   #22c9db;
-    --p-lt:    #e0f7fa;
-    --p-xlt:   #f0fdfe;
-
-    /* Accent tokens */
-    --pink:    #e91e63;
-    --pink-lt: #fce4ec;
-    --purple:  #9c27b0;
-    --purp-lt: #f3e5f5;
-    --green:   #4caf50;
-    --grn-lt:  #e8f5e9;
-    --amber:   #ff9800;
-    --amb-lt:  #fff8e1;
-    --blue:    #2196f3;
-    --blue-lt: #e3f2fd;
-
-    /* Neutral tokens */
-    --navy:       #0b1f35;
-    --navy-mid:   #152d47;
-    --text:       #1e293b;
-    --text-2:     #4a5568;
-    --text-3:     #8896ab;
-    --border:     #e4eaf2;
-    --border-2:   #cdd6e3;
-    --bg:         #f3f6fb;
-    --white:      #fff;
-    --danger:     #ef4444;
-    --warning:    #f59e0b;
-    --success:    #22c55e;
-    --info:       #3b82f6;
-
-    /* Shape & shadow tokens */
-    --r:          10px;
-    --r-lg:       16px;
-    --r-xl:       22px;
-    --shadow-sm:  0 1px 4px rgba(15,28,46,.06);
-    --shadow:     0 4px 16px rgba(15,28,46,.08);
-    --shadow-md:  0 8px 28px rgba(15,28,46,.11);
-
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+/* ════════════════════════════════════════════════════════════
+   NABD — Pregnancy Journey Home Screen
+   Warm, calm, companion-app aesthetic
+════════════════════════════════════════════════════════════ */
+.ph, .ph-sheet, .ph-toast {
+    --rose:#fb7185; --rose-lt:#fff1f3;
+    --violet:#a78bfa; --violet-lt:#f4f0ff;
+    --mint:#34d399; --mint-lt:#ecfdf5;
+    --amber:#fbbf24; --amber-lt:#fffaf0;
+    --sky:#60a5fa; --sky-lt:#eff6ff;
+    --peach:#fb923c; --peach-lt:#fff4ec;
+    --ink:#3f3550; --ink-2:#6b6478; --ink-3:#9a93a8;
+    --cream:#fffaf7; --line:#f0e9ef;
+    --r:24px; --r-sm:18px;
+    --sh:0 10px 30px rgba(120,80,110,.08);
+    --sh-sm:0 4px 16px rgba(120,80,110,.06);
 }
+.ph {
+    font-family:'Inter',system-ui,sans-serif;
+    color:var(--ink);
+    display:flex; flex-direction:column; gap:22px;
+    padding-bottom:40px;
+}
+.ph h1,.ph h2,.ph h3 { margin:0; }
+
+/* No active pregnancy */
+.ph-noactive {
+    background:linear-gradient(135deg,#fff1f3,#f4f0ff);
+    border-radius:var(--r); padding:40px 28px; text-align:center;
+    box-shadow:var(--sh);
+}
+.ph-noactive-emoji { font-size:3rem; }
+.ph-noactive h2 { font-size:1.5rem; margin:10px 0 6px; }
+.ph-noactive p { color:var(--ink-2); max-width:480px; margin:0 auto 18px; line-height:1.6; }
 
 /* ── HERO ── */
-.pd-wrap .hero {
-    background: linear-gradient(130deg, var(--navy) 0%, var(--navy-mid) 50%, #0d3d5c 100%);
-    border-radius: var(--r-xl);
-    padding: 24px 28px;
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
+.ph-hero {
+    position:relative; overflow:hidden;
+    background:
+        radial-gradient(120% 150% at 0% 0%, #fff0f4 0%, transparent 52%),
+        radial-gradient(120% 150% at 100% 100%, #efe9ff 0%, transparent 52%),
+        linear-gradient(125deg,#fff7f2,#fcf3ff);
+    border:1px solid rgba(255,255,255,.7);
+    border-radius:28px; padding:34px 40px;
+    box-shadow:var(--sh);
 }
-.pd-wrap .hero-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 20px;
+.ph-hero-aurora {
+    position:absolute; top:-32%; right:-6%; width:440px; height:440px; pointer-events:none;
+    background:radial-gradient(circle, rgba(251,113,133,.15), transparent 65%);
+    filter:blur(8px);
 }
-.pd-wrap .hero-left { display: flex; flex-direction: column; gap: 8px; }
-.pd-wrap .hero-eyebrow {
-    display: inline-flex; align-items: center; gap: 6px;
-    font-size: .68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .1em;
-    color: var(--p-mid); background: rgba(27,174,190,.18);
-    padding: 4px 10px; border-radius: 20px;
-    border: 1px solid rgba(27,174,190,.25); width: fit-content;
+.ph-hero-grid {
+    position:relative; z-index:1;
+    display:grid; grid-template-columns:1.25fr 1fr 1fr; gap:30px; align-items:start;
 }
-.pd-wrap .hero-title { font-size: 1.85rem; font-weight: 700; color: #f1f5f9; line-height: 1.25; }
-.pd-wrap .hero-title span { color: var(--p-mid); }
-.pd-wrap .hero-sub { font-size: 1rem; color: #94a3b8; display: flex; align-items: center; gap: 7px; }
-.pd-wrap .hero-sub i { font-size: .45rem; color: var(--p-mid); }
-.pd-wrap .hero-bottom {
-    width: 100%;
-    padding-top: 12px;
-    border-top: 1px solid rgba(148,163,184,.25);
-}
-.pd-wrap .hero-progress-main {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    align-items: center;
-    gap: 14px;
-}
-.pd-wrap .hero .preg-icon {
-    width: 54px; height: 54px;
-    background: rgba(27, 174, 190, .25);
-    color: var(--p-mid);
-}
-.pd-wrap .hero .preg-info { width: 100%; }
-.pd-wrap .hero .preg-label { color: #cbd5e1; opacity: 1; }
-.pd-wrap .hero .preg-trimester { background: rgba(27, 174, 190, .25);color: var(--p-mid);; border-color: rgba(148,163,184,.35); }
-.pd-wrap .hero .hero-progress-remaining {
-    margin-left: auto;
-    font-size: .74rem;
-    font-weight: 600;
-    color: #94a3b8;
-    background: rgba(148,163,184,.18);
-    border: 1px solid rgba(148,163,184,.28);
-    border-radius: 20px;
-    padding: 2px 9px;
-}
-.pd-wrap .hero .preg-week-display { margin-bottom: 8px; }
-.pd-wrap .hero .preg-week-num { font-size: 2.5rem; color: #f8fafc; }
-.pd-wrap .hero .preg-week-of { color: #94a3b8; opacity: 1; }
-.pd-wrap .hero .preg-bar { background: rgba(148,163,184,.25); }
-.pd-wrap .hero .preg-bar-fill { background: linear-gradient(90deg, #67e8f9 0%, #22d3ee 100%); }
-.pd-wrap .hero .preg-bar-dot { background: #67e8f9; box-shadow: 0 0 0 3px rgba(103,232,249,.3); }
-.pd-wrap .hero .preg-bar-labels { color: #94a3b8; opacity: 1; }
-.pd-wrap .hero-right { display: flex; gap: 12px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
-.pd-wrap .hero-stat {
-    display: flex; align-items: center; gap: 10px;
-    background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12);
-    border-radius: var(--r-lg); padding: 12px 16px; min-width: 130px;
-}
-.pd-wrap .hero-stat-ico {
-    width: 38px; height: 38px; border-radius: 9px;
-    background: rgba(27,174,190,.25);
-    display: flex; align-items: center; justify-content: center; color: var(--p-mid);
-}
-.pd-wrap .hero-stat-body { display: flex; flex-direction: column; }
-.pd-wrap .hero-stat-val { font-size: 1.45rem; font-weight: 800; color: #fff; line-height: 1; }
-.pd-wrap .hero-next { font-size: 1.1rem; }
-.pd-wrap .hero-stat-lbl { font-size: .74rem; color: #94a3b8; margin-top: 2px; }
+.ph-hero-divide { display:none; }
 
-/* ── PREGNANCY CARD ── */
-.pd-wrap .preg-card {
-    background: linear-gradient(135deg, var(--p) 0%, var(--p-dk) 100%);
-    border-radius: var(--r-xl); padding: 22px 26px;
-    display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
-    box-shadow: 0 8px 28px rgba(27,174,190,.32);
-    color: #fff; position: relative; overflow: hidden;
+/* ── HERO · LEFT (mother) ── */
+.ph-hero-eyebrow { font-size:.95rem; font-weight:600; color:var(--ink-2); letter-spacing:.1px; }
+.ph-hero-week {
+    font-size:3.1rem; font-weight:800; line-height:1; letter-spacing:-1.6px;
+    color:var(--ink); margin:10px 0 0; display:flex; align-items:baseline; gap:11px;
 }
-.pd-wrap .preg-card::before {
-    content: ''; position: absolute; right: -40px; top: -40px;
-    width: 200px; height: 200px; border-radius: 50%;
-    background: rgba(255,255,255,.06); pointer-events: none;
+.ph-hero-week-num { background:linear-gradient(120deg,var(--rose),#c084fc); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.ph-hero-week-of { font-size:1.05rem; font-weight:600; color:var(--ink-3); letter-spacing:0; }
+.ph-hero-lead { font-size:1.02rem; color:var(--ink-2); margin:5px 0 0; }
+.ph-hero-tri {
+    display:inline-block; margin-top:14px; font-size:.8rem; font-weight:700; color:#7c3aed;
+    background:rgba(167,139,250,.15); padding:6px 15px; border-radius:30px;
 }
-.pd-wrap .preg-left { display: flex; align-items: center; gap: 18px; flex: 1; min-width: 260px; }
-.pd-wrap .preg-icon {
-    width: 60px; height: 60px; border-radius: 16px;
-    background: rgba(255,255,255,.2); backdrop-filter: blur(6px);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.7rem; flex-shrink: 0;
-}
-.pd-wrap .preg-info { flex: 1; }
-.pd-wrap .preg-week-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-.pd-wrap .preg-label { font-size: .78rem; font-weight: 600; opacity: .82; text-transform: uppercase; letter-spacing: .05em; }
-.pd-wrap .preg-trimester {
-    font-size: .7rem; font-weight: 700;
-    background: rgba(255,255,255,.22); border: 1px solid rgba(255,255,255,.3);
-    border-radius: 20px; padding: 2px 9px;
-    text-transform: uppercase; letter-spacing: .04em;
-}
-.pd-wrap .preg-week-display { display: flex; align-items: baseline; gap: 4px; margin-bottom: 10px; }
-.pd-wrap .preg-week-num { font-size: 3.2rem; font-weight: 900; line-height: 1; }
-.pd-wrap .preg-week-of { font-size: 1rem; opacity: .75; }
-.pd-wrap .preg-bar-wrap { width: 100%; }
-.pd-wrap .preg-bar {
-    position: relative; height: 10px;
-    background: rgba(255,255,255,.25); border-radius: 6px;
-    overflow: visible; margin-bottom: 6px;
-}
-.pd-wrap .preg-bar-fill { height: 100%; border-radius: 6px; background: rgba(255,255,255,.85); transition: width .6s ease; }
-.pd-wrap .preg-bar-dot {
-    position: absolute; top: -3px;
-    width: 16px; height: 16px; border-radius: 50%;
-    background: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,.4);
-}
-.pd-wrap .preg-bar-labels { display: flex; justify-content: space-between; font-size: .7rem; opacity: .7; }
-.pd-wrap .preg-right {
-    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
-    background: rgba(255,255,255,.12); backdrop-filter: blur(6px);
-    border: 1px solid rgba(255,255,255,.2); border-radius: 14px;
-    padding: 12px 18px; flex-shrink: 0;
-}
-.pd-wrap .preg-stat { display: flex; align-items: center; gap: 10px; }
-.pd-wrap .preg-stat-icon {
-    width: 38px; height: 38px; border-radius: 10px;
-    background: rgba(255,255,255,.2);
-    display: flex; align-items: center; justify-content: center; font-size: 1rem;
-}
-.pd-wrap .preg-stat-val { display: block; font-size: 1.05rem; font-weight: 700; line-height: 1.2; }
-.pd-wrap .preg-stat-lbl { display: block; font-size: .72rem; opacity: .75; }
-.pd-wrap .preg-divider { width: 1px; height: 40px; background: rgba(255,255,255,.25); }
+.ph-hero-facts { display:flex; align-items:center; gap:24px; margin:24px 0 2px; }
+.ph-hero-fact { display:flex; flex-direction:column; gap:4px; }
+.ph-hero-fact-lbl { font-size:.72rem; font-weight:600; color:var(--ink-3); text-transform:uppercase; letter-spacing:.6px; }
+.ph-hero-fact-val { font-size:1.08rem; font-weight:700; color:var(--ink); }
+.ph-hero-fact-sep { width:1px; height:36px; background:var(--line); }
 
-/* ── KPI GRID ── */
-.pd-wrap .kpi-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 14px; }
-.pd-wrap .kpi {
-    background: var(--white); border-radius: var(--r-lg);
-    border: 1px solid var(--border); padding: 18px 20px;
-    display: flex; flex-direction: column; gap: 12px;
-    box-shadow: var(--shadow-sm); position: relative; overflow: hidden;
-    transition: transform .2s, box-shadow .2s;
+/* premium horizontal progress */
+.ph-hero-bar { margin-top:24px; }
+.ph-hero-bar-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; }
+.ph-hero-bar-title { font-size:.82rem; font-weight:700; color:var(--ink); }
+.ph-hero-bar-count { font-size:.82rem; font-weight:700; color:var(--ink-2); }
+.ph-hero-bar-pct { font-weight:800; color:var(--rose); }
+.ph-hero-bar-track { position:relative; height:12px; border-radius:30px; background:rgba(120,80,110,.09); }
+.ph-hero-bar-tick { position:absolute; top:50%; width:2px; height:12px; transform:translate(-50%,-50%); background:rgba(255,255,255,.95); z-index:1; }
+.ph-hero-bar-fill {
+    position:relative; height:100%; border-radius:30px; max-width:100%; z-index:2;
+    background:linear-gradient(90deg,var(--rose),#c084fc);
+    box-shadow:0 3px 10px rgba(192,132,252,.35);
+    transition:width 1.2s cubic-bezier(.4,0,.2,1);
 }
-.pd-wrap .kpi:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
-.pd-wrap .kpi-top { display: flex; justify-content: space-between; align-items: flex-start; }
-.pd-wrap .kpi-ico {
-    width: 40px; height: 40px; border-radius: 10px;
-    display: flex; align-items: center; justify-content: center; font-size: .9rem;
+.ph-hero-bar-dot {
+    position:absolute; right:-1px; top:50%; transform:translateY(-50%);
+    width:18px; height:18px; border-radius:50%; background:#fff;
+    border:4px solid var(--rose); box-shadow:0 2px 8px rgba(251,113,133,.5);
 }
-.pd-wrap .kpi-ico.blue   { background: var(--blue-lt); color: var(--blue); }
-.pd-wrap .kpi-ico.pink   { background: var(--pink-lt); color: var(--pink); }
-.pd-wrap .kpi-ico.green  { background: var(--grn-lt);  color: var(--green); }
-.pd-wrap .kpi-ico.amber  { background: var(--amb-lt);  color: var(--amber); }
-.pd-wrap .kpi-ico.purple { background: var(--purp-lt); color: var(--purple); }
-.pd-wrap .kpi-ico.teal   { background: var(--p-lt);    color: var(--p); }
-.pd-wrap .kpi-trend {
-    display: inline-flex; align-items: center; gap: 3px;
-    font-size: .69rem; font-weight: 700; padding: 3px 7px; border-radius: 14px;
+.ph-hero-bar-foot { display:flex; justify-content:space-between; margin-top:10px; font-size:.72rem; font-weight:600; color:var(--ink-3); }
+.ph-hero-bar-foot .on { color:var(--rose); }
+.ph-hero-bar-stats {
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+    margin-top:12px; padding-top:12px; border-top:1px solid rgba(120,80,110,.1);
+    font-size:.8rem; color:var(--ink-3);
 }
-.pd-wrap .kpi-trend.up  { background: #f0fdf4; color: #15803d; }
-.pd-wrap .kpi-trend.down { background: #fef2f2; color: #b91c1c; }
-.pd-wrap .kpi-trend.neu { background: #f8fafc; color: #64748b; }
-.pd-wrap .kpi-mid { display: flex; flex-direction: column; gap: 4px; }
-.pd-wrap .kpi-val { font-size: 2rem; font-weight: 800; color: var(--text); line-height: 1; }
-.pd-wrap .kpi-val-md { font-size: 1.45rem; }
-.pd-wrap .kpi-val-sm { font-size: 1.05rem; font-weight: 700; }
-.pd-wrap .kpi-label { font-size: .88rem; color: var(--text-3); }
-.pd-wrap .kpi-foot {
-    display: flex; align-items: center; gap: 6px;
-    font-size: .82rem; color: var(--text-3);
-    padding-top: 10px; border-top: 1px solid var(--border);
-}
-.pd-wrap .kpi-glow {
-    position: absolute; bottom: -20px; right: -20px;
-    width: 80px; height: 80px; border-radius: 50%; opacity: .06; pointer-events: none;
-}
-.pd-wrap .kpi-glow.blue   { background: var(--blue); }
-.pd-wrap .kpi-glow.pink   { background: var(--pink); }
-.pd-wrap .kpi-glow.green  { background: var(--green); }
-.pd-wrap .kpi-glow.amber  { background: var(--amber); }
-.pd-wrap .kpi-glow.purple { background: var(--purple); }
-.pd-wrap .kpi-glow.teal   { background: var(--p); }
+.ph-hero-bar-stats strong { color:var(--ink); font-weight:800; }
+.ph-hero-bar-stats .ph-hero-bar-pct { font-weight:800; color:var(--rose); }
 
-/* ── MAIN GRID ── */
-.pd-wrap .main-grid { display: grid; grid-template-columns: 1fr 380px; gap: 16px; align-items: start; }
-.pd-wrap .right-col { display: flex; flex-direction: column; gap: 16px; }
+/* ── HERO · CENTER (this-week bridge) ── */
+.ph-hero-bridge {
+    align-self:stretch;
+    padding:0 26px; border-left:1px solid var(--line); border-right:1px solid var(--line);
+}
+.ph-hero-bridge-head { display:flex; flex-direction:column; gap:2px; margin-bottom:16px; }
+.ph-hero-bridge-title { font-size:.82rem; font-weight:800; text-transform:uppercase; letter-spacing:.7px; color:var(--ink); }
+.ph-hero-bridge-sub { font-size:.78rem; font-weight:600; color:var(--ink-3); }
+.ph-hero-hl { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:16px; }
+.ph-hero-hl li { display:flex; gap:13px; align-items:flex-start; }
+.ph-hl-ico { width:38px; height:38px; flex-shrink:0; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:.92rem; }
+.ph-hl-ico.violet { background:var(--violet-lt); color:#7c3aed; }
+.ph-hl-ico.rose { background:var(--rose-lt); color:var(--rose); }
+.ph-hl-ico.amber { background:var(--amber-lt); color:var(--amber); }
+.ph-hl-body { display:flex; flex-direction:column; gap:3px; min-width:0; }
+.ph-hl-t { font-size:.88rem; font-weight:700; color:var(--ink); line-height:1.3; }
+.ph-hl-d { margin:0; font-size:.84rem; line-height:1.5; color:var(--ink-2); }
 
-/* ── CARD ── */
-.pd-wrap .card {
-    background: var(--white); border-radius: var(--r-lg);
-    border: 1px solid var(--border); box-shadow: var(--shadow-sm); overflow: hidden;
+/* ── HERO · RIGHT (baby development) ── */
+.ph-hero-baby {
+    position:relative;
+    background:#fff; border:1px solid rgba(255,255,255,.9); border-radius:24px;
+    padding:20px 22px 22px; box-shadow:0 22px 50px rgba(120,80,110,.16);
 }
-.pd-wrap .card-header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 16px 20px; border-bottom: 1px solid var(--border); gap: 10px;
+.ph-hero-baby-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+.ph-hero-baby-tag {
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:.74rem; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--rose);
 }
-.pd-wrap .card-header-left { display: flex; align-items: center; gap: 10px; }
-.pd-wrap .card-ico {
-    width: 32px; height: 32px; border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: .8rem; flex-shrink: 0;
+.ph-hero-baby-tag i { font-size:.7rem; }
+.ph-hero-baby-wk { font-size:.72rem; font-weight:700; color:#7c3aed; background:rgba(167,139,250,.14); padding:4px 11px; border-radius:20px; }
+.ph-hero-baby-main { display:flex; align-items:center; gap:18px; padding:6px 0 16px; }
+.ph-hero-baby-orb {
+    position:relative; width:96px; height:96px; flex-shrink:0; border-radius:50%;
+    background:radial-gradient(circle at 30% 25%, #fff, #fdeef4 58%, #f1e9ff);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:inset 0 2px 10px rgba(255,255,255,.9), 0 10px 26px rgba(120,80,110,.14);
 }
-.pd-wrap .card-ico.teal   { background: var(--p-lt);    color: var(--p); }
-.pd-wrap .card-ico.blue   { background: var(--blue-lt); color: var(--blue); }
-.pd-wrap .card-ico.pink   { background: var(--pink-lt); color: var(--pink); }
-.pd-wrap .card-ico.amber  { background: var(--amb-lt);  color: var(--amber); }
-.pd-wrap .card-ico.purple { background: var(--purp-lt); color: var(--purple); }
-.pd-wrap .card-ico.green  { background: var(--grn-lt);  color: var(--green); }
-.pd-wrap .card-title { font-size: .88rem; font-weight: 700; color: var(--text); }
-.pd-wrap .card-sub   { font-size: .71rem; color: var(--text-3); margin-top: 1px; }
-.pd-wrap .card-link {
-    font-size: .74rem; font-weight: 600; color: var(--p);
-    display: inline-flex; align-items: center; gap: 4px;
-    flex-shrink: 0; transition: gap .18s;
-}
-.pd-wrap .card-link:hover { gap: 7px; }
+.ph-hero-baby-ring { position:absolute; inset:-6px; border-radius:50%; border:1.5px dashed rgba(192,132,252,.45); animation:phSpin 28s linear infinite; }
+.ph-hero-baby-emoji { font-size:2.9rem; line-height:1; animation:phFloat 4s ease-in-out infinite; }
+.ph-hero-baby-meta { display:flex; flex-direction:column; gap:4px; min-width:0; }
+.ph-hero-baby-size { font-size:1.18rem; font-weight:800; color:var(--ink); line-height:1.2; text-transform:capitalize; }
+.ph-hero-baby-sub { font-size:.82rem; font-weight:600; color:var(--rose); }
+.ph-hero-baby-list { list-style:none; margin:0; padding:14px 0 0; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:11px; }
+.ph-hero-baby-list li { display:flex; align-items:center; gap:10px; font-size:.86rem; }
+.ph-hero-baby-list li > i { width:26px; height:26px; flex-shrink:0; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:.78rem; color:#7c3aed; background:var(--violet-lt); }
+.ph-hero-baby-list .bl-lbl { color:var(--ink-3); font-weight:600; }
+.ph-hero-baby-list .bl-val { margin-left:auto; text-align:right; font-weight:700; color:var(--ink); }
+@@keyframes phSpin { to { transform:rotate(360deg); } }
 
-/* ── ACTIVITY LIST ── */
-.pd-wrap .activity-list { display: flex; flex-direction: column; }
-.pd-wrap .activity-item {
-    display: flex; align-items: flex-start; gap: 14px;
-    padding: 13px 20px; transition: background .15s;
+@@media (max-width:1080px) {
+    .ph-hero-grid { grid-template-columns:1fr 1fr; gap:26px; }
+    .ph-hero-main { grid-column:1 / -1; }
+    .ph-hero-bridge {
+        border-left:0; border-right:0; border-top:1px solid var(--line);
+        padding:22px 0 0;
+    }
 }
-.pd-wrap .activity-item + .activity-item { border-top: 1px solid var(--border); }
-.pd-wrap .activity-item:hover { background: var(--p-xlt); }
-.pd-wrap .activity-icon {
-    width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center; font-size: .9rem;
+@@media (max-width:760px) {
+    .ph-hero { padding:26px 22px; }
+    .ph-hero-grid { grid-template-columns:1fr; gap:24px; }
+    .ph-hero-baby { width:100%; }
+    .ph-hero-week { font-size:2.6rem; }
 }
-.pd-wrap .activity-info { flex: 1; min-width: 0; }
-.pd-wrap .activity-info h4 { margin: 0 0 3px; font-size: .84rem; font-weight: 600; color: var(--text); }
-.pd-wrap .activity-info p  { margin: 0; font-size: .76rem; color: var(--text-3); line-height: 1.45; }
-.pd-wrap .activity-time { font-size: .72rem; color: var(--text-3); white-space: nowrap; flex-shrink: 0; }
-.pd-wrap .empty-feed { text-align: center; padding: 32px 20px; color: var(--text-3); font-size: .84rem; }
-.pd-wrap .empty-icon { font-size: 1.8rem; color: var(--border-2); display: block; margin-bottom: 8px; }
 
-/* ── ALERT ITEMS ── */
-.pd-wrap .alert-item { display: flex; align-items: flex-start; }
-.pd-wrap .alert-item + .alert-item { border-top: 1px solid var(--border); }
-.pd-wrap .alert-strip { width: 3px; align-self: stretch; flex-shrink: 0; }
-.pd-wrap .alert-ico-wrap { padding: 13px 12px; }
-.pd-wrap .alert-ico {
-    width: 30px; height: 30px; border-radius: 8px;
-    display: flex; align-items: center; justify-content: center; font-size: .78rem;
+/* ── CARE CARDS (healthcare experience cards) ── */
+.ph-snap { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; align-items:stretch; }
+.ph-snap-card {
+    display:flex; flex-direction:column; gap:14px;
+    background:#fff; border:1px solid var(--line); border-radius:var(--r);
+    padding:20px; box-shadow:var(--sh-sm); transition:transform .2s ease, box-shadow .2s ease;
 }
-.pd-wrap .alert-body { flex: 1; padding: 12px 14px 12px 0; }
-.pd-wrap .alert-title { font-size: .82rem; font-weight: 700; color: var(--text); }
-.pd-wrap .alert-msg   { font-size: .74rem; color: var(--text-3); margin-top: 2px; line-height: 1.45; }
-.pd-wrap .alert-time  { font-size: .67rem; color: var(--text-3); margin-top: 4px; display: flex; align-items: center; gap: 4px; }
-.pd-wrap .alert-unread {
-    width: 7px; height: 7px; border-radius: 50%;
-    margin: 14px 12px 0 0; background: var(--danger); flex-shrink: 0;
-    animation: pdPulse 1.8s ease-in-out infinite;
+.ph-snap-card:hover { transform:translateY(-3px); box-shadow:var(--sh); }
+.ph-snap-head { display:flex; align-items:center; gap:11px; }
+.ph-snap-ico { width:42px; height:42px; flex-shrink:0; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:1.05rem; }
+.ph-snap-ico.sky { background:var(--sky-lt); color:var(--sky); }
+.ph-snap-ico.violet { background:var(--violet-lt); color:var(--violet); }
+.ph-snap-ico.rose { background:var(--rose-lt); color:var(--rose); }
+.ph-snap-title { font-size:.92rem; font-weight:700; color:var(--ink); }
+.ph-snap-status { margin-left:auto; font-size:.7rem; font-weight:700; padding:4px 11px; border-radius:20px; }
+.ph-snap-status.good { background:var(--mint-lt); color:#059669; }
+.ph-snap-status.warn { background:var(--amber-lt); color:#d97706; }
+.ph-snap-status.bad  { background:var(--rose-lt); color:#dc2626; }
+.ph-snap-status.neutral { background:var(--cream); color:var(--ink-3); }
+.ph-snap-main { display:flex; flex-direction:column; gap:5px; flex:1; }
+.ph-snap-strong { font-size:1.12rem; font-weight:800; line-height:1.25; color:var(--ink); }
+.ph-snap-strong small { font-size:.7rem; font-weight:600; color:var(--ink-3); }
+.ph-snap-ctx { font-size:.82rem; color:var(--ink-2); line-height:1.5; }
+.ph-snap-ctx i { color:var(--ink-3); margin-right:4px; }
+.ph-snap-chips { display:flex; flex-wrap:wrap; gap:6px; margin:2px 0; }
+.ph-snap-chip { font-size:.72rem; font-weight:700; color:#7c3aed; background:var(--violet-lt); padding:4px 10px; border-radius:20px; }
+.ph-snap-chip.ghost { color:var(--ink-2); background:var(--cream); }
+.ph-snap-action {
+    display:inline-flex; align-items:center; gap:7px; align-self:flex-start;
+    font-size:.84rem; font-weight:700; color:var(--rose); text-decoration:none;
+    transition:gap .2s ease;
 }
-@@keyframes pdPulse {
-    0%   { box-shadow: 0 0 0 0 rgba(239,68,68,.5); }
-    70%  { box-shadow: 0 0 0 7px rgba(239,68,68,0); }
-    100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+.ph-snap-action i { font-size:.76rem; }
+.ph-snap-action:hover { gap:11px; color:var(--rose); }
+.ph-snap-action.solid {
+    background:linear-gradient(90deg,var(--rose),#f472b6); color:#fff;
+    padding:10px 16px; border-radius:24px; box-shadow:0 6px 14px rgba(251,113,133,.3);
 }
-.pd-wrap .alert-item.critical .alert-strip { background: var(--danger); }
-.pd-wrap .alert-item.critical .alert-ico   { background: #fef2f2; color: #e53e3e; }
-.pd-wrap .alert-item.warning  .alert-strip { background: var(--warning); }
-.pd-wrap .alert-item.warning  .alert-ico   { background: #fffbeb; color: #d97706; }
-.pd-wrap .alert-item.info     .alert-strip { background: var(--info); }
-.pd-wrap .alert-item.info     .alert-ico   { background: #eff6ff; color: #2563eb; }
-.pd-wrap .alert-item.success  .alert-strip { background: var(--success); }
-.pd-wrap .alert-item.success  .alert-ico   { background: #f0fdf4; color: #16a34a; }
+.ph-snap-action.solid:hover { transform:translateY(-1px); gap:7px; color:#fff; }
 
-/* ── TRACKER TABS ── */
-.pd-wrap .tracker-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
-.pd-wrap .tracker-tab {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 6px 14px; border-radius: 20px;
-    border: 1.5px solid var(--border); background: var(--bg);
-    font-size: .8rem; font-weight: 600; color: var(--text-3);
-    cursor: pointer; transition: all .18s;
-}
-.pd-wrap .tracker-tab:hover { background: var(--p-lt); color: var(--text); border-color: var(--p-lt); }
-.pd-wrap .tracker-tab.active {
-    background: linear-gradient(135deg, var(--p), var(--p-dk));
-    color: #fff; border-color: transparent;
-    box-shadow: 0 3px 10px rgba(27,174,190,.3);
-}
-.pd-wrap .tracker-tab-content { display: none; }
-.pd-wrap .tracker-tab-content.active { display: block; }
+@@media (max-width:760px) { .ph-snap { grid-template-columns:1fr; } }
 
-/* ── TRACKER INPUTS ── */
-.pd-wrap .tracker-inputs {
-    display: grid; grid-template-columns: 1fr auto 1fr;
-    gap: 10px; align-items: end; margin-bottom: 14px;
-}
-.pd-wrap .bp-inputs { /* 4-col for BP */ }
-.pd-wrap .bp-inputs .inp-pulse { grid-column: 1 / -1; }
-.pd-wrap .inp-group { display: flex; flex-direction: column; gap: 4px; }
-.pd-wrap .inp-full  { grid-column: 1 / -1; }
-.pd-wrap .inp-group label { font-size: .78rem; font-weight: 600; color: var(--text); }
-.pd-wrap .inp-group label small { font-weight: 400; color: var(--text-3); }
-.pd-wrap .inp-wrap {
-    display: flex; align-items: center;
-    border: 1.5px solid var(--border); border-radius: var(--r);
-    background: var(--bg); overflow: hidden;
-    transition: border-color .2s, box-shadow .2s;
-}
-.pd-wrap .inp-wrap:focus-within { border-color: var(--p); box-shadow: 0 0 0 3px rgba(27,174,190,.12); }
-.pd-wrap .inp-wrap.hint-normal   { border-color: var(--green); }
-.pd-wrap .inp-wrap.hint-elevated { border-color: var(--warning); }
-.pd-wrap .inp-wrap.hint-high     { border-color: var(--danger); }
-.pd-wrap .inp-wrap.hint-low      { border-color: var(--blue); }
-.pd-wrap .inp {
-    border: none; background: transparent; padding: 8px 10px;
-    font-size: .88rem; color: var(--text); flex: 1; outline: none; width: 100%;
-}
-.pd-wrap .inp-unit {
-    padding: 0 9px; font-size: .72rem; font-weight: 600;
-    color: var(--text-3); background: rgba(0,0,0,.03);
-    border-left: 1px solid var(--border); white-space: nowrap;
-}
-.pd-wrap .inp-hint { font-size: .7rem; color: var(--text-3); }
-.pd-wrap .inp-divider {
-    display: flex; align-items: flex-end; padding-bottom: 8px;
-    font-size: 1.4rem; font-weight: 300; color: var(--text-3);
-}
-.pd-wrap .inp-select {
-    border: 1.5px solid var(--border); border-radius: var(--r);
-    padding: 8px 10px; font-size: .84rem; background: var(--white);
-    color: var(--text); outline: none; width: 100%; transition: border-color .2s;
-}
-.pd-wrap .inp-select:focus { border-color: var(--p); }
+/* ── GENERIC CARD ── */
+.ph-card { background:#fff; border-radius:var(--r); padding:24px; box-shadow:var(--sh-sm); }
+.ph-card-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:8px; }
+.ph-card-head h2 { font-size:1.15rem; font-weight:700; display:flex; align-items:center; gap:10px; }
+.ph-card-sub { font-size:.82rem; color:var(--ink-3); font-weight:600; }
+.ph-dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+.ph-dot.rose{background:var(--rose);} .ph-dot.violet{background:var(--violet);}
+.ph-dot.mint{background:var(--mint);} .ph-dot.amber{background:var(--amber);}
+.ph-dot.sky{background:var(--sky);}
+.ph-link { font-size:.82rem; font-weight:600; color:var(--rose); text-decoration:none; }
+.ph-link:hover { text-decoration:underline; }
 
-/* BS tab — 2 columns */
-#bs-tab .tracker-inputs { grid-template-columns: 1fr 1fr; }
+.ph-section { display:flex; flex-direction:column; gap:16px; }
+.ph-section-head h2 { font-size:1.3rem; font-weight:700; }
+.ph-section-head p { margin:2px 0 0; color:var(--ink-3); font-size:.9rem; }
+.ph-two { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
 
-/* ── SAVE BUTTONS ── */
-.pd-wrap .save-btn {
-    display: inline-flex; align-items: center; gap: 6px;
-    border: none; border-radius: var(--r); padding: 9px 18px;
-    font-size: .86rem; font-weight: 700; cursor: pointer;
-    transition: transform .18s, box-shadow .18s; margin-bottom: 14px;
+/* ── JOURNEY PATH ── */
+.ph-journey { padding-bottom:34px; }
+.ph-path { position:relative; padding:32px 14px 0; }
+.ph-path-line { position:absolute; top:59px; left:46px; right:46px; height:8px; background:var(--line); border-radius:8px; overflow:hidden; }
+.ph-path-line-fill { height:100%; border-radius:8px; background:linear-gradient(90deg,var(--rose),#c084fc,var(--violet)); transition:width 1.2s cubic-bezier(.4,0,.2,1); max-width:100%; }
+.ph-path-nodes { display:flex; justify-content:space-between; position:relative; }
+.ph-path-node { display:flex; flex-direction:column; align-items:center; gap:5px; width:25%; }
+.ph-path-bubble {
+    width:54px; height:54px; border-radius:50%; background:#fff; border:3px solid var(--line);
+    display:flex; align-items:center; justify-content:center; font-size:1.4rem;
+    z-index:1; transition:transform .3s, border-color .3s, box-shadow .3s; filter:grayscale(.5); opacity:.6;
 }
-.pd-wrap .save-btn:hover { transform: translateY(-1px); }
-.pd-wrap .save-btn-bp {
-    background: linear-gradient(135deg, var(--p), var(--p-dk));
-    color: #fff; box-shadow: 0 3px 10px rgba(27,174,190,.35);
+.ph-path-node.reached .ph-path-bubble { border-color:var(--rose); filter:none; opacity:1; box-shadow:0 6px 16px rgba(251,113,133,.28); }
+.ph-path-node.current .ph-path-bubble {
+    transform:scale(1.18); border-color:var(--violet); filter:none; opacity:1;
+    box-shadow:0 0 0 6px rgba(167,139,250,.16), 0 8px 20px rgba(167,139,250,.4);
+    animation:phBeat 2.4s ease-in-out infinite;
 }
-.pd-wrap .save-btn-bp:hover { box-shadow: 0 5px 16px rgba(27,174,190,.45); }
-.pd-wrap .save-btn-bs {
-    background: linear-gradient(135deg, var(--pink), #c2185b);
-    color: #fff; box-shadow: 0 3px 10px rgba(233,30,99,.3);
+.ph-path-wk { font-size:.74rem; font-weight:700; color:var(--ink-2); margin-top:6px; }
+.ph-path-node.reached .ph-path-wk { color:var(--rose); }
+.ph-path-lbl { font-size:.72rem; color:var(--ink-3); text-align:center; }
+.ph-path-node.current .ph-path-lbl { color:var(--violet); font-weight:600; }
+.ph-path-you { position:absolute; top:-6px; transform:translateX(-50%); transition:left 1.2s cubic-bezier(.4,0,.2,1); z-index:2; }
+.ph-path-you-flag {
+    background:linear-gradient(120deg,var(--violet),#c084fc); color:#fff; font-size:.7rem; font-weight:700;
+    padding:4px 12px; border-radius:20px; white-space:nowrap; box-shadow:0 6px 14px rgba(167,139,250,.45);
+    position:relative;
 }
-.pd-wrap .save-btn-bs:hover { box-shadow: 0 5px 16px rgba(233,30,99,.4); }
+.ph-path-you-flag::after { content:''; position:absolute; bottom:-5px; left:50%; transform:translateX(-50%); border:5px solid transparent; border-top-color:#c084fc; border-bottom:0; }
+@@keyframes phBeat { 0%,100%{transform:scale(1.18);} 50%{transform:scale(1.3);} }
 
-/* ── RESULT BANNER ── */
-.pd-wrap .result-banner {
-    display: flex; gap: 14px; align-items: flex-start;
-    background: linear-gradient(135deg,#f0fdf4,#e8fdf0);
-    border: 1px solid #86efac; border-radius: var(--r-lg);
-    padding: 12px 14px; margin-bottom: 14px;
+/* ── CARE GRID ── */
+.ph-care-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.ph-care {
+    text-align:left; border:0; cursor:pointer; text-decoration:none;
+    background:#fff; border-radius:16px; padding:14px 16px; box-shadow:var(--sh-sm);
+    display:flex; align-items:center; gap:13px; position:relative;
+    transition:transform .2s ease, box-shadow .2s ease; color:var(--ink);
+    border-left:4px solid var(--rose);
 }
-.pd-wrap .result-left { display: flex; align-items: baseline; gap: 5px; }
-.pd-wrap .result-value { font-size: 1.9rem; font-weight: 800; color: var(--text); line-height: 1; }
-.pd-wrap .result-unit  { font-size: .82rem; color: var(--text-3); }
-.pd-wrap .result-right { flex: 1; }
-.pd-wrap .result-status {
-    display: inline-flex; align-items: center; gap: 4px;
-    font-size: .8rem; font-weight: 700; padding: 2px 9px;
-    border-radius: 20px; margin-bottom: 4px;
+.ph-care:hover { transform:translateY(-3px); box-shadow:var(--sh); }
+.ph-care-ico {
+    width:44px; height:44px; flex-shrink:0; border-radius:13px; font-size:1.45rem;
+    display:flex; align-items:center; justify-content:center; background:var(--rose-lt);
 }
-.pd-wrap .result-status.normal   { background: #f0fdf4; color: #15803d; }
-.pd-wrap .result-status.elevated { background: #fffbeb; color: #b45309; }
-.pd-wrap .result-status.high     { background: #fef2f2; color: #b91c1c; }
-.pd-wrap .result-status.low      { background: #eff6ff; color: #1d4ed8; }
-.pd-wrap .result-msg { margin: 0; font-size: .8rem; color: var(--text-2); line-height: 1.5; }
+.ph-care-body { flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; }
+.ph-care-title { font-weight:700; font-size:.94rem; line-height:1.2; }
+.ph-care-desc { font-size:.78rem; color:var(--ink-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ph-care-arrow { color:var(--ink-3); font-size:.82rem; flex-shrink:0; transition:transform .2s; }
+.ph-care:hover .ph-care-arrow { transform:translateX(3px); }
+.ph-care-rose   { border-left-color:var(--rose); }   .ph-care-rose .ph-care-ico   { background:var(--rose-lt); }
+.ph-care-violet { border-left-color:var(--violet); } .ph-care-violet .ph-care-ico { background:var(--violet-lt); }
+.ph-care-amber  { border-left-color:var(--amber); }  .ph-care-amber .ph-care-ico  { background:var(--amber-lt); }
+.ph-care-mint   { border-left-color:var(--mint); }   .ph-care-mint .ph-care-ico   { background:var(--mint-lt); }
+.ph-care-sky    { border-left-color:var(--sky); }    .ph-care-sky .ph-care-ico    { background:var(--sky-lt); }
+.ph-care-peach  { border-left-color:var(--peach); }  .ph-care-peach .ph-care-ico  { background:var(--peach-lt); }
 
-/* ── HISTORY ── */
-.pd-wrap .history-section { border-top: 1px dashed var(--border); padding-top: 12px; margin-top: 4px; }
-.pd-wrap .history-title {
-    display: flex; align-items: center; gap: 6px;
-    font-size: .82rem; font-weight: 700; color: var(--text); margin: 0 0 10px;
+/* ── BABY DEVELOPMENT ── */
+.ph-baby-body { display:flex; gap:20px; align-items:center; }
+.ph-baby-emoji {
+    font-size:3.6rem; width:96px; height:96px; flex-shrink:0; border-radius:28px;
+    background:linear-gradient(135deg,#f4f0ff,#fff1f3); display:flex; align-items:center; justify-content:center;
 }
-.pd-wrap .history-list { display: flex; flex-direction: column; gap: 6px; }
-.pd-wrap .history-item {
-    display: flex; align-items: center; gap: 12px;
-    padding: 8px 10px; border-radius: var(--r);
-    background: var(--bg); border: 1px solid var(--border);
-    transition: box-shadow .15s;
-}
-.pd-wrap .history-item:hover { box-shadow: var(--shadow-sm); }
-.pd-wrap .hist-date { display: flex; flex-direction: column; align-items: center; min-width: 32px; }
-.pd-wrap .hist-day  { font-size: 1.05rem; font-weight: 800; color: var(--text); line-height: 1; }
-.pd-wrap .hist-mon  { font-size: .62rem; color: var(--text-3); font-weight: 500; text-transform: uppercase; }
-.pd-wrap .hist-reading { flex: 1; display: flex; flex-direction: column; }
-.pd-wrap .hist-val  { font-size: .88rem; font-weight: 700; color: var(--text); }
-.pd-wrap .hist-time { font-size: .72rem; color: var(--text-3); }
-.pd-wrap .hist-badge {
-    display: inline-flex; align-items: center; gap: 3px;
-    font-size: .66rem; font-weight: 700; padding: 2px 8px;
-    border-radius: 12px; white-space: nowrap; text-transform: capitalize;
-}
-.pd-wrap .hist-badge.normal   { background: #f0fdf4; color: #15803d; }
-.pd-wrap .hist-badge.elevated { background: #fffbeb; color: #b45309; }
-.pd-wrap .hist-badge.high     { background: #fef2f2; color: #b91c1c; }
-.pd-wrap .hist-badge.low      { background: #eff6ff; color: #1d4ed8; }
-.pd-wrap .view-all-link {
-    display: inline-flex; align-items: center; gap: 4px;
-    font-size: .76rem; font-weight: 600; color: var(--p);
-    text-decoration: none; margin-top: 6px; transition: gap .18s;
-}
-.pd-wrap .view-all-link:hover { gap: 7px; }
-.pd-wrap .no-data { font-size: .82rem; color: var(--text-3); text-align: center; padding: 14px 0; margin: 0; }
+.ph-baby-size { font-size:1.05rem; margin:0 0 8px; }
+.ph-baby-size strong { color:var(--violet); }
+.ph-baby-milestone { font-size:.82rem; font-weight:600; color:#7c3aed; background:var(--violet-lt); display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:20px; margin-bottom:10px; }
+.ph-baby-fact { font-size:.9rem; color:var(--ink-2); line-height:1.55; margin:0; }
 
-/* ── APPOINTMENTS MINI CARD ── */
-.pd-wrap .appt-mini-list { display: flex; flex-direction: column; padding: 8px 12px 0; }
-.pd-wrap .appt-mini-item {
-    display: flex; align-items: center; gap: 10px;
-    background: var(--bg); border: 1px solid var(--border);
-    border-radius: var(--r); padding: 8px 10px; margin-bottom: 8px;
+/* ── COUNTDOWN ── */
+.ph-count {
+    position:relative; overflow:hidden; text-align:center;
+    background:linear-gradient(140deg,#ff9eb6,#ffb38a); color:#fff;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
 }
-.pd-wrap .appt-mini-date {
-    width: 40px; min-width: 40px; border-radius: 8px;
-    background: var(--white); border: 1px solid var(--border);
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 4px;
-}
-.pd-wrap .appt-mini-date .day { font-size: .95rem; font-weight: 800; color: var(--text); line-height: 1; }
-.pd-wrap .appt-mini-date .mon { font-size: .62rem; color: var(--text-3); text-transform: uppercase; }
-.pd-wrap .appt-mini-body { min-width: 0; flex: 1; }
-.pd-wrap .appt-mini-title {
-    font-size: .8rem; font-weight: 700; color: var(--text);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.pd-wrap .appt-mini-meta {
-    margin-top: 2px; display: flex; flex-wrap: wrap; gap: 8px;
-    font-size: .69rem; color: var(--text-3);
-}
-.pd-wrap .appt-mini-meta span { display: inline-flex; align-items: center; gap: 4px; }
-.pd-wrap .appt-mini-actions { padding: 8px 12px 14px; }
-.pd-wrap .book-new-appt-btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-    width: 100%; border-radius: var(--r); padding: 10px 12px;
-    font-size: .82rem; font-weight: 700; text-decoration: none;
-    color: #fff; background: linear-gradient(135deg, var(--p), var(--p-dk));
-    box-shadow: 0 3px 10px rgba(27,174,190,.32);
-}
-.pd-wrap .book-new-appt-btn:hover { filter: brightness(.98); }
+.ph-count-bg { position:absolute; inset:0; background:radial-gradient(circle at 80% 20%,rgba(255,255,255,.35),transparent 50%); }
+.ph-count-emoji { font-size:2.4rem; position:relative; animation:phFloat 3s ease-in-out infinite; }
+.ph-count-num { font-size:3.4rem; font-weight:800; line-height:1; position:relative; }
+.ph-count-lbl { font-size:.95rem; opacity:.95; position:relative; }
+.ph-count-msg { margin:10px 0 0; font-size:.92rem; font-weight:500; position:relative; }
+@@keyframes phFloat { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-8px);} }
 
-/* ── WEEKLY CHART ── */
-.pd-wrap .chart-legend { display: flex; gap: 10px; font-size: .72rem; color: var(--text-3); flex-wrap: wrap; }
-.pd-wrap .chart-legend span { display: inline-flex; align-items: center; }
-.pd-wrap .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; }
-.pd-wrap .legend-dot.low { background: #3b82f6; }
-.pd-wrap .legend-dot.normal { background: #22c55e; }
-.pd-wrap .legend-dot.elevated { background: #f59e0b; }
-.pd-wrap .legend-dot.high { background: #ef4444; }
-.pd-wrap .week-chart { padding: 16px 20px 12px; display: flex; flex-direction: column; gap: 12px; }
-.pd-wrap .week-chart-bars { display: flex; align-items: flex-end; gap: 5px; height: 64px; }
-.pd-wrap .wbar {
-    flex: 1; border-radius: 4px 4px 0 0; min-width: 8px;
-    background: var(--p-lt); transition: background .18s, height .4s;
-    cursor: pointer; position: relative;
+/* ── INSIGHTS ── */
+.ph-insight-list { display:flex; flex-direction:column; gap:12px; }
+.ph-insight { display:flex; gap:14px; align-items:flex-start; padding:14px; border-radius:var(--r-sm); }
+.ph-insight-ico { width:40px; height:40px; border-radius:12px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:1rem; }
+.ph-insight-title { display:block; font-weight:700; font-size:.92rem; }
+.ph-insight-text { display:block; font-size:.84rem; color:var(--ink-2); margin-top:2px; line-height:1.5; }
+.ph-ins-good { background:var(--mint-lt); } .ph-ins-good .ph-insight-ico { background:#d1fae5; color:#059669; }
+.ph-ins-warn { background:var(--amber-lt); } .ph-ins-warn .ph-insight-ico { background:#fef3c7; color:#d97706; }
+.ph-ins-info { background:var(--sky-lt); } .ph-ins-info .ph-insight-ico { background:#dbeafe; color:#2563eb; }
+.ph-ins-tip  { background:var(--violet-lt); } .ph-ins-tip .ph-insight-ico { background:#ede9fe; color:#7c3aed; }
+
+/* ── MOOD ── */
+.ph-mood-row { display:flex; gap:8px; justify-content:space-between; }
+.ph-mood-btn {
+    flex:1; border:2px solid var(--line); background:#fff; border-radius:16px; padding:12px 4px;
+    cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:4px; transition:.2s;
 }
-.pd-wrap .wbar.today { box-shadow: inset 0 0 0 2px rgba(255,255,255,.75), 0 0 0 1px rgba(27,174,190,.25); }
-.pd-wrap .wbar:hover { filter: brightness(.95); }
-.pd-wrap .wbar.bs { background: var(--pink-lt); }
-.pd-wrap .wbar.bs.today { box-shadow: inset 0 0 0 2px rgba(255,255,255,.75), 0 0 0 1px rgba(233,30,99,.25); }
-.pd-wrap .wbar.wbar-risk-low { background: #3b82f6; }
-.pd-wrap .wbar.wbar-risk-normal { background: #22c55e; }
-.pd-wrap .wbar.wbar-risk-elevated { background: #f59e0b; }
-.pd-wrap .wbar.wbar-risk-high { background: #ef4444; }
-.pd-wrap .wbar::after {
-    content: attr(data-tip);
-    position: absolute; bottom: calc(100% + 5px); left: 50%; transform: translateX(-50%);
-    background: var(--navy); color: #fff; font-size: .65rem; font-weight: 600;
-    padding: 3px 6px; border-radius: 4px; white-space: nowrap;
-    pointer-events: none; opacity: 0; transition: opacity .15s; z-index: 10;
+.ph-mood-btn span { font-size:1.7rem; }
+.ph-mood-btn small { font-size:.7rem; color:var(--ink-3); }
+.ph-mood-btn:hover { border-color:var(--rose); transform:translateY(-3px); }
+.ph-mood-btn.sel { border-color:var(--rose); background:var(--rose-lt); }
+.ph-mood-btn.sel small { color:var(--rose); font-weight:700; }
+.ph-mood-history { margin-top:18px; }
+.ph-mood-history-lbl { font-size:.78rem; color:var(--ink-3); font-weight:600; }
+.ph-mood-week { display:flex; gap:8px; margin-top:8px; }
+.ph-mood-cell { flex:1; background:var(--cream); border-radius:12px; padding:8px 0; text-align:center; }
+.ph-mood-cell span { font-size:1.2rem; display:block; }
+.ph-mood-cell small { font-size:.65rem; color:var(--ink-3); text-transform:uppercase; }
+.ph-mood-cell.has { background:var(--rose-lt); }
+
+/* ── TIMELINE ── */
+.ph-timeline { position:relative; padding-left:8px; }
+.ph-tl-item { position:relative; padding:0 0 18px 28px; }
+.ph-tl-item:last-child { padding-bottom:0; }
+.ph-tl-item::before { content:''; position:absolute; left:7px; top:18px; bottom:-4px; width:2px; background:var(--line); }
+.ph-tl-item:last-child::before { display:none; }
+.ph-tl-marker { position:absolute; left:0; top:8px; width:16px; height:16px; border-radius:50%; background:#fff; border:3px solid var(--line); z-index:1; }
+.ph-tl-item.next .ph-tl-marker { border-color:var(--rose); background:var(--rose); box-shadow:0 0 0 4px var(--rose-lt); }
+.ph-tl-card { background:var(--cream); border-radius:var(--r-sm); padding:14px 16px; position:relative; }
+.ph-tl-item.next .ph-tl-card { background:var(--rose-lt); }
+.ph-tl-date { font-size:.78rem; font-weight:700; color:var(--rose); }
+.ph-tl-title { font-weight:700; font-size:.98rem; margin:2px 0 6px; }
+.ph-tl-meta { display:flex; gap:14px; flex-wrap:wrap; font-size:.8rem; color:var(--ink-2); }
+.ph-tl-meta i { color:var(--ink-3); margin-right:4px; }
+.ph-tl-badge { position:absolute; top:14px; right:14px; font-size:.68rem; font-weight:700; color:#fff; background:var(--rose); padding:3px 10px; border-radius:20px; }
+.ph-empty { text-align:center; padding:24px; color:var(--ink-3); }
+.ph-empty span { font-size:2rem; display:block; margin-bottom:8px; }
+.ph-empty p { margin:0; font-size:.88rem; }
+
+/* ── BUTTONS ── */
+.ph-btn-primary {
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    background:linear-gradient(90deg,var(--rose),#f472b6); color:#fff; border:0;
+    padding:13px 22px; border-radius:30px; font-weight:700; font-size:.92rem;
+    text-decoration:none; cursor:pointer; transition:.2s; box-shadow:0 6px 16px rgba(251,113,133,.32);
 }
-.pd-wrap .wbar:hover::after { opacity: 1; }
-.pd-wrap .wbar-labels { display: flex; gap: 5px; }
-.pd-wrap .wbar-label { flex: 1; text-align: center; font-size: .63rem; color: var(--text-3); min-width: 0; }
-.pd-wrap .wbar-label.today { color: var(--p); font-weight: 700; }
-.pd-wrap .week-summary { display: flex; gap: 12px; }
-.pd-wrap .wsumm {
-    flex: 1; text-align: center; background: var(--bg);
-    border-radius: var(--r); padding: 8px 6px; border: 1px solid var(--border);
+.ph-btn-primary:hover { transform:translateY(-2px); box-shadow:0 10px 22px rgba(251,113,133,.4); color:#fff; }
+.ph-appt-btn { width:100%; margin-top:16px; }
+
+/* ── TRENDS ── */
+.ph-trend-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.ph-trend-title { font-weight:700; font-size:.95rem; }
+.ph-trend-now { font-weight:700; color:var(--ink-2); font-size:.95rem; }
+.ph-spark { width:100%; height:90px; display:block; }
+.ph-trend-empty { padding:28px 0; text-align:center; color:var(--ink-3); font-size:.86rem; }
+
+/* ── TIPS ── */
+.ph-tips { display:flex; gap:16px; overflow-x:auto; padding:4px 2px 14px; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; }
+.ph-tips::-webkit-scrollbar { height:6px; }
+.ph-tips::-webkit-scrollbar-thumb { background:var(--line); border-radius:6px; }
+.ph-tip {
+    scroll-snap-align:start; flex:0 0 240px; border-radius:var(--r);
+    padding:22px; background:linear-gradient(150deg,#fff,#fff7fb); box-shadow:var(--sh-sm);
+    border:1px solid var(--line);
 }
-.pd-wrap .wsumm-val { font-size: .9rem; font-weight: 800; color: var(--text); }
-.pd-wrap .wsumm-lbl { font-size: .63rem; color: var(--text-3); margin-top: 1px; }
+.ph-tip:nth-child(2n){ background:linear-gradient(150deg,#fff,#f6f2ff); }
+.ph-tip:nth-child(3n){ background:linear-gradient(150deg,#fff,#f0fdf9); }
+.ph-tip-cat { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--rose); }
+.ph-tip-emoji { font-size:2rem; display:block; margin:10px 0 8px; }
+.ph-tip h3 { font-size:1rem; margin:0 0 6px; }
+.ph-tip p { font-size:.86rem; color:var(--ink-2); line-height:1.55; margin:0; }
+
+/* ── BOTTOM SHEETS ── */
+.ph-sheet-overlay {
+    position:fixed; inset:0; background:rgba(63,53,80,.4); backdrop-filter:blur(3px);
+    opacity:0; visibility:hidden; transition:.3s; z-index:1300;
+}
+.ph-sheet-overlay.open { opacity:1; visibility:visible; }
+.ph-sheet {
+    position:fixed; left:50%; top:50%; transform:translate(-50%,-48%) scale(.97);
+    width:min(440px,calc(100% - 28px)); background:#fff; border-radius:24px;
+    padding:20px 22px 22px; z-index:1310; opacity:0; visibility:hidden;
+    transition:transform .26s cubic-bezier(.4,0,.2,1), opacity .26s ease, visibility .26s;
+    box-shadow:0 28px 60px rgba(63,53,80,.32); max-height:92vh; overflow-y:auto;
+}
+.ph-sheet.open { transform:translate(-50%,-50%) scale(1); opacity:1; visibility:visible; }
+.ph-sheet-grip { display:none; }
+.ph-sheet-close { position:absolute; top:16px; right:16px; border:0; background:var(--cream); width:34px; height:34px; border-radius:50%; cursor:pointer; color:var(--ink-3); z-index:2; font-size:.9rem; transition:.2s; }
+.ph-sheet-close:hover { background:var(--rose-lt); color:var(--rose); }
+.ph-sheet-head { margin-bottom:16px; }
+.ph-sheet-head h3 { font-size:1.25rem; font-weight:700; color:var(--ink); letter-spacing:-.2px; }
+.ph-sheet-head p { margin:3px 0 0; font-size:.85rem; color:var(--ink-3); }
+.ph-sheet-tabs { display:flex; gap:4px; margin:0 0 20px; background:var(--cream); padding:5px; border-radius:14px; }
+.ph-sheet-tab {
+    flex:1; border:0; background:transparent; padding:10px; border-radius:10px;
+    font-weight:600; font-size:.85rem; cursor:pointer; color:var(--ink-3);
+    display:inline-flex; align-items:center; justify-content:center; gap:6px; transition:.2s;
+}
+.ph-sheet-tab.active { background:#fff; color:var(--ink); box-shadow:0 2px 8px rgba(120,80,110,.12); }
+.ph-sheet-tab.active i { color:var(--rose); }
+.ph-tab-pane { display:none; }
+.ph-tab-pane.active { display:block; }
+.ph-field-row { display:flex; gap:12px; align-items:flex-end; margin-bottom:14px; }
+.ph-field { flex:1; min-width:0; }
+.ph-field label { display:block; font-size:.8rem; font-weight:600; margin-bottom:6px; color:var(--ink-2); }
+.ph-field label small { color:var(--ink-3); font-weight:500; margin-left:3px; }
+.ph-field input, .ph-field select {
+    width:100%; border:1.5px solid var(--line); border-radius:13px; padding:12px 14px;
+    font-size:1rem; font-weight:600; font-family:inherit; box-sizing:border-box; transition:.18s;
+    background:var(--cream); color:var(--ink);
+}
+.ph-field input::placeholder { color:var(--ink-3); font-weight:500; }
+.ph-field input:focus, .ph-field select:focus { outline:0; border-color:var(--rose); background:#fff; box-shadow:0 0 0 4px rgba(251,113,133,.12); }
+.ph-field-hint { display:block; font-size:.72rem; color:var(--ink-3); margin-top:5px; }
+.ph-field-slash { font-size:1.5rem; font-weight:300; color:var(--ink-3); padding-bottom:11px; }
+.ph-save {
+    width:100%; border:0; border-radius:14px; padding:14px; font-size:.98rem; font-weight:700;
+    color:#fff; background:linear-gradient(90deg,#fb7185,#f472b6); cursor:pointer; margin-top:8px;
+    box-shadow:0 8px 20px rgba(251,113,133,.35); transition:transform .18s, box-shadow .18s;
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+}
+.ph-save:hover { transform:translateY(-2px); box-shadow:0 12px 26px rgba(251,113,133,.45); }
+.ph-save:active { transform:translateY(0); }
+.ph-save-violet { background:linear-gradient(90deg,#a78bfa,#818cf8); box-shadow:0 8px 20px rgba(167,139,250,.35); }
+.ph-save-violet:hover { box-shadow:0 12px 26px rgba(167,139,250,.45); }
+.ph-result { margin-top:16px; padding:18px; border-radius:16px; background:var(--cream); text-align:center; border:1px solid var(--line); }
+.ph-result-val { font-size:1.6rem; font-weight:800; display:block; color:var(--ink); }
+.ph-result-status { display:inline-flex; align-items:center; gap:6px; font-weight:700; font-size:.84rem; margin:8px 0 6px; padding:5px 14px; border-radius:20px; }
+.ph-result-status.good { background:#d1fae5; color:#059669; }
+.ph-result-status.warn { background:#fef3c7; color:#d97706; }
+.ph-result-status.low  { background:#dbeafe; color:#2563eb; }
+.ph-result-msg { font-size:.85rem; color:var(--ink-2); margin:4px 0 0; line-height:1.5; }
+
+/* ── KICK SHEET ── */
+.ph-kick-sheet { text-align:center; }
+.ph-kick-h { font-size:1.3rem; }
+.ph-kick-sub { color:var(--ink-2); font-size:.9rem; margin:6px 0 20px; }
+.ph-kick-big {
+    width:180px; height:180px; border-radius:50%; border:0; cursor:pointer; margin:0 auto;
+    background:linear-gradient(145deg,#eff6ff,#e0f2fe); display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:2px; box-shadow:0 10px 30px rgba(96,165,250,.25);
+    transition:transform .15s;
+}
+.ph-kick-big:active { transform:scale(.95); }
+.ph-kick-big.pulse { animation:phKickPulse .4s ease; }
+@@keyframes phKickPulse { 0%{transform:scale(1);} 40%{transform:scale(1.08);} 100%{transform:scale(1);} }
+.ph-kick-count { font-size:3rem; font-weight:800; color:var(--sky); line-height:1; }
+.ph-kick-emoji { font-size:1.8rem; }
+.ph-kick-tap { font-size:.74rem; color:var(--ink-3); }
+.ph-kick-note { font-size:.8rem; color:var(--ink-3); margin:20px auto 14px; max-width:320px; line-height:1.5; }
+.ph-kick-reset { border:0; background:var(--cream); color:var(--ink-2); padding:10px 20px; border-radius:20px; font-weight:600; cursor:pointer; font-size:.84rem; }
 
 /* ── TOAST ── */
-.pd-toast {
-    position: fixed; top: 1.5rem; right: 1.5rem;
-    padding: .9rem 1.25rem; border-radius: var(--r-lg);
-    display: flex; align-items: center; gap: .75rem;
-    font-size: .9rem; font-weight: 500; z-index: 9999;
-    box-shadow: var(--shadow-md); animation: pdSlideIn .3s ease;
+.ph-toast {
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:#fff; border-radius:30px; padding:12px 22px; display:flex; align-items:center; gap:10px;
+    box-shadow:0 10px 30px rgba(63,53,80,.18); z-index:1400; font-size:.9rem; font-weight:600;
+    animation:phToast .3s ease;
 }
-.pd-toast-success { background: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
-.pd-toast-error   { background: #fef2f2; color: #b91c1c; border: 1px solid #fca5a5; }
-.pd-toast-warning { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
-.pd-toast-info    { background: #eff6ff; color: #1d4ed8; border: 1px solid #93c5fd; }
-.pd-toast-close   { background: none; border: none; cursor: pointer; color: inherit; opacity: .6; padding: 2px 6px; margin-left: 4px; }
-
-@@keyframes pdSlideIn { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
-@@keyframes pdFadeIn  { from { opacity: 0; transform: translateY(8px);  } to { opacity: 1; transform: translateY(0); } }
+.ph-toast i { font-size:1.1rem; }
+.ph-toast-success i { color:#059669; }
+.ph-toast-error i { color:#dc2626; }
+.ph-toast-info i { color:var(--sky); }
+@@keyframes phToast { from{transform:translate(-50%,20px);opacity:0;} to{transform:translate(-50%,0);opacity:1;} }
 
 /* ── RESPONSIVE ── */
-@@media (max-width: 1200px) {
-    .pd-wrap .hero-top { flex-wrap: wrap; }
-    .pd-wrap .hero-left { min-width: 280px; }
-    .pd-wrap .hero-right {
-        justify-content: flex-start;
-        width: 100%;
-    }
-    .pd-wrap .kpi-grid  { grid-template-columns: repeat(3, 1fr); }
-    .pd-wrap .main-grid { grid-template-columns: 1fr; }
-    .pd-wrap .right-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@@media (max-width:900px) {
+    .ph-care-grid { grid-template-columns:repeat(2,1fr); }
+    .ph-strip { grid-template-columns:repeat(2,1fr); }
+    .ph-two { grid-template-columns:1fr; }
 }
-@@media (max-width: 900px) {
-    .pd-wrap .right-col { grid-template-columns: 1fr; }
-    .pd-wrap .tracker-inputs { grid-template-columns: 1fr 1fr; }
-    .pd-wrap .inp-divider { display: none; }
-    #bs-tab .tracker-inputs { grid-template-columns: 1fr; }
-}
-@@media (max-width: 768px) {
-    .pd-wrap .hero        { padding: 18px 20px; }
-    .pd-wrap .hero-top { flex-direction: column; gap: 14px; }
-    .pd-wrap .hero-right  { width: 100%; display: grid; grid-template-columns: 1fr; }
-    .pd-wrap .hero .hero-progress-main { grid-template-columns: 1fr; align-items: flex-start; }
-    .pd-wrap .hero .preg-icon-col { display: none; }
-    .pd-wrap .hero .preg-week-row { flex-wrap: wrap; }
-    .pd-wrap .hero .hero-progress-remaining { margin-left: 0; }
-    .pd-wrap .hero .preg-week-num { font-size: 2rem; }
-    .pd-wrap .kpi-grid    { grid-template-columns: repeat(2, 1fr); }
-}
-@@media (max-width: 480px) {
-    .pd-wrap .kpi-grid  { grid-template-columns: 1fr; }
-    .pd-wrap .tracker-inputs { grid-template-columns: 1fr; }
+@@media (max-width:560px) {
+    .ph-hero { padding:24px 20px; }
+    .ph-hero-content { justify-content:center; text-align:center; }
+    .ph-hero-name { font-size:2rem; }
+    .ph-care-grid { grid-template-columns:1fr; }
+    .ph-strip { grid-template-columns:repeat(2,1fr); }
+    .ph-path-lbl { display:none; }
+    .ph-card { padding:18px; }
+    .ph-mood-btn span { font-size:1.4rem; }
 }
 </style>
-}

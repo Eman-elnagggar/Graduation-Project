@@ -274,65 +274,66 @@
 ═══════════════════════════════════════════════════════════════ */
 
 .ps-wrap {
-    --p:       #1BAEBE;
-    --p-dk:    #138fa0;
-    --p-mid:   #22c9db;
-    --p-lt:    #e0f7fa;
-    --p-xlt:   #f0fdfe;
+    --p:       #fb7185;
+    --p-dk:    #f43f5e;
+    --p-mid:   #f472b6;
+    --p-lt:    #fff1f3;
+    --p-xlt:   #fff7fb;
     --pink:    #e91e63;
     --pink-lt: #fce4ec;
-    --purple:  #9c27b0;
-    --purp-lt: #f3e5f5;
-    --green:   #4caf50;
-    --grn-lt:  #e8f5e9;
-    --amber:   #ff9800;
-    --amb-lt:  #fff8e1;
-    --blue:    #2196f3;
-    --blue-lt: #e3f2fd;
-    --navy:       #0b1f35;
-    --navy-mid:   #152d47;
-    --text:       #1e293b;
-    --text-2:     #4a5568;
-    --text-3:     #8896ab;
-    --border:     #e4eaf2;
-    --border-2:   #cdd6e3;
-    --bg:         #f3f6fb;
+    --purple:  #a78bfa;
+    --purp-lt: #f4f0ff;
+    --green:   #34d399;
+    --grn-lt:  #ecfdf5;
+    --amber:   #fbbf24;
+    --amb-lt:  #fffaf0;
+    --blue:    #60a5fa;
+    --blue-lt: #eff6ff;
+    --navy:       #ffe1ea;
+    --navy-mid:   #ffe8dc;
+    --text:       #3f3550;
+    --text-2:     #6b6478;
+    --text-3:     #9a93a8;
+    --border:     #f0e9ef;
+    --border-2:   #e3d3df;
+    --bg:         #fffaf7;
     --white:      #fff;
     --danger:     #ef4444;
     --warning:    #f59e0b;
     --success:    #22c55e;
     --info:       #3b82f6;
-    --r:          10px;
-    --r-lg:       16px;
-    --r-xl:       22px;
-    --shadow-sm:  0 1px 4px rgba(15,28,46,.06);
-    --shadow:     0 4px 16px rgba(15,28,46,.08);
-    --shadow-md:  0 8px 28px rgba(15,28,46,.11);
+    --r:          14px;
+    --r-lg:       18px;
+    --r-xl:       24px;
+    --shadow-sm:  0 4px 16px rgba(120,80,110,.06);
+    --shadow:     0 10px 30px rgba(120,80,110,.08);
+    --shadow-md:  0 14px 36px rgba(120,80,110,.12);
     display: flex;
     flex-direction: column;
     gap: 20px;
 }
 
 .ps-wrap .hero {
-    background: linear-gradient(130deg, var(--navy) 0%, var(--navy-mid) 50%, #0d3d5c 100%);
+    background: linear-gradient(120deg, #ffe1ea 0%, #ffe8dc 42%, #ece4ff 100%);
     border-radius: var(--r-xl);
-    padding: 24px 28px;
+    padding: 26px 30px;
     display: flex;
     flex-direction: column;
     gap: 18px;
     position: relative;
     overflow: hidden;
+    box-shadow: var(--shadow);
 }
 .ps-wrap .hero::before {
-    content: ''; position: absolute; right: -40px; top: -40px;
-    width: 200px; height: 200px; border-radius: 50%;
-    background: radial-gradient(circle, rgba(27,174,190,.25) 0%, transparent 70%);
+    content: ''; position: absolute; right: 12%; top: -70px;
+    width: 240px; height: 240px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(251,113,133,.28) 0%, transparent 70%);
     pointer-events: none;
 }
 .ps-wrap .hero::after {
-    content: ''; position: absolute; bottom: -60px; left: 20%;
+    content: ''; position: absolute; bottom: -70px; left: 18%;
     width: 260px; height: 260px; border-radius: 50%;
-    background: radial-gradient(circle, rgba(0,180,216,.12) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(167,139,250,.22) 0%, transparent 70%);
     pointer-events: none;
 }
 .ps-wrap .hero-top {
@@ -345,32 +346,33 @@
 .ps-wrap .hero-left { display: flex; flex-direction: column; gap: 8px; }
 .ps-wrap .hero-eyebrow {
     display: inline-flex; align-items: center; gap: 6px;
-    font-size: .68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .1em;
-    color: var(--p-mid); background: rgba(27,174,190,.18);
-    padding: 4px 10px; border-radius: 20px;
-    border: 1px solid rgba(27,174,190,.25); width: fit-content;
+    font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em;
+    color: var(--p); background: rgba(255,255,255,.7);
+    padding: 5px 13px; border-radius: 30px;
+    box-shadow: 0 2px 8px rgba(120,80,110,.06); width: fit-content;
 }
-.ps-wrap .hero-title { font-size: 1.85rem; font-weight: 700; color: #f1f5f9; line-height: 1.25; }
-.ps-wrap .hero-title span { color: var(--p-mid); }
-.ps-wrap .hero-sub { font-size: 1rem; color: #94a3b8; display: flex; align-items: center; gap: 7px; }
-.ps-wrap .hero-sub i { font-size: .45rem; color: var(--p-mid); }
+.ps-wrap .hero-title { font-size: 1.95rem; font-weight: 800; color: var(--text); line-height: 1.2; letter-spacing: -.5px; }
+.ps-wrap .hero-title span { color: var(--p); }
+.ps-wrap .hero-sub { font-size: 1rem; color: var(--text-2); display: flex; align-items: center; gap: 7px; }
+.ps-wrap .hero-sub i { font-size: .45rem; color: var(--p); }
 .ps-wrap .hero-right {
     display: flex; gap: 12px; align-items: center; justify-content: flex-end; flex-wrap: wrap; z-index: 1;
 }
 .ps-wrap .hero-stat {
     display: flex; align-items: center; gap: 10px;
-    background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.75); border: 1px solid rgba(255,255,255,.9);
     border-radius: var(--r-lg); padding: 12px 16px; min-width: 100px;
+    box-shadow: 0 4px 14px rgba(120,80,110,.08);
 }
 .ps-wrap .hero-stat-ico {
-    width: 38px; height: 38px; border-radius: 9px;
+    width: 38px; height: 38px; border-radius: 11px;
     display: flex; align-items: center; justify-content: center; font-size: 1rem;
 }
-.ps-wrap .hero-stat-ico.safe-ico { background: rgba(74,222,128,.25); color: #bbf7d0; }
-.ps-wrap .hero-stat-ico.caution-ico { background: rgba(251,191,36,.25); color: #fde68a; }
-.ps-wrap .hero-stat-ico.avoid-ico { background: rgba(252,165,165,.25); color: #fecaca; }
+.ps-wrap .hero-stat-ico.safe-ico { background: #d1fae5; color: #059669; }
+.ps-wrap .hero-stat-ico.caution-ico { background: #fef3c7; color: #d97706; }
+.ps-wrap .hero-stat-ico.avoid-ico { background: #ffe4e6; color: #e11d48; }
 .ps-wrap .hero-stat-body { display: flex; flex-direction: column; }
-.ps-wrap .hero-stat-lbl { font-size: .82rem; color: #e2e8f0; font-weight: 600; }
+.ps-wrap .hero-stat-lbl { font-size: .82rem; color: var(--text); font-weight: 700; }
 
 .ps-wrap .how-it-works {
     display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
@@ -386,7 +388,7 @@
     background: linear-gradient(135deg, var(--p), var(--p-dk));
     color: #fff; font-size: .9rem; font-weight: 800;
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 3px 10px rgba(27,174,190,.3);
+    box-shadow: 0 3px 10px rgba(251,113,133,.3);
 }
 .ps-wrap .hw-step-body { flex: 1; }
 .ps-wrap .hw-step-body strong { display: block; font-size: .85rem; font-weight: 700; color: var(--text); }
@@ -419,7 +421,7 @@
     padding: 4px 10px; border-radius: 20px;
     background: var(--p-lt); color: var(--p);
     font-size: .72rem; font-weight: 600;
-    border: 1px solid rgba(27,174,190,.25);
+    border: 1px solid rgba(251,113,133,.25);
     white-space: nowrap; flex-shrink: 0;
 }
 
@@ -436,7 +438,7 @@
 .ps-wrap .tracker-tab.active {
     background: linear-gradient(135deg, var(--p), var(--p-dk));
     color: #fff; border-color: transparent;
-    box-shadow: 0 3px 10px rgba(27,174,190,.3);
+    box-shadow: 0 3px 10px rgba(251,113,133,.3);
 }
 .ps-wrap .tracker-tab-content { display: none; padding: 0 16px 16px; }
 .ps-wrap .tracker-tab-content.active { display: block; }
@@ -453,7 +455,7 @@
 .ps-wrap .upload-zone.drag-over {
     border-color: var(--p);
     background: var(--p-xlt);
-    box-shadow: 0 0 0 4px rgba(27,174,190,.08);
+    box-shadow: 0 0 0 4px rgba(251,113,133,.08);
 }
 .ps-wrap .upload-icon-wrap {
     width: 64px; height: 64px; border-radius: 16px;
@@ -546,9 +548,9 @@
 .ps-wrap .save-btn:hover { transform: translateY(-1px); }
 .ps-wrap .save-btn-bp {
     background: linear-gradient(135deg, var(--p), var(--p-dk));
-    color: #fff; box-shadow: 0 3px 10px rgba(27,174,190,.35);
+    color: #fff; box-shadow: 0 3px 10px rgba(251,113,133,.35);
 }
-.ps-wrap .save-btn-bp:hover { box-shadow: 0 5px 16px rgba(27,174,190,.45); }
+.ps-wrap .save-btn-bp:hover { box-shadow: 0 5px 16px rgba(251,113,133,.45); }
 .ps-wrap .save-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
@@ -572,7 +574,7 @@
 }
 .ps-wrap .inp:focus {
     border-color: var(--p);
-    box-shadow: 0 0 0 3px rgba(27,174,190,.12);
+    box-shadow: 0 0 0 3px rgba(251,113,133,.12);
     background: var(--white);
 }
 .ps-wrap .textarea-inp { resize: vertical; min-height: 130px; }

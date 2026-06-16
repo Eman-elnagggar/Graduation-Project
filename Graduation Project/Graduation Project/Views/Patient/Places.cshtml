@@ -24,6 +24,7 @@
             <i class="fas fa-map-marked-alt"></i>
         </div>
         <div>
+            <span class="pl-hero-eyebrow">🗺️ Healthcare Map</span>
             <h1 class="pl-hero-title">My Places</h1>
             <p class="pl-hero-sub">Manage your healthcare locations all in one place</p>
         </div>
@@ -540,25 +541,25 @@
            PLACES PAGE — FULL MODERN DESIGN SYSTEM
         ══════════════════════════════════════════ */
         :root {
-            --pl-primary: #1BAEBE;
-            --pl-primary-dk: #138fa0;
-            --pl-primary-lt: #e0f7fa;
-            --pl-text: #1e293b;
-            --pl-muted: #64748b;
-            --pl-light: #f8fafc;
-            --pl-border: #e2e8f0;
-            --pl-radius: 18px;
-            --pl-radius-sm: 10px;
-            --pl-shadow: 0 2px 16px rgba(0,0,0,.06);
-            --pl-shadow-md: 0 6px 28px rgba(0,0,0,.10);
-            --pl-shadow-hov: 0 12px 40px rgba(0,0,0,.14);
+            --pl-primary: #fb7185;
+            --pl-primary-dk: #f43f5e;
+            --pl-primary-lt: #fff1f3;
+            --pl-text: #3f3550;
+            --pl-muted: #6b6478;
+            --pl-light: #fffaf7;
+            --pl-border: #f0e9ef;
+            --pl-radius: 24px;
+            --pl-radius-sm: 14px;
+            --pl-shadow: 0 4px 16px rgba(120,80,110,.06);
+            --pl-shadow-md: 0 10px 30px rgba(120,80,110,.10);
+            --pl-shadow-hov: 0 16px 40px rgba(120,80,110,.16);
             /* type colours */
-            --c-hospital: #3b82f6;
-            --c-clinic: #10b981;
-            --c-lab: #8b5cf6;
-            --c-pharmacy: #f59e0b;
+            --c-hospital: #60a5fa;
+            --c-clinic: #34d399;
+            --c-lab: #a78bfa;
+            --c-pharmacy: #fbbf24;
             --c-imaging: #ec4899;
-            --c-other: #64748b;
+            --c-other: #9a93a8;
         }
 
         /* ── HERO HEADER ─────────────────────────── */
@@ -566,7 +567,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: linear-gradient(135deg, #0f2942 0%, #1a4a6e 50%, #0d3d5c 100%);
+            background: linear-gradient(120deg, #ffe1ea 0%, #ffe8dc 42%, #ece4ff 100%);
             border-radius: var(--pl-radius);
             padding: 1.8rem 2rem;
             margin-bottom: 1.5rem;
@@ -574,27 +575,28 @@
             gap: 1rem;
             position: relative;
             overflow: hidden;
+            box-shadow: var(--pl-shadow-md);
         }
 
             .pl-hero::before {
                 content: "";
                 position: absolute;
-                top: -40px;
-                right: -40px;
-                width: 200px;
-                height: 200px;
-                background: radial-gradient(circle, rgba(27,174,190,.25) 0%, transparent 70%);
+                top: -70px;
+                right: 10%;
+                width: 240px;
+                height: 240px;
+                background: radial-gradient(circle, rgba(251,113,133,.28) 0%, transparent 70%);
                 pointer-events: none;
             }
 
             .pl-hero::after {
                 content: "";
                 position: absolute;
-                bottom: -60px;
-                left: 20%;
+                bottom: -70px;
+                left: 15%;
                 width: 260px;
                 height: 260px;
-                background: radial-gradient(circle, rgba(0,180,216,.12) 0%, transparent 70%);
+                background: radial-gradient(circle, rgba(167,139,250,.22) 0%, transparent 70%);
                 pointer-events: none;
             }
 
@@ -608,29 +610,41 @@
         .pl-hero-icon {
             width: 56px;
             height: 56px;
-            background: linear-gradient(135deg, var(--pl-primary), var(--pl-primary-dk));
-            border-radius: 16px;
+            background: linear-gradient(135deg, var(--pl-primary), #f472b6);
+            border-radius: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 1.4rem;
             color: #fff;
-            box-shadow: 0 6px 20px rgba(27,174,190,.45);
+            box-shadow: 0 8px 22px rgba(251,113,133,.4);
             flex-shrink: 0;
+        }
+
+        .pl-hero-eyebrow {
+            display: inline-block;
+            font-size: .8rem;
+            font-weight: 700;
+            color: var(--pl-primary);
+            background: rgba(255,255,255,.7);
+            padding: 5px 13px;
+            border-radius: 30px;
+            margin-bottom: 8px;
+            box-shadow: 0 2px 8px rgba(120,80,110,.06);
         }
 
         .pl-hero-title {
             margin: 0;
-            font-size: 1.7rem;
+            font-size: 1.9rem;
             font-weight: 800;
-            color: #f1f5f9;
-            letter-spacing: -.3px;
+            color: var(--pl-text);
+            letter-spacing: -.5px;
         }
 
         .pl-hero-sub {
-            margin: .2rem 0 0;
-            font-size: .88rem;
-            color: #94a3b8;
+            margin: .25rem 0 0;
+            font-size: .9rem;
+            color: var(--pl-muted);
         }
 
         .pl-hero-right {
@@ -733,23 +747,23 @@
         }
 
             .pl-stat-icon.total {
-                background: #e0f7fa;
+                background: var(--pl-primary-lt);
                 color: var(--pl-primary);
             }
 
             .pl-stat-icon.hospital {
-                background: #dbeafe;
+                background: #eff6ff;
                 color: var(--c-hospital);
             }
 
             .pl-stat-icon.clinic {
-                background: #d1fae5;
+                background: #ecfdf5;
                 color: var(--c-clinic);
             }
 
             .pl-stat-icon.other {
-                background: #f1f5f9;
-                color: var(--c-other);
+                background: #f4f0ff;
+                color: var(--c-lab);
             }
 
         .pl-stat-body {
@@ -811,14 +825,14 @@
         .pl-add-toggle-icon {
             width: 42px;
             height: 42px;
-            background: linear-gradient(135deg, var(--pl-primary), var(--pl-primary-dk));
-            border-radius: 12px;
+            background: linear-gradient(135deg, var(--pl-primary), #f472b6);
+            border-radius: 13px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: #fff;
             font-size: 1rem;
-            box-shadow: 0 4px 12px rgba(27,174,190,.3);
+            box-shadow: 0 4px 12px rgba(251,113,133,.35);
             flex-shrink: 0;
         }
 
@@ -916,12 +930,12 @@
 
             .pl-input:focus {
                 border-color: var(--pl-primary);
-                box-shadow: 0 0 0 4px rgba(27,174,190,.12);
-                background: #fafeff;
+                box-shadow: 0 0 0 4px rgba(251,113,133,.12);
+                background: #fff;
             }
 
             .pl-input:hover:not(:focus) {
-                border-color: #c0cdd8;
+                border-color: #e3d3df;
             }
 
         .pl-form-actions {
@@ -949,13 +963,13 @@
         }
 
         .pl-btn-primary {
-            background: linear-gradient(135deg, var(--pl-primary), var(--pl-primary-dk));
+            background: linear-gradient(90deg, var(--pl-primary), #f472b6);
             color: #fff;
-            box-shadow: 0 4px 14px rgba(27,174,190,.35);
+            box-shadow: 0 6px 16px rgba(251,113,133,.32);
         }
 
             .pl-btn-primary:hover {
-                box-shadow: 0 6px 20px rgba(27,174,190,.5);
+                box-shadow: 0 10px 22px rgba(251,113,133,.4);
                 transform: translateY(-1px);
             }
 
@@ -973,15 +987,15 @@
         .pl-btn-edit {
             flex: 1;
             justify-content: center;
-            background: #f0f9ff;
-            color: var(--pl-primary);
-            border: 1.5px solid #bae6fd;
+            background: var(--pl-primary-lt);
+            color: var(--pl-primary-dk);
+            border: 1.5px solid #fecdd3;
             font-size: .8rem;
             padding: .45rem .75rem;
         }
 
             .pl-btn-edit:hover {
-                background: #e0f2fe;
+                background: #ffe4e9;
                 border-color: var(--pl-primary);
             }
 
@@ -1020,8 +1034,8 @@
         .pl-list-icon {
             width: 42px;
             height: 42px;
-            background: linear-gradient(135deg, #e0f7fa, #b2ebf2);
-            border-radius: 12px;
+            background: linear-gradient(135deg, #fff1f3, #ffe1ea);
+            border-radius: 13px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1306,7 +1320,7 @@
             align-items: center;
             justify-content: space-between;
             padding: 1.3rem 1.7rem;
-            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            background: linear-gradient(135deg, #fffaf7, #fff1f3);
             border-bottom: 1px solid var(--pl-border);
         }
 

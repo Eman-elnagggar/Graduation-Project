@@ -1324,19 +1324,25 @@
 /* topbar structural primitives are provided by design-system.css */
 
 .topbar-accent {
-  color: var(--patient-primary);
+  color: #fb7185;
 }
 
 .date-chip {
-  background: #f0faf8;
-  border: 1px solid rgba(27, 174, 190, 0.15);
-  color: #158a97;
+  background: #fff1f3;
+  border: 1px solid rgba(251, 113, 133, 0.18);
+  color: #e11d62;
 }
 
 .icon-btn:hover {
-  border-color: rgba(27, 174, 190, 0.3);
-  color: var(--patient-primary);
-  background: #f0faf8;
+  border-color: rgba(251, 113, 133, 0.35);
+  color: #fb7185;
+  background: #fff1f3;
+}
+
+.topbar-avatar,
+.user-menu {
+  border-color: #fbe3ea;
+  background: linear-gradient(135deg, #fff7f9, #fbf5ff);
 }
 /* topbar mobile behavior and avatar/dot primitives are provided by design-system.css */
 
@@ -4801,3 +4807,167 @@ body.pu-modal-open {
 }
 
 /* header-right + mobile header behavior come from design-system.css */
+
+/* ============================================================
+   Warm "Pregnancy Companion" sidebar theme
+   (patient portal only — overrides shared.css dark sidebar so
+    the navigation matches the soft dashboard design)
+============================================================ */
+.sidebar {
+  background: #5b8bbf;
+  border-right: 1px solid #4d7aab;
+  box-shadow: 8px 0 32px rgba(40, 70, 110, 0.22);
+}
+
+.sidebar-brand {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.brand-name {
+  color: #ffffff;
+}
+
+.brand-badge {
+  color: #ffd7e3;
+}
+
+.brand-icon:hover {
+  box-shadow: 0 6px 16px rgba(251, 113, 133, 0.4);
+}
+
+/* Profile card */
+.sidebar-profile {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.sidebar-profile:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.profile-avatar img {
+  border-color: #ffffff;
+}
+
+.sidebar-profile:hover .profile-avatar img {
+  border-color: #fb7185;
+}
+
+.profile-name {
+  color: #ffffff;
+}
+
+.profile-role {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.profile-avatar .online-dot {
+  border-color: #ffffff;
+}
+
+/* Section labels */
+.nav-section-label {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* Nav items */
+.nav-item {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.nav-item .nav-icon {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+.nav-item:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.nav-item:hover .nav-icon {
+  background: rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+}
+
+.nav-item:hover .nav-icon i {
+  color: #ffffff;
+}
+
+/* Active item — solid warm gradient pill */
+.nav-item.active {
+  color: #ffffff;
+  background: linear-gradient(135deg, #fb7185 0%, #f472b6 100%);
+  box-shadow: 0 10px 22px rgba(251, 113, 133, 0.32);
+  font-weight: 600;
+}
+
+.nav-item.active .nav-icon {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.nav-item.active .nav-icon i {
+  color: #ffffff;
+}
+
+.nav-item.active::before,
+.sidebar.collapsed .nav-item.active::before {
+  display: none;
+}
+
+/* Footer / logout */
+.sidebar-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.sidebar-footer .nav-item.logout-item {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.sidebar-footer .nav-item.logout-item:hover {
+  color: #ffffff;
+  background: rgba(239, 68, 68, 0.85);
+}
+
+/* Edge toggle button */
+.sidebar-toggle {
+  background: #ffffff;
+  border: 2px solid rgba(251, 113, 133, 0.35);
+  box-shadow: 0 4px 14px rgba(120, 80, 110, 0.14);
+}
+
+.sidebar-toggle i {
+  color: #fb7185;
+}
+
+.sidebar-toggle:hover {
+  background: linear-gradient(135deg, #fb7185, #f472b6);
+  border-color: #fb7185;
+  box-shadow: 0 6px 18px rgba(251, 113, 133, 0.4);
+}
+
+.sidebar-toggle:hover i {
+  color: #ffffff;
+}
+
+/* Mobile close button + collapsed tooltip */
+.sidebar-close {
+  color: #ffffff;
+}
+
+.sidebar.collapsed .nav-item::after {
+  background: #3f3550;
+}
+
+/* Message badge stays warm */
+.nav-msg-badge {
+  background: #fb7185;
+}
+
+/* Top bar: soft warm base */
+.top-bar {
+  background: #ffffff;
+  border-bottom: 1px solid #f4e7ec;
+}
