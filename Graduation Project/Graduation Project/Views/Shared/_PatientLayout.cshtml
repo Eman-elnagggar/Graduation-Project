@@ -72,21 +72,20 @@
     var pageTitleHtml = ViewData["PageTitleHtml"] as string;
     var fallbackPageTitleHtml = $"{greeting}, <span class='topbar-accent'>{shortPatientName}</span> 👋";
     var pageSubtitle = ViewData["PageSubtitle"] as string ?? now.ToString("dddd, MMMM dd, yyyy", CultureInfo.InvariantCulture);
+    var hidePageHeader = (ViewData["HidePageHeader"] as bool?) ?? false;
+
+    ViewData["NavUserName"] = normalizedUserName;
+    ViewData["NavAvatar"] = $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(normalizedUserName)}&background=fb7185&color=fff&size=80";
 }
 
-<body data-patient-id="@layoutPatientId">
-    <div class="container">
+<body class="patient-app" data-patient-id="@layoutPatientId">
 
-        @await Html.PartialAsync("_PatientSidebar")
+    @await Html.PartialAsync("_PatientTopNav")
 
-        <!-- Sidebar Toggle Button -->
-        <button class="sidebar-toggle"><i class="fas fa-chevron-left"></i></button>
-
-        <!-- Sidebar Overlay (for mobile) -->
-        <div class="sidebar-overlay"></div>
-
-        <!-- Main Content -->
-        <main class="main-content">
+    <!-- Main Content -->
+    <main class="main-content patient-main">
+        @if (!hidePageHeader)
+        {
             <header class="top-bar">
                 <div class="topbar-left">
                     <div class="topbar-greeting">
@@ -99,26 +98,13 @@
                         <i class="fas fa-calendar-alt"></i>
                         <span>@headerDateChip</span>
                     </div>
-                    <button class="icon-btn" id="patientNotificationToggle" type="button" aria-label="Open notifications" title="Notifications">
-                        <i class="fas fa-bell"></i>
-                        <span class="dot" id="patientNotificationBadge" hidden>0</span>
-                    </button>
-                    <button class="icon-btn" title="Search" type="button">
-                        <i class="fas fa-search"></i>
-                    </button>
-                    <div class="topbar-avatar user-menu" title="@normalizedUserName">
-                        <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(normalizedUserName)&background=fb7185&color=fff&size=80"
-                             alt="@normalizedUserName" />
-                        <span id="ppTopbarUserName">@shortPatientName</span>
-                    </div>
                 </div>
             </header>
-            <div class="page-content">
-                @RenderBody()
-            </div>
-        </main>
-
-    </div>
+        }
+        <div class="page-content">
+            @RenderBody()
+        </div>
+    </main>
 
     @if (hasPendingRiskAlerts)
     {

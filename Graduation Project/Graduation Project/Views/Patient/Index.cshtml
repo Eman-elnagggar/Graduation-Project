@@ -7,6 +7,7 @@
     ViewData["PatientId"]  = Model.Patient.PatientID;
     ViewData["ActivePage"] = "Dashboard";
     ViewData["UserName"] = Model.UserName;
+    ViewData["HidePageHeader"] = true;
 
     var now = DateTime.Now;
     var greeting = now.Hour < 12 ? "Good morning" : now.Hour < 18 ? "Good afternoon" : "Good evening";
@@ -32,6 +33,7 @@
     var babyShort = baby.Size;
     if (babyShort.StartsWith("a ", StringComparison.OrdinalIgnoreCase)) babyShort = babyShort.Substring(2);
     else if (babyShort.StartsWith("an ", StringComparison.OrdinalIgnoreCase)) babyShort = babyShort.Substring(3);
+    var babyShortCap = babyShort.Length > 0 ? char.ToUpper(babyShort[0]) + babyShort.Substring(1) : babyShort;
 
     // ── Trimester-aware narrative for the hero "This week" bridge (no new data) ──
     string momPhase = week < 13
@@ -111,6 +113,20 @@
 }
 
 @functions {
+    // Flat, 2D vector emoji (Twemoji) — keeps the baby illustration consistent across platforms
+    private string TwemojiUrl(string emoji)
+    {
+        var parts = new List<string>();
+        for (int i = 0; i < emoji.Length;)
+        {
+            int cp = char.ConvertToUtf32(emoji, i);
+            i += char.IsSurrogatePair(emoji, i) ? 2 : 1;
+            if (cp == 0xFE0F) continue; // skip variation selector
+            parts.Add(cp.ToString("x"));
+        }
+        return "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/" + string.Join("-", parts) + ".svg";
+    }
+
     private (string Size, string Emoji, string Fact, string Milestone) GetBabyInfo(int w)
     {
         if (w >= 40) return ("a small pumpkin", "🎃", "Your baby is full-term and ready to meet you any day now.", "Fully developed & ready for birth");
@@ -197,6 +213,41 @@
     <!-- ══════════════ 1. HERO — Mother (60) · Baby (40) ══════════════ -->
     <section class="ph-hero">
         <div class="ph-hero-aurora"></div>
+
+        <!-- Decorative botanical line-art & sparkles -->
+        <div class="ph-hero-botanical" aria-hidden="true">
+            <svg class="ph-bot ph-bot-1" viewBox="0 0 100 140" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+                <path d="M50 138 C50 104 50 72 50 32"/>
+                <path d="M50 112 C35 107 27 95 31 80 C47 84 54 98 50 112Z"/>
+                <path d="M50 112 C65 107 73 95 69 80 C53 84 46 98 50 112Z"/>
+                <path d="M50 88 C37 83 31 71 35 58 C49 62 54 76 50 88Z"/>
+                <path d="M50 88 C63 83 69 71 65 58 C51 62 46 76 50 88Z"/>
+                <path d="M50 66 C40 60 36 50 40 39 C50 43 54 55 50 66Z"/>
+                <path d="M50 66 C60 60 64 50 60 39 C50 43 46 55 50 66Z"/>
+                <path d="M50 46 C45 38 47 28 53 22"/>
+            </svg>
+            <svg class="ph-bot ph-bot-2" viewBox="0 0 100 140" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+                <path d="M50 138 C50 104 50 72 50 32"/>
+                <path d="M50 112 C35 107 27 95 31 80 C47 84 54 98 50 112Z"/>
+                <path d="M50 112 C65 107 73 95 69 80 C53 84 46 98 50 112Z"/>
+                <path d="M50 88 C37 83 31 71 35 58 C49 62 54 76 50 88Z"/>
+                <path d="M50 88 C63 83 69 71 65 58 C51 62 46 76 50 88Z"/>
+                <path d="M50 66 C40 60 36 50 40 39 C50 43 54 55 50 66Z"/>
+                <path d="M50 66 C60 60 64 50 60 39 C50 43 46 55 50 66Z"/>
+                <path d="M50 46 C45 38 47 28 53 22"/>
+            </svg>
+            <svg class="ph-bot ph-bot-3" viewBox="0 0 100 140" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+                <path d="M50 138 C50 104 50 72 50 32"/>
+                <path d="M50 112 C35 107 27 95 31 80 C47 84 54 98 50 112Z"/>
+                <path d="M50 112 C65 107 73 95 69 80 C53 84 46 98 50 112Z"/>
+                <path d="M50 88 C37 83 31 71 35 58 C49 62 54 76 50 88Z"/>
+                <path d="M50 88 C63 83 69 71 65 58 C51 62 46 76 50 88Z"/>
+                <path d="M50 66 C40 60 36 50 40 39 C50 43 54 55 50 66Z"/>
+                <path d="M50 66 C60 60 64 50 60 39 C50 43 46 55 50 66Z"/>
+                <path d="M50 46 C45 38 47 28 53 22"/>
+            </svg>
+        </div>
+
         <div class="ph-hero-grid">
 
             <!-- ── LEFT · Mother focus ── -->
@@ -218,7 +269,7 @@
                     <span class="ph-hero-fact-sep"></span>
                     <div class="ph-hero-fact">
                         <span class="ph-hero-fact-lbl">Time remaining</span>
-                        <span class="ph-hero-fact-val">@daysRemaining days</span>
+                        <span class="ph-hero-fact-val">@daysRemaining days remaining</span>
                     </div>
                 </div>
 
@@ -286,12 +337,16 @@
                     <span class="ph-hero-baby-wk">Week @week</span>
                 </div>
                 <div class="ph-hero-baby-main">
-                    <div class="ph-hero-baby-orb">
+                    <div class="ph-hero-baby-orb" style="--ring:@percent">
                         <span class="ph-hero-baby-ring"></span>
-                        <span class="ph-hero-baby-emoji">@baby.Emoji</span>
+                        <span class="ph-hero-baby-emoji">
+                            <img src="@TwemojiUrl(baby.Emoji)" alt="@babyShort" loading="lazy"
+                                 onerror="this.style.display='none';var f=this.nextElementSibling;if(f)f.style.display='inline';" />
+                            <em style="display:none;font-style:normal;">@baby.Emoji</em>
+                        </span>
                     </div>
                     <div class="ph-hero-baby-meta">
-                        <span class="ph-hero-baby-size">Size of @babyShort</span>
+                        <span class="ph-hero-baby-size">Size of @babyShortCap</span>
                         <span class="ph-hero-baby-sub">@percent% to full term</span>
                     </div>
                 </div>
@@ -1019,18 +1074,26 @@ document.addEventListener('DOMContentLoaded', function () {
 .ph-hero {
     position:relative; overflow:hidden;
     background:
-        radial-gradient(120% 150% at 0% 0%, #fff0f4 0%, transparent 52%),
-        radial-gradient(120% 150% at 100% 100%, #efe9ff 0%, transparent 52%),
-        linear-gradient(125deg,#fff7f2,#fcf3ff);
+        radial-gradient(125% 150% at 0% 0%, #ffe4ea 0%, transparent 55%),
+        radial-gradient(130% 150% at 100% 100%, #ffdccb 0%, transparent 55%),
+        linear-gradient(120deg, #ffeef1 0%, #fde7ec 48%, #fde2d8 100%);
     border:1px solid rgba(255,255,255,.7);
     border-radius:28px; padding:34px 40px;
     box-shadow:var(--sh);
 }
 .ph-hero-aurora {
     position:absolute; top:-32%; right:-6%; width:440px; height:440px; pointer-events:none;
-    background:radial-gradient(circle, rgba(251,113,133,.15), transparent 65%);
+    background:radial-gradient(circle, rgba(251,140,150,.18), transparent 65%);
     filter:blur(8px);
 }
+
+/* Decorative botanical line-art + sparkles */
+.ph-hero-botanical { position:absolute; inset:0; z-index:0; pointer-events:none; }
+.ph-hero-botanical .ph-bot { position:absolute; color:#dc9bb6; opacity:.45; }
+.ph-bot-1 { width:96px; height:134px; left:-16px; bottom:-30px; transform:rotate(-13deg); }
+.ph-bot-2 { width:80px; height:112px; right:31%; bottom:-38px; transform:rotate(9deg) scaleX(-1); opacity:.36; }
+.ph-bot-3 { width:82px; height:115px; right:-12px; top:-26px; transform:rotate(166deg); opacity:.4; }
+@@media (max-width:760px) { .ph-bot-2 { display:none; } }
 .ph-hero-grid {
     position:relative; z-index:1;
     display:grid; grid-template-columns:1.25fr 1fr 1fr; gap:30px; align-items:start;
@@ -1066,7 +1129,7 @@ document.addEventListener('DOMContentLoaded', function () {
 .ph-hero-bar-tick { position:absolute; top:50%; width:2px; height:12px; transform:translate(-50%,-50%); background:rgba(255,255,255,.95); z-index:1; }
 .ph-hero-bar-fill {
     position:relative; height:100%; border-radius:30px; max-width:100%; z-index:2;
-    background:linear-gradient(90deg,var(--rose),#c084fc);
+    background:linear-gradient(90deg, #fb7185 0%, #f472b6 46%, #c084fc 100%);
     box-shadow:0 3px 10px rgba(192,132,252,.35);
     transition:width 1.2s cubic-bezier(.4,0,.2,1);
 }
@@ -1123,10 +1186,20 @@ document.addEventListener('DOMContentLoaded', function () {
     display:flex; align-items:center; justify-content:center;
     box-shadow:inset 0 2px 10px rgba(255,255,255,.9), 0 10px 26px rgba(120,80,110,.14);
 }
-.ph-hero-baby-ring { position:absolute; inset:-6px; border-radius:50%; border:1.5px dashed rgba(192,132,252,.45); animation:phSpin 28s linear infinite; }
-.ph-hero-baby-emoji { font-size:2.9rem; line-height:1; animation:phFloat 4s ease-in-out infinite; }
+.ph-hero-baby-ring {
+    position:absolute; inset:-7px; border-radius:50%;
+    background:conic-gradient(from 90deg,
+        #fb7185 0%,
+        #f472b6 calc(var(--ring,70) * 0.5%),
+        #c084fc calc(var(--ring,70) * 1%),
+        rgba(192,132,252,.14) calc(var(--ring,70) * 1%) 100%);
+    -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
+            mask:radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
+}
+.ph-hero-baby-emoji { font-size:2.9rem; line-height:1; display:flex; align-items:center; justify-content:center; animation:phFloat 4s ease-in-out infinite; }
+.ph-hero-baby-emoji img { width:3rem; height:3rem; display:block; filter:drop-shadow(0 5px 9px rgba(124,58,237,.18)); }
 .ph-hero-baby-meta { display:flex; flex-direction:column; gap:4px; min-width:0; }
-.ph-hero-baby-size { font-size:1.18rem; font-weight:800; color:var(--ink); line-height:1.2; text-transform:capitalize; }
+.ph-hero-baby-size { font-size:1.18rem; font-weight:800; color:var(--ink); line-height:1.2; }
 .ph-hero-baby-sub { font-size:.82rem; font-weight:600; color:var(--rose); }
 .ph-hero-baby-list { list-style:none; margin:0; padding:14px 0 0; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:11px; }
 .ph-hero-baby-list li { display:flex; align-items:center; gap:10px; font-size:.86rem; }
