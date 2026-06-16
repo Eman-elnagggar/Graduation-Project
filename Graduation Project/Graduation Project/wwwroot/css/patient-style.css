@@ -3015,7 +3015,6 @@ body.pp-notif-open .pp-notif-panel {
   text-align: center;
   padding: 10px 14px;
   border-radius: 14px;
-  background: rgba(15, 35, 54, 0.55);
   border: 1px solid rgba(148, 163, 184, 0.18);
   backdrop-filter: blur(6px);
   min-width: 92px;
@@ -5014,7 +5013,7 @@ body.patient-app .main-content {
   width: 44px; height: 44px;
   display: flex; align-items: center; justify-content: center;
 }
-.pnav-brand-icon img { width: 44px; height: 44px; object-fit: contain; }
+.pnav-brand-icon img { width: 100px; height: 70px; object-fit: contain; }
 
 /* Menu */
 .pnav-menu { flex: 1; display: flex; justify-content: center; }
@@ -5122,7 +5121,6 @@ body.patient-app .main-content {
   min-width: 18px; height: 18px; padding: 0 4px;
   border-radius: 50%;
   background: var(--pn-rose); color: #fff;
-  border: 2px solid #fff;
   font-size: .64rem; font-weight: 800; line-height: 1;
   display: inline-flex; align-items: center; justify-content: center;
 }
