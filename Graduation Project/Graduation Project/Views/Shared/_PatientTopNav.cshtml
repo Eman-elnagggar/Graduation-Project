@@ -1,0 +1,225 @@
+@{
+    var patientId = ViewData["PatientId"] as int? ?? 0;
+    var activePage = ViewData["ActivePage"] as string ?? "";
+    var navUserName = ViewData["NavUserName"] as string ?? "My Account";
+    var navAvatar = ViewData["NavAvatar"] as string
+        ?? $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(navUserName)}&background=fb7185&color=fff&size=80";
+
+    // Top-level active groups
+    var homeActive      = activePage == "Dashboard";
+    var apptActive      = activePage == "Appointments";
+    var healthActive    = activePage is "MedicalHistory" or "Prescriptions" or "Alerts";
+    var medsActive      = activePage == "Medications";
+    var aiActive        = activePage is "Chatbot" or "Tests" or "Ultrasound" or "Products";
+    var communityActive = activePage is "Community" or "Messages" or "Places";
+
+    string On(bool b) => b ? "active" : "";
+}
+
+<header class="pnav" id="patientTopNav">
+    <div class="pnav-inner">
+
+        <!-- Brand -->
+        <a class="pnav-brand" href="/Patient/Index/@patientId" aria-label="NABD Home">
+            <span class="pnav-brand-icon"><img src="~/images/Patient logo name.png" alt="NABD" asp-append-version="true" /></span>
+        </a>
+
+        <!-- Mobile toggle -->
+        <button class="pnav-burger" type="button" aria-label="Toggle navigation" aria-expanded="false">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <!-- Primary navigation -->
+        <nav class="pnav-menu" aria-label="Patient navigation">
+            <ul class="pnav-list">
+                <li class="pnav-item">
+                    <a class="pnav-link @On(homeActive)" href="/Patient/Index/@patientId">
+                        <i class="fas fa-house-chimney-medical"></i><span>Home</span>
+                    </a>
+                </li>
+
+                <li class="pnav-item">
+                    <a class="pnav-link @On(apptActive)" href="/PatientAppointments/Appointments/@patientId">
+                        <i class="fas fa-calendar-check"></i><span>Appointments</span>
+                    </a>
+                </li>
+
+                <!-- Health records (hierarchical) -->
+                <li class="pnav-item pnav-has-menu">
+                    <button type="button" class="pnav-link pnav-toggle @On(healthActive)" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-notes-medical"></i><span>Health Records</span>
+                        <i class="fas fa-chevron-down pnav-caret"></i>
+                    </button>
+                    <div class="pnav-dropdown">
+                        <a class="pnav-drop-link @On(activePage == "MedicalHistory")" href="/PatientMedicalHistory/MedicalHistory/@patientId">
+                            <i class="fas fa-file-medical"></i>
+                            <span class="pnav-drop-copy"><strong>Medical History</strong><small>Your full record</small></span>
+                        </a>
+                        <a class="pnav-drop-link @On(activePage == "Prescriptions")" href="/Prescription/Index/@patientId">
+                            <i class="fas fa-prescription-bottle-alt"></i>
+                            <span class="pnav-drop-copy"><strong>Prescriptions</strong><small>Doctor's orders</small></span>
+                        </a>
+                        <a class="pnav-drop-link @On(activePage == "Alerts")" href="/PatientAlerts/Alerts/@patientId">
+                            <i class="fas fa-triangle-exclamation"></i>
+                            <span class="pnav-drop-copy"><strong>Alerts</strong><small>Health notifications</small></span>
+                        </a>
+                    </div>
+                </li>
+
+                <li class="pnav-item">
+                    <a class="pnav-link @On(medsActive)" href="/PatientMedication/Index/@patientId">
+                        <i class="fas fa-pills"></i><span>Medications</span>
+                    </a>
+                </li>
+
+                <!-- Nabd AI (hierarchical) -->
+                <li class="pnav-item pnav-has-menu">
+                    <button type="button" class="pnav-link pnav-toggle @On(aiActive)" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-robot"></i><span>Nabd AI</span>
+                        <i class="fas fa-chevron-down pnav-caret"></i>
+                    </button>
+                    <div class="pnav-dropdown">
+                        <a class="pnav-drop-link @On(activePage == "Tests")" href="/PatientTests/TestsUpload/@patientId">
+                            <i class="fas fa-flask"></i>
+                            <span class="pnav-drop-copy"><strong>Test Analysis</strong><small>AI-read lab results</small></span>
+                        </a>
+                        <a class="pnav-drop-link @On(activePage == "Ultrasound")" href="/Patient/UltrasoundHistory/@patientId">
+                            <i class="fas fa-wave-square"></i>
+                            <span class="pnav-drop-copy"><strong>Ultrasound</strong><small>Scans &amp; reports</small></span>
+                        </a>
+                        <a class="pnav-drop-link @On(activePage == "Chatbot")" href="/Chatbot/Index/@patientId">
+                            <i class="fas fa-robot"></i>
+                            <span class="pnav-drop-copy"><strong>Chatbot</strong><small>Ask Nabd AI anything</small></span>
+                        </a>
+                        <a class="pnav-drop-link @On(activePage == "Products")" href="/ProductScan/Index/@patientId">
+                            <i class="fas fa-shield-heart"></i>
+                            <span class="pnav-drop-copy"><strong>Product Safety</strong><small>Check product safety</small></span>
+                        </a>
+                    </div>
+                </li>
+
+                <!-- Community (hierarchical) -->
+                <li class="pnav-item pnav-has-menu">
+                    <button type="button" class="pnav-link pnav-toggle @On(communityActive)" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-people-group"></i><span>Community</span>
+                        <i class="fas fa-chevron-down pnav-caret"></i>
+                    </button>
+                    <div class="pnav-dropdown">
+                        <a class="pnav-drop-link @On(activePage == "Community")" href="/Community/Index/@patientId">
+                            <i class="fas fa-users"></i>
+                            <span class="pnav-drop-copy"><strong>Community Feed</strong><small>Connect with mamas</small></span>
+                        </a>
+                        <a class="pnav-drop-link @On(activePage == "Messages")" href="/Patient/Messages/@patientId">
+                            <i class="fas fa-comments"></i>
+                            <span class="pnav-drop-copy"><strong>Messages</strong><small>Chat with your doctor</small></span>
+                            <span class="pnav-msg-badge" id="sidebarMsgBadge" style="display:none;"></span>
+                        </a>
+                        <a class="pnav-drop-link @On(activePage == "Places")" href="/PatientPlaces/Places/@patientId">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span class="pnav-drop-copy"><strong>My Places</strong><small>Clinics &amp; pharmacies</small></span>
+                        </a>
+                    </div>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Right actions -->
+        <div class="pnav-actions">
+            <button class="pnav-icon-btn" id="patientNotificationToggle" type="button" aria-label="Notifications" title="Notifications">
+                <i class="fas fa-bell"></i>
+                <span class="pnav-dot" id="patientNotificationBadge" hidden>0</span>
+            </button>
+
+            <div class="pnav-item pnav-has-menu pnav-user">
+                <button type="button" class="pnav-avatar pnav-toggle" aria-haspopup="true" aria-expanded="false" title="@navUserName">
+                    <img src="@navAvatar" alt="@navUserName" />
+                    <span class="pnav-avatar-name" id="ppTopbarUserName">@navUserName</span>
+                    <i class="fas fa-chevron-down pnav-caret"></i>
+                </button>
+                <div class="pnav-dropdown pnav-dropdown-right">
+                    <a class="pnav-drop-link @On(activePage == "Profile")" href="/PatientProfile/Index/@patientId">
+                        <i class="fas fa-user-circle"></i>
+                        <span class="pnav-drop-copy"><strong>My Profile</strong><small>Account &amp; pregnancy</small></span>
+                    </a>
+                    <div class="pnav-dropdown-divider"></div>
+                    <a class="pnav-drop-link pnav-drop-logout" asp-controller="Account" asp-action="LogoutGet">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span class="pnav-drop-copy"><strong>Logout</strong></span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</header>
+
+<div class="pnav-overlay" id="patientNavOverlay"></div>
+
+<script>
+(function () {
+    var nav = document.getElementById('patientTopNav');
+    if (!nav || nav.dataset.init === '1') return;
+    nav.dataset.init = '1';
+
+    var burger  = nav.querySelector('.pnav-burger');
+    var menu    = nav.querySelector('.pnav-menu');
+    var overlay = document.getElementById('patientNavOverlay');
+    var mq = window.matchMedia('(max-width: 992px)');
+
+    function closeMobile() {
+        nav.classList.remove('pnav-open');
+        overlay && overlay.classList.remove('open');
+        burger && burger.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = '';
+        nav.querySelectorAll('.pnav-has-menu.open').forEach(function (i) {
+            i.classList.remove('open');
+            var t = i.querySelector('.pnav-toggle');
+            t && t.setAttribute('aria-expanded', 'false');
+        });
+    }
+
+    burger && burger.addEventListener('click', function () {
+        var open = nav.classList.toggle('pnav-open');
+        overlay && overlay.classList.toggle('open', open);
+        burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+        document.body.style.overflow = open ? 'hidden' : '';
+    });
+    overlay && overlay.addEventListener('click', closeMobile);
+
+    // Dropdown toggles — click on desktop & mobile (hover also works on desktop via CSS)
+    nav.querySelectorAll('.pnav-has-menu > .pnav-toggle').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            var parent = btn.closest('.pnav-has-menu');
+            var willOpen = !parent.classList.contains('open');
+            // close siblings
+            nav.querySelectorAll('.pnav-has-menu.open').forEach(function (i) {
+                if (i !== parent) {
+                    i.classList.remove('open');
+                    var t = i.querySelector('.pnav-toggle');
+                    t && t.setAttribute('aria-expanded', 'false');
+                }
+            });
+            parent.classList.toggle('open', willOpen);
+            btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+        });
+    });
+
+    // Close dropdowns when clicking outside (desktop)
+    document.addEventListener('click', function (e) {
+        if (!nav.contains(e.target)) {
+            nav.querySelectorAll('.pnav-has-menu.open').forEach(function (i) {
+                i.classList.remove('open');
+                var t = i.querySelector('.pnav-toggle');
+                t && t.setAttribute('aria-expanded', 'false');
+            });
+        }
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeMobile();
+    });
+
+    mq.addEventListener('change', function (e) { if (!e.matches) closeMobile(); });
+})();
+</script>

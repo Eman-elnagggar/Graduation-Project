@@ -74,21 +74,20 @@
     var pageTitleHtml = ViewData["PageTitleHtml"] as string;
     var fallbackPageTitleHtml = $"<span id='ppGreetingWord'>{greeting}</span>, <span class='topbar-accent'>{shortPatientName}</span> 👋";
     var pageSubtitle = ViewData["PageSubtitle"] as string ?? now.ToString("dddd, MMMM dd, yyyy", CultureInfo.InvariantCulture);
+    var hidePageHeader = (ViewData["HidePageHeader"] as bool?) ?? false;
+
+    ViewData["NavUserName"] = normalizedUserName;
+    ViewData["NavAvatar"] = $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(normalizedUserName)}&background=fb7185&color=fff&size=80";
 }
 
-<body data-patient-id="@layoutPatientId">
-    <div class="container">
+<body class="patient-app" data-patient-id="@layoutPatientId">
 
-        @await Html.PartialAsync("_PatientSidebar")
+    @await Html.PartialAsync("_PatientTopNav")
 
-        <!-- Sidebar Toggle Button -->
-        <button class="sidebar-toggle"><i class="fas fa-chevron-left"></i></button>
-
-        <!-- Sidebar Overlay (for mobile) -->
-        <div class="sidebar-overlay"></div>
-
-        <!-- Main Content -->
-        <main class="main-content">
+    <!-- Main Content -->
+    <main class="main-content patient-main">
+        @if (!hidePageHeader)
+        {
             <header class="top-bar">
                 <div class="topbar-left">
                     <div class="topbar-greeting">
@@ -115,12 +114,11 @@
                     </div>
                 </div>
             </header>
-            <div class="page-content">
-                @RenderBody()
-            </div>
-        </main>
-
-    </div>
+        }
+        <div class="page-content">
+            @RenderBody()
+        </div>
+    </main>
 
     @if (hasPendingRiskAlerts)
     {
@@ -306,6 +304,119 @@
                 setInterval(refreshPatientRiskAlerts, 15000);
             })();
     </script>
+    <style>
+            body.risk-ack-open {
+                overflow: hidden;
+            }
+
+            .risk-ack-overlay {
+                position: fixed;
+                inset: 0;
+                z-index: 1200;
+                background: rgba(74, 68, 83, 0.5);
+                backdrop-filter: blur(4px);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+            }
+
+            .risk-ack-modal {
+                width: min(560px, 100%);
+                max-height: 88vh;
+                overflow: auto;
+                border-radius: 24px;
+                background: #fff;
+                border: 1px solid #f3e7ee;
+                box-shadow: 0 30px 70px rgba(74, 68, 83, 0.32);
+                padding: 30px 28px;
+            }
+
+            .risk-ack-icon {
+                width: 54px;
+                height: 54px;
+                border-radius: 18px;
+                background: #fff4e6;
+                color: #c2790c;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.3rem;
+                margin-bottom: 14px;
+            }
+
+            .risk-ack-modal h3 {
+                margin: 0;
+                color: #4A4453;
+                font-size: 1.25rem;
+                font-weight: 800;
+                letter-spacing: -.3px;
+            }
+
+            .risk-ack-sub {
+                color: #7c7488;
+                margin: 8px 0 18px;
+                font-size: .9rem;
+                line-height: 1.55;
+            }
+
+            .risk-ack-list {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                margin-bottom: 20px;
+            }
+
+            .risk-ack-item {
+                border: 1px solid #f6c3cd;
+                border-left: 4px solid #d2495f;
+                background: #fff0f2;
+                border-radius: 14px;
+                padding: 14px 16px;
+            }
+
+            .risk-ack-item-title {
+                font-size: .9rem;
+                font-weight: 800;
+                color: #4A4453;
+            }
+
+            .risk-ack-item-msg {
+                margin-top: 4px;
+                font-size: .84rem;
+                color: #b23a4e;
+            }
+
+            .risk-ack-item-time {
+                margin-top: 6px;
+                font-size: .72rem;
+                color: #a79fb0;
+            }
+
+            .risk-ack-btn {
+                width: 100%;
+                border: 0;
+                border-radius: 30px;
+                padding: 13px 16px;
+                background: linear-gradient(135deg, #F47FA8 0%, #e0568c 100%);
+                color: #fff;
+                font-weight: 700;
+                font-size: .92rem;
+                cursor: pointer;
+                box-shadow: 0 10px 24px rgba(244, 127, 168, 0.4);
+                transition: transform .2s, box-shadow .2s;
+            }
+
+                .risk-ack-btn:hover:not(:disabled) {
+                    transform: translateY(-2px);
+                    box-shadow: 0 14px 30px rgba(244, 127, 168, 0.52);
+                }
+
+                .risk-ack-btn:disabled {
+                    opacity: .6;
+                    cursor: not-allowed;
+                }
+    </style>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
