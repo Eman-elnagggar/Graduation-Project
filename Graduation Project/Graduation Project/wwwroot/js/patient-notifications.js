@@ -60,40 +60,61 @@ document.addEventListener("DOMContentLoaded", () => {
     return "info";
   };
 
+  const riskIcon = (riskType) => {
+    switch (riskType) {
+      case "critical": return "exclamation-triangle";
+      case "warning": return "exclamation-circle";
+      default: return "info-circle";
+    }
+  };
+
+  const riskColor = (riskType) => {
+    switch (riskType) {
+      case "critical": return "#e53e3e";
+      case "warning": return "#f59e0b";
+      default: return "#3182ce";
+    }
+  };
+
   const renderAlerts = (alerts) => {
     if (!alerts || alerts.length === 0) {
       list.innerHTML = '<div class="pp-notif-empty">No alerts found.</div>';
       return;
     }
 
-    list.innerHTML = alerts
+    const unread = alerts.filter((a) => !a.isRead).length;
+
+    const itemsHtml = alerts
       .map((alert) => {
         const title = alert.title || "Alert";
         const message = alert.message || "";
         const isUnread = !alert.isRead;
         const time = toRelativeTime(alert.dateCreated);
         const riskType = getRiskType(alert.alertType);
-        const riskLabel = riskType.toUpperCase();
+        const icon = riskIcon(riskType);
+        const color = riskColor(riskType);
 
         return `
-          <article class="pp-notif-item pp-notif-${riskType} ${isUnread ? "unread" : ""}" data-alert-id="${alert.alertId}">
-            <div class="pp-notif-item-top">
-              <div class="pp-notif-item-title-wrap">
-                <span class="pp-risk-pill pp-risk-${riskType}">${riskLabel}</span>
-                <h4 class="pp-notif-item-title">${escapeHtml(title)}</h4>
-              </div>
-              <span class="pp-notif-item-time">${time}</span>
+          <div class="pp-notif-item ${isUnread ? "unread" : ""}" data-alert-id="${alert.alertId}">
+            <div class="pp-notif-icon" style="background:${color}22;">
+              <i class="fas fa-${icon}" style="color:${color};"></i>
             </div>
-            <p class="pp-notif-item-message">${escapeHtml(message)}</p>
-            <div class="pp-notif-item-footer">
-              ${isUnread
-                ? '<button type="button" class="pp-mark-read-btn">Mark as read</button>'
-                : '<span class="pp-read-pill"><i class="fas fa-check-circle"></i> Read</span>'}
+            <div class="pp-notif-body">
+              <div class="pp-notif-item-title">${escapeHtml(title)}</div>
+              <div class="pp-notif-item-message">${escapeHtml(message)}</div>
+              <div class="pp-notif-item-time">${time}</div>
             </div>
-          </article>
+            ${isUnread ? '<span class="pp-notif-dot"></span>' : ""}
+          </div>
         `;
       })
       .join("");
+
+    const headerHtml = unread > 0
+      ? '<div class="pp-notif-markall"><button type="button" class="pp-markall-btn" id="ppMarkAllReadBtn">Mark all as read</button></div>'
+      : "";
+
+    list.innerHTML = headerHtml + itemsHtml;
   };
 
   const updateBadge = (unreadCount) => {
@@ -138,12 +159,19 @@ document.addEventListener("DOMContentLoaded", () => {
     topbarDate.textContent = formatted;
   };
 
-  const markAlertRead = async (card, button) => {
+  const markAlertRead = async (card) => {
     const alertId = Number(card?.dataset?.alertId || 0);
     if (!alertId || !antiForgery) return;
+    if (!card.classList.contains("unread")) return;
 
-    button.disabled = true;
-    button.textContent = "Marking...";
+    // Optimistic UI update
+    card.classList.remove("unread");
+    card.querySelector(".pp-notif-dot")?.remove();
+    currentUnreadCount = Math.max(0, currentUnreadCount - 1);
+    updateBadge(currentUnreadCount);
+    if (currentUnreadCount === 0) {
+      document.getElementById("ppMarkAllReadBtn")?.closest(".pp-notif-markall")?.remove();
+    }
 
     try {
       const body = new URLSearchParams({
@@ -152,31 +180,56 @@ document.addEventListener("DOMContentLoaded", () => {
         __RequestVerificationToken: antiForgery,
       });
 
-      const response = await fetch("/PatientAlerts/MarkAlertRead", {
+      await fetch("/PatientAlerts/MarkAlertRead", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: body.toString(),
+        keepalive: true,
+      });
+    } catch {
+      /* silently ignore — UI already updated */
+    }
+  };
+
+  const markAllRead = async () => {
+    if (!antiForgery) return;
+
+    list.querySelectorAll(".pp-notif-item.unread").forEach((card) => {
+      card.classList.remove("unread");
+      card.querySelector(".pp-notif-dot")?.remove();
+    });
+    document.getElementById("ppMarkAllReadBtn")?.closest(".pp-notif-markall")?.remove();
+    currentUnreadCount = 0;
+    updateBadge(0);
+
+    try {
+      const body = new URLSearchParams({
+        patientId: String(patientId),
+        __RequestVerificationToken: antiForgery,
       });
 
-      if (!response.ok) throw new Error("Request failed");
-      const data = await response.json();
-      if (!data.success) throw new Error("Request failed");
-
-      card.classList.remove("unread");
-      button.outerHTML = '<span class="pp-read-pill"><i class="fas fa-check-circle"></i> Read</span>';
-      currentUnreadCount = Math.max(0, currentUnreadCount - 1);
-      updateBadge(currentUnreadCount);
+      await fetch("/PatientAlerts/MarkAllAlertsRead", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: body.toString(),
+        keepalive: true,
+      });
     } catch {
-      button.disabled = false;
-      button.textContent = "Mark as read";
+      /* silently ignore — UI already updated */
     }
   };
 
   list.addEventListener("click", async (e) => {
-    const btn = e.target.closest(".pp-mark-read-btn");
-    if (!btn) return;
-    const card = btn.closest(".pp-notif-item");
-    await markAlertRead(card, btn);
+    const markAllBtn = e.target.closest("#ppMarkAllReadBtn");
+    if (markAllBtn) {
+      e.stopPropagation();
+      await markAllRead();
+      return;
+    }
+
+    const card = e.target.closest(".pp-notif-item");
+    if (!card) return;
+    await markAlertRead(card);
   });
 
   toggleBtn.addEventListener("click", async () => {

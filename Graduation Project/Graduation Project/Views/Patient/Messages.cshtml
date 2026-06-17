@@ -7,8 +7,7 @@
   ViewData["ActivePage"] = "Messages";
   ViewData["PatientId"] = Model.Patient.PatientID;
   ViewData["UserName"] = Model.UserName;
-  ViewData["PageTitle"] = "Messages";
-  ViewData["PageSubtitle"] = "Communicate securely with your care team";
+  ViewData["HidePageHeader"] = true;
 
   var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
   var patientId = Model.Patient.PatientID.ToString();
@@ -19,8 +18,8 @@
     participantType = c.ParticipantType,
     receiverUserId = string.IsNullOrWhiteSpace(c.ReceiverUserId) ? c.ParticipantId.ToString() : c.ReceiverUserId,
     name = string.IsNullOrWhiteSpace(c.ParticipantName) ? "Care Team" : c.ParticipantName,
-    avatar = $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(string.IsNullOrWhiteSpace(c.ParticipantName) ? "C" : c.ParticipantName)}&background=1baebe&color=fff&size=80",
-    status = "offline",
+    avatar = $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(string.IsNullOrWhiteSpace(c.ParticipantName) ? "C" : c.ParticipantName)}&background=fb7185&color=fff&size=80",
+    status = "online",
     lastMessage = string.IsNullOrWhiteSpace(c.LastMessagePreview) ? "Start a conversation" : c.LastMessagePreview,
     unreadCount = c.UnreadCount,
     isUrgent = false,
@@ -28,102 +27,90 @@
   }).ToList();
 }
 
-<div class="doctor-messages-page theme-patient">
-  <div class="chat-app">
-    <aside class="chat-sidebar" id="chatSidebar">
-      <div class="sidebar-header">
-        <div class="sidebar-title">
-          <div class="sidebar-icon">
-            <i class="fas fa-comments"></i>
-          </div>
-          <div>
-            <h2>Messages</h2>
-            <p>Patient Portal</p>
-          </div>
-        </div>
-        <button class="sidebar-close" id="sidebarClose"><i class="fas fa-times"></i></button>
-      </div>
-
-      <div class="sidebar-search">
-        <i class="fas fa-search"></i>
-        <input type="text" id="conversationSearch" placeholder="Search conversations..." />
-        <button class="search-clear" id="searchClear" style="display:none;"><i class="fas fa-times"></i></button>
-      </div>
-
-      <div class="sidebar-filters">
-        <button class="filter-btn active" data-filter="all">All <span class="filter-count" id="countAll">0</span></button>
-        <button class="filter-btn" data-filter="unread">Unread <span class="filter-count" id="countUnread">0</span></button>
-        <!-- Urgent filter: reserved for future real-time urgency detection -->
-      </div>
-
-      <div class="conversations-list" id="conversationsList"></div>
-    </aside>
-
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-    <main class="chat-main">
-      <!-- Mobile bar: visible on ≤992px to open conversation list -->
-      <div class="chat-mobile-bar">
-        <button class="mobile-chat-toggle" id="mobileMenuBtn" aria-label="Open conversations">
-          <i class="fas fa-bars"></i>
-          <span>Conversations</span>
-        </button>
-        <span class="mobile-active-user" id="mobileActiveUser" style="font-size:.85rem;font-weight:600;color:#0f1c2e;display:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
-      </div>
-
-      <div class="chat-empty" id="chatEmpty">
-        <div class="empty-content">
-          <div class="empty-icon"><i class="fas fa-comments"></i></div>
-          <h3>Select a conversation</h3>
-          <p>Choose a care team member from the list to start messaging</p>
-        </div>
-      </div>
-
-      <div class="dm-chat-container" id="chatContainer" style="display:none;">
-        <header class="dm-chat-header">
-          <!-- Back button — mobile only -->
-          <button class="chat-back-btn" id="chatBackBtn" aria-label="Back to conversations">
-            <i class="fas fa-arrow-left"></i>
-          </button>
-          <div class="chat-user" id="chatUserInfo">
-            <div class="user-avatar">
-              <img src="" alt="" id="chatUserAvatar" />
-              <span class="status-dot online" id="chatUserStatus"></span>
-            </div>
-            <div class="user-details">
-              <h3 id="chatUserName">Doctor Name</h3>
-              <p class="chat-user-role" id="chatUserRole">Doctor</p>
-            </div>
-          </div>
-        </header>
-
-        <div class="dm-chat-messages" id="chatMessages"></div>
-
-        <div class="dm-chat-input-area">
-          <div class="file-preview-strip" id="filePreview" style="display:none;">
-            <img id="filePreviewImg" src="" alt="" style="display:none;max-height:60px;border-radius:6px;" />
-            <span id="filePreviewName" class="file-preview-name"></span>
-            <button type="button" id="removeFileBtn" class="remove-file-btn" title="Remove"><i class="fas fa-times"></i></button>
-          </div>
-          <div class="input-row">
-            <input type="file" id="chatFileInput" accept="image/jpeg,image/png,image/gif,image/webp,application/pdf" style="display:none;" />
-            <button type="button" class="attach-btn" id="attachBtn" title="Attach image or PDF"><i class="fas fa-paperclip"></i></button>
-            <div class="input-wrapper">
-              <textarea id="messageInput" placeholder="Type a message..." rows="1" maxlength="2000"></textarea>
-            </div>
-            <button class="dm-send-btn" id="sendBtn" disabled><i class="fas fa-paper-plane"></i></button>
-          </div>
-        </div>
-      </div>
-    </main>
-  </div>
-
-  <div class="toast-container" id="toastContainer"></div>
-</div>
-
 @section Styles {
-  <link rel="stylesheet" href="~/css/doctor-messages.css" asp-append-version="true" />
+  <link rel="stylesheet" href="~/css/patient-messages.css" asp-append-version="true" />
 }
+
+<div class="pm-shell">
+
+  @* ════════════ CONVERSATIONS SIDEBAR ════════════ *@
+  <aside class="pm-sidebar show" id="chatSidebar">
+    <div class="pm-sb-head">
+      <div class="pm-sb-title">
+        <span class="pm-sb-icon"><i class="fas fa-comments"></i></span>
+        <div>
+          <h2>Messages</h2>
+          <p>Your care team</p>
+        </div>
+      </div>
+      <button class="pm-sb-close" id="sidebarClose" type="button" aria-label="Close"><i class="fas fa-times"></i></button>
+    </div>
+
+    <div class="pm-search">
+      <i class="fas fa-search"></i>
+      <input type="text" id="conversationSearch" placeholder="Search conversations…" autocomplete="off" />
+      <button class="search-clear" id="searchClear" type="button" style="display:none;"><i class="fas fa-times"></i></button>
+    </div>
+
+    <div class="pm-filters">
+      <button class="filter-btn active" data-filter="all" type="button">All <span class="filter-count" id="countAll">0</span></button>
+      <button class="filter-btn" data-filter="unread" type="button">Unread <span class="filter-count" id="countUnread">0</span></button>
+      <button class="filter-btn" data-filter="urgent" type="button">Urgent <span class="filter-count" id="countUrgent">0</span></button>
+    </div>
+
+    <div class="pm-convos" id="conversationsList"></div>
+  </aside>
+
+  <div class="pm-overlay" id="sidebarOverlay"></div>
+
+  @* ════════════ CHAT MAIN ════════════ *@
+  <main class="pm-main">
+
+    <div class="pm-empty" id="chatEmpty">
+      <div class="empty-content">
+        <div class="empty-icon"><i class="fas fa-comments"></i></div>
+        <h3>Select a conversation</h3>
+        <p>Choose a care team member from the list to start messaging securely.</p>
+      </div>
+    </div>
+
+    <div class="pm-chat" id="chatContainer" style="display:none;">
+      <header class="pm-chat-head">
+        <button class="pm-back" id="mobileMenuBtn" type="button" aria-label="Back to conversations"><i class="fas fa-arrow-left"></i></button>
+        <div class="pm-chat-user" id="chatUserInfo">
+          <div class="pm-avatar">
+            <img src="" alt="" id="chatUserAvatar" />
+            <span class="status-dot online" id="chatUserStatus"></span>
+          </div>
+          <div class="user-details">
+            <h3 id="chatUserName">Care Team</h3>
+            <p class="chat-user-role" id="chatUserRole">Doctor</p>
+          </div>
+        </div>
+      </header>
+
+      <div class="pm-messages" id="chatMessages"></div>
+
+      <div class="pm-input-area">
+        <div class="pm-file-preview" id="filePreview" style="display:none;">
+          <img id="filePreviewImg" src="" alt="" style="display:none;" />
+          <span id="filePreviewName" class="file-preview-name"></span>
+          <button type="button" id="removeFileBtn" class="remove-file-btn" title="Remove"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="pm-input-row">
+          <input type="file" id="chatFileInput" accept="image/jpeg,image/png,image/gif,image/webp,application/pdf" style="display:none;" />
+          <button type="button" class="pm-attach" id="attachBtn" title="Attach image or PDF"><i class="fas fa-paperclip"></i></button>
+          <div class="pm-input-wrap">
+            <textarea id="messageInput" placeholder="Type a message…" rows="1" maxlength="2000"></textarea>
+          </div>
+          <button class="pm-send" id="sendBtn" type="button" disabled><i class="fas fa-paper-plane"></i></button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="pm-toasts" id="toastContainer"></div>
+</div>
 
 @section Scripts {
   @Html.AntiForgeryToken()

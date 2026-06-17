@@ -10,138 +10,146 @@
   <title>@ViewData["Title"]</title>
   <link rel="icon" type="image/png" href="~/images/logo.png" asp-append-version="true" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <link rel="stylesheet" href="~/css/auth.css" />
+  <link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
 </head>
 <body>
 
-<div class="auth-shell">
-  <aside class="auth-panel">
-    <a class="panel-brand panel-brand-link" href="@Url.Action("Index", "Home")">
-      <div class="panel-brand-icon"><img src="~/images/logo.png" alt="NABD Logo" asp-append-version="true" /></div>
-      <div>
-        <div class="panel-brand-name">NABD - نبض</div>
-        <div class="panel-brand-badge" style="white-space: nowrap; letter-spacing: .04em; font-size: .62rem;">Securing the pulse of the next generation.</div>
-      </div>
-    </a>
+<div class="lg-stage">
+  <div class="lg-shell">
 
-    <div class="panel-content">
-      <h2 class="panel-headline">Your pregnancy,<br><span>beautifully managed.</span></h2>
-      <p class="panel-desc">Track your health, connect with your care team, and stay informed every step of the way.</p>
-    </div>
+    <!-- ── FORM SIDE ─────────────────────────────────────── -->
+    <section class="lg-form-side">
+      <a class="lg-brand" href="@Url.Action("Index", "Home")">
+        <span class="lg-brand-mark"><img src="~/images/blue logo.png" alt="NABD Logo" asp-append-version="true" /></span>
+        
+      </a>
 
-    <div class="panel-features">
-      <div class="panel-feature">
-        <div class="panel-feature-ico"><i class="fas fa-shield-alt"></i></div>
-        <div class="panel-feature-text">Secure health records &amp; test results</div>
-      </div>
-      <div class="panel-feature">
-        <div class="panel-feature-ico"><i class="fas fa-calendar-check"></i></div>
-        <div class="panel-feature-text">Appointment scheduling &amp; reminders</div>
-      </div>
-      <div class="panel-feature">
-        <div class="panel-feature-ico"><i class="fas fa-robot"></i></div>
-        <div class="panel-feature-text">AI-powered pregnancy assistant</div>
-      </div>
-    </div>
-  </aside>
-
-  <main class="auth-form-area">
-    <div class="auth-form-wrap">
-      <div class="mobile-brand">
-        <div class="mobile-brand-icon"><img src="~/images/logo.png" alt="NABD Logo" asp-append-version="true" /></div>
-        <div class="mobile-brand-name">NABD - نبض</div>
+      <div class="lg-mobile-brand">
+        <span class="lg-brand-mark"><img src="~/images/blue logo.png" alt="NABD Logo" asp-append-version="true" /></span>
+        
       </div>
 
-      <div class="auth-card">
-        <div class="auth-card-header">
-          <div class="auth-card-title">Welcome back</div>
-          <div class="auth-card-sub">Sign in to your NABD - نبض account</div>
-        </div>
+      <h1 class="lg-title">Welcome back!</h1>
+      <p class="lg-subtitle">Sign in to access your dashboard and continue caring for what matters most.</p>
 
-        <div class="auth-card-body">
-          @if (TempData["AuthError"] is string authError)
-          {
-            <div class="mc-warning-box" style="display:flex; margin-bottom:.9rem;">
-              <i class="fas fa-exclamation-circle"></i>
-              <p>@authError</p>
-            </div>
-          }
-          @if (TempData["AuthSuccess"] is string authSuccess)
-          {
-            <div class="mc-warning-box" style="display:flex; margin-bottom:.9rem; background:#ecfdf5; border-color:#86efac; color:#166534;">
-              <i class="fas fa-check-circle"></i>
-              <p>@authSuccess</p>
-            </div>
-          }
-
-          @using (Html.BeginForm("Login", "Account", FormMethod.Post, new { id = "loginForm", novalidate = "novalidate" }))
-          {
-            @Html.AntiForgeryToken()
-
-            <div class="mc-form-group">
-              <label class="mc-label" for="Email">
-                <i class="fas fa-envelope"></i> Email address <span class="req">*</span>
-              </label>
-              <div class="mc-input-wrap">
-                <input type="email" id="Email" name="Email" class="mc-input has-icon"
-                       placeholder="you@example.com" required autocomplete="email" value="@(ViewBag.Email ?? string.Empty)" />
-                <i class="mc-input-icon fas fa-envelope"></i>
-              </div>
-            </div>
-
-            <div class="mc-form-group">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.38rem;">
-                <label class="mc-label mb-0" for="Password" style="margin-bottom:0">
-                  <i class="fas fa-lock"></i> Password <span class="req">*</span>
-                </label>
-                <a href="@Url.Action("ForgotPassword", "Account")" class="mc-link" style="font-size:.78rem;">
-                  Forgot password?
-                </a>
-              </div>
-              <div class="mc-input-wrap">
-                <input type="password" id="Password" name="Password" class="mc-input has-icon has-eye"
-                       placeholder="Enter your password" required autocomplete="current-password" />
-                <i class="mc-input-icon fas fa-lock"></i>
-                <button type="button" class="mc-input-eye" aria-label="Toggle password">
-                  <i class="fas fa-eye"></i>
-                </button>
-              </div>
-            </div>
-
-            <div class="mc-form-group">
-              <label class="mc-check-group">
-                <input type="checkbox" id="RememberMe" name="RememberMe" class="mc-check" value="true" @(ViewBag.RememberMe == true ? "checked" : "") />
-                <span class="mc-check-label">Remember me for 30 days</span>
-              </label>
-            </div>
-
-            <button type="submit" class="mc-btn mc-btn-primary mt-2" id="loginBtn">
-              <i class="fas fa-sign-in-alt"></i> Sign In
-            </button>
-          }
-        </div>
-
-        <div class="auth-card-footer">
-          <p style="font-size:.8rem; color:var(--mc-muted); margin-bottom:.65rem;">New to NABD - نبض? Register as:</p>
-          <div class="mc-role-links">
-            <a href="@Url.Action("RegisterPatient", "Account")" class="mc-role-link">
-              <i class="fas fa-baby"></i>
-              <span>Patient</span>
-            </a>
-            <a href="@Url.Action("RegisterDoctor", "Account")" class="mc-role-link">
-              <i class="fas fa-user-md"></i>
-              <span>Doctor</span>
-            </a>
-            <a href="@Url.Action("RegisterAssistant", "Account")" class="mc-role-link">
-              <i class="fas fa-user-nurse"></i>
-              <span>Assistant</span>
-            </a>
+      <div class="lg-form">
+        @if (TempData["AuthError"] is string authError)
+        {
+          <div class="lg-alert lg-alert-error">
+            <i class="fas fa-exclamation-circle"></i>
+            <span>@authError</span>
           </div>
+        }
+        @if (TempData["AuthSuccess"] is string authSuccess)
+        {
+          <div class="lg-alert lg-alert-success">
+            <i class="fas fa-check-circle"></i>
+            <span>@authSuccess</span>
+          </div>
+        }
+
+        @using (Html.BeginForm("Login", "Account", FormMethod.Post, new { id = "loginForm", novalidate = "novalidate" }))
+        {
+          @Html.AntiForgeryToken()
+
+          <div class="mc-form-group">
+            <div class="lg-label-row">
+              <label class="mc-label" for="Email">Email <span class="req">*</span></label>
+            </div>
+            <div class="mc-input-wrap">
+              <input type="email" id="Email" name="Email" class="mc-input"
+                     placeholder="Enter your email" required autocomplete="email" value="@(ViewBag.Email ?? string.Empty)" />
+              <i class="mc-input-icon fas fa-envelope"></i>
+            </div>
+          </div>
+
+          <div class="mc-form-group">
+            <div class="lg-label-row">
+              <label class="mc-label" for="Password">Password <span class="req">*</span></label>
+            </div>
+            <div class="mc-input-wrap">
+              <input type="password" id="Password" name="Password" class="mc-input has-eye"
+                     placeholder="Enter your password" required autocomplete="current-password" />
+              <i class="mc-input-icon fas fa-lock"></i>
+              <button type="button" class="mc-input-eye" aria-label="Toggle password">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="lg-row">
+            <label class="mc-check-group">
+              <input type="checkbox" id="RememberMe" name="RememberMe" class="mc-check" value="true" @(ViewBag.RememberMe == true ? "checked" : "") />
+              <span class="mc-check-label">Remember me for 30 days</span>
+            </label>
+            <a href="@Url.Action("ForgotPassword", "Account")" class="lg-forgot">Forgot password?</a>
+          </div>
+
+          <button type="submit" class="mc-btn mc-btn-primary" id="loginBtn">
+            <i class="fas fa-arrow-right-to-bracket"></i> Sign In
+          </button>
+        }
+
+        <div class="lg-divider"><span>New to NABD</span></div>
+
+        <div class="lg-roles">
+          <a href="@Url.Action("RegisterPatient", "Account")" class="lg-role is-patient">
+            <span class="lg-role-ico"><i class="fas fa-baby"></i></span>
+            <span class="lg-role-name">Patient</span>
+          </a>
+          <a href="@Url.Action("RegisterDoctor", "Account")" class="lg-role is-doctor">
+            <span class="lg-role-ico"><i class="fas fa-user-md"></i></span>
+            <span class="lg-role-name">Doctor</span>
+          </a>
+          <a href="@Url.Action("RegisterAssistant", "Account")" class="lg-role is-assistant">
+            <span class="lg-role-ico"><i class="fas fa-user-nurse"></i></span>
+            <span class="lg-role-name">Assistant</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── BRAND SIDE ────────────────────────────────────── -->
+    <aside class="lg-brand-side">
+      <svg class="lg-pulse" viewBox="0 0 600 90" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <linearGradient id="lgPulseGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%"  stop-color="#38bdf8" stop-opacity="0"/>
+            <stop offset="40%" stop-color="#38bdf8"/>
+            <stop offset="75%" stop-color="#fbcfe2"/>
+            <stop offset="100%" stop-color="#fbcfe2" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path d="M0 45 H230 l11 -28 11 56 10 -66 13 84 11 -46 H600" />
+      </svg>
+
+      <div class="lg-brand-head">
+        <h2 class="lg-headline">Securing Pulse<br><span class="grad">of the Next Generation.</span></h2>
+      </div>
+
+      <div class="lg-quote">
+        <div class="lg-quote-mark">&ldquo;</div>
+        <p class="lg-quote-text">NABD keeps my pregnancy, my doctor, and all my test results in one calm place. I finally feel in control of every step.</p>
+        <div class="lg-quote-by">
+          <span class="lg-avatar">SA</span>
+          <span>
+            <span class="lg-quote-name" style="display:block">Sarah Ahmed</span>
+            <span class="lg-quote-role">Expecting mother · 2nd Trimester</span>
+          </span>
         </div>
       </div>
 
-    </div>
-  </main>
+      <div class="lg-trust">
+        <div class="lg-trust-label">Trusted across the journey</div>
+        <div class="lg-trust-items">
+          <span class="lg-trust-item"><i class="fas fa-shield-halved"></i> Secure health records</span>
+          <span class="lg-trust-item"><i class="fas fa-calendar-check"></i> Smart reminders</span>
+          <span class="lg-trust-item"><i class="fas fa-robot"></i> AI pregnancy assistant</span>
+        </div>
+      </div>
+    </aside>
+
+  </div>
 </div>
 
 <script src="~/js/auth.js"></script>

@@ -4,6 +4,7 @@
     ViewData["Title"] = "My Profile";
     ViewData["PatientId"] = Model.Patient.PatientID;
     ViewData["ActivePage"] = "Profile";
+    ViewData["HidePageHeader"] = true;
 
     var emailVerified = Model.User?.EmailConfirmed == true;
     var hasPregnancy = Model.HasActivePregnancy;
@@ -34,7 +35,7 @@
     <div class="pp-hero-glass">
         <div class="pp-hero-identity">
             <div class="pp-avatar">
-                <img src="https://ui-avatars.com/api/?name=@avatarName&background=0d9aaa&color=fff&size=160&bold=true&font-size=0.4"
+                <img src="https://ui-avatars.com/api/?name=@avatarName&background=fb7185&color=fff&size=160&bold=true&font-size=0.4"
                      alt="@Model.FullName" />
                 @if (emailVerified)
                 {
@@ -77,8 +78,8 @@
                 <svg viewBox="0 0 36 36" aria-hidden="true">
                     <defs>
                         <linearGradient id="ppHeroGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="#5eead4" />
-                            <stop offset="100%" stop-color="#22d3ee" />
+                            <stop offset="0%" stop-color="#fb7185" />
+                            <stop offset="100%" stop-color="#c084fc" />
                         </linearGradient>
                     </defs>
                     <circle class="pp-ring-bg" cx="18" cy="18" r="15.9155" />
@@ -110,6 +111,7 @@
                 <p>Live profile metrics</p>
             </div>
 
+            <div class="pp-stat-grid">
             <div class="pp-stat" style="--pct:@weekPct">
                 <div class="pp-stat-ring pp-ring-teal">
                     <svg viewBox="0 0 36 36"><circle class="pp-ring-bg" cx="18" cy="18" r="15.9155"/><circle class="pp-ring-fg" cx="18" cy="18" r="15.9155" stroke-dasharray="@weekPct 100"/></svg>
@@ -157,6 +159,7 @@
                     <span class="pp-stat-num">@(Model.Medications?.Count ?? 0)</span>
                     <span class="pp-stat-lbl">Medications</span>
                 </div>
+            </div>
             </div>
         </div>
     </aside>
@@ -1415,22 +1418,23 @@
            PATIENT PROFILE — Premium Healthcare SaaS (2026 redesign)
         ══════════════════════════════════════════════════════════ */
         :root {
-            --pp-primary: #0d9aaa;
-            --pp-primary-dk: #0a7d8c;
-            --pp-primary-lt: #e6fafc;
-            --pp-ink: #0f172a;
-            --pp-text: #1e293b;
-            --pp-muted: #64748b;
-            --pp-faint: #94a3b8;
-            --pp-line: #e9eef4;
-            --pp-bg: #f6f9fb;
+            --pp-primary: #fb7185;
+            --pp-primary-dk: #e11d48;
+            --pp-primary-lt: #fff1f3;
+            --pp-violet: #a78bfa;
+            --pp-ink: #3f3550;
+            --pp-text: #4a4458;
+            --pp-muted: #6b6478;
+            --pp-faint: #9a93a8;
+            --pp-line: #f0e9ef;
+            --pp-bg: #fdf6f4;
             --pp-card: #ffffff;
             --pp-r-lg: 24px;
             --pp-r-md: 18px;
             --pp-r-sm: 12px;
-            --pp-sh-sm: 0 1px 2px rgba(15,23,42,.04), 0 4px 16px rgba(15,23,42,.04);
-            --pp-sh-md: 0 8px 30px rgba(15,23,42,.08);
-            --pp-sh-hero: 0 24px 60px rgba(8,47,73,.32);
+            --pp-sh-sm: 0 4px 16px rgba(120,80,110,.06);
+            --pp-sh-md: 0 10px 30px rgba(120,80,110,.1);
+            --pp-sh-hero: 0 12px 30px rgba(120,80,110,.12);
         }
 
         .page-content { background: var(--pp-bg); }
@@ -1453,20 +1457,22 @@
         /* ── HERO ──────────────────────────────────────────── */
         .pp-hero {
             position: relative;
-            border-radius: var(--pp-r-lg);
+            border-radius: 28px;
             padding: 2.4rem;
             margin-bottom: 1.5rem;
             overflow: hidden;
             background:
-                radial-gradient(1200px 400px at 100% -20%, rgba(34,211,238,.28), transparent 60%),
-                linear-gradient(135deg, #07314a 0%, #0c4f63 45%, #0a3a52 100%);
+                radial-gradient(125% 150% at 0% 0%, #ffe4ea 0%, transparent 55%),
+                radial-gradient(130% 150% at 100% 100%, #f0e6ff 0%, transparent 55%),
+                linear-gradient(120deg, #ffeef1 0%, #fbe9f3 50%, #f3ebff 100%);
+            border: 1px solid rgba(255,255,255,.7);
             box-shadow: var(--pp-sh-hero);
         }
         .pp-hero-orbs { position: absolute; inset: 0; pointer-events: none; }
-        .pp-orb { position: absolute; border-radius: 50%; filter: blur(8px); opacity: .5; }
-        .pp-orb-1 { width: 260px; height: 260px; top: -90px; right: -60px; background: radial-gradient(circle, rgba(34,211,238,.5), transparent 70%); }
-        .pp-orb-2 { width: 200px; height: 200px; bottom: -110px; left: 20%; background: radial-gradient(circle, rgba(13,154,170,.45), transparent 70%); }
-        .pp-orb-3 { width: 140px; height: 140px; top: 20%; left: -50px; background: radial-gradient(circle, rgba(94,234,212,.4), transparent 70%); }
+        .pp-orb { position: absolute; border-radius: 50%; filter: blur(10px); opacity: .55; }
+        .pp-orb-1 { width: 260px; height: 260px; top: -90px; right: -60px; background: radial-gradient(circle, rgba(192,132,252,.28), transparent 70%); }
+        .pp-orb-2 { width: 200px; height: 200px; bottom: -110px; left: 20%; background: radial-gradient(circle, rgba(251,113,133,.26), transparent 70%); }
+        .pp-orb-3 { width: 140px; height: 140px; top: 20%; left: -50px; background: radial-gradient(circle, rgba(244,114,182,.24), transparent 70%); }
 
         .pp-hero-glass {
             position: relative;
@@ -1482,76 +1488,80 @@
 
         .pp-avatar { position: relative; flex-shrink: 0; }
         .pp-avatar img {
-            width: 92px; height: 92px; border-radius: 26px;
+            width: 92px; height: 92px; border-radius: 24px;
             object-fit: cover;
-            border: 3px solid rgba(255,255,255,.18);
-            box-shadow: 0 12px 28px rgba(0,0,0,.35);
+            border: 3px solid rgba(255,255,255,.85);
+            box-shadow: 0 14px 30px rgba(120,80,110,.25);
         }
         .pp-avatar-verify {
             position: absolute; right: -6px; bottom: -6px;
             width: 30px; height: 30px; border-radius: 50%;
             background: linear-gradient(135deg, #34d399, #10b981);
-            border: 3px solid #0c4f63;
+            border: 3px solid #fff;
             display: flex; align-items: center; justify-content: center;
             color: #fff; font-size: .8rem;
         }
 
         .pp-hero-text { display: flex; flex-direction: column; gap: .5rem; }
         .pp-hero-nameline { display: flex; align-items: center; gap: .7rem; flex-wrap: wrap; }
-        .pp-hero-name { margin: 0; font-size: 1.75rem; font-weight: 800; color: #f8fafc; letter-spacing: -.02em; }
+        .pp-hero-name { margin: 0; font-size: 1.75rem; font-weight: 800; color: var(--pp-ink); letter-spacing: -.02em; }
 
         .pp-verify {
             display: inline-flex; align-items: center; gap: .35rem;
-            padding: .25rem .7rem; border-radius: 30px;
-            font-size: .72rem; font-weight: 700; backdrop-filter: blur(6px);
+            padding: .28rem .75rem; border-radius: 30px;
+            font-size: .72rem; font-weight: 800;
         }
-        .pp-verify.is-verified { background: rgba(16,185,129,.18); color: #6ee7b7; border: 1px solid rgba(110,231,183,.35); }
-        .pp-verify.is-pending  { background: rgba(245,158,11,.18); color: #fcd34d; border: 1px solid rgba(252,211,77,.35); }
+        .pp-verify.is-verified { background: #ecfdf5; color: #059669; border: 1px solid #b8efd4; }
+        .pp-verify.is-pending  { background: #fffaf0; color: #d97706; border: 1px solid #fde68a; }
 
-        .pp-hero-email { margin: 0; font-size: .9rem; color: #b4c6d4; display: flex; align-items: center; gap: .45rem; }
+        .pp-hero-email { margin: 0; font-size: .9rem; color: var(--pp-muted); display: flex; align-items: center; gap: .45rem; }
 
         .pp-hero-badges { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .25rem; }
         .pp-badge {
             display: inline-flex; align-items: center; gap: .4rem;
-            padding: .35rem .8rem; border-radius: 30px;
-            font-size: .76rem; font-weight: 600; backdrop-filter: blur(6px);
-            border: 1px solid rgba(255,255,255,.14); color: #e2e8f0; background: rgba(255,255,255,.08);
+            padding: .38rem .85rem; border-radius: 30px;
+            font-size: .76rem; font-weight: 700;
+            border: 1px solid rgba(255,255,255,.9); color: var(--pp-muted); background: rgba(255,255,255,.7);
+            box-shadow: 0 3px 10px rgba(120,80,110,.05);
         }
-        .pp-badge-active { background: rgba(16,185,129,.16); color: #6ee7b7; border-color: rgba(110,231,183,.3); }
-        .pp-badge-idle   { background: rgba(148,163,184,.16); color: #cbd5e1; }
-        .pp-badge-week   { background: rgba(56,189,248,.16); color: #7dd3fc; border-color: rgba(125,211,252,.3); }
-        .pp-badge-trim   { background: rgba(167,139,250,.16); color: #c4b5fd; border-color: rgba(196,181,253,.3); }
-        .pp-badge-due    { background: rgba(251,191,36,.16); color: #fcd34d; border-color: rgba(252,211,77,.3); }
+        .pp-badge-active { background: #ecfdf5; color: #059669; border-color: #b8efd4; }
+        .pp-badge-idle   { background: rgba(255,255,255,.7); color: var(--pp-muted); }
+        .pp-badge-week   { background: #eff6ff; color: #2563eb; border-color: #bcd8ff; }
+        .pp-badge-trim   { background: #f4f0ff; color: #7c3aed; border-color: #e6dcff; }
+        .pp-badge-due    { background: #fffaf0; color: #d97706; border-color: #fde68a; }
 
         /* hero ring */
         .pp-hero-progress { flex-shrink: 0; }
         .pp-hero-ring { position: relative; width: 128px; height: 128px; }
         .pp-hero-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-        .pp-hero-ring .pp-ring-bg { fill: none; stroke: rgba(255,255,255,.12); stroke-width: 2.6; }
+        .pp-hero-ring .pp-ring-bg { fill: none; stroke: rgba(120,80,110,.14); stroke-width: 2.6; }
         .pp-hero-ring .pp-ring-fg { fill: none; stroke-width: 2.6; stroke-linecap: round; transition: stroke-dasharray .8s cubic-bezier(.4,0,.2,1); }
         .pp-hero-ring-center {
             position: absolute; inset: 0; display: flex; flex-direction: column;
             align-items: center; justify-content: center; gap: .1rem;
         }
-        .pp-hero-ring-num { font-size: 2rem; font-weight: 800; color: #f0fdff; line-height: 1; }
-        .pp-hero-ring-lbl { font-size: .68rem; font-weight: 600; color: #93c5d4; text-transform: uppercase; letter-spacing: .05em; }
+        .pp-hero-ring-num { font-size: 2rem; font-weight: 800; color: var(--pp-ink); line-height: 1; }
+        .pp-hero-ring-lbl { font-size: .68rem; font-weight: 600; color: var(--pp-muted); text-transform: uppercase; letter-spacing: .05em; }
 
         /* ── FLASH ─────────────────────────────────────────── */
         .pp-flash {
             display: flex; align-items: center; gap: .6rem;
             padding: .9rem 1.2rem; margin-bottom: 1.25rem;
             background: var(--pp-primary-lt); color: var(--pp-primary-dk);
-            border: 1px solid #b6ebf1; border-radius: var(--pp-r-sm); font-size: .9rem; font-weight: 500;
+            border: 1px solid #fde0e6; border-radius: var(--pp-r-sm); font-size: .9rem; font-weight: 500;
         }
 
         /* ── LAYOUT ────────────────────────────────────────── */
         .pp-layout {
             display: grid;
-            grid-template-columns: 300px 1fr;
+            grid-template-columns: 300px minmax(0, 1fr);
             gap: 1.5rem;
             align-items: start;
         }
-        @@media (max-width: 1024px) { .pp-layout { grid-template-columns: 1fr; } }
+        /* min-width:0 lets grid children shrink below content width so wide
+           rows (tabs, snapshot strip, chips) scroll instead of widening the page */
+        .pp-summary, .pp-main { min-width: 0; }
+        @@media (max-width: 1024px) { .pp-layout { grid-template-columns: minmax(0, 1fr); } }
 
         /* ── STICKY SUMMARY ────────────────────────────────── */
         .pp-summary-inner {
@@ -1566,10 +1576,12 @@
         .pp-summary-head h2 { margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--pp-ink); }
         .pp-summary-head p { margin: .15rem 0 .3rem; font-size: .78rem; color: var(--pp-muted); }
 
+        .pp-stat-grid { display: flex; flex-direction: column; gap: .85rem; }
+
         .pp-stat {
             display: flex; align-items: center; gap: .9rem;
             padding: .7rem; border-radius: var(--pp-r-sm);
-            background: #fbfdfe; border: 1px solid var(--pp-line);
+            background: #fffaf7; border: 1px solid var(--pp-line);
             transition: transform .18s, box-shadow .18s;
         }
         .pp-stat:hover { transform: translateY(-2px); box-shadow: var(--pp-sh-sm); }
@@ -1582,9 +1594,9 @@
             position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
             width: 1.15rem; height: 1.15rem; color: var(--pp-muted);
         }
-        .pp-ring-teal   .pp-ring-fg { stroke: #0d9aaa; } .pp-ring-teal svg.lucide { color: #0d9aaa; }
+        .pp-ring-teal   .pp-ring-fg { stroke: #fb7185; } .pp-ring-teal svg.lucide { color: #fb7185; }
         .pp-ring-amber  .pp-ring-fg { stroke: #f59e0b; } .pp-ring-amber svg.lucide { color: #d97706; }
-        .pp-ring-purple .pp-ring-fg { stroke: #8b5cf6; } .pp-ring-purple svg.lucide { color: #7c3aed; }
+        .pp-ring-purple .pp-ring-fg { stroke: #a78bfa; } .pp-ring-purple svg.lucide { color: #7c3aed; }
 
         .pp-stat-icon {
             width: 50px; height: 50px; border-radius: 14px; flex-shrink: 0;
@@ -1600,7 +1612,7 @@
         /* ── TABS (segmented) ──────────────────────────────── */
         .pp-tabs {
             display: flex; gap: .25rem; margin-bottom: 1.25rem;
-            background: #eef3f7; border: 1px solid var(--pp-line);
+            background: #faf2f6; border: 1px solid var(--pp-line);
             padding: .35rem; border-radius: 16px; box-shadow: var(--pp-sh-sm);
             overflow-x: auto; scrollbar-width: none;
         }
@@ -1647,7 +1659,7 @@
             width: 44px; height: 44px; border-radius: 13px; flex-shrink: 0;
             display: flex; align-items: center; justify-content: center; font-size: 1.05rem; color: #fff;
         }
-        .pp-grad-teal   { background: linear-gradient(135deg, #22d3ee, #0d9aaa); }
+        .pp-grad-teal   { background: linear-gradient(135deg, #fb7185, #c084fc); }
         .pp-grad-indigo { background: linear-gradient(135deg, #818cf8, #4f46e5); }
         .pp-grad-purple { background: linear-gradient(135deg, #c084fc, #7c3aed); }
         .pp-grad-pink   { background: linear-gradient(135deg, #f472b6, #db2777); }
@@ -1677,11 +1689,11 @@
         .pp-btn-primary {
             display: inline-flex; align-items: center; gap: .45rem;
             padding: .65rem 1.35rem; border-radius: 12px; border: none;
-            background: linear-gradient(135deg, var(--pp-primary), var(--pp-primary-dk));
+            background: linear-gradient(120deg, var(--pp-primary), #c084fc);
             color: #fff; font-size: .88rem; font-weight: 700; cursor: pointer; font-family: inherit;
-            box-shadow: 0 6px 18px rgba(13,154,170,.35); transition: all .18s;
+            box-shadow: 0 8px 18px rgba(192,132,252,.35); transition: all .18s;
         }
-        .pp-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 10px 26px rgba(13,154,170,.45); }
+        .pp-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 12px 26px rgba(192,132,252,.45); }
         .pp-btn-primary:disabled { opacity: .7; cursor: progress; transform: none; }
 
         .pp-btn-ghost {
@@ -1729,8 +1741,8 @@
             color: var(--pp-text); background: #fff; outline: none;
             transition: border-color .18s, box-shadow .18s, background .18s;
         }
-        .pf-input:focus { border-color: var(--pp-primary); box-shadow: 0 0 0 4px rgba(13,154,170,.12); }
-        .pf-input:disabled { background: #f6f9fb; color: var(--pp-text); opacity: 1; cursor: default; }
+        .pf-input:focus { border-color: var(--pp-primary); box-shadow: 0 0 0 4px rgba(167,139,250,.18); }
+        .pf-input:disabled { background: #fffaf7; color: var(--pp-text); opacity: 1; cursor: default; }
         .pp-calc-input { font-weight: 700; }
 
         .pp-input-icon { position: relative; display: flex; align-items: center; }
@@ -1749,7 +1761,7 @@
         .pp-readout-row { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.25rem; }
         .pp-readout {
             flex: 1; min-width: 150px; display: flex; align-items: center; gap: .7rem;
-            padding: .8rem .9rem; border-radius: var(--pp-r-sm); background: #fbfdfe; border: 1px solid var(--pp-line);
+            padding: .8rem .9rem; border-radius: var(--pp-r-sm); background: #fffaf7; border: 1px solid var(--pp-line);
         }
         .pp-readout > i { color: var(--pp-primary); font-size: 1.05rem; }
         .pp-readout span { display: block; font-size: .72rem; color: var(--pp-muted); }
@@ -1762,7 +1774,7 @@
             display: flex; border: 1.5px solid var(--pp-line); border-radius: var(--pp-r-sm);
             overflow: hidden; background: #fff; transition: border-color .18s, box-shadow .18s;
         }
-        .pf-input-unit:focus-within { border-color: var(--pp-primary); box-shadow: 0 0 0 4px rgba(13,154,170,.12); }
+        .pf-input-unit:focus-within { border-color: var(--pp-primary); box-shadow: 0 0 0 4px rgba(167,139,250,.18); }
         .pf-input-unit .pf-input { border: none; box-shadow: none; }
         .pf-unit-badge {
             padding: .5rem .85rem; font-size: .74rem; font-weight: 700; background: #f1f5f9;
@@ -1965,7 +1977,7 @@
 
         .pp-habit-row {
             display: flex; align-items: flex-start; gap: 1rem; padding: 1.1rem;
-            border: 1px solid var(--pp-line); border-radius: var(--pp-r-sm); background: #fbfdfe;
+            border: 1px solid var(--pp-line); border-radius: var(--pp-r-sm); background: #fffaf7;
         }
         .pp-habit-icon { width: 46px; height: 46px; border-radius: 13px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: #fff; }
         .pp-habit-smoke { background: linear-gradient(135deg, #fbbf24, #d97706); }
@@ -1985,12 +1997,12 @@
         .pp-med-list { display: flex; flex-direction: column; gap: .75rem; }
         .pf-med-row {
             display: flex; align-items: flex-start; gap: 1rem; padding: 1rem 1.1rem;
-            background: #fbfdfe; border: 1px solid var(--pp-line); border-radius: var(--pp-r-sm); transition: box-shadow .18s, transform .18s;
+            background: #fffaf7; border: 1px solid var(--pp-line); border-radius: var(--pp-r-sm); transition: box-shadow .18s, transform .18s;
         }
         .pf-med-row:hover { box-shadow: var(--pp-sh-sm); transform: translateY(-1px); }
         .pf-med-pill-icon {
             width: 44px; height: 44px; border-radius: 13px; flex-shrink: 0;
-            background: linear-gradient(135deg, #22d3ee, var(--pp-primary));
+            background: linear-gradient(135deg, #fb7185, #c084fc);
             display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.05rem;
         }
         .pf-med-details { flex: 1; }
@@ -2012,7 +2024,7 @@
             border-radius: 12px; border: 1.5px dashed var(--pp-primary); background: var(--pp-primary-lt);
             color: var(--pp-primary-dk); font-size: .85rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: all .18s; width: 100%; justify-content: center;
         }
-        .pp-add-btn:hover { background: #cdf3f7; }
+        .pp-add-btn:hover { background: #ffe0e6; }
 
         /* ── EMPTY STATE ───────────────────────────────────── */
         .pp-empty { text-align: center; padding: 2.5rem 1rem; }
@@ -2028,7 +2040,7 @@
         .pp-tips { display: flex; flex-direction: column; gap: .75rem; }
         .pp-note {
             display: flex; gap: .9rem; align-items: flex-start; padding: 1rem 1.1rem;
-            border-radius: var(--pp-r-sm); background: #fbfdfe; border: 1px solid var(--pp-line);
+            border-radius: var(--pp-r-sm); background: #fffaf7; border: 1px solid var(--pp-line);
         }
         .pp-note > svg.lucide { width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; padding: .55rem; color: #fff; box-sizing: border-box; }
         .pp-note h4 { margin: 0 0 .2rem; font-size: .88rem; font-weight: 800; color: var(--pp-ink); }
@@ -2043,7 +2055,7 @@
             display: flex; border: 1.5px solid var(--pp-line); border-radius: var(--pp-r-sm);
             overflow: hidden; background: #fff; transition: border-color .18s, box-shadow .18s;
         }
-        .pf-pw-wrap:focus-within { border-color: var(--pp-primary); box-shadow: 0 0 0 4px rgba(13,154,170,.12); }
+        .pf-pw-wrap:focus-within { border-color: var(--pp-primary); box-shadow: 0 0 0 4px rgba(167,139,250,.18); }
         .pf-pw-wrap .pf-input { border: none; }
         .pf-pw-eye { background: transparent; border: none; cursor: pointer; padding: 0 .9rem; color: var(--pp-faint); transition: color .18s; }
         .pf-pw-eye:hover { color: var(--pp-primary); }
@@ -2051,7 +2063,7 @@
         .pf-pw-track { height: 6px; background: #e9eef4; border-radius: 4px; overflow: hidden; margin-bottom: .35rem; }
         .pf-pw-fill { height: 100%; border-radius: 4px; transition: width .3s, background .3s; }
         .pf-pw-label { font-size: .72rem; color: var(--pp-muted); }
-        .pf-pw-reqs { background: #fbfdfe; border: 1px solid var(--pp-line); border-radius: var(--pp-r-sm); padding: .9rem 1.1rem; }
+        .pf-pw-reqs { background: #fffaf7; border: 1px solid var(--pp-line); border-radius: var(--pp-r-sm); padding: .9rem 1.1rem; }
         .pf-pw-reqs h4 { margin: 0 0 .55rem; font-size: .82rem; font-weight: 800; color: var(--pp-ink); }
         .pf-pw-reqs ul { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: .35rem; }
         @@media (max-width: 640px) { .pf-pw-reqs ul { grid-template-columns: 1fr; } }
@@ -2063,7 +2075,7 @@
         .pp-settings { display: flex; flex-direction: column; gap: .6rem; }
         .pp-setting {
             display: flex; justify-content: space-between; align-items: center; gap: 1rem;
-            padding: .95rem 1.1rem; border-radius: var(--pp-r-sm); background: #fbfdfe; border: 1px solid var(--pp-line);
+            padding: .95rem 1.1rem; border-radius: var(--pp-r-sm); background: #fffaf7; border: 1px solid var(--pp-line);
         }
         .pp-setting h4 { margin: 0 0 .2rem; font-size: .88rem; font-weight: 800; color: var(--pp-ink); }
         .pp-setting p { margin: 0; font-size: .78rem; color: var(--pp-muted); }
@@ -2085,7 +2097,7 @@
 
         /* ── MODAL ─────────────────────────────────────────── */
         .pp-modal-backdrop {
-            position: fixed; inset: 0; background: rgba(8,25,40,.55); backdrop-filter: blur(8px);
+            position: fixed; inset: 0; background: rgba(40,30,55,.5); backdrop-filter: blur(8px);
             z-index: 1000; align-items: center; justify-content: center; padding: 1rem; animation: pfFadeIn .2s ease;
         }
         .pp-modal {
@@ -2105,7 +2117,7 @@
         .pp-modal-body { padding: 1.6rem 1.7rem; }
         .pp-modal-foot {
             display: flex; gap: .75rem; justify-content: flex-end;
-            padding: 1.1rem 1.7rem; border-top: 1px solid var(--pp-line); background: #fbfdfe;
+            padding: 1.1rem 1.7rem; border-top: 1px solid var(--pp-line); background: #fffaf7;
         }
 
         /* ── TOAST (keep pf- hooks) ────────────────────────── */
@@ -2134,6 +2146,43 @@
             .pp-hero-glass { justify-content: center; text-align: left; }
             .pp-card-head, .pp-card-body { padding-left: 1.1rem; padding-right: 1.1rem; }
             .pp-summary-inner { position: static; }
+
+            /* Snapshot → single horizontal scrolling strip */
+            .pp-stat-grid {
+                flex-direction: row;
+                gap: .6rem;
+                min-width: 0;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                margin: 0 -.25rem;
+                padding: 0 .25rem .35rem;
+            }
+            .pp-stat-grid::-webkit-scrollbar { display: none; }
+            .pp-stat { flex: 0 0 auto; min-width: 134px; padding: .65rem .75rem; }
+            .pp-stat-num { font-size: 1.3rem; }
+        }
+
+        /* ── PHONE: simplified hero ────────────────────────── */
+        @@media (max-width: 600px) {
+            .pp-hero {
+                padding: 1.25rem 1.1rem; border-radius: 22px; margin-bottom: 1rem;
+            }
+            .pp-hero-glass { gap: 1rem; }
+            .pp-hero-identity { gap: 1rem; align-items: center; }
+            .pp-avatar img { width: 60px; height: 60px; border-radius: 17px; }
+            .pp-avatar-verify { width: 24px; height: 24px; right: -4px; bottom: -4px; }
+            .pp-hero-text { gap: .3rem; }
+            .pp-hero-name { font-size: 1.2rem; }
+            /* Trim secondary detail — keep avatar, name and key status only */
+            .pp-hero-email,
+            .pp-verify,
+            .pp-badge-trim,
+            .pp-badge-due,
+            .pp-hero-progress,
+            .pp-orb { display: none; }
+            .pp-hero-badges { margin-top: .1rem; gap: .4rem; }
+            .pp-badge { padding: .32rem .7rem; font-size: .72rem; }
         }
     </style>
 }

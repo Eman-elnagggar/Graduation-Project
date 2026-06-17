@@ -3,6 +3,7 @@
     Layout = "~/Views/Shared/_PatientLayout.cshtml";
     ViewData["Title"] = "Ultrasound History";
     ViewData["ActivePage"] = "Ultrasound";
+    ViewData["HidePageHeader"] = true;
     ViewData["PatientId"] = Model.Patient.PatientID;
     var patientId = Model.Patient.PatientID;
 }
@@ -14,37 +15,57 @@
 <div class="pu-container">
 
     @* ── Hero ── *@
-    <div class="pu-hero">
-        <div class="pu-hero-left">
-            <div class="pu-hero-icon"><i class="fas fa-wave-square"></i></div>
-            <div>
-                <div class="pu-hero-title">My Ultrasound Records</div>
-                <div class="pu-hero-sub">
-                    <i class="fas fa-circle"></i>
-                    Doctor scans &amp; personal uploads
+    @{
+        int totalRecords = Model.DoctorScans.Count + Model.SelfScans.Count;
+    }
+    <section class="pu-hero">
+        <span class="pu-hero-aurora" aria-hidden="true"></span>
+        <svg class="pu-hero-wave" viewBox="0 0 600 120" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M0 60 H120 l14 -34 16 68 18 -88 16 96 14 -42 H300 l14 -28 16 56 18 -74 16 82 14 -36 H600"
+                  fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <div class="pu-hero-inner">
+            <div class="pu-hero-left">
+                <span class="pu-hero-icon">
+                    <i class="fas fa-wave-square"></i>
+                    <span class="pu-hero-icon-pulse"></span>
+                </span>
+                <div class="pu-hero-text">
+                    <span class="pu-hero-eyebrow"><i class="fas fa-heart-pulse"></i> Health Records</span>
+                    <h1 class="pu-hero-title">My Ultrasound Records</h1>
+                    <p class="pu-hero-sub">Your doctor's scans and personal uploads, gathered in one calm space 🤍</p>
+                    <div class="pu-hero-meta">
+                        <span class="pu-hero-meta-chip"><i class="fas fa-images"></i> @totalRecords total record@(totalRecords != 1 ? "s" : "")</span>
+                        <span class="pu-hero-meta-chip"><i class="fas fa-shield-heart"></i> Private &amp; secure</span>
+                    </div>
+                </div>
+            </div>
+            <div class="pu-hero-stats">
+                <div class="pu-hero-stat">
+                    <span class="pu-hero-stat-ico rose"><i class="fas fa-user-md"></i></span>
+                    <span class="pu-hero-num">@Model.DoctorScans.Count</span>
+                    <span class="pu-hero-lbl">Doctor scans</span>
+                </div>
+                <span class="pu-hero-stat-sep"></span>
+                <div class="pu-hero-stat">
+                    <span class="pu-hero-stat-ico violet"><i class="fas fa-cloud-upload-alt"></i></span>
+                    <span class="pu-hero-num">@Model.SelfScans.Count</span>
+                    <span class="pu-hero-lbl">My uploads</span>
                 </div>
             </div>
         </div>
-        <div class="pu-hero-stats">
-            <div class="pu-hero-stat">
-                <span class="pu-hero-num">@Model.DoctorScans.Count</span>
-                <span class="pu-hero-lbl">Doctor Scans</span>
-            </div>
-            <div class="pu-hero-stat">
-                <span class="pu-hero-num">@Model.SelfScans.Count</span>
-                <span class="pu-hero-lbl">My Uploads</span>
-            </div>
-        </div>
-    </div>
+    </section>
 
     @* ── Tab toolbar ── *@
-    <div class="pu-toolbar">
+    <div class="pu-toolbar" role="tablist">
         <button class="pu-tab active" onclick="puShowTab('doctor', this)">
-            <i class="fas fa-user-md"></i> Doctor Scans
+            <span class="pu-tab-ico"><i class="fas fa-user-md"></i></span>
+            Doctor Scans
             <span class="pu-tab-count">@Model.DoctorScans.Count</span>
         </button>
         <button class="pu-tab" onclick="puShowTab('self', this)">
-            <i class="fas fa-upload"></i> My Uploads
+            <span class="pu-tab-ico"><i class="fas fa-cloud-upload-alt"></i></span>
+            My Uploads
             <span class="pu-tab-count">@Model.SelfScans.Count</span>
         </button>
     </div>
@@ -54,9 +75,9 @@
         @if (!Model.DoctorScans.Any())
         {
             <div class="pu-empty">
-                <div class="pu-empty-icon"><i class="fas fa-wave-square"></i></div>
+                <div class="pu-empty-icon rose"><i class="fas fa-wave-square"></i></div>
                 <div class="pu-empty-title">No doctor scans yet</div>
-                <div class="pu-empty-sub">Your doctor hasn't uploaded any ultrasound scans yet. They will appear here once uploaded.</div>
+                <div class="pu-empty-sub">When your doctor uploads an ultrasound scan, it will gently appear here for you to revisit any time.</div>
             </div>
         }
         else
@@ -72,30 +93,32 @@
                         ? $"Dr. {scan.Doctor.User.FirstName} {scan.Doctor.User.LastName}".Trim()
                         : "Your doctor";
 
-                    <div class="pu-scan-card">
-                        <div class="pu-scan-stripe"></div>
+                    <article class="pu-scan-card">
                         <div class="pu-images @(hasResult ? "" : "single")">
-                            <div class="pu-img-wrap">
+                            <figure class="pu-img-wrap">
                                 @if (!string.IsNullOrWhiteSpace(scan.OriginalImagePath))
                                 {
                                     <img src="@scan.OriginalImagePath" alt="Original scan" />
-                                    <span class="pu-img-label">Original</span>
+                                    <figcaption class="pu-img-label">Original</figcaption>
                                 }
                                 else
                                 {
                                     <div class="pu-img-placeholder"><i class="fas fa-image"></i><span>No image</span></div>
                                 }
-                            </div>
+                            </figure>
                             @if (hasResult)
                             {
-                                <div class="pu-img-wrap">
+                                <figure class="pu-img-wrap">
                                     <img src="@scan.ResultImagePath" alt="AI result" />
-                                    <span class="pu-img-label">AI Result</span>
-                                </div>
+                                    <figcaption class="pu-img-label ai"><i class="fas fa-brain"></i> AI Result</figcaption>
+                                </figure>
                             }
                         </div>
                         <div class="pu-scan-body">
-                            <div class="pu-scan-date"><i class="fas fa-calendar-alt"></i> @scan.UploadDate.ToString("MMM dd, yyyy · h:mm tt")</div>
+                            <div class="pu-scan-meta">
+                                <span class="pu-chip"><i class="fas fa-calendar-alt"></i> @scan.UploadDate.ToString("MMM dd, yyyy")</span>
+                                <span class="pu-chip ghost"><i class="far fa-clock"></i> @scan.UploadDate.ToString("h:mm tt")</span>
+                            </div>
                             <div class="pu-scan-doctor"><i class="fas fa-user-md"></i> @drName</div>
                             @if (hasPred)
                             {
@@ -104,19 +127,19 @@
                             @if (conf > 0)
                             {
                                 <div class="pu-confidence">
-                                    <div class="pu-confidence-head"><span>AI Confidence</span><span>@conf.ToString("0.#")%</span></div>
-                                    <div class="pu-confidence-track"><div class="pu-confidence-fill w-@confWidth"></div></div>
+                                    <div class="pu-confidence-head"><span>AI confidence</span><span class="pu-confidence-pct">@conf.ToString("0.#")%</span></div>
+                                    <div class="pu-confidence-track"><div class="pu-confidence-fill" style="width:@confWidth%"></div></div>
                                 </div>
                             }
                             @if (!string.IsNullOrWhiteSpace(scan.DoctorComments))
                             {
                                 <div class="pu-doctor-comment">
-                                    <i class="fas fa-notes-medical"></i>
-                                    <span>@scan.DoctorComments</span>
+                                    <span class="pu-doctor-comment-ico"><i class="fas fa-notes-medical"></i></span>
+                                    <span class="pu-doctor-comment-text">@scan.DoctorComments</span>
                                 </div>
                             }
                         </div>
-                    </div>
+                    </article>
                 }
             </div>
         }
@@ -128,10 +151,10 @@
         @* Upload form *@
         <div class="pu-upload-panel">
             <div class="pu-upload-header">
-                <div class="pu-upload-hicon"><i class="fas fa-cloud-upload-alt"></i></div>
+                <span class="pu-upload-hicon"><i class="fas fa-cloud-upload-alt"></i></span>
                 <div>
-                    <div class="pu-upload-htitle">Save a New Ultrasound Image</div>
-                    <div class="pu-upload-hsub">JPG or PNG, max 10 MB · Add an optional comment</div>
+                    <div class="pu-upload-htitle">Save a new ultrasound image</div>
+                    <div class="pu-upload-hsub">JPG or PNG · up to 10 MB · add an optional note</div>
                 </div>
             </div>
             <div class="pu-upload-body">
@@ -139,18 +162,18 @@
                     @Html.AntiForgeryToken()
                     <div class="pu-form-row">
                         <div class="pu-form-group">
-                            <label for="selfImageFile"><i class="fas fa-image"></i> Image File</label>
+                            <label for="selfImageFile"><i class="fas fa-image"></i> Image file</label>
                             <input type="file" id="selfImageFile" name="ImageFile"
                                    accept=".jpg,.jpeg,.png" class="pu-form-file" required />
                         </div>
                         <div class="pu-form-group">
-                            <label for="selfComment"><i class="fas fa-comment-medical"></i> Comment (optional)</label>
+                            <label for="selfComment"><i class="fas fa-comment-medical"></i> Note <small>(optional)</small></label>
                             <textarea id="selfComment" name="Comment" class="pu-form-textarea"
                                       placeholder="E.g. Week 20 scan taken at City Hospital…"></textarea>
                         </div>
                     </div>
                     <button type="submit" class="pu-submit-btn" id="selfUploadBtn">
-                        <i class="fas fa-cloud-upload-alt"></i> Save Image
+                        <i class="fas fa-cloud-upload-alt"></i> Save image
                     </button>
                 </form>
             </div>
@@ -158,8 +181,8 @@
 
         @* Existing self-uploads *@
         <div class="pu-section-title">
-            <div class="pu-section-title-icon blue"><i class="fas fa-folder-open"></i></div>
-            <h2>Saved Uploads</h2>
+            <span class="pu-dot violet"></span>
+            <h2>Saved uploads</h2>
             <span class="pu-section-badge">@Model.SelfScans.Count upload@(Model.SelfScans.Count != 1 ? "s" : "")</span>
         </div>
 
@@ -167,7 +190,7 @@
             @if (!Model.SelfScans.Any())
             {
                 <div class="pu-empty" id="selfEmptyState">
-                    <div class="pu-empty-icon"><i class="fas fa-folder-open"></i></div>
+                    <div class="pu-empty-icon violet"><i class="fas fa-folder-open"></i></div>
                     <div class="pu-empty-title">No personal uploads yet</div>
                     <div class="pu-empty-sub">Use the form above to save your first ultrasound image.</div>
                 </div>
@@ -186,14 +209,14 @@
                             <div class="pu-self-thumb-placeholder"><i class="fas fa-image"></i></div>
                         }
                         <div class="pu-self-info">
-                            <div class="pu-self-date"><i class="fas fa-clock"></i> @scan.UploadDate.ToString("MMM dd, yyyy · h:mm tt")</div>
+                            <div class="pu-self-date"><i class="far fa-clock"></i> @scan.UploadDate.ToString("MMM dd, yyyy · h:mm tt")</div>
                             @if (!string.IsNullOrWhiteSpace(scan.DoctorComments))
                             {
                                 <div class="pu-self-comment">@scan.DoctorComments</div>
                             }
                             else
                             {
-                                <div class="pu-self-no-comment">No comment added</div>
+                                <div class="pu-self-no-comment">No note added</div>
                             }
                         </div>
                         <button class="pu-self-delete" title="Delete image"
@@ -343,7 +366,7 @@
                 if (!document.querySelector('.pu-self-item')) {
                     document.getElementById('selfScanList').innerHTML =
                         '<div class="pu-empty" id="selfEmptyState">' +
-                        '<div class="pu-empty-icon"><i class="fas fa-folder-open"></i></div>' +
+                        '<div class="pu-empty-icon violet"><i class="fas fa-folder-open"></i></div>' +
                         '<div class="pu-empty-title">No personal uploads yet</div>' +
                         '<div class="pu-empty-sub">Use the form above to save your first ultrasound image.</div>' +
                         '</div>';

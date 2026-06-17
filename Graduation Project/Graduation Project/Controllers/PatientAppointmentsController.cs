@@ -1,3 +1,4 @@
+using Graduation_Project.Data;
 using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
 using Graduation_Project.ViewModels;
@@ -17,6 +18,7 @@ namespace Graduation_Project.Controllers
         private readonly IAlert _alertRepository;
         private readonly IDoctor _doctorRepository;
         private readonly IBooking _bookingRepository;
+        private readonly AppDbContext _context;
 
         public PatientAppointmentsController(
             IPatient patientRepository,
@@ -24,7 +26,8 @@ namespace Graduation_Project.Controllers
             IPatientDoctor patientDoctorRepository,
             IAlert alertRepository,
             IDoctor doctorRepository,
-            IBooking bookingRepository)
+            IBooking bookingRepository,
+            AppDbContext context)
         {
             _patientRepository = patientRepository;
             _appointment = appointment;
@@ -32,6 +35,7 @@ namespace Graduation_Project.Controllers
             _alertRepository = alertRepository;
             _doctorRepository = doctorRepository;
             _bookingRepository = bookingRepository;
+            _context = context;
         }
 
         public IActionResult Appointments(int id)
@@ -75,6 +79,24 @@ namespace Graduation_Project.Controllers
             var primaryDoctor = myDoctors.FirstOrDefault(pd => pd.IsPrimary);
             var unreadAlerts = _alertRepository.GetByPatientId(id).Count(a => !a.IsRead);
 
+            // ── Pregnancy journey context (same computation as the patient dashboard) ──
+            var activePregnancy = _context.PregnancyRecords
+                .Where(r => r.PatientID == id && r.EndDate == null)
+                .OrderByDescending(r => r.StartDate)
+                .FirstOrDefault();
+            var hasActivePregnancy = activePregnancy != null;
+
+            int currentWeek = 0;
+            if (hasActivePregnancy)
+            {
+                int daysSinceStart = (int)(DateTime.Today - activePregnancy!.StartDate.Date).TotalDays;
+                currentWeek = Math.Clamp(daysSinceStart / 7, 0, 40);
+            }
+            else if (patient.GestationalWeeks > 0)
+            {
+                currentWeek = Math.Clamp(patient.GestationalWeeks, 0, 40);
+            }
+
             var viewModel = new PatientAppointmentsViewModel
             {
                 Patient = patient,
@@ -83,7 +105,15 @@ namespace Graduation_Project.Controllers
                 PastAppointments = past,
                 MyDoctors = myDoctors,
                 PrimaryDoctor = primaryDoctor,
-                UnreadAlertsCount = unreadAlerts
+                UnreadAlertsCount = unreadAlerts,
+                HasActivePregnancy = hasActivePregnancy,
+                PregnancyWeek = currentWeek,
+                PregnancyProgressPercent = (int)Math.Round(currentWeek / 40.0 * 100),
+                Trimester = !hasActivePregnancy ? "Not Active"
+                          : currentWeek <= 13 ? "First Trimester"
+                          : currentWeek <= 26 ? "Second Trimester"
+                          : "Third Trimester",
+                DueDate = hasActivePregnancy ? activePregnancy!.StartDate.AddDays(280) : null
             };
 
             return View("~/Views/Patient/Appointments.cshtml", viewModel);
