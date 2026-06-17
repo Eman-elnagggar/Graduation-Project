@@ -66,23 +66,13 @@
   @* ════════════ CHAT MAIN ════════════ *@
   <main class="pm-main">
 
-    <main class="chat-main">
-      <!-- Mobile bar: visible on ≤992px to open conversation list -->
-      <div class="chat-mobile-bar">
-        <button class="mobile-chat-toggle" id="mobileMenuBtn" aria-label="Open conversations">
-          <i class="fas fa-bars"></i>
-          <span>Conversations</span>
-        </button>
-        <span class="mobile-active-user" id="mobileActiveUser" style="font-size:.85rem;font-weight:600;color:#0f1c2e;display:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+    <div class="pm-empty" id="chatEmpty">
+      <div class="empty-content">
+        <div class="empty-icon"><i class="fas fa-comments"></i></div>
+        <h3>Select a conversation</h3>
+        <p>Choose a care team member from the list to start messaging securely.</p>
       </div>
-
-      <div class="chat-empty" id="chatEmpty">
-        <div class="empty-content">
-          <div class="empty-icon"><i class="fas fa-comments"></i></div>
-          <h3>Select a conversation</h3>
-          <p>Choose a care team member from the list to start messaging</p>
-        </div>
-      </div>
+    </div>
 
     <div class="pm-chat" id="chatContainer" style="display:none;">
       <header class="pm-chat-head">

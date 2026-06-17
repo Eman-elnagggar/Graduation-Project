@@ -30,11 +30,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   await ensureSignalRLoaded();
   await setupSignalRConnection();
 
-  // On mobile, auto-show the conversation list on page load
-  if (window.innerWidth <= 992) {
-    toggleSidebar(true);
-  }
-
   const urlDoctor = new URLSearchParams(location.search).get("doctor");
   const urlUser = new URLSearchParams(location.search).get("user");
   const autoTarget = urlUser || urlDoctor;
@@ -216,7 +211,6 @@ function setupEventListeners() {
   });
 
   document.getElementById("mobileMenuBtn")?.addEventListener("click", () => toggleSidebar(true));
-  document.getElementById("chatBackBtn")?.addEventListener("click", () => toggleSidebar(true));
   document.getElementById("sidebarClose")?.addEventListener("click", () => toggleSidebar(false));
   document.getElementById("sidebarOverlay")?.addEventListener("click", () => toggleSidebar(false));
 }
@@ -323,12 +317,6 @@ function selectConversation(id) {
   document.getElementById("chatUserAvatar").src = conversation.avatar;
   document.getElementById("chatUserAvatar").alt = conversation.name;
   document.getElementById("chatUserName").textContent = conversation.name;
-  // Update mobile bar label
-  const mobileLabel = document.getElementById("mobileActiveUser");
-  if (mobileLabel) {
-    mobileLabel.textContent = conversation.name;
-    mobileLabel.style.display = "block";
-  }
   const chatUserRole = document.getElementById("chatUserRole");
   if (chatUserRole) {
     chatUserRole.textContent = getParticipantTypeLabel(conversation.participantType);
@@ -341,10 +329,6 @@ function selectConversation(id) {
   updateFilterCounts();
   loadConversationMessages(conversation);
   toggleSidebar(false);
-  if (window.innerWidth <= 992) {
-    document.querySelector(".chat-main")?.classList.add("active-mobile");
-    document.getElementById("chatSidebar")?.classList.add("hidden-mobile");
-  }
 
   document.getElementById("messageInput")?.focus();
 }
@@ -541,12 +525,9 @@ function handleIncomingMessage(senderId, message, sentAtUtc, attachmentUrl, atta
 }
 
 function updateFilterCounts() {
-  const countAll = document.getElementById("countAll");
-  const countUnread = document.getElementById("countUnread");
-  const countUrgent = document.getElementById("countUrgent");
-  if (countAll) countAll.textContent = String(state.conversations.length);
-  if (countUnread) countUnread.textContent = String(state.conversations.filter(c => c.unreadCount > 0).length);
-  if (countUrgent) countUrgent.textContent = String(state.conversations.filter(c => c.isUrgent).length);
+  document.getElementById("countAll").textContent = String(state.conversations.length);
+  document.getElementById("countUnread").textContent = String(state.conversations.filter(c => c.unreadCount > 0).length);
+  document.getElementById("countUrgent").textContent = String(state.conversations.filter(c => c.isUrgent).length);
 }
 
 function autoResizeTextarea(textarea) {
@@ -596,33 +577,15 @@ function groupMessagesByDate(messages) {
 
 function toggleSidebar(show) {
   const sidebar = document.getElementById("chatSidebar");
-  const chatMain = document.querySelector(".chat-main");
   const overlay = document.getElementById("sidebarOverlay");
-  if (!sidebar) return;
+  if (!sidebar || !overlay) return;
 
-  const isMobile = window.innerWidth <= 992;
-
-  if (isMobile) {
-    if (show) {
-      // Show conversation list panel, hide chat panel
-      sidebar.classList.remove("hidden-mobile");
-      if (chatMain) chatMain.classList.remove("active-mobile");
-    } else {
-      // Hide conversation list, show chat panel
-      sidebar.classList.add("hidden-mobile");
-      if (chatMain) chatMain.classList.add("active-mobile");
-    }
+  if (show) {
+    sidebar.classList.add("show");
+    overlay.classList.add("show");
   } else {
-    // Desktop: overlay behavior (sidebar always visible; overlay is decorative)
-    if (overlay) {
-      if (show) {
-        sidebar.classList.add("show");
-        overlay.classList.add("show");
-      } else {
-        sidebar.classList.remove("show");
-        overlay.classList.remove("show");
-      }
-    }
+    sidebar.classList.remove("show");
+    overlay.classList.remove("show");
   }
 }
 
@@ -658,17 +621,3 @@ function getParticipantTypeClass(type) {
   const normalized = String(type || "Doctor").toLowerCase();
   return normalized === "assistant" ? "assistant" : "doctor";
 }
-
-// On resize from mobile→desktop ensure panels reset to desktop state
-window.addEventListener("resize", function () {
-  const sidebar = document.getElementById("chatSidebar");
-  const chatMain = document.querySelector(".chat-main");
-  if (!sidebar) return;
-
-  if (window.innerWidth > 992) {
-    sidebar.classList.remove("hidden-mobile", "show");
-    if (chatMain) chatMain.classList.remove("active-mobile");
-    const overlay = document.getElementById("sidebarOverlay");
-    if (overlay) overlay.classList.remove("show");
-  }
-});
