@@ -1,0 +1,175 @@
+@model Graduation_Project.ViewModels.AssistantClinicInvitationsPageViewModel
+@{
+    Layout = "~/Views/Shared/_AssistantLayout.cshtml";
+    ViewData["Title"] = "Clinic Invitations";
+    ViewData["AssistantId"] = Model.Assistant.AssistantID;
+    ViewData["ActivePage"] = "ClinicInvitations";
+    ViewData["PageTitleHtml"] = "<i class='fas fa-envelope-open-text' style='margin-right:8px;color:var(--assistant-primary)'></i> Clinic Invitations";
+    ViewData["PageSubtitle"] = "Manage clinic join requests and invitation history";
+}
+
+<div class="ad-wrap">
+
+<!-- Page Header -->
+<header class="header">
+    <div class="header-left">
+        <div class="header-page-icon">
+            <i class="fas fa-envelope-open-text"></i>
+        </div>
+        <div class="header-title-group">
+            <h1>Clinic Invitations</h1>
+            <p>Manage clinic join requests sent to your account</p>
+        </div>
+    </div>
+    <div class="header-right">
+        <span class="invitation-header-badge">
+            <i class="fas fa-clock"></i>
+            @Model.PendingInvitations.Count pending
+        </span>
+    </div>
+</header>
+
+<!-- Alert Messages -->
+@if (TempData["InviteSuccess"] != null)
+{
+    <div class="privacy-notice privacy-notice-success">
+        <i class="fas fa-check-circle"></i>
+        <p>@TempData["InviteSuccess"]</p>
+    </div>
+}
+
+@if (TempData["InviteError"] != null)
+{
+    <div class="privacy-notice privacy-notice-danger">
+        <i class="fas fa-exclamation-circle"></i>
+        <p>@TempData["InviteError"]</p>
+    </div>
+}
+
+<!-- Pending Invitations -->
+<section class="card section-spacing">
+    <div class="card-header">
+        <h3><i class="fas fa-clock"></i> Pending Invitations</h3>
+        <span class="status-badge reviewed">@Model.PendingInvitations.Count pending</span>
+    </div>
+
+    @if (Model.PendingInvitations.Any())
+    {
+        <div class="invitation-list">
+            @foreach (var inv in Model.PendingInvitations)
+            {
+                <div class="invitation-card invitation-card--pending">
+                    <div class="invitation-accent"></div>
+                    <div class="invitation-body">
+                        <div class="invitation-avatar">
+                            <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(inv.DoctorName ?? "Doctor")&background=1976d2&color=fff&size=80"
+                                 alt="@inv.DoctorName" />
+                        </div>
+                        <div class="invitation-info">
+                            <h4>@inv.DoctorName</h4>
+                            <div class="invitation-meta">
+                                <span><i class="fas fa-stethoscope"></i> @(string.IsNullOrWhiteSpace(inv.DoctorSpecialization) ? "General Practice" : inv.DoctorSpecialization)</span>
+                                <span><i class="fas fa-hospital"></i> @inv.ClinicName</span>
+                                <span><i class="fas fa-map-marker-alt"></i> @inv.ClinicLocation</span>
+                                <span><i class="fas fa-calendar-alt"></i> @inv.SentAtUtc.ToLocalTime().ToString("MMM dd, yyyy · hh:mm tt")</span>
+                            </div>
+                        </div>
+                        <div class="invitation-actions">
+                            @using (Html.BeginForm("AcceptClinicInvitation", "Assistant", FormMethod.Post))
+                            {
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@Model.Assistant.AssistantID" />
+                                <input type="hidden" name="invitationId" value="@inv.ClinicInvitationID" />
+                                <button type="submit" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-check"></i> Accept
+                                </button>
+                            }
+                            @using (Html.BeginForm("DeclineClinicInvitation", "Assistant", FormMethod.Post))
+                            {
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@Model.Assistant.AssistantID" />
+                                <input type="hidden" name="invitationId" value="@inv.ClinicInvitationID" />
+                                <button type="submit" class="btn btn-sm btn-outline btn-outline-danger">
+                                    <i class="fas fa-times"></i> Decline
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="empty-state">
+            <i class="fas fa-inbox"></i>
+            <p>No pending clinic invitations right now.</p>
+        </div>
+    }
+</section>
+
+<!-- Invitation History -->
+<section class="card">
+    <div class="card-header">
+        <h3><i class="fas fa-history"></i> Recent Invitation History</h3>
+        <span class="status-badge confirmed">Last @Model.RecentInvitations.Count records</span>
+    </div>
+
+    @if (Model.RecentInvitations.Any())
+    {
+        <div class="invitation-list">
+            @foreach (var inv in Model.RecentInvitations)
+            {
+                var doctorName = $"Dr. {inv.Doctor?.User?.FirstName} {inv.Doctor?.User?.LastName}".Trim();
+                var statusClass = inv.Status?.ToLowerInvariant() switch
+                {
+                    "accepted" => "confirmed",
+                    "declined" => "danger",
+                    "cancelled" => "danger",
+                    _ => "reviewed"
+                };
+                var statusIcon = inv.Status?.ToLowerInvariant() switch
+                {
+                    "accepted" => "fa-check-circle",
+                    "declined" => "fa-times-circle",
+                    "cancelled" => "fa-ban",
+                    _ => "fa-clock"
+                };
+
+                <div class="invitation-card invitation-card--history">
+                    <div class="invitation-body">
+                        <div class="invitation-avatar invitation-avatar--sm">
+                            <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(doctorName)&background=6b7280&color=fff&size=80"
+                                 alt="@doctorName" />
+                        </div>
+                        <div class="invitation-info">
+                            <h4>@doctorName</h4>
+                            <div class="invitation-meta">
+                                <span><i class="fas fa-hospital"></i> @(inv.Clinic?.Name ?? "Clinic")</span>
+                                <span><i class="fas fa-calendar-alt"></i> Sent @inv.SentAtUtc.ToLocalTime().ToString("MMM dd, yyyy")</span>
+                                @if (inv.RespondedAtUtc.HasValue)
+                                {
+                                    <span><i class="fas fa-reply"></i> Responded @inv.RespondedAtUtc.Value.ToLocalTime().ToString("MMM dd, yyyy")</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="invitation-status">
+                            <span class="status-badge @statusClass">
+                                <i class="fas @statusIcon"></i> @inv.Status
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="empty-state">
+            <i class="fas fa-folder-open"></i>
+            <p>No invitation history yet.</p>
+        </div>
+    }
+</section>
+
+</div>

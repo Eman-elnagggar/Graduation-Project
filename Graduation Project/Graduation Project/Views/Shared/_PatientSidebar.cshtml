@@ -10,10 +10,10 @@
     <div class="sidebar-brand">
         <div class="brand-logo">
             <div class="brand-icon">
-                <i class="fas fa-heartbeat"></i>
+                <img src="~/images/logo.png" alt="NABD Logo" asp-append-version="true" />
             </div>
             <div class="brand-text">
-                <span class="brand-name">MamaCare</span>
+                <span class="brand-name">NABD - نبض</span>
                 <span class="brand-badge">Patient Portal</span>
             </div>
         </div>
@@ -22,7 +22,7 @@
     <!-- User Profile Card -->
     <div class="sidebar-profile">
         <div class="profile-avatar">
-            <img src="https://ui-avatars.com/api/?name=Patient&background=1baebe&color=fff&size=80" alt="Patient Avatar" />
+            <img src="https://ui-avatars.com/api/?name=Patient&background=fb7185&color=fff&size=80" alt="Patient Avatar" />
             <span class="online-dot"></span>
         </div>
         <div class="profile-info">
@@ -42,34 +42,40 @@
                 <div class="nav-icon"><i class="fas fa-home"></i></div>
                 <span>Dashboard</span>
             </a>
-            <a href="#" class="nav-item @(activePage == "Tests" ? "active" : "")" data-tooltip="Tests Upload">
+            <a href="/PatientTests/TestsUpload/@patientId" class="nav-item @(activePage == "Tests" ? "active" : "")" data-tooltip="Test Analysis">
                 <div class="nav-icon"><i class="fas fa-flask"></i></div>
-                <span>Tests Upload</span>
+                <span>Test Analysis</span>
             </a>
-            <a href="#" class="nav-item @(activePage == "Products" ? "active" : "")" data-tooltip="Product Safety">
+            <a href="/ProductScan/Index/@patientId" class="nav-item @(activePage == "Products" ? "active" : "")" data-tooltip="Product Safety">
                 <div class="nav-icon"><i class="fas fa-shield-alt"></i></div>
                 <span>Product Safety</span>
             </a>
-            <a href="/Patient/Places/@patientId"
+            <a href="/PatientPlaces/Places/@patientId"
                class="nav-item @(activePage == "Places" ? "active" : "")" data-tooltip="My Places">
                 <div class="nav-icon"><i class="fas fa-map-marker-alt"></i></div>
                 <span>My Places</span>
             </a>
-            <a href="/Patient/Appointments/@patientId"
+            <a href="/PatientAppointments/Appointments/@patientId"
                class="nav-item @(activePage == "Appointments" ? "active" : "")" data-tooltip="Appointments">
                 <div class="nav-icon"><i class="fas fa-calendar-check"></i></div>
                 <span>Appointments</span>
+            </a>
+            <a href="/Patient/Messages/@patientId"
+               class="nav-item @(activePage == "Messages" ? "active" : "")" data-tooltip="Messages">
+                <div class="nav-icon"><i class="fas fa-comments"></i></div>
+                <span>Messages</span>
+                <span class="nav-msg-badge" id="sidebarMsgBadge" style="display:none;"></span>
             </a>
         </div>
 
         <!-- Health & Community Section -->
         <div class="nav-section">
             <span class="nav-section-label">Health & Community</span>
-            <a href="#" class="nav-item @(activePage == "Chatbot" ? "active" : "")" data-tooltip="Chatbot">
+            <a href="/Chatbot/Index/@patientId" class="nav-item @(activePage == "Chatbot" ? "active" : "")" data-tooltip="Chatbot">
                 <div class="nav-icon"><i class="fas fa-robot"></i></div>
                 <span>Chatbot</span>
             </a>
-            <a href="#" class="nav-item @(activePage == "Community" ? "active" : "")" data-tooltip="Community">
+            <a href="/Community/Index/@patientId" class="nav-item @(activePage == "Community" ? "active" : "")" data-tooltip="Community">
                 <div class="nav-icon"><i class="fas fa-users"></i></div>
                 <span>Community</span>
             </a>
@@ -78,19 +84,40 @@
         <!-- Records Section -->
         <div class="nav-section">
             <span class="nav-section-label">Records</span>
-            <a href="/Patient/MedicalHistory/@patientId"
+            <a href="/PatientMedicalHistory/MedicalHistory/@patientId"
                class="nav-item @(activePage == "MedicalHistory" ? "active" : "")"
                data-tooltip="Medical History">
                 <div class="nav-icon"><i class="fas fa-file-medical"></i></div>
                 <span>Medical History</span>
             </a>
-            <a href="/Patient/Alerts/@patientId"
+            <a href="/Prescription/Index/@patientId"
+               class="nav-item @(activePage == "Prescriptions" ? "active" : "")"
+               data-tooltip="Prescriptions">
+                <div class="nav-icon"><i class="fas fa-prescription-bottle-alt"></i></div>
+                <span>Prescriptions</span>
+            </a>
+
+            <a href="/Patient/UltrasoundHistory/@patientId"
+                   class="nav-item @(activePage == "Ultrasound" ? "active" : "")"
+                   data-tooltip="Ultrasound History">
+                <div class="nav-icon"><i class="fas fa-wave-square"></i></div>
+                <span>Ultrasound History</span>
+            </a>
+
+            <a href="/PatientAlerts/Alerts/@patientId"
                class="nav-item @(activePage == "Alerts" ? "active" : "")"
                data-tooltip="Alerts">
                 <div class="nav-icon"><i class="fas fa-bell"></i></div>
                 <span>Alerts</span>
             </a>
-            <a href="#" class="nav-item @(activePage == "Profile" ? "active" : "")" data-tooltip="My Profile">
+            <a href="/PatientMedication/Index/@patientId"
+               class="nav-item @(activePage == "Medications" ? "active" : "")"
+               data-tooltip="Medications">
+                <div class="nav-icon"><i class="fas fa-pills"></i></div>
+                <span>Medications</span>
+            </a>
+            <a href="/PatientProfile/Index/@patientId"
+               class="nav-item @(activePage == "Profile" ? "active" : "")" data-tooltip="My Profile">
                 <div class="nav-icon"><i class="fas fa-user-circle"></i></div>
                 <span>My Profile</span>
             </a>
@@ -99,7 +126,7 @@
 
     <!-- Sidebar Footer -->
     <div class="sidebar-footer">
-        <a href="#" class="nav-item logout-item" data-tooltip="Logout">
+        <a asp-controller="Account" asp-action="LogoutGet" class="nav-item logout-item" data-tooltip="Logout">
             <div class="nav-icon"><i class="fas fa-sign-out-alt"></i></div>
             <span>Logout</span>
         </a>

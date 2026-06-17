@@ -1,0 +1,95 @@
+@using System.Linq
+@model Graduation_Project.ViewModels.PatientMedicationDailyViewModel
+@{
+    Layout = "~/Views/Shared/_PatientLayout.cshtml";
+    ViewData["Title"] = "Daily Medications";
+    ViewData["PatientId"] = Model.Patient.PatientID;
+    ViewData["ActivePage"] = "Medications";
+    ViewData["UserName"] = Model.UserName;
+    ViewData["PageTitleHtml"] = "Today's <span class='topbar-accent'>Medication</span> Plan";
+    ViewData["PageSubtitle"] = Model.Date.ToString("dddd, MMMM dd, yyyy");
+
+    var scheduledCount = Model.DueSlots.Count;
+    var takenCount = Model.DueSlots.Count(s => s.Status == Graduation_Project.Models.MedicationLogStatus.Taken);
+    var pendingCount = Model.DueSlots.Count(s => s.Status == Graduation_Project.Models.MedicationLogStatus.Scheduled);
+}
+
+@Html.AntiForgeryToken()
+<input type="hidden" id="patientId" value="@Model.Patient.PatientID" />
+
+<section class="pm-page pd-wrap" data-patient-medications>
+    <div class="pm-hero">
+        <div class="pm-hero-left">
+            <span class="pm-hero-eyebrow"><i class="fas fa-calendar-check"></i> Daily Dose Timeline</span>
+            <h2>Today's Schedule</h2>
+            <p>@Model.Date.ToString("MMM dd, yyyy")</p>
+        </div>
+        <div class="pm-hero-actions">
+            <a class="btn btn-outline" href="/PatientMedication/Index/@Model.Patient.PatientID"><i class="fas fa-arrow-left"></i> Back</a>
+        </div>
+    </div>
+
+    <div class="pm-stats">
+        <div class="pm-stat-card">
+            <div class="pm-stat-icon"><i class="fas fa-clock"></i></div>
+            <span class="pm-stat-label">Scheduled Doses</span>
+            <strong class="pm-stat-value">@scheduledCount</strong>
+        </div>
+        <div class="pm-stat-card">
+            <div class="pm-stat-icon"><i class="fas fa-check-circle"></i></div>
+            <span class="pm-stat-label">Taken</span>
+            <strong class="pm-stat-value">@takenCount</strong>
+        </div>
+        <div class="pm-stat-card">
+            <div class="pm-stat-icon"><i class="fas fa-hourglass-start"></i></div>
+            <span class="pm-stat-label">Pending</span>
+            <strong class="pm-stat-value">@pendingCount</strong>
+        </div>
+    </div>
+
+    <div class="pm-grid pm-grid-single">
+        @if (Model.DueSlots.Any())
+        {
+            foreach (var slot in Model.DueSlots)
+            {
+                <article class="pm-card" data-medication-id="@slot.MedicationId" data-scheduled-at="@slot.ScheduledAt.ToString("O")">
+                    <div class="card-header">
+                        <div class="card-header-left">
+                            <div class="card-ico teal"><i class="fas fa-pills"></i></div>
+                            <div>
+                                <div class="card-title">@slot.MedicationName</div>
+                                <div class="card-sub">Scheduled dose</div>
+                            </div>
+                        </div>
+                        <span class="pm-tag is-time">@slot.ScheduledAt.ToString("h:mm tt")</span>
+                    </div>
+                    <div class="pm-card-body">
+                        <div class="pm-row"><span>Dosage</span><strong>@(string.IsNullOrWhiteSpace(slot.Dosage) ? "Not specified" : slot.Dosage)</strong></div>
+                        <div class="pm-row"><span>Status</span><strong><span class="med-status">@slot.Status</span></strong></div>
+                        <div class="pm-note">
+                            <i class="fas fa-note-sticky"></i>
+                            <span>@(string.IsNullOrWhiteSpace(slot.Instructions) ? "No additional instructions." : slot.Instructions)</span>
+                        </div>
+                    </div>
+                    <div class="pm-card-actions">
+                        <button class="btn btn-success" data-action="Taken">Taken</button>
+                        <button class="btn btn-warning" data-action="Skipped">Skipped</button>
+                        <button class="btn btn-danger" data-action="Missed">Missed</button>
+                    </div>
+                </article>
+            }
+        }
+        else
+        {
+            <div class="pm-empty">
+                <i class="fas fa-check-circle"></i>
+                <h3>No scheduled doses for today</h3>
+                <p>You are all clear for now. Check tomorrow or review your medications list.</p>
+            </div>
+        }
+    </div>
+</section>
+
+@section Scripts {
+    <script src="~/js/patient-medications.js" asp-append-version="true"></script>
+}

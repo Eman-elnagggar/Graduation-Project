@@ -1,0 +1,554 @@
+@{
+    Layout = "~/Views/Shared/_PatientLayout.cshtml";
+    ViewData["Title"] = "Lab Analysis";
+    ViewData["ActivePage"] = "Tests";
+    ViewData["HidePageHeader"] = true;
+}
+
+@functions {
+    public class SessionRow
+    {
+        public DateTime Date { get; set; }
+        public List<string> Names { get; set; } = new();
+        public string Status { get; set; } = "";
+        public string? Overall { get; set; }
+        public bool HasReport { get; set; }
+        public int ViewTestId { get; set; }
+        public List<ImageRef> Images { get; set; } = new();
+    }
+
+    public class ImageRef
+    {
+        public string Name { get; set; } = "";
+        public string Path { get; set; } = "";
+    }
+}
+
+@{
+    var token = Html.AntiForgeryToken();
+
+    var testTypeNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        { "cbc",       "CBC" },
+        { "urinalysis","Urinalysis" },
+        { "tsh",       "TSH" },
+        { "ferritin",  "Ferritin" },
+        { "fbg",       "FBG" },
+        { "hba1c",     "HbA1c" },
+        { "hcv",       "HCV" },
+        { "hbsag",     "HBsAg" },
+        { "bloodgroup","Blood Group" }
+    };
+
+    string ResolveName(string? testType, string? testName) =>
+        testTypeNames.TryGetValue(testType ?? "", out var rn) ? rn
+        : (!string.IsNullOrWhiteSpace(testName) ? testName! : testType ?? "Unknown");
+
+    string ResultText(string? overall) =>
+        (overall ?? "").ToLower() switch
+        {
+            "all values normal"        => "Normal",
+            "normal"                   => "Normal",
+            "abnormal values detected" => "Abnormal",
+            "abnormal"                 => "Abnormal",
+            "some values below normal" => "Attention",
+            "requires attention"       => "Attention",
+            "attention"                => "Attention",
+            _ => string.IsNullOrWhiteSpace(overall) ? "—" : overall
+        };
+
+    string ResultClass(string? overall) =>
+        (overall ?? "").ToLower() switch
+        {
+            "all values normal"        => "normal",
+            "normal"                   => "normal",
+            "abnormal values detected" => "high",
+            "abnormal"                 => "high",
+            "some values below normal" => "warning",
+            "requires attention"       => "warning",
+            "attention"                => "warning",
+            _ => "pending"
+        };
+
+    string ShortStatus(string? status) =>
+        (status ?? "").ToLower() switch
+        {
+            "completed"  => "Reviewed",
+            "reviewed"   => "Reviewed",
+            "processing" => "Processing",
+            "failed"     => "Failed",
+            _ => string.IsNullOrWhiteSpace(status) ? "Pending" : status!
+        };
+
+    string StatusDot(string? status) =>
+        (status ?? "").ToLower() is "completed" or "reviewed" ? "reviewed" : "pending";
+
+    var previousTests = ViewBag.PreviousTests as IEnumerable<Graduation_Project.Models.LabTest>
+                        ?? Enumerable.Empty<Graduation_Project.Models.LabTest>();
+
+    var sessions = previousTests
+        .Where(t => t.ReportID.HasValue)
+        .GroupBy(t => t.ReportID!.Value)
+        .Select(g =>
+        {
+            var sorted = g.OrderBy(t => t.UploadDate).ToList();
+            var report = sorted.Select(t => t.TestReport).FirstOrDefault(r => r != null);
+            return new SessionRow
+            {
+                Date       = sorted.Max(t => t.UploadDate),
+                Names      = sorted.Select(t => ResolveName(t.TestType, t.TestName)).ToList(),
+                Status     = report?.AnalysisStatus ?? sorted.Last().AnalysisStatus ?? "",
+                Overall    = report?.OverallStatus,
+                HasReport  = report?.OverallStatus != null,
+                ViewTestId = sorted.FirstOrDefault(t => t.TestReport?.OverallStatus != null)?.LabTestID
+                             ?? sorted.Last().LabTestID,
+                Images     = sorted.Where(t => !string.IsNullOrWhiteSpace(t.ImagePath))
+                                   .Select(t => new ImageRef { Name = ResolveName(t.TestType, t.TestName), Path = t.ImagePath! })
+                                   .ToList()
+            };
+        })
+        .Concat(previousTests
+            .Where(t => !t.ReportID.HasValue)
+            .Select(t => new SessionRow
+            {
+                Date       = t.UploadDate,
+                Names      = new List<string> { ResolveName(t.TestType, t.TestName) },
+                Status     = t.AnalysisStatus ?? "",
+                Overall    = null,
+                HasReport  = false,
+                ViewTestId = t.LabTestID,
+                Images     = string.IsNullOrWhiteSpace(t.ImagePath)
+                             ? new List<ImageRef>()
+                             : new List<ImageRef> { new ImageRef { Name = ResolveName(t.TestType, t.TestName), Path = t.ImagePath! } }
+            }))
+        .OrderByDescending(s => s.Date)
+        .ToList();
+
+    var recentSessions = sessions.Take(5).ToList();
+
+    void RenderRow(SessionRow s)
+    {
+        var joined     = string.Join(", ", s.Names);
+        var resultText = ResultText(s.Overall);
+        var resultCls  = ResultClass(s.Overall);
+        var imagesJson = s.Images.Any()
+            ? System.Text.Json.JsonSerializer.Serialize(s.Images.Select(i => new { name = i.Name, path = i.Path }))
+            : "";
+
+        <div class="lhrow">
+            <div class="lhrow-cal">
+                <span class="lhrow-day">@s.Date.ToString("dd")</span>
+                <span class="lhrow-mon">@s.Date.ToString("MMM")</span>
+            </div>
+            <div class="lhrow-body">
+                <div class="lhrow-names">
+                    <span>@s.Names[0]</span>
+                    @if (s.Names.Count > 1)
+                    {
+                        <span class="lhrow-more">+@(s.Names.Count - 1) more</span>
+                    }
+                </div>
+                <div class="lhrow-meta">
+                    <span><i class="far fa-clock"></i>@s.Date.ToString("MMM dd, yyyy · HH:mm")</span>
+                    <span class="lhrow-status"><span class="tu-status-dot @StatusDot(s.Status)"></span> @ShortStatus(s.Status)</span>
+                </div>
+            </div>
+            <div class="lhrow-right">
+                @if (s.HasReport)
+                {
+                    <span class="tu-result-badge @resultCls">@resultText</span>
+                }
+                else
+                {
+                    <span class="lhrow-processing"><i class="fas fa-spinner"></i> Processing</span>
+                }
+                <div class="lhrow-actions">
+                    @if (s.Images.Any())
+                    {
+                        <button class="lh-action tu-btn-view-images"
+                                data-images="@imagesJson"
+                                data-test-name="@joined"
+                                data-test-date="@s.Date.ToString("MMM dd, yyyy")"
+                                type="button" title="View images">
+                            <i class="fas fa-images"></i>
+                        </button>
+                    }
+                    @if (s.HasReport)
+                    {
+                        <button class="lh-action lh-action-primary tu-btn-view-report"
+                                data-test-id="@s.ViewTestId"
+                                data-test-name="@joined"
+                                data-test-date="@s.Date.ToString("MMM dd, yyyy")"
+                                data-result="@resultText"
+                                data-result-class="@resultCls"
+                                type="button" title="View report">
+                            <i class="fas fa-file-medical-alt"></i> <span class="lh-action-lbl">Report</span>
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@token
+
+<div class="lab-journey">
+
+    <!-- ══ RESUME BANNER ══ -->
+    <div id="pendingAnalysisBanner" class="tu-resume-banner" style="display:none" role="alert">
+        <div class="tu-resume-banner-inner">
+            <i class="fas fa-brain tu-resume-icon"></i>
+            <div class="tu-resume-text">
+                <strong>Analysis in progress</strong>
+                <span id="pendingAnalysisBannerMsg">Your previous analysis is still running. Resuming automatically…</span>
+            </div>
+            <button class="lh-action" type="button" id="dismissPendingBanner" aria-label="Dismiss"><i class="fas fa-times"></i></button>
+        </div>
+    </div>
+
+    <!-- ══ INTRO + JOURNEY STEPPER ══ -->
+    <section class="lj-intro">
+        <div class="lj-intro-top">
+            <div class="lj-intro-mark"><i class="fas fa-heart-pulse"></i></div>
+            <div class="lj-intro-titles">
+                <span class="lj-ai-chip"><i class="fas fa-wand-magic-sparkles"></i> AI Health Assistant</span>
+                <h1>Upload your lab report and let <span class="lj-accent">Nabd</span> help you understand the results.</h1>
+                <p>A gentle, three-step journey — share your report, confirm what we read, and receive clear, reassuring insights about you and your baby.</p>
+            </div>
+        </div>
+        <nav class="lj-steps" aria-label="Progress">
+            <div class="ls-item active" id="step1">
+                <div class="ls-dot"><span class="tu-step-num">1</span><i class="fas fa-check tu-step-check" style="display:none"></i></div>
+                <span class="ls-lbl">Upload</span>
+                <span class="ls-sub">your report</span>
+            </div>
+            <span class="ls-track" id="conn1"></span>
+            <div class="ls-item" id="step2">
+                <div class="ls-dot"><span class="tu-step-num">2</span><i class="fas fa-check tu-step-check" style="display:none"></i></div>
+                <span class="ls-lbl">Review</span>
+                <span class="ls-sub">the values</span>
+            </div>
+            <span class="ls-track" id="conn2"></span>
+            <div class="ls-item" id="step3">
+                <div class="ls-dot"><span class="tu-step-num">3</span><i class="fas fa-check tu-step-check" style="display:none"></i></div>
+                <span class="ls-lbl">Insights</span>
+                <span class="ls-sub">from AI</span>
+            </div>
+        </nav>
+    </section>
+
+    <!-- ══ STEP 1 · UPLOAD ══ -->
+    <section class="lj-panel" id="section-upload">
+        <div class="lcard">
+            <div class="ucard-body">
+
+                <div class="ustep">
+                    <span class="ustep-num">1</span>
+                    <div class="ustep-head">
+                        <h2>Which test is this?</h2>
+                        <p>So Nabd knows exactly what it’s reading.</p>
+                    </div>
+                </div>
+                <div class="lfg">
+                    <div class="lsel-wrap">
+                        <select id="testType" class="lsel" aria-label="Test type">
+                            <option value="">Select a test type…</option>
+                            <option value="cbc">CBC (Complete Blood Count)</option>
+                            <option value="urinalysis">Urinalysis</option>
+                            <option value="tsh">TSH (Thyroid)</option>
+                            <option value="ferritin">Ferritin</option>
+                            <option value="fbg">Fasting Blood Glucose</option>
+                            <option value="hba1c">HbA1c (Sugar Test)</option>
+                            <option value="hcv">HCV (Hepatitis C)</option>
+                            <option value="hbsag">HBsAg (Hepatitis B)</option>
+                            <option value="bloodgroup">Blood Group</option>
+                        </select>
+                        <i class="fas fa-chevron-down lsel-chevron"></i>
+                    </div>
+                    <p class="lfhint" id="testTypeHint"><i class="fas fa-circle-info"></i> Pick a type, then add your photo below.</p>
+                    <p class="lfhint lfhint--error" id="testTypeError" style="display:none"><i class="fas fa-exclamation-circle"></i> Please choose a test type first.</p>
+                </div>
+
+                <div class="ustep">
+                    <span class="ustep-num">2</span>
+                    <div class="ustep-head">
+                        <h2>Add your result</h2>
+                        <p>A clear photo or PDF of the lab report works best.</p>
+                    </div>
+                </div>
+                <div class="ldz" id="uploadZone">
+                    <div class="ldz-icn"><i class="fas fa-cloud-arrow-up"></i></div>
+                    <p class="ldz-title">Drop your report here, or <span class="ldz-link">browse files</span></p>
+                    <span class="ldz-hint"><i class="fas fa-shield-heart"></i> JPG · PNG · PDF · up to 10 MB · private &amp; secure</span>
+                    <input type="file" id="fileInput" accept="image/*,.pdf" multiple style="display:none" />
+                </div>
+
+                <div id="queuedFilesList" style="display:none">
+                    <p class="lq-hd">Ready to analyze</p>
+                    <div id="queuedFilesInner"></div>
+                </div>
+
+                <div class="ucard-ft">
+                    <button class="lbtn lbtn-ghost" id="addMoreTests" type="button"><i class="fas fa-plus"></i> Add another file</button>
+                    <button class="lbtn lbtn-primary lbtn-lg" id="sendToAIBtn" type="button" style="display:none">
+                        <i class="fas fa-wand-magic-sparkles"></i> Analyze <span class="lbadge" id="fileCountBadge">0</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══ STEP 2 · REVIEW ══ -->
+    <section class="lj-panel" id="uploadedTestsSection" style="display:none">
+        <div class="lcard">
+            <div class="lcard-hd lcard-hd--flex">
+                <div>
+                    <span class="lcard-eyebrow"><i class="fas fa-list-check"></i> Step 2 of 3</span>
+                    <h2 class="lcard-title">Review your values</h2>
+                    <p class="lcard-sub">Please review these values before generating your AI analysis. Tap any number to correct it.</p>
+                </div>
+                <button class="lbtn lbtn-danger-ghost" id="clearAllTests" type="button"><i class="fas fa-trash"></i> Clear all</button>
+            </div>
+
+            <div class="lext" id="extractionProgress" style="display:none">
+                <div class="lext-track"><div class="lext-fill" id="extractionBarFill"></div></div>
+                <p class="lext-status" id="extractionStatus">Reading your report…</p>
+            </div>
+
+            <div id="uploadedTestsList"></div>
+
+            <div class="lsubmit-row" id="submitRow" style="display:none">
+                <p class="lsubmit-info"><i class="fas fa-circle-check"></i> Confirm each test looks right, then continue to your insights.</p>
+                <div class="lsubmit-actions">
+                    <span class="lapprove-ct" id="approvalCounter">0 / 0 approved</span>
+                    <button class="lbtn lbtn-primary lbtn-lg" id="submitAllTests" type="button" disabled>
+                        <i class="fas fa-lock"></i> Approve all tests to continue
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══ STEP 3 · AI REPORT ══ -->
+    <section class="lj-panel" id="comprehensiveResults" style="display:none">
+        <div class="lcard lcard--report">
+            <div class="lcard-hd lcard-hd--flex">
+                <div>
+                    <span class="lcard-eyebrow"><i class="fas fa-wand-magic-sparkles"></i> Your AI insights</span>
+                    <h2 class="lcard-title">What your results mean</h2>
+                    <p class="lcard-sub" id="reportSubtitle">A clear, supportive summary based on your submitted tests.</p>
+                </div>
+                <span class="lconf-badge" id="overallConfidence" style="display:none"><i class="fas fa-brain"></i> Confidence: —</span>
+            </div>
+
+            <!-- loading -->
+            <div id="reportLoading" class="lreport-loading">
+                <div class="lreport-loading-inner">
+                    <div class="lreport-spinner"><i class="fas fa-brain"></i></div>
+                    <h4>Reading your results with care…</h4>
+                    <p>Nabd is gently cross-checking every value against pregnancy-safe ranges to prepare your insights.</p>
+                    <div class="lload-steps" id="loadingSteps"></div>
+                    <div class="lload-bar"><div class="lload-bar-fill" id="reportBarFill"></div></div>
+                    <p class="tu-close-note"><i class="fas fa-circle-info"></i> You can safely leave this page — your analysis keeps running. Come back anytime to see it.</p>
+                </div>
+            </div>
+
+            <!-- error -->
+            <div id="reportError" style="display:none" class="tu-report-error-section">
+                <div class="tu-report-error-inner">
+                    <i class="fas fa-heart-crack tu-report-error-icon"></i>
+                    <h4>We couldn’t finish your analysis</h4>
+                    <p id="reportErrorMsg" class="tu-report-error-msg">Something went wrong while analyzing your tests.</p>
+                    <div class="tu-report-error-actions">
+                        <button class="lbtn lbtn-ghost" id="reportErrorBackBtn" type="button"><i class="fas fa-arrow-left"></i> Back to review</button>
+                        <button class="lbtn lbtn-primary" id="reportErrorRetryBtn" type="button"><i class="fas fa-redo"></i> Try again</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ready -->
+            <div id="reportReady" style="display:none">
+                <div class="tu-report-verdict-row" id="reportVerdictRow"></div>
+                <div id="comprehensiveReportContent"></div>
+                <div class="lreport-actions">
+                    <button class="lbtn lbtn-primary" id="downloadReportBtn" type="button"><i class="fas fa-download"></i> Download Report</button>
+                    <button class="lbtn lbtn-outline" id="shareWithDoctorBtn" type="button"><i class="fas fa-share-alt"></i> Share with Doctor</button>
+                    <button class="lbtn lbtn-ghost" id="uploadMoreBtn" type="button"><i class="fas fa-plus"></i> Analyze another report</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══ RECENT REPORTS (secondary) ══ -->
+    <section class="lj-panel">
+        <div class="lcard">
+            <div class="lhist">
+                <div class="lhist-head">
+                    <div>
+                        <h3>Recent reports</h3>
+                        <p>Your latest analyses, newest first.</p>
+                    </div>
+                    @if (sessions.Count > 5)
+                    {
+                        <button class="lhist-viewall" id="viewAllReportsBtn" type="button">
+                            <i class="fas fa-clock-rotate-left"></i> View all reports
+                        </button>
+                    }
+                </div>
+
+                @if (!sessions.Any())
+                {
+                    <div class="lhist-empty">
+                        <div class="lhist-empty-emoji">🧪</div>
+                        <h4>No reports yet</h4>
+                        <p>Your first analysis will appear here, ready whenever you need it.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="lhist-list">
+                        @foreach (var s in recentSessions) { RenderRow(s); }
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- ══════════ VIEW ALL REPORTS MODAL ══════════ -->
+@if (sessions.Count > 5)
+{
+    <div id="allReportsModal" class="tu-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="allReportsTitle" style="display:none">
+        <div class="tu-modal">
+            <div class="tu-modal-hdr">
+                <div class="tu-modal-hdr-left">
+                    <div class="tu-card-icon-wrap tu-icon-history"><i class="fas fa-clock-rotate-left"></i></div>
+                    <div>
+                        <h3 id="allReportsTitle">All your reports</h3>
+                        <p>@sessions.Count total · newest first</p>
+                    </div>
+                </div>
+                <div class="tu-modal-hdr-right">
+                    <button class="tu-modal-close" type="button" data-close-all-reports aria-label="Close"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+            <div class="tu-modal-body tu-all-reports-body">
+                <div class="lhist-list">
+                    @foreach (var s in sessions) { RenderRow(s); }
+                </div>
+            </div>
+            <div class="tu-modal-footer">
+                <button class="lbtn lbtn-ghost" type="button" data-close-all-reports><i class="fas fa-times"></i> Close</button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ══════════ IMAGE GALLERY MODAL ══════════ -->
+<div id="tuImageGallery" class="tu-gallery-overlay" role="dialog" aria-modal="true" aria-label="Test Images" style="display:none">
+    <div class="tu-gallery">
+        <div class="tu-gallery-hdr">
+            <div class="tu-gallery-hdr-left">
+                <div class="tu-card-icon-wrap tu-icon-history"><i class="fas fa-images"></i></div>
+                <div>
+                    <h4 id="tuGalleryTitle">Test Images</h4>
+                    <p id="tuGallerySubtitle"></p>
+                </div>
+            </div>
+            <button id="tuGalleryClose" class="tu-modal-close" type="button" aria-label="Close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="tu-gallery-body">
+            <div id="tuGalleryGrid" class="tu-gallery-grid"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════ REPORT MODAL ══════════ -->
+<div id="tuReportModal" class="tu-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="tuModalTitle" style="display:none">
+    <div class="tu-modal" tabindex="-1">
+        <div class="tu-modal-hdr">
+            <div class="tu-modal-hdr-left">
+                <div class="tu-card-icon-wrap tu-icon-report"><i class="fas fa-file-medical-alt"></i></div>
+                <div>
+                    <h3 id="tuModalTitle">Test Report</h3>
+                    <p id="tuModalSubtitle">Loading report…</p>
+                </div>
+            </div>
+            <div class="tu-modal-hdr-right">
+                <span id="tuModalResultBadge" class="tu-badge-status" style="display:none"></span>
+                <button class="tu-modal-close" id="tuModalClose" type="button" aria-label="Close"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+        <div class="tu-modal-body" id="tuModalBody">
+            <div id="tuModalLoading" class="tu-modal-loading-wrap">
+                <div class="tu-report-spinner"><i class="fas fa-brain"></i></div>
+                <p>Fetching your report…</p>
+            </div>
+            <div id="tuModalContent" style="display:none">
+                <div id="tuModalVerdictRow" class="tu-report-verdict-row"></div>
+                <div id="tuModalReportContent"></div>
+            </div>
+            <div id="tuModalError" style="display:none" class="tu-report-error-section">
+                <div class="tu-report-error-inner">
+                    <i class="fas fa-circle-exclamation tu-report-error-icon"></i>
+                    <p id="tuModalErrorMsg" class="tu-report-error-msg">Could not load the report.</p>
+                </div>
+            </div>
+        </div>
+        <div class="tu-modal-footer">
+            <button class="lbtn lbtn-ghost" id="tuModalCloseFooter" type="button"><i class="fas fa-times"></i> Close</button>
+            <button class="lbtn lbtn-outline" id="tuModalDownloadBtn" type="button" style="display:none"><i class="fas fa-download"></i> Download PDF</button>
+            <button class="lbtn lbtn-primary" id="tuModalShareBtn" type="button" style="display:none"><i class="fas fa-share-alt"></i> Share with Doctor</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════ SHARE WITH DOCTOR MODAL ══════════ -->
+<div id="shareReportModal" class="tu-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="shareReportModalTitle" style="display:none">
+    <div class="tu-modal" style="max-width:440px">
+        <div class="tu-modal-hdr">
+            <div class="tu-modal-hdr-left">
+                <div class="tu-card-icon-wrap tu-icon-report"><i class="fas fa-share-alt"></i></div>
+                <div>
+                    <h5 id="shareReportModalTitle" class="tu-modal-title">Share with Doctor</h5>
+                    <p>Send your AI report as a PDF</p>
+                </div>
+            </div>
+            <div class="tu-modal-hdr-right">
+                <button class="tu-modal-close" id="shareReportModalClose" type="button" aria-label="Close"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+        <div class="tu-modal-body" style="padding:1.25rem 1.5rem">
+            <p style="margin:0 0 1rem;font-size:.86rem;color:var(--ink-2);line-height:1.55">
+                The report will be generated as a PDF and sent straight to your doctor’s chat.
+            </p>
+            <label for="shareReportDoctorSelect" style="display:block;margin-bottom:.45rem;font-size:.82rem;font-weight:700;color:var(--ink)">Select doctor</label>
+            <div class="lsel-wrap">
+                <select id="shareReportDoctorSelect" class="lsel"></select>
+                <i class="fas fa-chevron-down lsel-chevron"></i>
+            </div>
+        </div>
+        <div class="tu-modal-footer">
+            <button type="button" class="lbtn lbtn-ghost" id="shareReportCancelBtn">Cancel</button>
+            <button type="button" class="lbtn lbtn-primary" id="shareReportConfirmBtn"><i class="fas fa-paper-plane"></i> Send report</button>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/patient-tests.css" asp-append-version="true" />
+}
+
+@section Scripts {
+    <script>
+        window.NABD_TESTS = {
+            approvedDoctors: @Html.Raw(ViewBag.ApprovedDoctorsJson ?? "[]"),
+            uploadReportUrl: '@Url.Action("UploadChatFile", "Patient", new { id = ViewBag.PatientId })',
+            sendReportUrl:   '@Url.Action("SendReportToDoctor", "Patient", new { id = ViewBag.PatientId })'
+        };
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+    <script src="~/js/patient-tests.js" asp-append-version="true" defer></script>
+}

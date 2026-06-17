@@ -1,0 +1,570 @@
+@{
+    Layout = null;
+    ViewData["Title"] = "Register as Patient — NABD - نبض";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>@ViewData["Title"]</title>
+  <link rel="icon" type="image/png" href="~/images/logo.png" asp-append-version="true" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="~/css/register.css" asp-append-version="true" />
+</head>
+<body>
+
+<div class="rg-stage" data-portal="patient">
+
+  <!-- ── BRAND PANEL ───────────────────────────────────────── -->
+  <aside class="rg-brand">
+    <span class="rg-brand-glow" aria-hidden="true"></span>
+    <svg class="rg-pulse" viewBox="0 0 460 80" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="rgPulse" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#fb7fbf" stop-opacity="0"/>
+          <stop offset="45%" stop-color="#fb7fbf"/>
+          <stop offset="80%" stop-color="#f9a8d4"/>
+          <stop offset="100%" stop-color="#f9a8d4" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <path d="M0 40 H180 l9 -24 9 48 8 -58 11 74 9 -40 H460" />
+    </svg>
+
+    <a class="rg-brand-lockup" href="@Url.Action("Index", "Home")">
+      <span class="rg-brand-mark"><img src="~/images/logo.png" alt="NABD Logo" asp-append-version="true" /></span>
+      <span>
+        <span class="rg-brand-name">NABD <span style="font-weight:600">نبض</span></span>
+        <span class="rg-brand-badge" style="display:block">Patient Portal</span>
+      </span>
+    </a>
+
+    <div class="rg-brand-mid">
+      <h2 class="rg-headline">Start your<br><span class="grad">care journey</span></h2>
+      <p class="rg-desc">Create your account in minutes. Your health profile helps us give you the most relevant, personal care — every step of the way.</p>
+    </div>
+
+    <div class="rg-features">
+      <div class="rg-feature">
+        <span class="rg-feature-ico"><i class="fas fa-baby"></i></span>
+        <span class="rg-feature-text">Pregnancy tracking &amp; milestones</span>
+      </div>
+      <div class="rg-feature">
+        <span class="rg-feature-ico"><i class="fas fa-flask"></i></span>
+        <span class="rg-feature-text">AI-powered lab test analysis</span>
+      </div>
+      <div class="rg-feature">
+        <span class="rg-feature-ico"><i class="fas fa-comments"></i></span>
+        <span class="rg-feature-text">Direct messaging with your doctor</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── FORM COLUMN ───────────────────────────────────────── -->
+  <main class="rg-main">
+    <div class="rg-main-inner">
+
+      <div class="rg-mobile-brand">
+        <span class="rg-brand-mark"><img src="~/images/logo.png" alt="NABD Logo" asp-append-version="true" /></span>
+        <span class="nm">NABD <span style="color:var(--rg-accent-deep)">نبض</span></span>
+      </div>
+
+      <nav class="rg-switch" aria-label="Choose portal">
+        <span class="rg-switch-item p is-active" aria-current="page">
+          <span class="ico"><i class="fas fa-baby"></i></span>
+          <span class="tx"><b>Patient</b><span>Mothers</span></span>
+        </span>
+        <a class="rg-switch-item d" href="@Url.Action("RegisterDoctor", "Account")">
+          <span class="ico"><i class="fas fa-user-md"></i></span>
+          <span class="tx"><b>Doctor</b><span>Care team</span></span>
+        </a>
+        <a class="rg-switch-item a" href="@Url.Action("RegisterAssistant", "Account")">
+          <span class="ico"><i class="fas fa-user-nurse"></i></span>
+          <span class="tx"><b>Assistant</b><span>Clinic staff</span></span>
+        </a>
+      </nav>
+
+      <!-- Step indicator -->
+      <div class="mc-steps" id="stepIndicator">
+        <div class="mc-step active" id="si1">
+          <div class="mc-step-circle">1</div>
+          <div class="mc-step-label">Your Info</div>
+        </div>
+        <div class="mc-step-conn" id="sc1"></div>
+        <div class="mc-step active" id="si2" style="opacity:.45">
+          <div class="mc-step-circle">2</div>
+          <div class="mc-step-label">Health Profile</div>
+        </div>
+      </div>
+
+      <!-- STEP 1 -->
+      <div id="step1Panel">
+        <div class="rg-card">
+          <div class="rg-card-head">
+            <span class="rg-card-icon"><i class="fas fa-user-plus"></i></span>
+            <div>
+              <div class="rg-card-title">Create your account</div>
+              <div class="rg-card-sub">Step 1 of 2 — Personal details</div>
+            </div>
+          </div>
+
+          <div class="rg-card-body">
+            @if (TempData["AuthError"] is string authError)
+            {
+              <div class="rg-alert-error">
+                <i class="fas fa-exclamation-circle"></i>
+                <p>@authError</p>
+              </div>
+            }
+
+            <form id="step1Form" novalidate>
+              @Html.AntiForgeryToken()
+
+              <div class="mc-row">
+                <div class="mc-form-group">
+                  <label class="mc-label" for="FirstName"><i class="fas fa-user"></i> First Name <span class="req">*</span></label>
+                  <input type="text" id="FirstName" name="FirstName" class="mc-input" placeholder="Sarah" required autocomplete="given-name" />
+                </div>
+                <div class="mc-form-group">
+                  <label class="mc-label" for="LastName"><i class="fas fa-user"></i> Last Name <span class="req">*</span></label>
+                  <input type="text" id="LastName" name="LastName" class="mc-input" placeholder="Ahmed" required autocomplete="family-name" />
+                </div>
+              </div>
+
+              <div class="mc-form-group">
+                <label class="mc-label" for="Email"><i class="fas fa-envelope"></i> Email Address <span class="req">*</span></label>
+                <div class="mc-input-wrap">
+                  <input type="email" id="Email" name="Email" class="mc-input has-icon" placeholder="you@example.com" required autocomplete="email" />
+                  <i class="mc-input-icon fas fa-envelope"></i>
+                </div>
+              </div>
+
+              <div class="mc-row">
+                <div class="mc-form-group">
+                  <label class="mc-label" for="Password"><i class="fas fa-lock"></i> Password <span class="req">*</span></label>
+                  <div class="mc-input-wrap">
+                    <input type="password" id="Password" name="Password" class="mc-input has-eye" placeholder="Min. 8 characters" required data-min-length="8" autocomplete="new-password" />
+                    <button type="button" class="mc-input-eye"><i class="fas fa-eye"></i></button>
+                  </div>
+                  <div class="mc-pwd-strength">
+                    <div class="mc-pwd-strength-bar"><div class="mc-pwd-strength-fill" id="pwdBar"></div></div>
+                    <div class="mc-pwd-strength-label" id="pwdLabel"></div>
+                  </div>
+                </div>
+                <div class="mc-form-group">
+                  <label class="mc-label" for="ConfirmPassword"><i class="fas fa-lock"></i> Confirm Password <span class="req">*</span></label>
+                  <div class="mc-input-wrap">
+                    <input type="password" id="ConfirmPassword" name="ConfirmPassword" class="mc-input has-eye" placeholder="Repeat password" required data-match="Password" autocomplete="new-password" />
+                    <button type="button" class="mc-input-eye"><i class="fas fa-eye"></i></button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mc-row">
+                <div class="mc-form-group">
+                  <label class="mc-label" for="PhoneNumber"><i class="fas fa-phone"></i> Phone Number <span class="req">*</span></label>
+                  <div class="mc-input-wrap">
+                    <input type="tel" id="PhoneNumber" name="PhoneNumber" class="mc-input has-icon" placeholder="+20 xxx xxx xxxx" required autocomplete="tel" />
+                    <i class="mc-input-icon fas fa-phone"></i>
+                  </div>
+                </div>
+                <div class="mc-form-group">
+                  <label class="mc-label" for="DateOfBirth"><i class="fas fa-calendar"></i> Date of Birth <span class="req">*</span></label>
+                  <input type="date" id="DateOfBirth" name="DateOfBirth" class="mc-input" required autocomplete="bday" />
+                </div>
+              </div>
+
+              <div class="mc-form-group">
+                <label class="mc-label" for="Address"><i class="fas fa-map-marker-alt"></i> Address <span class="req">*</span></label>
+                <input type="text" id="Address" name="Address" class="mc-input" placeholder="123 Nile Street, Cairo" required autocomplete="street-address" />
+              </div>
+
+              <button type="submit" class="mc-btn mc-btn-primary mt-2">
+                <i class="fas fa-arrow-right"></i> Continue to Health Profile
+              </button>
+            </form>
+          </div>
+
+          <div class="rg-card-foot">
+            Already have an account? <a href="@Url.Action("Login", "Account")" class="mc-link">Sign in</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2 -->
+      <div id="step2Panel" style="display:none;">
+        <div class="rg-card">
+          <div class="rg-card-head">
+            <span class="rg-card-icon"><i class="fas fa-notes-medical"></i></span>
+            <div>
+              <div class="rg-card-title">Complete your health profile</div>
+              <div class="rg-card-sub">Step 2 of 2 — Required details</div>
+            </div>
+          </div>
+
+          <div class="rg-card-body">
+            <div class="rg-note" style="margin-top:0; margin-bottom:1.4rem;">
+              <i class="fas fa-info-circle"></i>
+              <span>Please provide all required health details so we can finish setting up your care profile.</span>
+            </div>
+
+            <form id="step2Form" method="post" action="@Url.Action("RegisterPatient", "Account")" novalidate>
+              @Html.AntiForgeryToken()
+
+              <div class="rg-section">
+                <span class="rg-section-ico"><i class="fas fa-ruler-combined"></i></span>
+                <div>
+                  <div class="rg-section-h">Body measurements</div>
+                  <div class="rg-section-sub">Helps us personalise your guidance</div>
+                </div>
+              </div>
+
+              <div class="mc-form-group">
+                <label class="mc-label" for="Age"><i class="fas fa-hourglass-half"></i> Age <span class="req">*</span></label>
+                <div class="mc-input-wrap">
+                  <input type="number" id="Age" name="Age" class="mc-input has-icon" placeholder="Automatically calculated from date of birth" readonly required min="1" />
+                  <i class="mc-input-icon fas fa-hourglass-half"></i>
+                </div>
+                <div class="mc-feedback hint"><i class="fas fa-info-circle"></i> Automatically calculated from your date of birth.</div>
+              </div>
+
+              <div class="mc-row">
+                <div class="mc-form-group">
+                  <label class="mc-label" for="Height"><i class="fas fa-ruler-vertical"></i> Height (cm) <span class="req">*</span></label>
+                  <div class="mc-input-wrap">
+                    <input type="number" id="Height" name="Height" class="mc-input has-icon" placeholder="165" min="100" max="220" required />
+                    <i class="mc-input-icon fas fa-ruler-vertical"></i>
+                  </div>
+                  <div class="mc-feedback hint"><i class="fas fa-info-circle"></i> centimeters (cm)</div>
+                </div>
+                <div class="mc-form-group">
+                  <label class="mc-label" for="Weight"><i class="fas fa-weight"></i> Weight (kg) <span class="req">*</span></label>
+                  <div class="mc-input-wrap">
+                    <input type="number" id="Weight" name="Weight" class="mc-input has-icon" placeholder="65" min="30" max="250" required />
+                    <i class="mc-input-icon fas fa-weight"></i>
+                  </div>
+                  <div class="mc-feedback hint"><i class="fas fa-info-circle"></i> kilograms (kg)</div>
+                </div>
+              </div>
+
+              <div class="rg-section">
+                <span class="rg-section-ico"><i class="fas fa-baby"></i></span>
+                <div>
+                  <div class="rg-section-h">Pregnancy</div>
+                  <div class="rg-section-sub">Current pregnancy details</div>
+                </div>
+              </div>
+
+              <div class="mc-row">
+                <div class="mc-form-group">
+                  <label class="mc-label" for="LastMenstrualPeriod"><i class="fas fa-calendar-alt"></i> Pregnancy start date <span class="req">*</span></label>
+                  <input type="date" id="LastMenstrualPeriod" name="LastMenstrualPeriod" class="mc-input" required />
+                  <div class="mc-feedback hint"><i class="fas fa-info-circle"></i> Gestational weeks are calculated automatically.</div>
+                </div>
+                <div class="mc-form-group">
+                  <label class="mc-label" for="GestationalWeeks"><i class="fas fa-baby"></i> Gestational Weeks</label>
+                  <input type="number" id="GestationalWeeks" name="GestationalWeeks" class="mc-input" placeholder="Automatically calculated" readonly min="0" />
+                </div>
+                <div class="mc-form-group">
+                  <label class="mc-label"><i class="fas fa-question-circle"></i> Is it the first pregnancy? <span class="req">*</span></label>
+                  <div class="mc-radio-group">
+                    <label class="mc-radio-btn"><input type="radio" name="IsFirstPregnancy" value="true" required /> Yes</label>
+                    <label class="mc-radio-btn"><input type="radio" name="IsFirstPregnancy" value="false" required /> No</label>
+                  </div>
+                </div>
+              </div>
+
+              <div id="previousPregnanciesGroup" style="display:none;">
+                <div class="mc-row">
+                  <div class="mc-form-group">
+                    <label class="mc-label" for="PreviousPregnancies"><i class="fas fa-list-ol"></i> How many times before? <span class="req">*</span></label>
+                    <input type="number" id="PreviousPregnancies" name="PreviousPregnancies" class="mc-input" placeholder="e.g. 2" min="1" step="1" />
+                  </div>
+                  <div class="mc-form-group">
+                    <label class="mc-label" for="Abortions"><i class="fas fa-notes-medical"></i> Abortion number <span class="req">*</span></label>
+                    <input type="number" id="Abortions" name="Abortions" class="mc-input" placeholder="e.g. 0" min="0" step="1" />
+                  </div>
+                  <div class="mc-form-group">
+                    <label class="mc-label" for="Births"><i class="fas fa-baby-carriage"></i> Birth number <span class="req">*</span></label>
+                    <input type="number" id="Births" name="Births" class="mc-input" placeholder="e.g. 1" min="0" step="1" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="rg-section">
+                <span class="rg-section-ico"><i class="fas fa-heartbeat"></i></span>
+                <div>
+                  <div class="rg-section-h">Medical</div>
+                  <div class="rg-section-sub">Health conditions &amp; medications</div>
+                </div>
+              </div>
+
+              <div class="mc-form-group">
+                <label class="mc-label"><i class="fas fa-tint"></i> Blood Pressure (Yes / No) <span class="req">*</span></label>
+                <div class="mc-radio-group" id="bpRadioGroup">
+                  <label class="mc-radio-btn"><input type="radio" name="HasBloodPressureIssues" value="true" required /> Yes</label>
+                  <label class="mc-radio-btn"><input type="radio" name="HasBloodPressureIssues" value="false" required /> No</label>
+                </div>
+                <div id="bpWarning" style="display:none;" class="mc-warning-box mt-1">
+                  <i class="fas fa-exclamation-triangle"></i>
+                  <p><strong>Important:</strong> Blood pressure issues during pregnancy require close monitoring. Please ensure your doctor is aware and follow their guidance on medication and lifestyle adjustments.</p>
+                </div>
+              </div>
+
+              <div class="mc-form-group">
+                <label class="mc-label"><i class="fas fa-pills"></i> Current Medications <span class="mc-optional">optional</span></label>
+                <div id="medicationsList"></div>
+                <button type="button" class="mc-btn mc-btn-ghost mc-btn-sm mt-1" id="addMedBtn" style="width:auto;">
+                  <i class="fas fa-plus"></i> Add Medication
+                </button>
+              </div>
+
+              <div class="rg-section">
+                <span class="rg-section-ico"><i class="fas fa-leaf"></i></span>
+                <div>
+                  <div class="rg-section-h">Lifestyle</div>
+                  <div class="rg-section-sub">Daily habits &amp; choices</div>
+                </div>
+              </div>
+
+              <div class="mc-row">
+                <div class="mc-form-group">
+                  <label class="mc-label"><i class="fas fa-smoking"></i> Smoking?</label>
+                  <div class="mc-radio-group">
+                    <label class="mc-radio-btn"><input type="radio" name="Smoking" value="true" /> Yes</label>
+                    <label class="mc-radio-btn"><input type="radio" name="Smoking" value="false" /> No</label>
+                  </div>
+                </div>
+                <div class="mc-form-group">
+                  <label class="mc-label"><i class="fas fa-wine-glass-alt"></i> Alcohol?</label>
+                  <div class="mc-radio-group">
+                    <label class="mc-radio-btn"><input type="radio" name="Alcohol" value="true" /> Yes</label>
+                    <label class="mc-radio-btn"><input type="radio" name="Alcohol" value="false" /> No</label>
+                  </div>
+                </div>
+              </div>
+
+              <button type="submit" class="mc-btn mc-btn-primary mt-2">
+                <i class="fas fa-check"></i> Finish Registration
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="~/js/auth.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  initLiveValidation('step1Form');
+  initLiveValidation('step2Form');
+  initPasswordStrength('Password', 'pwdBar', 'pwdLabel');
+
+  function goStep2() {
+    document.getElementById('step1Panel').style.display = 'none';
+    document.getElementById('step2Panel').style.display = 'block';
+    const s1 = document.getElementById('si1');
+    const s2 = document.getElementById('si2');
+    const c1 = document.getElementById('sc1');
+    s1.classList.remove('active'); s1.classList.add('done');
+    s1.querySelector('.mc-step-circle').textContent = '';
+    s1.querySelector('.mc-step-circle').innerHTML = '<i class="fas fa-check" style="font-size:.72rem;"></i>';
+    c1.classList.add('done');
+    s2.style.opacity = '1'; s2.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  document.getElementById('step1Form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!validateForm('step1Form')) {
+      showToast('Please fix the errors before continuing.', 'error');
+      return;
+    }
+
+    const step2Form = document.getElementById('step2Form');
+    const step1Data = new FormData(this);
+    for (const [key, value] of step1Data.entries()) {
+      if (key === '__RequestVerificationToken') continue;
+      let existing = step2Form.querySelector(`input[type="hidden"][name="${key}"]`);
+      if (!existing) {
+        existing = document.createElement('input');
+        existing.type = 'hidden';
+        existing.name = key;
+        step2Form.appendChild(existing);
+      }
+      existing.value = value;
+    }
+
+    goStep2();
+  });
+
+  document.getElementById('step2Form').addEventListener('submit', function (e) {
+    if (!validateForm('step2Form') || !validateStep2Radios() || !validateConditionalPregnancyFields()) {
+      e.preventDefault();
+      showToast('Please fix the errors before submitting.', 'error');
+    }
+  });
+
+  function calculateAge(dateString) {
+    if (!dateString) return 0;
+    const birth = new Date(dateString);
+    if (Number.isNaN(birth.getTime())) return 0;
+
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+
+    return Math.max(age, 0);
+  }
+
+  function calculateGestationalWeeks(dateString) {
+    if (!dateString) return '';
+    const start = new Date(dateString);
+    if (Number.isNaN(start.getTime())) return '';
+
+    const today = new Date();
+    const diffMs = today.setHours(0, 0, 0, 0) - start.setHours(0, 0, 0, 0);
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    return Math.max(0, Math.floor(diffDays / 7));
+  }
+
+  const dateOfBirthInput = document.getElementById('DateOfBirth');
+  const ageInput = document.getElementById('Age');
+  const lmpInput = document.getElementById('LastMenstrualPeriod');
+  const gestationalWeeksInput = document.getElementById('GestationalWeeks');
+
+  function syncCalculatedValues() {
+    ageInput.value = calculateAge(dateOfBirthInput?.value);
+    gestationalWeeksInput.value = calculateGestationalWeeks(lmpInput?.value);
+  }
+
+  dateOfBirthInput?.addEventListener('change', syncCalculatedValues);
+  lmpInput?.addEventListener('change', syncCalculatedValues);
+  syncCalculatedValues();
+
+  function validateStep2Radios() {
+    let valid = true;
+    const requiredRadioGroups = ['HasBloodPressureIssues', 'IsFirstPregnancy'];
+
+    requiredRadioGroups.forEach(name => {
+      const checked = document.querySelector(`input[name="${name}"]:checked`);
+      if (!checked) {
+        valid = false;
+      }
+    });
+
+    return valid;
+  }
+
+  function validateConditionalPregnancyFields() {
+    const selected = document.querySelector('input[name="IsFirstPregnancy"]:checked')?.value;
+    if (selected !== 'false') {
+      return true;
+    }
+
+    let valid = true;
+    [previousPregnanciesInput, document.getElementById('Abortions'), document.getElementById('Births')].forEach(input => {
+      if (!input) return;
+      if (!validateField(input)) {
+        valid = false;
+      }
+    });
+
+    return valid;
+  }
+
+  document.querySelectorAll('input[name="HasBloodPressureIssues"]').forEach(radio => {
+    radio.addEventListener('change', function () {
+      document.getElementById('bpWarning').style.display = this.value === 'true' ? 'flex' : 'none';
+    });
+  });
+
+  const firstPregnancyRadios = document.querySelectorAll('input[name="IsFirstPregnancy"]');
+  const previousPregnanciesGroup = document.getElementById('previousPregnanciesGroup');
+  const previousPregnanciesInput = document.getElementById('PreviousPregnancies');
+
+  function syncPreviousPregnanciesVisibility() {
+    const selected = document.querySelector('input[name="IsFirstPregnancy"]:checked')?.value;
+    const isFirst = selected === 'true';
+    const abortionsInput = document.getElementById('Abortions');
+    const birthsInput = document.getElementById('Births');
+
+    if (!selected || isFirst) {
+      previousPregnanciesGroup.style.display = 'none';
+      previousPregnanciesInput.required = false;
+      previousPregnanciesInput.value = '';
+      if (abortionsInput) {
+        abortionsInput.required = false;
+        abortionsInput.value = '';
+      }
+      if (birthsInput) {
+        birthsInput.required = false;
+        birthsInput.value = '';
+      }
+      return;
+    }
+
+    previousPregnanciesGroup.style.display = '';
+    previousPregnanciesInput.required = true;
+    if (abortionsInput) abortionsInput.required = true;
+    if (birthsInput) birthsInput.required = true;
+  }
+
+  firstPregnancyRadios.forEach(radio => {
+    radio.addEventListener('change', syncPreviousPregnanciesVisibility);
+  });
+
+  document.querySelectorAll('.mc-radio-btn input[name="IsFirstPregnancy"]').forEach(radio => {
+    const btn = radio.closest('.mc-radio-btn');
+    btn?.addEventListener('click', function () {
+      setTimeout(syncPreviousPregnanciesVisibility, 0);
+    });
+  });
+
+  syncPreviousPregnanciesVisibility();
+
+  let medCount = 0;
+  document.getElementById('addMedBtn').addEventListener('click', function () {
+    medCount++;
+    const id = 'med' + medCount;
+    const div = document.createElement('div');
+    div.className = 'mc-med-card';
+    div.id = id;
+    div.innerHTML = `
+      <button type="button" class="mc-med-remove" onclick="document.getElementById('${id}').remove()">
+        <i class="fas fa-times"></i>
+      </button>
+      <div style="font-size:.76rem; font-weight:700; color:var(--mc-muted); margin-bottom:.55rem; text-transform:uppercase; letter-spacing:.05em;">
+        Medication ${medCount}
+      </div>
+      <div class="mc-med-grid">
+        <div class="mc-form-group mb-0">
+          <label class="mc-label" for="${id}_name"><i class="fas fa-pills"></i> Name</label>
+          <input type="text" id="${id}_name" name="Medications[${medCount - 1}].Name" class="mc-input" placeholder="e.g. Folic Acid" />
+        </div>
+        <div class="mc-form-group mb-0">
+          <label class="mc-label" for="${id}_dose"><i class="fas fa-syringe"></i> Dose</label>
+          <input type="text" id="${id}_dose" name="Medications[${medCount - 1}].Dose" class="mc-input" placeholder="e.g. 5mg" />
+        </div>
+        <div class="mc-form-group mb-0">
+          <label class="mc-label" for="${id}_dur"><i class="fas fa-clock"></i> Duration</label>
+          <input type="text" id="${id}_dur" name="Medications[${medCount - 1}].Duration" class="mc-input" placeholder="e.g. 3 months" />
+        </div>
+      </div>`;
+    document.getElementById('medicationsList').appendChild(div);
+    initPasswordToggles();
+  });
+
+  initRadioGroups();
+}());
+</script>
+</body>
+</html>

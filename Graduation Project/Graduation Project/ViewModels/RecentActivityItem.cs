@@ -10,13 +10,27 @@ namespace Graduation_Project.ViewModels
         public string IconColor { get; set; }       // e.g. "#2196f3"
 
         /// <summary>
-        /// Returns a human-readable time string relative to now.
+        /// When set, this label is shown instead of the computed RelativeTime.
+        /// Use this for items whose "time" has a fixed meaning (e.g. a future appointment date).
+        /// </summary>
+        public string OverrideTime { get; set; }
+
+        /// <summary>
+        /// Returns a human-readable time string relative to now,
+        /// or OverrideTime if one has been explicitly provided.
         /// </summary>
         public string RelativeTime
         {
             get
             {
+                if (!string.IsNullOrWhiteSpace(OverrideTime))
+                    return OverrideTime;
+
                 var diff = DateTime.Now - DateTime;
+
+                // Future dates should never show "Just now" – display the date instead
+                if (diff.TotalSeconds < 0) return DateTime.ToString("MMM dd, yyyy");
+
                 if (diff.TotalMinutes < 1) return "Just now";
                 if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes} minutes ago";
                 if (diff.TotalHours < 2) return "1 hour ago";

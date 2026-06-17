@@ -1,0 +1,178 @@
+@model Graduation_Project.ViewModels.AssistantPatientDetailsViewModel
+@{
+    Layout = "~/Views/Shared/_AssistantLayout.cshtml";
+    ViewData["Title"] = "Patient Details";
+    ViewData["AssistantId"] = Model.Assistant.AssistantID;
+    ViewData["AssistantName"] = Model.AssistantName;
+    ViewData["ActivePage"] = "Patients";
+}
+
+<div class="ad-wrap">
+    <header class="header">
+        <div class="header-left">
+            <div class="header-page-icon">
+                <i class="fas fa-user-injured"></i>
+            </div>
+            <div class="header-title-group">
+                <h1>@Model.PatientName</h1>
+                <p>Full patient profile and appointments at @Model.ClinicName</p>
+            </div>
+        </div>
+        <div>
+            <a class="btn btn-outline" href="@Url.Action("Patients", "Assistant", new { id = Model.Assistant.AssistantID })">
+                <i class="fas fa-arrow-left"></i> Back to Patients
+            </a>
+        </div>
+    </header>
+
+    <section class="card section-spacing">
+        <div class="card-header">
+            <h3><i class="fas fa-id-card"></i> Profile</h3>
+        </div>
+        <div class="quick-stats">
+            <div class="quick-stat-card">
+                <div class="stat-label">Phone</div>
+                <div class="stat-value">@(Model.Patient.User?.PhoneNumber ?? "N/A")</div>
+            </div>
+            <div class="quick-stat-card">
+                <div class="stat-label">Address</div>
+                <div class="stat-value">@(string.IsNullOrWhiteSpace(Model.Patient.Address) ? "N/A" : Model.Patient.Address)</div>
+            </div>
+            <div class="quick-stat-card">
+                <div class="stat-label">Gestational Weeks</div>
+                <div class="stat-value">@Model.Patient.GestationalWeeks</div>
+            </div>
+            <div class="quick-stat-card">
+                <div class="stat-label">Blood Pressure Risk</div>
+                <div class="stat-value">@(Model.Patient.BloodPressureIssue ? "Yes" : "No")</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="card section-spacing">
+        <div class="card-header">
+            <h3><i class="fas fa-user-md"></i> Assigned Doctors</h3>
+        </div>
+        @if (!Model.AssignedDoctors.Any())
+        {
+            <div class="empty-state">
+                <i class="fas fa-user-md"></i>
+                <p>No assigned doctors found in this scope.</p>
+            </div>
+        }
+        else
+        {
+            <div class="request-list">
+                @foreach (var doctor in Model.AssignedDoctors)
+                {
+                    <article class="request-card">
+                        <div class="request-info">
+                            <h4>
+                                Dr. @doctor.User?.FirstName @doctor.User?.LastName
+                            </h4>
+                            <p>@(string.IsNullOrWhiteSpace(doctor.Specialization) ? "General" : doctor.Specialization)</p>
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+
+    <section class="card section-spacing">
+        <div class="card-header">
+            <h3><i class="fas fa-calendar-alt"></i> All Appointments</h3>
+        </div>
+        @if (!Model.Appointments.Any())
+        {
+            <div class="empty-state">
+                <i class="fas fa-calendar-times"></i>
+                <p>No appointments found for this patient in this clinic.</p>
+            </div>
+        }
+        else
+        {
+            <div class="request-list">
+                @foreach (var appointment in Model.Appointments)
+                {
+                    var status = appointment.Booking?.Status ?? "Confirmed";
+                    var statusClass = status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase)
+                        ? "danger"
+                        : status.Equals("Modified", StringComparison.OrdinalIgnoreCase)
+                            ? "reviewed"
+                            : "confirmed";
+
+                    <article class="request-card appointment-card">
+                        <div class="request-info">
+                            <div class="request-header-line">
+                                <h4>@appointment.Date.ToString("ddd, MMM dd, yyyy") at @DateTime.Today.Add(appointment.Time).ToString("hh:mm tt")</h4>
+                                <span class="status-badge @statusClass">@status</span>
+                            </div>
+                            <p><strong>Doctor:</strong> Dr. @appointment.Doctor?.User?.FirstName @appointment.Doctor?.User?.LastName</p>
+                            @if (!string.IsNullOrWhiteSpace(appointment.Booking?.Reason))
+                            {
+                                <p><strong>Reason:</strong> @appointment.Booking.Reason</p>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(appointment.Booking?.Notes))
+                            {
+                                <p><strong>Notes:</strong> @appointment.Booking.Notes</p>
+                            }
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+
+    <section class="card section-spacing">
+        <div class="card-header">
+            <h3><i class="fas fa-pills"></i> Medications</h3>
+        </div>
+        @if (!Model.Medications.Any())
+        {
+            <div class="empty-state">
+                <p>No medications recorded.</p>
+            </div>
+        }
+        else
+        {
+            <div class="request-list">
+                @foreach (var med in Model.Medications)
+                {
+                    <article class="request-card">
+                        <div class="request-info">
+                            <h4>@med.DrugName</h4>
+                            <p><strong>Reason:</strong> @med.Reason</p>
+                            <p><strong>Dose:</strong> @med.DoseMgPerDay mg/day · <strong>Duration:</strong> @med.DurationMonths month(s)</p>
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+
+    <section class="card section-spacing">
+        <div class="card-header">
+            <h3><i class="fas fa-baby"></i> Pregnancy Records</h3>
+        </div>
+        @if (!Model.PregnancyRecords.Any())
+        {
+            <div class="empty-state">
+                <p>No pregnancy records found.</p>
+            </div>
+        }
+        else
+        {
+            <div class="request-list">
+                @foreach (var record in Model.PregnancyRecords)
+                {
+                    <article class="request-card">
+                        <div class="request-info">
+                            <h4>Start: @record.StartDate.ToString("MMM dd, yyyy")</h4>
+                            <p><strong>End:</strong> @(record.EndDate.HasValue ? record.EndDate.Value.ToString("MMM dd, yyyy") : "Active")</p>
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+</div>

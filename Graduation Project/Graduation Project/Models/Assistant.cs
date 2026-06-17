@@ -9,14 +9,14 @@ namespace Graduation_Project.Models
         public int AssistantID { get; set; }
 
         [ForeignKey("Clinic")]
-        public int ClinicID { get; set; }
+        public int? ClinicID { get; set; }
 
         [ForeignKey("User")]
-        public int UserID { get; set; }
+        public string UserID { get; set; }
 
         // Navigation
-        public virtual Clinic Clinic { get; set; }
-        public virtual User User { get; set; }
+        public virtual Clinic? Clinic { get; set; }
+        public virtual ApplicationUser User { get; set; }
         public virtual ICollection<AssistantDoctor> AssistantDoctors { get; set; }
     }
 }

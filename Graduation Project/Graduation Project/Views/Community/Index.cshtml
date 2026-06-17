@@ -1,0 +1,135 @@
+@{
+    Layout = "~/Views/Shared/_PatientLayout.cshtml";
+    ViewData["Title"] = "Community";
+    ViewData["ActivePage"] = "Community";
+    ViewData["PageTitleHtml"] = "Community <span class='topbar-accent'>Forum</span>";
+    ViewData["PageSubtitle"] = "Share experiences and connect with others";
+    ViewData["HidePageHeader"] = true;
+}
+
+@section Head {
+    @Html.AntiForgeryToken()
+    <link rel="stylesheet" href="~/css/community.css" asp-append-version="true" />
+}
+
+<div class="cm-page">
+
+    <!-- HERO -->
+    <div class="cm-hero">
+        <div class="cm-hero-top">
+            <div class="cm-hero-left">
+                <div class="cm-hero-icon"><i class="fas fa-users"></i></div>
+                <div>
+                    <h1 class="cm-hero-title">Community Forum</h1>
+                    <p class="cm-hero-sub">Connect, share, and support each other</p>
+                </div>
+            </div>
+            <div class="cm-hero-right">
+                <div class="cm-stat-pill">
+                    <i class="fas fa-file-alt"></i>
+                    <span id="cmTotalPosts">0</span>
+                    <span>Posts</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOOLBAR -->
+    <div class="cm-toolbar">
+        <div class="cm-search-wrap">
+            <i class="fas fa-search"></i>
+            <input id="cmSearchInput" type="text" class="cm-search-input"
+                   placeholder="Search posts..." maxlength="120" autocomplete="off" />
+        </div>
+        <div class="cm-category-tabs">
+            <button class="cm-cat-btn active" data-category="All">All</button>
+            <button class="cm-cat-btn" data-category="General">General</button>
+            <button class="cm-cat-btn" data-category="Pregnancy">Pregnancy</button>
+            <button class="cm-cat-btn" data-category="Nutrition">Nutrition</button>
+            <button class="cm-cat-btn" data-category="Exercise">Exercise</button>
+            <button class="cm-cat-btn" data-category="Mental Health">Mental Health</button>
+            <button class="cm-cat-btn" data-category="Medication">Medication</button>
+        </div>
+        <button class="cm-new-post-btn" id="cmNewPostBtn">
+            <i class="fas fa-plus"></i> New Post
+        </button>
+    </div>
+
+    <!-- POST FEED -->
+    <div class="cm-feed" id="cmFeed"></div>
+
+    <!-- PAGINATION -->
+    <div class="cm-pagination" id="cmPagination"></div>
+
+</div>
+
+<!-- CREATE POST MODAL -->
+<div class="cm-modal-overlay" id="cmCreateModal" role="dialog" aria-modal="true" aria-labelledby="cmModalTitle">
+    <div class="cm-modal">
+        <div class="cm-modal-header">
+            <h2 class="cm-modal-title" id="cmModalTitle">
+                <i class="fas fa-pencil-alt" style="color:#1baebe;margin-right:6px;"></i>
+                Create a Post
+            </h2>
+            <button class="cm-modal-close" id="cmModalClose" aria-label="Close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="cmCreateForm" autocomplete="off">
+            <div class="cm-form-group">
+                <label class="cm-form-label" for="cmPostTitle">Title</label>
+                <input id="cmPostTitle" class="cm-form-input" type="text"
+                       placeholder="What is your post about?" maxlength="150" required />
+                <div class="cm-char-count" id="cmTitleCount">0 / 150</div>
+            </div>
+            <div class="cm-form-group">
+                <label class="cm-form-label" for="cmPostCategory">Category</label>
+                <select id="cmPostCategory" class="cm-form-select">
+                    <option value="General">General</option>
+                    <option value="Pregnancy">Pregnancy</option>
+                    <option value="Nutrition">Nutrition</option>
+                    <option value="Exercise">Exercise</option>
+                    <option value="Mental Health">Mental Health</option>
+                    <option value="Medication">Medication</option>
+                </select>
+            </div>
+            <div class="cm-form-group">
+                <label class="cm-form-label" for="cmPostContent">Content</label>
+                <textarea id="cmPostContent" class="cm-form-textarea"
+                          placeholder="Share your thoughts, experiences, or questions..."
+                          maxlength="2000" required></textarea>
+                <div class="cm-char-count" id="cmContentCount">0 / 2000</div>
+            </div>
+            <div class="cm-form-group">
+                <label class="cm-form-label">Photo <span style="color:#94a3b8;font-weight:400;">(optional)</span></label>
+                <input id="cmPostImage" type="file" accept="image/jpeg,image/png,image/gif,image/webp" hidden />
+                <button type="button" class="cm-image-btn" id="cmImageBtn">
+                    <i class="fas fa-image"></i> Add a photo
+                </button>
+                <div class="cm-image-preview" id="cmImagePreview" hidden>
+                    <img id="cmImagePreviewImg" src="" alt="Preview" />
+                    <button type="button" class="cm-image-remove" id="cmImageRemove" title="Remove photo">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="cm-modal-actions">
+                <button type="button" class="cm-btn-cancel" id="cmCancelBtn">Cancel</button>
+                <button type="submit" class="cm-btn-submit" id="cmSubmitPost">
+                    <i class="fas fa-paper-plane"></i> Post
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/community.js" asp-append-version="true"></script>
+    <script>
+        document.getElementById('cmCancelBtn').addEventListener('click', function () {
+        document.getElementById('cmCreateModal').classList.remove('open');
+        document.body.style.overflow = '';
+        document.getElementById('cmCreateForm').reset();
+        });
+    </script>
+}

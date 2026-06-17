@@ -12,17 +12,19 @@ namespace Graduation_Project.Services
     public class AlertService
     {
         private readonly IAlert _alertRepository;
+        private readonly IPushNotificationService _push;
 
-        public AlertService(IAlert alertRepository)
+        public AlertService(IAlert alertRepository, IPushNotificationService push)
         {
             _alertRepository = alertRepository;
+            _push = push;
         }
 
         /// <summary>
         /// Evaluates a single BP/BS reading (used from SaveBloodPressure / SaveBloodSugar)
         /// alongside the rest of the patient's health data.
         /// </summary>
-        public void EvaluateAndSaveAlerts(
+        public int EvaluateAndSaveAlerts(
             int patientId,
             Patient patient,
             PatientBloodPressure? lastBP,
@@ -30,7 +32,7 @@ namespace Graduation_Project.Services
             LabTest? lastLabTest,
             Appointment? nextAppointment)
         {
-            EvaluateAndSaveAlerts(
+            return EvaluateAndSaveAlerts(
                 patientId, patient,
                 lastBP != null ? new[] { lastBP } : Array.Empty<PatientBloodPressure>(),
                 lastBS != null ? new[] { lastBS } : Array.Empty<PatientBloodSugar>(),
@@ -42,7 +44,7 @@ namespace Graduation_Project.Services
         /// Only readings recorded TODAY are evaluated to prevent old dismissed alerts
         /// from being re-created on every dashboard refresh.
         /// </summary>
-        public void EvaluateAndSaveAlerts(
+        public int EvaluateAndSaveAlerts(
             int patientId,
             Patient patient,
             IEnumerable<PatientBloodPressure> bpReadings,
@@ -137,7 +139,7 @@ namespace Graduation_Project.Services
                 {
                     TryAdd(newAlerts, existingKeys, patientId,
                         "Low Blood Sugar Detected",
-                        $"Your blood sugar of {bs.BloodSugar} mg/dL is below safe levels (normal: 70–125 mg/dL). Eat something and contact your doctor.",
+                        $"Your blood sugar of {bs.BloodSugar} mg/dL is below safe levels (normal: 70ï¿½125 mg/dL). Eat something and contact your doctor.",
                         AlertTypes.Danger);
                 }
             }
@@ -208,7 +210,20 @@ namespace Graduation_Project.Services
                     _alertRepository.Add(alert);
 
                 _alertRepository.Save();
+
+                if (!string.IsNullOrEmpty(patient.UserID))
+                {
+                    var title = newAlerts.Count == 1
+                        ? newAlerts[0].Title
+                        : $"{newAlerts.Count} new health alerts";
+                    var body = newAlerts.Count == 1
+                        ? newAlerts[0].Message
+                        : "You have new health alerts that require your attention.";
+                    _ = _push.SendToUserAsync(patient.UserID, title, body, "/Patient/Alerts");
+                }
             }
+
+            return newAlerts.Count;
         }
 
         // ?????????????????????????????????????????????????????????????????
@@ -273,7 +288,7 @@ namespace Graduation_Project.Services
                     string rangeNote = !string.IsNullOrWhiteSpace(range) ? $" Normal range: {range}." : "";
 
                     string message = !string.IsNullOrWhiteSpace(displayValue)
-                        ? $"Your {testType} test shows {paramName} of {displayValue} — {direction} than expected.{rangeNote} Please consult your doctor."
+                        ? $"Your {testType} test shows {paramName} of {displayValue} ï¿½ {direction} than expected.{rangeNote} Please consult your doctor."
                         : $"Your {testType} test shows {paramName} is {direction} ({status}).{rangeNote} Please consult your doctor.";
 
                     TryAdd(newAlerts, existingToday, patientId,
@@ -281,7 +296,7 @@ namespace Graduation_Project.Services
                         message, alertType);
                 }
             }
-            catch (JsonException) { /* Malformed JSON — skip */ }
+            catch (JsonException) { /* Malformed JSON ï¿½ skip */ }
         }
 
         private static string? TryGetString(JsonElement el, string key)
@@ -316,13 +331,13 @@ namespace Graduation_Project.Services
     }
 
     /// <summary>
-    /// String constants for AlertType — drives CSS class in the view.
+    /// String constants for AlertType ï¿½ drives CSS class in the view.
     /// </summary>
     public static class AlertTypes
     {
-        public const string Danger  = "danger";   // red  — requires immediate action
-        public const string Warning = "warning";  // yellow — needs attention soon
-        public const string Info    = "info";     // blue  — informational
-        public const string Success = "success";  // green — all clear
+        public const string Danger  = "danger";   // red  ï¿½ requires immediate action
+        public const string Warning = "warning";  // yellow ï¿½ needs attention soon
+        public const string Info    = "info";     // blue  ï¿½ informational
+        public const string Success = "success";  // green ï¿½ all clear
     }
 }

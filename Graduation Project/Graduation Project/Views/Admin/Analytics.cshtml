@@ -1,0 +1,308 @@
+@model Graduation_Project.ViewModels.AdminAnalyticsViewModel
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    var patientsJson     = System.Text.Json.JsonSerializer.Serialize(Model.PatientsPerMonth);
+    var patientLabels    = System.Text.Json.JsonSerializer.Serialize(Model.PatientMonthLabels);
+    var clinicAppts      = System.Text.Json.JsonSerializer.Serialize(Model.AppointmentsPerClinic);
+    var clinicNamesJson  = System.Text.Json.JsonSerializer.Serialize(Model.ClinicNames);
+    var doctorNamesJson  = System.Text.Json.JsonSerializer.Serialize(Model.DoctorNames);
+    var doctorCountsJson = System.Text.Json.JsonSerializer.Serialize(Model.DoctorAppointmentCounts);
+    var alertTypesJson   = System.Text.Json.JsonSerializer.Serialize(Model.AlertTypes);
+    var alertCountsJson  = System.Text.Json.JsonSerializer.Serialize(Model.AlertCounts);
+    var growthJson       = System.Text.Json.JsonSerializer.Serialize(Model.SystemGrowth);
+    var growthLabels     = System.Text.Json.JsonSerializer.Serialize(Model.GrowthMonthLabels);
+}
+
+<div class="top-bar">
+  <div class="topbar-left">
+    <button class="sidebar-toggle" id="sidebarToggle">
+      <i class="fas fa-bars"></i>
+    </button>
+    <div>
+      <h1 class="page-title">Analytics</h1>
+      <p class="page-subtitle">System-wide statistics and trends</p>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <span class="topbar-accent" style="font-size:0.85rem;">
+      <i class="fas fa-sync-alt me-1"></i> Live data
+    </span>
+  </div>
+</div>
+
+<div class="page-content">
+
+  <!-- Summary KPI Cards -->
+  <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr);">
+    <div class="kpi-card">
+      <div class="kpi-icon" style="background:rgba(124,58,237,0.12);color:#7c3aed;">
+        <i class="fas fa-users"></i>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-value">@Model.TotalUsers</span>
+        <span class="kpi-label">Total Users</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon" style="background:rgba(20,150,127,0.12);color:#14967f;">
+        <i class="fas fa-calendar-check"></i>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-value">@Model.TotalAppointments</span>
+        <span class="kpi-label">Total Appointments</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon" style="background:rgba(239,68,68,0.12);color:#ef4444;">
+        <i class="fas fa-bell"></i>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-value">@Model.TotalAlerts</span>
+        <span class="kpi-label">Total Alerts</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon" style="background:rgba(245,158,11,0.12);color:#f59e0b;">
+        <i class="fas fa-hospital"></i>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-value">@Model.TotalClinics</span>
+        <span class="kpi-label">Total Clinics</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 1: Patients per Month + Appointments per Clinic -->
+  <div class="analytics-grid-2" style="margin-top:24px;">
+    <div class="admin-card">
+      <div class="admin-card-header">
+        <div>
+          <h2 class="admin-card-title"><i class="fas fa-user-injured"></i> Patients per Month</h2>
+          <p class="admin-card-subtitle">New patient registrations over the last 6 months</p>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="patientsChart"></canvas>
+      </div>
+    </div>
+
+    <div class="admin-card">
+      <div class="admin-card-header">
+        <div>
+          <h2 class="admin-card-title"><i class="fas fa-hospital"></i> Appointments per Clinic</h2>
+          <p class="admin-card-subtitle">Top clinics by booked appointment count</p>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="clinicChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2: Most Active Doctors + Alert Frequency -->
+  <div class="analytics-grid-2" style="margin-top:24px;">
+    <div class="admin-card">
+      <div class="admin-card-header">
+        <div>
+          <h2 class="admin-card-title"><i class="fas fa-stethoscope"></i> Most Active Doctors</h2>
+          <p class="admin-card-subtitle">Ranked by total booked appointments</p>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="doctorChart"></canvas>
+      </div>
+    </div>
+
+    <div class="admin-card">
+      <div class="admin-card-header">
+        <div>
+          <h2 class="admin-card-title"><i class="fas fa-bell"></i> Alert Frequency</h2>
+          <p class="admin-card-subtitle">Distribution of alerts by type</p>
+        </div>
+      </div>
+      <div class="chart-container chart-container-doughnut">
+        <canvas id="alertChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 3: System Growth (full width) -->
+  <div style="margin-top:24px;">
+    <div class="admin-card">
+      <div class="admin-card-header">
+        <div>
+          <h2 class="admin-card-title"><i class="fas fa-chart-area"></i> System Growth</h2>
+          <p class="admin-card-subtitle">New user registrations per month over the last 12 months</p>
+        </div>
+      </div>
+      <div class="chart-container chart-container-wide">
+        <canvas id="growthChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+  const adminPurple  = '#7c3aed';
+  const adminPurpleA = 'rgba(124,58,237,0.18)';
+  const teal         = '#14967f';
+  const tealA        = 'rgba(20,150,127,0.18)';
+  const amber        = '#f59e0b';
+  const blue         = '#3b82f6';
+  const red          = '#ef4444';
+  const indigo       = '#6366f1';
+  const emerald      = '#10b981';
+  const rose         = '#f43f5e';
+
+  Chart.defaults.font.family = "'DM Sans', 'Segoe UI', sans-serif";
+  Chart.defaults.color = '#64748b';
+
+  const sharedTooltip = {
+    backgroundColor: '#fff',
+    titleColor: '#1e293b',
+    bodyColor: '#64748b',
+    borderColor: '#e2e8f0',
+    borderWidth: 1,
+    padding: 12,
+    cornerRadius: 10,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+  };
+
+  // 1. Patients per Month — line chart
+  new Chart(document.getElementById('patientsChart'), {
+    type: 'line',
+    data: {
+      labels: @Html.Raw(patientLabels),
+      datasets: [{
+        label: 'New Patients',
+        data: @Html.Raw(patientsJson),
+        borderColor: adminPurple,
+        backgroundColor: adminPurpleA,
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: adminPurple,
+        pointRadius: 5,
+        pointHoverRadius: 7
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { ...sharedTooltip } },
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#f1f5f9' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  // 2. Appointments per Clinic — horizontal bar
+  new Chart(document.getElementById('clinicChart'), {
+    type: 'bar',
+    data: {
+      labels: @Html.Raw(clinicNamesJson),
+      datasets: [{
+        label: 'Appointments',
+        data: @Html.Raw(clinicAppts),
+        backgroundColor: [
+          teal, adminPurple, blue, amber, red, indigo, emerald, rose, teal, adminPurple
+        ],
+        borderRadius: 6,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { ...sharedTooltip } },
+      scales: {
+        x: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#f1f5f9' } },
+        y: { grid: { display: false } }
+      }
+    }
+  });
+
+  // 3. Most Active Doctors — vertical bar
+  new Chart(document.getElementById('doctorChart'), {
+    type: 'bar',
+    data: {
+      labels: @Html.Raw(doctorNamesJson),
+      datasets: [{
+        label: 'Appointments',
+        data: @Html.Raw(doctorCountsJson),
+        backgroundColor: adminPurpleA,
+        borderColor: adminPurple,
+        borderWidth: 2,
+        borderRadius: 6,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { ...sharedTooltip } },
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#f1f5f9' } },
+        x: { grid: { display: false }, ticks: { maxRotation: 30 } }
+      }
+    }
+  });
+
+  // 4. Alert Frequency — doughnut
+  const alertColors = [red, amber, blue, teal, adminPurple, indigo, emerald, rose];
+  new Chart(document.getElementById('alertChart'), {
+    type: 'doughnut',
+    data: {
+      labels: @Html.Raw(alertTypesJson),
+      datasets: [{
+        data: @Html.Raw(alertCountsJson),
+        backgroundColor: alertColors,
+        borderWidth: 2,
+        borderColor: '#fff',
+        hoverOffset: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '60%',
+      plugins: {
+        legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true } },
+        tooltip: { ...sharedTooltip }
+      }
+    }
+  });
+
+  // 5. System Growth — area line (12 months)
+  new Chart(document.getElementById('growthChart'), {
+    type: 'line',
+    data: {
+      labels: @Html.Raw(growthLabels),
+      datasets: [{
+        label: 'New Users',
+        data: @Html.Raw(growthJson),
+        borderColor: teal,
+        backgroundColor: tealA,
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: teal,
+        pointRadius: 4,
+        pointHoverRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { ...sharedTooltip } },
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#f1f5f9' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+</script>
+}

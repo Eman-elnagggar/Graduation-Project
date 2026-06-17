@@ -14,6 +14,7 @@ namespace Graduation_Project.Models
         public int PatientID { get; set; }
         public int DoctorID { get; set; }
         public int ClinicID { get; set; }
+        public bool IsActive { get; set; } = true;
         public string Status { get; set; }
         public string Reason { get; set; }
         public string Notes { get; set; }

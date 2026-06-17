@@ -1,6 +1,7 @@
-﻿using Graduation_Project.Data;
+using Graduation_Project.Data;
 using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Graduation_Project.Repository
 {
@@ -32,7 +33,11 @@ namespace Graduation_Project.Repository
 
         public IEnumerable<LabTest> GetLabTestsByPatientId(int patientId)
         {
-            return _context.LabTests.Where(lt => lt.PatientID == patientId).ToList();
+            return _context.LabTests
+                .Where(lt => lt.PatientID == patientId)
+                .Include(lt => lt.TestReport)
+                .OrderByDescending(lt => lt.UploadDate)
+                .ToList();
         }
 
         public LabTest GetLastLabTestByPatientId(int patientId)
@@ -47,6 +52,6 @@ namespace Graduation_Project.Repository
             _context.LabTests.Count(lt => lt.DoctorID == doctorId && lt.UploadDate >= since);
 
         public int CountByDoctorsSince(IEnumerable<int> doctorIds, DateTime since) =>
-            _context.LabTests.Count(lt => doctorIds.Contains(lt.DoctorID) && lt.UploadDate >= since);
+            _context.LabTests.Count(lt => lt.DoctorID.HasValue && doctorIds.Contains(lt.DoctorID.Value) && lt.UploadDate >= since);
     }
 }

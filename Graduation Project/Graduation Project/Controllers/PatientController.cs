@@ -1,11 +1,19 @@
 using Graduation_Project.Interfaces;
+using Graduation_Project.Data;
+using Graduation_Project.Hubs;
 using Graduation_Project.Models;
 using Graduation_Project.Services;
 using Graduation_Project.ViewModels;
+using Graduation_Project.ViewModels.Chat;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace Graduation_Project.Controllers
 {
+    [Authorize(Roles = "Patient")]
     public class PatientController : Controller
     {
         private readonly IPatient _patientRepository;
@@ -14,15 +22,15 @@ namespace Graduation_Project.Controllers
         private readonly ILabTest _labTest;
         private readonly IAppointment _appointment;
         private readonly IUltrasoundImage _ultrasoundImage;
+        private readonly IPatientDoctor _patientDoctorRepository;
         private readonly IAlert _alertRepository;
         private readonly AlertService _alertService;
-        private readonly INote _noteRepository;
-        private readonly IPrescription _prescriptionRepository;
-        private readonly IMedicalHistory _medicalHistoryRepository;
-        private readonly IPlace _placeRepository;
-        private readonly IPatientDoctor _patientDoctorRepository;
-        private readonly IDoctor _doctorRepository;
-        private readonly IBooking _bookingRepository;
+        private readonly IDoctorNotificationService _doctorNotificationService;
+        private readonly MedicationReminderService _medicationReminderService;
+        private readonly AppDbContext _context;
+        private readonly IChatMessageCrypto _chatMessageCrypto;
+        private readonly IWebHostEnvironment _env;
+        private readonly IHubContext<ChatHub> _hubContext;
 
         public PatientController(
             IPatient patientRepository,
@@ -31,15 +39,15 @@ namespace Graduation_Project.Controllers
             ILabTest labTest,
             IAppointment appointment,
             IUltrasoundImage ultrasoundImage,
+            IPatientDoctor patientDoctorRepository,
             IAlert alertRepository,
             AlertService alertService,
-            INote noteRepository,
-            IPrescription prescriptionRepository,
-            IMedicalHistory medicalHistoryRepository,
-            IPlace placeRepository,
-            IPatientDoctor patientDoctorRepository,
-            IDoctor doctorRepository,
-            IBooking bookingRepository)
+            IDoctorNotificationService doctorNotificationService,
+            MedicationReminderService medicationReminderService,
+            AppDbContext context,
+            IChatMessageCrypto chatMessageCrypto,
+            IWebHostEnvironment env,
+            IHubContext<ChatHub> hubContext)
         {
             _patientRepository = patientRepository;
             _patientBloodPressure = patientBloodPressure;
@@ -47,28 +55,60 @@ namespace Graduation_Project.Controllers
             _labTest = labTest;
             _appointment = appointment;
             _ultrasoundImage = ultrasoundImage;
+            _patientDoctorRepository = patientDoctorRepository;
             _alertRepository = alertRepository;
             _alertService = alertService;
-            _noteRepository = noteRepository;
-            _prescriptionRepository = prescriptionRepository;
-            _medicalHistoryRepository = medicalHistoryRepository;
-            _placeRepository = placeRepository;
-            _patientDoctorRepository = patientDoctorRepository;
-            _doctorRepository = doctorRepository;
-            _bookingRepository = bookingRepository;
+            _doctorNotificationService = doctorNotificationService;
+            _medicationReminderService = medicationReminderService;
+            _context = context;
+            _chatMessageCrypto = chatMessageCrypto;
+            _env = env;
+            _hubContext = hubContext;
+        }
+
+        [HttpGet]
+        public IActionResult UltrasoundHistory(int id)
+        {
+            var (patient, failure) = AuthorizePatientAccess(id);
+            if (failure != null)
+                return failure;
+
+            var scans = _ultrasoundImage.GetUltrasoundsByPatientId(id).ToList();
+
+            var patientName = patient?.User != null
+                ? $"{patient.User.FirstName} {patient.User.LastName}".Trim()
+                : "Patient";
+
+            var vm = new ViewModels.Ultrasound.PatientUltrasoundHistoryViewModel
+            {
+                Patient = patient!,
+                PatientName = patientName,
+                DoctorScans = scans.Where(s => !s.IsPatientUploaded).ToList(),
+                SelfScans = scans.Where(s => s.IsPatientUploaded).ToList()
+            };
+
+            return View(vm);
         }
 
         public IActionResult Index(int id)
         {
-            var patient = _patientRepository.GetById(id);
-            if (patient == null)
-                return NotFound();
+            var (patient, failure) = AuthorizePatientAccess(id);
+            if (failure != null)
+                return failure;
+
+            var pregnancyRecords = _context.PregnancyRecords
+                .Where(r => r.PatientID == id)
+                .OrderByDescending(r => r.StartDate)
+                .ToList();
+
+            var activePregnancy = pregnancyRecords.FirstOrDefault(r => !r.EndDate.HasValue);
+            var hasActivePregnancy = activePregnancy != null;
 
             // Calculate current pregnancy week
             int currentWeek = 0;
-            if (patient.DateOfPregnancy.HasValue)
+            if (hasActivePregnancy)
             {
-                int daysSinceStart = (int)(DateTime.Today - patient.DateOfPregnancy.Value.Date).TotalDays;
+                int daysSinceStart = (int)(DateTime.Today - activePregnancy!.StartDate.Date).TotalDays;
                 currentWeek = Math.Clamp(daysSinceStart / 7, 0, 40);
             }
             else if (patient.GestationalWeeks > 0)
@@ -77,8 +117,8 @@ namespace Graduation_Project.Controllers
             }
 
             // Calculate due date (280 days = 40 weeks from start)
-            string dueDate = patient.DateOfPregnancy.HasValue
-                ? patient.DateOfPregnancy.Value.AddDays(280).ToString("MMM dd, yyyy")
+            string dueDate = hasActivePregnancy
+                ? activePregnancy!.StartDate.AddDays(280).ToString("MMM dd, yyyy")
                 : "N/A";
 
             // Fetch latest health readings
@@ -86,21 +126,34 @@ namespace Graduation_Project.Controllers
             var lastBS = _patientBloodSugar.GetLastBloodSugarValue(id);
             var lastLab = _labTest.GetLastLabTestByPatientId(id);
             var nextAppt = _appointment.GetNextAppointmentForPatient(id);
+            var recentPastAppointments = _appointment.GetPastByPatientId(id).Take(4).ToList();
 
             // Fetch recent readings for the tracker panels
             var recentBPReadings = _patientBloodPressure.GetRecentByPatientId(id, 10).ToList();
             var recentBSReadings = _patientBloodSugar.GetRecentByPatientId(id, 10).ToList();
 
+            // Fetch a larger window for weekly chart aggregation
+            var weeklyBPReadings = _patientBloodPressure.GetRecentByPatientId(id, 40).ToList();
+            var weeklyBSReadings = _patientBloodSugar.GetRecentByPatientId(id, 40).ToList();
+
             // Evaluate patient data and persist any new critical alerts.
             // Pass ALL recent readings so every abnormal value generates an alert,
             // not just whichever reading happens to be "last".
             _alertService.EvaluateAndSaveAlerts(id, patient, recentBPReadings, recentBSReadings, lastLab, nextAppt);
+            _medicationReminderService.EvaluateReminders(DateTime.Today);
 
             // Load unread alerts for the dashboard (most recent 5)
-            var healthAlerts = _alertRepository
+            var unreadAlerts = _alertRepository
                 .GetByPatientId(id)
                 .Where(a => !a.IsRead)
+                .ToList();
+
+            var healthAlerts = unreadAlerts
                 .Take(5)
+                .ToList();
+
+            var pendingRiskAlerts = unreadAlerts
+                .Where(a => IsRiskAlertType(a.AlertType))
                 .ToList();
 
             // Build recent activity feed
@@ -167,10 +220,29 @@ namespace Graduation_Project.Controllers
                 {
                     Title = "Upcoming Appointment",
                     Description = $"Dr. {nextAppt.Doctor?.User?.FirstName} - {nextAppt.Date:MMM dd, yyyy}",
-                    DateTime = nextAppt.Date,
+                    DateTime = DateTime.Now,
+                    OverrideTime = nextAppt.Date.ToString("MMM dd, yyyy"),
                     IconClass = "fas fa-calendar-check",
                     IconBgColor = "#fff3e0",
                     IconColor = "#ff9800"
+                });
+            }
+
+            var latestEndedPregnancy = pregnancyRecords
+                .Where(r => r.EndDate.HasValue)
+                .OrderByDescending(r => r.EndDate)
+                .FirstOrDefault();
+
+            if (latestEndedPregnancy?.EndDate.HasValue == true)
+            {
+                activities.Add(new RecentActivityItem
+                {
+                    Title = "Pregnancy Ended",
+                    Description = $"Recorded on {latestEndedPregnancy.EndDate.Value:MMM dd, yyyy}",
+                    DateTime = latestEndedPregnancy.EndDate.Value,
+                    IconClass = "fas fa-flag-checkered",
+                    IconBgColor = "#fff8e1",
+                    IconColor = "#ffb300"
                 });
             }
 
@@ -184,9 +256,11 @@ namespace Graduation_Project.Controllers
             {
                 Patient = patient,
                 UserName = patient.User?.FirstName ?? "Patient",
+                HasActivePregnancy = hasActivePregnancy,
                 PregnancyWeek = currentWeek,
                 PregnancyProgressPercent = (int)Math.Round(currentWeek / 40.0 * 100),
-                Trimester = currentWeek <= 13 ? "1st Trimester"
+                Trimester = !hasActivePregnancy ? "Not Active"
+                          : currentWeek <= 13 ? "1st Trimester"
                           : currentWeek <= 26 ? "2nd Trimester"
                           : "3rd Trimester",
                 DueDate = dueDate,
@@ -194,13 +268,290 @@ namespace Graduation_Project.Controllers
                 LastBloodSugarValue = lastBS?.BloodSugar ?? 0,
                 LastLabTest = lastLab,
                 NextAppointment = nextAppt,
+                RecentPastAppointments = recentPastAppointments,
                 RecentBloodPressureReadings = recentBPReadings,
                 RecentBloodSugarReadings = recentBSReadings,
+                WeeklyBloodPressureReadings = weeklyBPReadings,
+                WeeklyBloodSugarReadings = weeklyBSReadings,
                 RecentActivities = activities,
-                HealthAlerts = healthAlerts
+                HealthAlerts = healthAlerts,
+                PendingRiskAlerts = pendingRiskAlerts
             };
 
             return View(viewModel);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult EndCurrentPregnancy(int id, string? returnUrl = null)
+        {
+            var (patient, failure) = AuthorizePatientAccess(id);
+            if (failure != null)
+                return failure;
+
+            var activePregnancy = _context.PregnancyRecords
+                .Where(r => r.PatientID == id && !r.EndDate.HasValue)
+                .OrderByDescending(r => r.StartDate)
+                .FirstOrDefault();
+
+            if (activePregnancy == null)
+            {
+                TempData["PregnancyStatusMessage"] = "No active pregnancy found to end.";
+                return RedirectToLocalOrDashboard(id, returnUrl);
+            }
+
+            activePregnancy.EndDate = DateTime.Now;
+
+            // Keep legacy fields in sync until all old columns are removed.
+            patient.LastPregnancyStartedAt = activePregnancy.StartDate;
+            patient.PregnancyEndedAt = activePregnancy.EndDate;
+            patient.DateOfPregnancy = null;
+            patient.GestationalWeeks = 0;
+            patient.PreviousPregnancies += 1;
+            patient.IsFirstPregnancy = false;
+            var pregnancyRecordsCount = _context.PregnancyRecords.Count(r => r.PatientID == id);
+            patient.PregnancyCount = Math.Max(0, patient.PreviousPregnancies) + pregnancyRecordsCount;
+
+            _patientRepository.Update(patient);
+            _patientRepository.Save();
+
+            TempData["PregnancyStatusMessage"] = "Current pregnancy was ended and saved to your history.";
+            return RedirectToLocalOrDashboard(id, returnUrl);
+        }
+
+        public IActionResult Messages(int id)
+        {
+            var (patient, failure) = AuthorizePatientAccess(id);
+            if (failure != null)
+                return failure;
+
+            var approvedLinks = _patientDoctorRepository
+                .GetByPatientId(id)
+                .Where(pd => string.Equals(pd.Status, "Approved", StringComparison.OrdinalIgnoreCase)
+                          && pd.Doctor != null
+                          && !string.IsNullOrWhiteSpace(pd.Doctor.UserID))
+                .GroupBy(pd => pd.DoctorID)
+                .Select(g => g.First())
+                .ToList();
+
+            if (string.IsNullOrWhiteSpace(patient.UserID))
+                return NotFound();
+
+            var patientUserId = patient.UserID;
+            var approvedDoctorIds = approvedLinks
+                .Select(pd => pd.DoctorID)
+                .Distinct()
+                .ToList();
+
+            var doctorUserIds = approvedLinks
+                .Select(pd => pd.Doctor!.UserID)
+                .Where(userId => !string.IsNullOrWhiteSpace(userId))
+                .Distinct()
+                .ToList();
+
+            var linkedAssistants = _context.AssistantDoctors
+                .Where(ad => approvedDoctorIds.Contains(ad.DoctorID))
+                .Include(ad => ad.Assistant)
+                    .ThenInclude(a => a.User)
+                .Where(ad => ad.Assistant != null && !string.IsNullOrWhiteSpace(ad.Assistant!.UserID))
+                .Select(ad => ad.Assistant!)
+                .GroupBy(a => a.AssistantID)
+                .Select(g => g.First())
+                .ToList();
+
+            var assistantUserIds = linkedAssistants
+                .Select(a => a.UserID)
+                .Where(userId => !string.IsNullOrWhiteSpace(userId))
+                .Distinct()
+                .ToList();
+
+            var receiverUserIds = doctorUserIds
+                .Concat(assistantUserIds)
+                .Distinct()
+                .ToList();
+
+            var chatMessages = _context.ChatMessages
+                .Where(m => (m.SenderUserId == patientUserId && receiverUserIds.Contains(m.ReceiverUserId))
+                         || (m.ReceiverUserId == patientUserId && receiverUserIds.Contains(m.SenderUserId)))
+                .OrderByDescending(m => m.SentAtUtc)
+                .ToList();
+
+            var doctorConversations = approvedLinks
+                .Select(pd => new
+                {
+                    ParticipantId = pd.DoctorID,
+                    ParticipantType = "Doctor",
+                    ReceiverUserId = pd.Doctor?.UserID ?? string.Empty,
+                    ParticipantName = pd.Doctor?.User != null
+                        ? $"Dr. {pd.Doctor.User.FirstName} {pd.Doctor.User.LastName}".Trim()
+                        : "Doctor"
+                });
+
+            var assistantConversations = linkedAssistants
+                .Select(a => new
+                {
+                    ParticipantId = a.AssistantID,
+                    ParticipantType = "Assistant",
+                    ReceiverUserId = a.UserID ?? string.Empty,
+                    ParticipantName = a.User != null
+                        ? $"{a.User.FirstName} {a.User.LastName}".Trim()
+                        : "Assistant"
+                });
+
+            var conversations = doctorConversations
+                .Concat(assistantConversations)
+                .Where(c => !string.IsNullOrWhiteSpace(c.ReceiverUserId))
+                .GroupBy(c => c.ReceiverUserId)
+                .Select(g => g.First())
+                .Select(c => new PatientConversationSummary
+                {
+                    ParticipantId = c.ParticipantId,
+                    ParticipantType = c.ParticipantType,
+                    ReceiverUserId = c.ReceiverUserId,
+                    ParticipantName = c.ParticipantName,
+                    UnreadCount = chatMessages.Count(m => m.SenderUserId == c.ReceiverUserId && m.ReceiverUserId == patientUserId && !m.IsRead),
+                    LastMessageTime = chatMessages
+                        .Where(m => m.SenderUserId == c.ReceiverUserId || m.ReceiverUserId == c.ReceiverUserId)
+                        .Select(m => (DateTime?)m.SentAtUtc)
+                        .FirstOrDefault(),
+                    LastMessagePreview = chatMessages
+                        .Where(m => m.SenderUserId == c.ReceiverUserId || m.ReceiverUserId == c.ReceiverUserId)
+                        .Select(m => _chatMessageCrypto.Decrypt(m.Message))
+                        .FirstOrDefault() ?? "Start a conversation"
+                })
+                .OrderBy(c => c.ParticipantType)
+                .ThenBy(c => c.ParticipantName)
+                .ToList();
+
+            var vm = new PatientMessagesViewModel
+            {
+                Patient = patient,
+                UserName = patient.User?.FirstName ?? "Patient",
+                Conversations = conversations
+            };
+
+            return View(vm);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UploadChatFile(int id, IFormFile file)
+        {
+            var (patient, failure) = AuthorizePatientAccess(id);
+            if (failure != null)
+                return failure;
+
+            if (file == null || file.Length == 0)
+                return BadRequest(new { error = "No file provided." });
+
+            if (file.Length > 10 * 1024 * 1024)
+                return BadRequest(new { error = "File exceeds the 10 MB limit." });
+
+            var allowedTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "image/jpeg", "image/png", "image/gif", "image/webp",
+                "application/pdf"
+            };
+
+            if (!allowedTypes.Contains(file.ContentType))
+                return BadRequest(new { error = "File type not allowed." });
+
+            var userDir = Path.Combine(_env.WebRootPath, "uploads", "chat", patient.UserID!);
+            Directory.CreateDirectory(userDir);
+
+            var ext = Path.GetExtension(file.FileName);
+            var fileName = $"{Guid.NewGuid():N}{ext}";
+            var filePath = Path.Combine(userDir, fileName);
+
+            using (var stream = System.IO.File.Create(filePath))
+                await file.CopyToAsync(stream);
+
+            var url = $"/uploads/chat/{patient.UserID}/{fileName}";
+            var type = file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ? "image" : "file";
+
+            return Json(new { url, type, name = file.FileName });
+        }
+
+        [HttpGet]
+        public IActionResult ConversationMessages(int id, string userId)
+        {
+            var (patient, failure) = AuthorizePatientAccess(id);
+            if (failure != null)
+                return failure;
+
+            var approvedDoctorIds = _patientDoctorRepository
+                .GetByPatientId(id)
+                .Where(pd => string.Equals(pd.Status, "Approved", StringComparison.OrdinalIgnoreCase))
+                .Select(pd => pd.DoctorID)
+                .Distinct()
+                .ToList();
+
+            var linkedDoctorUserIds = _context.Doctors
+                .AsNoTracking()
+                .Where(d => approvedDoctorIds.Contains(d.DoctorID)
+                         && !string.IsNullOrWhiteSpace(d.UserID))
+                .Select(d => d.UserID!)
+                .ToList();
+
+            var linkedAssistantUserIds = _context.AssistantDoctors
+                .Where(ad => approvedDoctorIds.Contains(ad.DoctorID))
+                .Include(ad => ad.Assistant)
+                .Where(ad => ad.Assistant != null && !string.IsNullOrWhiteSpace(ad.Assistant!.UserID))
+                .Select(ad => ad.Assistant!.UserID!)
+                .Distinct()
+                .ToList();
+
+            var linkedUserIds = linkedDoctorUserIds
+                .Concat(linkedAssistantUserIds)
+                .Distinct()
+                .ToList();
+
+            if (string.IsNullOrWhiteSpace(userId) || !linkedUserIds.Contains(userId))
+                return Forbid();
+
+            if (string.IsNullOrWhiteSpace(patient.UserID))
+                return NotFound();
+
+            var patientUserId = patient.UserID;
+            var receiverUserId = userId;
+
+            var messages = _context.ChatMessages
+                .Where(m => (m.SenderUserId == patientUserId && m.ReceiverUserId == receiverUserId)
+                         || (m.SenderUserId == receiverUserId && m.ReceiverUserId == patientUserId))
+                .OrderBy(m => m.SentAtUtc)
+                .ToList()
+                .Select(m => new
+                {
+                    id = m.ChatMessageId,
+                    senderId = m.SenderUserId,
+                    receiverId = m.ReceiverUserId,
+                    content = _chatMessageCrypto.Decrypt(m.Message),
+                    timestamp = m.SentAtUtc,
+                    attachmentUrl = m.AttachmentUrl,
+                    attachmentType = m.AttachmentType,
+                    attachmentName = m.AttachmentName
+                })
+                .ToList();
+
+            var unreadIncoming = _context.ChatMessages
+                .Where(m => m.SenderUserId == receiverUserId
+                         && m.ReceiverUserId == patientUserId
+                         && !m.IsRead)
+                .ToList();
+
+            if (unreadIncoming.Count > 0)
+            {
+                var now = DateTime.Now;
+                foreach (var msg in unreadIncoming)
+                {
+                    msg.IsRead = true;
+                    msg.ReadAtUtc = now;
+                }
+
+                _context.SaveChanges();
+            }
+
+            return Json(messages);
         }
 
         // ---------------------------------------------------------------
@@ -210,6 +561,10 @@ namespace Graduation_Project.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult SaveBloodPressure(int patientId, string systolic, string diastolic, string? pulse, string? measurementTime)
         {
+            var (patient, failure) = AuthorizePatientAccess(patientId, true);
+            if (failure != null)
+                return failure;
+
             if (string.IsNullOrWhiteSpace(systolic) || string.IsNullOrWhiteSpace(diastolic))
                 return BadRequest(new { success = false, message = "Systolic and diastolic values are required." });
 
@@ -225,13 +580,42 @@ namespace Graduation_Project.Controllers
             _patientBloodPressure.Save();
 
             // Evaluate and persist alerts for the new reading immediately
-            var patient = _patientRepository.GetById(patientId);
             if (patient != null)
             {
                 var lastBS = _patientBloodSugar.GetLastBloodSugarValue(patientId);
                 var lastLab = _labTest.GetLastLabTestByPatientId(patientId);
                 var nextAppt = _appointment.GetNextAppointmentForPatient(patientId);
-                _alertService.EvaluateAndSaveAlerts(patientId, patient, reading, lastBS, lastLab, nextAppt);
+                int newAlerts = _alertService.EvaluateAndSaveAlerts(patientId, patient, reading, lastBS, lastLab, nextAppt);
+                if (newAlerts > 0)
+                {
+                    var pName = $"{patient.User?.FirstName} {patient.User?.LastName}".Trim();
+                    if (string.IsNullOrWhiteSpace(pName)) pName = "A patient";
+                    var bpParts = reading.BloodPressure.Split('/');
+                    int sys = int.TryParse(bpParts[0].Trim(), out var sv) ? sv : 0;
+                    int dia = bpParts.Length > 1 && int.TryParse(bpParts[1].Trim(), out var dv) ? dv : 0;
+                    string bpTitle, bpMsg;
+                    if (sys >= 160 || dia >= 110)
+                    {
+                        bpTitle = $"Critical BP: {pName}";
+                        bpMsg = $"{pName}'s blood pressure ({reading.BloodPressure} mmHg) is critically high. Immediate attention required.";
+                    }
+                    else if (sys >= 140 || dia >= 90)
+                    {
+                        bpTitle = $"High BP Detected: {pName}";
+                        bpMsg = $"{pName}'s blood pressure ({reading.BloodPressure} mmHg) exceeds safe limits.";
+                    }
+                    else if (sys > 0 && (sys < 90 || dia < 60))
+                    {
+                        bpTitle = $"Low BP Detected: {pName}";
+                        bpMsg = $"{pName}'s blood pressure ({reading.BloodPressure} mmHg) is below normal range.";
+                    }
+                    else
+                    {
+                        bpTitle = $"Health Alert: {pName}";
+                        bpMsg = $"{pName} has a new blood pressure alert that requires your attention.";
+                    }
+                    NotifyAssignedDoctor(patientId, patient, bpTitle, bpMsg);
+                }
             }
 
             return Json(new
@@ -254,6 +638,10 @@ namespace Graduation_Project.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult SaveBloodSugar(int patientId, double bloodSugar, string? measurementTime)
         {
+            var (patient, failure) = AuthorizePatientAccess(patientId, true);
+            if (failure != null)
+                return failure;
+
             if (bloodSugar <= 0)
                 return BadRequest(new { success = false, message = "Blood sugar value is required." });
 
@@ -269,13 +657,39 @@ namespace Graduation_Project.Controllers
             _patientBloodSugar.Save();
 
             // Evaluate and persist alerts for the new reading immediately
-            var patient = _patientRepository.GetById(patientId);
             if (patient != null)
             {
                 var lastBP = _patientBloodPressure.GetLastBloodPressureValue(patientId);
                 var lastLab = _labTest.GetLastLabTestByPatientId(patientId);
                 var nextAppt = _appointment.GetNextAppointmentForPatient(patientId);
-                _alertService.EvaluateAndSaveAlerts(patientId, patient, lastBP, reading, lastLab, nextAppt);
+                int newAlerts = _alertService.EvaluateAndSaveAlerts(patientId, patient, lastBP, reading, lastLab, nextAppt);
+                if (newAlerts > 0)
+                {
+                    var pName = $"{patient.User?.FirstName} {patient.User?.LastName}".Trim();
+                    if (string.IsNullOrWhiteSpace(pName)) pName = "A patient";
+                    string bsTitle, bsMsg;
+                    if (reading.BloodSugar >= 200)
+                    {
+                        bsTitle = $"Critical Blood Sugar: {pName}";
+                        bsMsg = $"{pName}'s blood sugar ({reading.BloodSugar} mg/dL) is critically high. Immediate attention required.";
+                    }
+                    else if (reading.BloodSugar > 125)
+                    {
+                        bsTitle = $"High Blood Sugar: {pName}";
+                        bsMsg = $"{pName}'s blood sugar ({reading.BloodSugar} mg/dL) is above normal range.";
+                    }
+                    else if (reading.BloodSugar < 70)
+                    {
+                        bsTitle = $"Low Blood Sugar: {pName}";
+                        bsMsg = $"{pName}'s blood sugar ({reading.BloodSugar} mg/dL) is dangerously low. Immediate attention required.";
+                    }
+                    else
+                    {
+                        bsTitle = $"Health Alert: {pName}";
+                        bsMsg = $"{pName} has a new blood sugar alert that requires your attention.";
+                    }
+                    NotifyAssignedDoctor(patientId, patient, bsTitle, bsMsg);
+                }
             }
 
             return Json(new
@@ -291,569 +705,175 @@ namespace Graduation_Project.Controllers
             });
         }
 
-        public IActionResult MedicalHistory(int id)
-        {
-            var patient = _patientRepository.GetById(id);
-            if (patient == null)
-                return NotFound();
-
-            // ?? collect all record sets ??????????????????????????????????
-            var bpReadings = _patientBloodPressure.GetRecentByPatientId(id, 200).ToList();
-            var bsReadings = _patientBloodSugar.GetRecentByPatientId(id, 200).ToList();
-            var labTests = _labTest.GetLabTestsByPatientId(id).ToList();
-            var ultrasounds = _ultrasoundImage.GetUltrasoundsByPatientId(id).ToList();
-            var appointments = _appointment.GetByPatientId(id).ToList();
-            var alerts = _alertRepository.GetByPatientId(id).ToList();
-            var notes = _noteRepository.GetByPatientId(id).ToList();
-            var prescriptions = _prescriptionRepository.GetByPatientId(id).ToList();
-
-            // ?? build flat timeline ??????????????????????????????????????
-            var entries = new List<MedicalHistoryEntry>();
-
-            foreach (var bp in bpReadings)
-            {
-                var parts = bp.BloodPressure?.Split('/');
-                string status = "normal";
-                if (parts?.Length == 2 &&
-                    int.TryParse(parts[0], out int sys) &&
-                    int.TryParse(parts[1], out int dia))
-                {
-                    if (sys >= 160 || dia >= 110) status = "critical";
-                    else if (sys >= 140 || dia >= 90) status = "attention";
-                }
-
-                entries.Add(new MedicalHistoryEntry
-                {
-                    DateTime = bp.DateTime,
-                    EventType = "bp-reading",
-                    Status = status,
-                    Title = "Blood Pressure Reading",
-                    SubTitle = $"{bp.BloodPressure} mmHg{(bp.MeasurementTime != null ? $" · {bp.MeasurementTime}" : "")}",
-                    BloodPressure = bp
-                });
-            }
-
-            foreach (var bs in bsReadings)
-            {
-                string status = bs.BloodSugar >= 200 ? "critical"
-                              : bs.BloodSugar >= 140 ? "attention"
-                              : "normal";
-
-                entries.Add(new MedicalHistoryEntry
-                {
-                    DateTime = bs.DateTime,
-                    EventType = "blood-sugar",
-                    Status = status,
-                    Title = "Blood Sugar Reading",
-                    SubTitle = $"{bs.BloodSugar} mg/dL{(bs.MeasurementTime != null ? $" · {bs.MeasurementTime}" : "")}",
-                    BloodSugar = bs
-                });
-            }
-
-            foreach (var lab in labTests)
-            {
-                entries.Add(new MedicalHistoryEntry
-                {
-                    DateTime = lab.UploadDate,
-                    EventType = "lab-test",
-                    Status = "normal",
-                    Title = $"{lab.TestType} Test",
-                    SubTitle = "AI Analysis Available",
-                    LabTest = lab
-                });
-            }
-
-            foreach (var us in ultrasounds)
-            {
-                bool hasAnomaly = !string.IsNullOrWhiteSpace(us.DetectedAnomaly);
-                entries.Add(new MedicalHistoryEntry
-                {
-                    DateTime = us.UploadDate,
-                    EventType = "ultrasound",
-                    Status = hasAnomaly ? "attention" : "normal",
-                    Title = "Ultrasound Scan",
-                    SubTitle = hasAnomaly ? us.DetectedAnomaly : "No anomalies detected",
-                    DoctorName = us.Doctor?.User != null
-                        ? $"Dr. {us.Doctor.User.FirstName} {us.Doctor.User.LastName}"
-                        : null,
-                    Ultrasound = us
-                });
-            }
-
-            foreach (var appt in appointments)
-            {
-                bool isPast = appt.Date < DateTime.Now;
-                entries.Add(new MedicalHistoryEntry
-                {
-                    DateTime = appt.Date,
-                    EventType = "appointment",
-                    Status = "normal",
-                    Title = isPast ? "Appointment – Completed" : "Upcoming Appointment",
-                    DoctorName = appt.Doctor?.User != null
-                        ? $"Dr. {appt.Doctor.User.FirstName} {appt.Doctor.User.LastName}"
-                        : null,
-                    ClinicName = appt.Clinic?.Name,
-                    Appointment = appt
-                });
-            }
-
-            foreach (var alert in alerts)
-            {
-                string status = alert.AlertType?.ToLower() is "danger" or "critical" ? "critical"
-                              : alert.AlertType?.ToLower() == "warning" ? "attention"
-                              : "normal";
-
-                entries.Add(new MedicalHistoryEntry
-                {
-                    DateTime = alert.DateCreated,
-                    EventType = "alert",
-                    Status = status,
-                    Title = alert.Title,
-                    SubTitle = alert.Message,
-                    Alert = alert
-                });
-            }
-
-            foreach (var note in notes)
-            {
-                entries.Add(new MedicalHistoryEntry
-                {
-                    DateTime = note.CreatedDate,
-                    EventType = "doctor-note",
-                    Status = "normal",
-                    Title = "Doctor's Note",
-                    SubTitle = note.Content?.Length > 120
-                        ? note.Content[..120] + "…"
-                        : note.Content,
-                    DoctorName = note.Doctor?.User != null
-                        ? $"Dr. {note.Doctor.User.FirstName} {note.Doctor.User.LastName}"
-                        : null,
-                    DoctorNote = note
-                });
-            }
-
-            foreach (var rx in prescriptions)
-            {
-                int itemCount = rx.Items?.Count ?? 0;
-                entries.Add(new MedicalHistoryEntry
-                {
-                    DateTime = rx.PrescriptionDate,
-                    EventType = "medication",
-                    Status = "normal",
-                    Title = "Prescription Issued",
-                    SubTitle = itemCount > 0
-                        ? $"{itemCount} medication{(itemCount != 1 ? "s" : "")} prescribed"
-                        : rx.Notes,
-                    DoctorName = rx.Doctor?.User != null
-                        ? $"Dr. {rx.Doctor.User.FirstName} {rx.Doctor.User.LastName}"
-                        : null,
-                    Prescription = rx
-                });
-            }
-
-            // ?? sort newest-first ????????????????????????????????????????
-            entries = entries.OrderByDescending(e => e.DateTime).ToList();
-
-            var viewModel = new MedicalHistoryViewModel
-            {
-                Patient = patient,
-                UserName = patient.User?.FirstName ?? "Patient",
-                TimelineEntries = entries,
-                LabTestCount = labTests.Count,
-                UltrasoundCount = ultrasounds.Count,
-                AppointmentCount = appointments.Count,
-                BloodPressureCount = bpReadings.Count,
-                AlertCount = alerts.Count
-            };
-
-            return View(viewModel);
-        }
-
-        public IActionResult Alerts(int id)
-        {
-            var patient = _patientRepository.GetById(id);
-            if (patient == null)
-                return NotFound();
-
-            var alerts = _alertRepository
-                .GetByPatientId(id)
-                .OrderByDescending(a => a.DateCreated)
-                .ToList();
-
-            var viewModel = new AlertsViewModel
-            {
-                Patient = patient,
-                UserName = patient.User?.FirstName ?? "Patient",
-                Alerts = alerts
-            };
-
-            return View(viewModel);
-        }
-
-        // ---------------------------------------------------------------
-        // POST: /Patient/MarkAlertRead
-        // ---------------------------------------------------------------
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult MarkAlertRead(int alertId, int patientId)
+        public IActionResult AcknowledgeRiskAlerts(int patientId)
         {
-            var alert = _alertRepository.GetById(alertId);
-            if (alert == null || alert.PatientID != patientId)
-                return Json(new { success = false });
+            var (_, failure) = AuthorizePatientAccess(patientId, true);
+            if (failure != null)
+                return failure;
 
-            alert.IsRead = true;
-            _alertRepository.Update(alert);
-            _alertRepository.Save();
-
-            return Json(new { success = true });
-        }
-
-        // ---------------------------------------------------------------
-        // POST: /Patient/MarkAllAlertsRead
-        // ---------------------------------------------------------------
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult MarkAllAlertsRead(int patientId)
-        {
-            var unread = _alertRepository
+            var pendingRiskAlerts = _alertRepository
                 .GetByPatientId(patientId)
-                .Where(a => !a.IsRead)
+                .Where(a => !a.IsRead && IsRiskAlertType(a.AlertType))
                 .ToList();
 
-            foreach (var a in unread)
+            foreach (var alert in pendingRiskAlerts)
             {
-                a.IsRead = true;
-                _alertRepository.Update(a);
+                alert.IsRead = true;
+                _alertRepository.Update(alert);
             }
+
             _alertRepository.Save();
 
-            return Json(new { success = true, count = unread.Count });
+            return Json(new { success = true, count = pendingRiskAlerts.Count });
         }
 
-        // ---------------------------------------------------------------
-        // POST: /Patient/DeleteAlert
-        // ---------------------------------------------------------------
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult DeleteAlert(int alertId, int patientId)
-        {
-            var alert = _alertRepository.GetById(alertId);
-            if (alert == null || alert.PatientID != patientId)
-                return Json(new { success = false });
-
-            _alertRepository.Delete(alertId);
-            _alertRepository.Save();
-
-            return Json(new { success = true });
-        }
-
-        // ---------------------------------------------------------------
-        // GET: /Patient/Places/5
-        // ---------------------------------------------------------------
         [HttpGet]
-        public IActionResult Places(int id)
+        public IActionResult GetPendingRiskAlerts(int patientId)
         {
-            var patient = _patientRepository.GetById(id);
-            if (patient == null)
-                return NotFound();
+            var (_, failure) = AuthorizePatientAccess(patientId, true);
+            if (failure != null)
+                return failure;
 
-            var places = _placeRepository.GetByPatientId(id).ToList();
-
-            var viewModel = new PlacesViewModel
-            {
-                Patient = patient,
-                UserName = patient.User?.FirstName ?? "Patient",
-                Places = places
-            };
-
-            return View(viewModel);
-        }
-
-        // ---------------------------------------------------------------
-        // POST: /Patient/Places  (form-POST kept as stub for future use)
-        // ---------------------------------------------------------------
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult Places(Patient patient)
-        {
-            throw new NotImplementedException();
-        }
-
-        // ---------------------------------------------------------------
-        // POST: /Patient/SavePlace  (AJAX)
-        // ---------------------------------------------------------------
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult SavePlace(int patientId, string name, string type, string? address, string? phone)
-        {
-            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(type))
-                return BadRequest(new { success = false, message = "Name and type are required." });
-
-            var place = new Place
-            {
-                PatientID = patientId,
-                Name = name,
-                Type = type,
-                Address = address ?? string.Empty,
-                Phone = phone ?? string.Empty,
-                ImageURL = string.Empty
-            };
-
-            _placeRepository.Add(place);
-            _placeRepository.Save();
-
-            return Json(new
-            {
-                success = true,
-                id = place.PlaceID,
-                name = place.Name,
-                type = place.Type,
-                address = place.Address,
-                phone = place.Phone,
-                imageUrl = place.ImageURL
-            });
-        }
-
-        // ---------------------------------------------------------------
-        // POST: /Patient/UpdatePlace  (AJAX)
-        // ---------------------------------------------------------------
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult UpdatePlace(int placeId, int patientId, string name, string type, string? address, string? phone)
-        {
-            var place = _placeRepository.GetById(placeId);
-            if (place == null || place.PatientID != patientId)
-                return Json(new { success = false });
-
-            place.Name = name;
-            place.Type = type;
-            place.Address = address ?? string.Empty;
-            place.Phone = phone ?? string.Empty;
-
-            _placeRepository.Update(place);
-            _placeRepository.Save();
-
-            return Json(new { success = true });
-        }
-
-        // ---------------------------------------------------------------
-        // POST: /Patient/DeletePlace  (AJAX)
-        // ---------------------------------------------------------------
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult DeletePlace(int placeId, int patientId)
-        {
-            var place = _placeRepository.GetById(placeId);
-            if (place == null || place.PatientID != patientId)
-                return Json(new { success = false });
-
-            _placeRepository.Delete(placeId);
-            _placeRepository.Save();
-
-            return Json(new { success = true });
-        }
-
-        // ---------------------------------------------------------------
-        // GET: /Patient/Appointments/5
-        // ---------------------------------------------------------------
-        public IActionResult Appointments(int id)
-        {
-            var patient = _patientRepository.GetById(id);
-            if (patient == null) return NotFound();
-
-            var allAppointments = _appointment.GetByPatientId(id).ToList();
-            var upcoming = allAppointments
-                .Where(a => a.Date.Date >= DateTime.Today && a.isBooked)
-                .OrderBy(a => a.Date).ThenBy(a => a.Time)
-                .ToList();
-            var past = _appointment.GetPastByPatientId(id).ToList();
-
-            var myDoctors = _patientDoctorRepository.GetByPatientId(id)
-                .Where(pd => pd.Status == "Approved")
-                .ToList();
-            var primaryDoctor = myDoctors.FirstOrDefault(pd => pd.IsPrimary);
-            var unreadAlerts = _alertRepository.GetByPatientId(id).Count(a => !a.IsRead);
-
-            var viewModel = new PatientAppointmentsViewModel
-            {
-                Patient = patient,
-                UserName = patient.User?.FirstName ?? "Patient",
-                UpcomingAppointments = upcoming,
-                PastAppointments = past,
-                MyDoctors = myDoctors,
-                PrimaryDoctor = primaryDoctor,
-                UnreadAlertsCount = unreadAlerts
-            };
-
-            return View(viewModel);
-        }
-
-        // ---------------------------------------------------------------
-        // GET: /Patient/BookAppointment/5
-        // ---------------------------------------------------------------
-        public IActionResult BookAppointment(int id, int? doctorId = null)
-        {
-            var patient = _patientRepository.GetById(id);
-            if (patient == null) return NotFound();
-
-            var allDoctors = _doctorRepository.GetAllWithDetails().ToList();
-            var availableDoctors = allDoctors
-                .Select(d =>
+            var pendingRiskAlerts = _alertRepository
+                .GetByPatientId(patientId)
+                .Where(a => !a.IsRead && IsRiskAlertType(a.AlertType))
+                .OrderByDescending(a => a.DateCreated)
+                .Select(a => new
                 {
-                    var clinicDoctor = d.ClinicDoctors?.FirstOrDefault();
-                    var firstAvailable = _appointment.GetFirstAvailableForDoctor(d.DoctorID);
-                    var clinics = d.ClinicDoctors?.Select(cd => new ClinicInfo
-                    {
-                        ClinicID = cd.ClinicID,
-                        ClinicName = cd.Clinic?.Name ?? "Clinic",
-                        ClinicLocation = cd.Clinic?.Location ?? string.Empty
-                    }).ToList() ?? new List<ClinicInfo>();
-                    return new DoctorBookingInfo
-                    {
-                        DoctorID = d.DoctorID,
-                        FullName = d.User != null ? $"Dr. {d.User.FirstName} {d.User.LastName}".Trim() : "Doctor",
-                        Specialization = d.Specialization ?? string.Empty,
-                        ClinicID = clinicDoctor?.ClinicID ?? 0,
-                        ClinicName = clinicDoctor?.Clinic?.Name ?? "Clinic",
-                        ClinicLocation = clinicDoctor?.Clinic?.Location ?? string.Empty,
-                        NextAvailableDate = firstAvailable?.Date,
-                        NextAvailableTime = firstAvailable?.Time,
-                        Clinics = clinics
-                    };
+                    alertId = a.AlertID,
+                    title = a.Title,
+                    message = a.Message,
+                    dateCreated = a.DateCreated.ToString("g")
                 })
                 .ToList();
 
-            var viewModel = new PatientBookAppointmentViewModel
-            {
-                Patient = patient,
-                UserName = patient.User?.FirstName ?? "Patient",
-                AvailableDoctors = availableDoctors,
-                PreSelectedDoctorId = doctorId
-            };
-
-            return View(viewModel);
+            return Json(new { success = true, alerts = pendingRiskAlerts });
         }
 
-        // ---------------------------------------------------------------
-        // GET: /Patient/GetDoctorSlots  (AJAX)
-        // ---------------------------------------------------------------
-        [HttpGet]
-        public IActionResult GetDoctorSlots(int patientId, int doctorId, string date, int? clinicId = null)
-        {
-            if (!DateTime.TryParse(date, out var parsedDate))
-                return BadRequest();
-
-            var slots = clinicId.HasValue
-                ? _appointment.GetAvailableByDoctorClinicAndDate(doctorId, clinicId.Value, parsedDate)
-                : _appointment.GetAvailableByDoctorAndDate(doctorId, parsedDate);
-            return Json(slots.Select(a => new
-            {
-                appointmentId = a.AppointmentID,
-                time = a.Time.ToString(@"hh\:mm"),
-                timeDisplay = DateTime.Today.Add(a.Time).ToString("hh:mm tt"),
-                hourOf24 = (int)a.Time.TotalHours,
-                clinicId = a.ClinicID
-            }));
-        }
-
-        // ---------------------------------------------------------------
-        // GET: /Patient/GetAvailableDates  (AJAX)
-        // ---------------------------------------------------------------
-        [HttpGet]
-        public IActionResult GetAvailableDates(int patientId, int doctorId, int year, int month, int? clinicId = null)
-        {
-            var dates = clinicId.HasValue
-                ? _appointment.GetAvailableDatesByDoctorAndClinic(doctorId, clinicId.Value, year, month)
-                : _appointment.GetAvailableDatesByDoctor(doctorId, year, month);
-            return Json(dates.Select(d => d.ToString("yyyy-MM-dd")));
-        }
-
-        // ---------------------------------------------------------------
-        // POST: /Patient/ConfirmBooking  (AJAX)
-        // ---------------------------------------------------------------
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult ConfirmBooking(int patientId, int appointmentId, string reason, string? notes)
+        public async Task<IActionResult> SendReportToDoctor(int id, [FromBody] SendReportToDoctorRequest req)
+        {
+            var (patient, failure) = AuthorizePatientAccess(id);
+            if (failure != null)
+                return failure;
+
+            if (string.IsNullOrWhiteSpace(req?.DoctorUserId) || string.IsNullOrWhiteSpace(req?.AttachmentUrl))
+                return BadRequest(new { error = "Invalid request." });
+
+            var approvedDoctorUserIds = _patientDoctorRepository
+                .GetByPatientId(id)
+                .Where(pd => string.Equals(pd.Status, "Approved", StringComparison.OrdinalIgnoreCase)
+                          && pd.Doctor != null
+                          && !string.IsNullOrWhiteSpace(pd.Doctor.UserID))
+                .Select(pd => pd.Doctor!.UserID!)
+                .Distinct()
+                .ToList();
+
+            if (!approvedDoctorUserIds.Contains(req.DoctorUserId))
+                return Forbid();
+
+            if (string.IsNullOrWhiteSpace(patient!.UserID))
+                return StatusCode(500);
+
+            var caption = string.IsNullOrWhiteSpace(req.Caption) ? "Lab Analysis Report" : req.Caption.Trim();
+            var fileName = string.IsNullOrWhiteSpace(req.FileName) ? "Lab-Analysis-Report.pdf" : req.FileName;
+
+            var chatMessage = new ChatMessage
+            {
+                SenderUserId = patient.UserID,
+                ReceiverUserId = req.DoctorUserId,
+                Message = _chatMessageCrypto.Encrypt(caption),
+                SentAtUtc = DateTime.Now,
+                IsRead = false,
+                AttachmentUrl = req.AttachmentUrl,
+                AttachmentType = "file",
+                AttachmentName = fileName
+            };
+
+            _context.ChatMessages.Add(chatMessage);
+            await _context.SaveChangesAsync();
+
+            await _hubContext.Clients.User(req.DoctorUserId).SendAsync(
+                "ReceiveMessage",
+                patient.UserID,
+                caption,
+                chatMessage.SentAtUtc,
+                req.AttachmentUrl,
+                "file",
+                fileName);
+
+            return Json(new { success = true });
+        }
+
+        private static bool IsRiskAlertType(string? alertType)
+        {
+            if (string.IsNullOrWhiteSpace(alertType))
+                return false;
+
+            return alertType.Equals("danger", StringComparison.OrdinalIgnoreCase)
+                || alertType.Equals("critical", StringComparison.OrdinalIgnoreCase)
+                || alertType.Equals("warning", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private (Patient? patient, IActionResult? failure) AuthorizePatientAccess(int patientId, bool returnJsonOnFailure = false)
         {
             var patient = _patientRepository.GetById(patientId);
             if (patient == null)
-                return Json(new { success = false, message = "Patient not found." });
+                return (null, NotFound());
 
-            var appointment = _appointment.GetByIdWithBooking(appointmentId);
-            if (appointment == null || appointment.isBooked)
-                return Json(new { success = false, message = "This slot is no longer available." });
-
-            // Check if the doctor is already booked at the same date/time at another clinic
-            if (_appointment.HasDoctorConflict(appointment.DoctorID, appointment.Date, appointment.Time, appointmentId))
-                return Json(new { success = false, message = "This doctor is already booked at this time at another clinic. Please choose a different slot." });
-
-            appointment.PatientID = patientId;
-            appointment.isBooked = true;
-            _appointment.Update(appointment);
-
-            var booking = new Booking
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userId))
             {
-                AppointmentID = appointmentId,
-                PatientID = patientId,
-                DoctorID = appointment.DoctorID,
-                ClinicID = appointment.ClinicID,
-                Status = "Confirmed",
-                Reason = reason ?? string.Empty,
-                Notes = notes ?? string.Empty
-            };
-            _bookingRepository.Add(booking);
-            _bookingRepository.Save();
+                if (returnJsonOnFailure)
+                    return (null, Unauthorized(new { success = false, message = "Unauthorized." }));
 
-            return Json(new { success = true, message = "Appointment booked successfully!" });
-        }
-
-        // ---------------------------------------------------------------
-        // POST: /Patient/CancelAppointment  (AJAX)
-        // ---------------------------------------------------------------
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult CancelAppointment(int patientId, int appointmentId)
-        {
-            var appointment = _appointment.GetByIdWithBooking(appointmentId);
-            if (appointment == null || appointment.PatientID != patientId)
-                return Json(new { success = false, message = "Appointment not found." });
-
-            appointment.isBooked = false;
-            appointment.PatientID = null;
-            _appointment.Update(appointment);
-
-            if (appointment.Booking != null)
-            {
-                appointment.Booking.Status = "Cancelled";
-                _bookingRepository.Update(appointment.Booking);
+                return (null, Unauthorized());
             }
 
-            _appointment.Save();
-            return Json(new { success = true, message = "Appointment cancelled successfully." });
+            if (!string.Equals(patient.UserID, userId, StringComparison.Ordinal))
+            {
+                if (returnJsonOnFailure)
+                    return (null, StatusCode(StatusCodes.Status403Forbidden, new { success = false, message = "Access denied." }));
+
+                return (null, Forbid());
+            }
+
+            return (patient, null);
         }
 
-        public IActionResult Edit(int id)
+        private IActionResult RedirectToLocalOrDashboard(int patientId, string? returnUrl)
         {
-            throw new NotImplementedException();
+            if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+
+            return RedirectToAction(nameof(Index), new { id = patientId });
         }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult Edit(int id, Patient patient)
+        private void NotifyAssignedDoctor(int patientId, Patient patient, string? title = null, string? message = null)
         {
-            throw new NotImplementedException();
-        }
+            var patientName = $"{patient.User?.FirstName} {patient.User?.LastName}".Trim();
+            if (string.IsNullOrWhiteSpace(patientName)) patientName = "A patient";
 
-        public IActionResult Delete(int id)
-        {
-            throw new NotImplementedException();
-        }
+            var notifTitle = title ?? $"Health Alert: {patientName}";
+            var notifMessage = message ?? $"{patientName} has a new health risk alert that requires your attention.";
 
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public IActionResult DeleteConfirmed(int id)
-        {
-            throw new NotImplementedException();
+            var assignedDoctors = _patientDoctorRepository
+                .GetByPatientId(patientId)
+                .Where(pd => string.Equals(pd.Status, "Approved", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            foreach (var pd in assignedDoctors)
+            {
+                _ = _doctorNotificationService.NotifyAsync(
+                    pd.DoctorID,
+                    notifTitle,
+                    notifMessage,
+                    "patient_risk",
+                    $"/Doctor/PatientDetails/{pd.DoctorID}?patientId={patientId}");
+            }
         }
     }
 }

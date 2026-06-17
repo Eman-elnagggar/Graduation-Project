@@ -11,5 +11,12 @@ namespace Graduation_Project.ViewModels
         public List<PatientDoctor> MyDoctors { get; set; } = new();
         public PatientDoctor? PrimaryDoctor { get; set; }
         public int UnreadAlertsCount { get; set; }
+
+        // Pregnancy journey context (mirrors the patient dashboard)
+        public bool HasActivePregnancy { get; set; }
+        public int PregnancyWeek { get; set; }
+        public int PregnancyProgressPercent { get; set; }
+        public string Trimester { get; set; } = "Not Active";
+        public DateTime? DueDate { get; set; }
     }
 }

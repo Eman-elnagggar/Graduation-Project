@@ -1,0 +1,92 @@
+@{
+  var activePage = ViewData["ActivePage"] as string ?? "";
+  var adminName = ViewData["AdminName"] as string ?? "Admin";
+}
+
+<aside class="sidebar">
+  <button class="sidebar-close"><i class="fas fa-times"></i></button>
+
+  <div class="sidebar-brand">
+    <div class="brand-logo">
+      <div class="brand-icon">
+        <img src="~/images/logo.png" alt="NABD Logo" asp-append-version="true" />
+      </div>
+      <div class="brand-text">
+        <span class="brand-name">NABD - نبض</span>
+        <span class="brand-badge">Admin Portal</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-profile">
+    <div class="profile-avatar">
+      <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(adminName)&background=1d4ed8&color=fff&size=80"
+           alt="@adminName" />
+      <span class="online-dot"></span>
+    </div>
+    <div class="profile-info">
+      <span class="profile-name">@adminName</span>
+      <span class="profile-role">System Administrator</span>
+    </div>
+  </div>
+
+  <nav class="nav-menu">
+    <div class="nav-section">
+      <span class="nav-section-label">Overview</span>
+
+      <a href="/Admin/Index"
+         class="nav-item @(activePage == "Dashboard" ? "active" : "")"
+         data-tooltip="Dashboard">
+        <div class="nav-icon"><i class="fas fa-tachometer-alt"></i></div>
+        <span>Dashboard</span>
+      </a>
+
+      <a href="/Admin/Analytics"
+         class="nav-item @(activePage == "Analytics" ? "active" : "")"
+         data-tooltip="Analytics">
+        <div class="nav-icon"><i class="fas fa-chart-line"></i></div>
+        <span>Analytics</span>
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <span class="nav-section-label">Management</span>
+
+      <a href="/Admin/Users"
+         class="nav-item @(activePage == "Users" ? "active" : "")"
+         data-tooltip="User Management">
+        <div class="nav-icon"><i class="fas fa-users-cog"></i></div>
+        <span>User Management</span>
+      </a>
+
+      <a href="/Admin/Doctors"
+         class="nav-item @(activePage is "Doctors" or "DoctorDetail" ? "active" : "")"
+         data-tooltip="Doctor Management">
+        <div class="nav-icon"><i class="fas fa-stethoscope"></i></div>
+        <span>Doctor Management</span>
+      </a>
+
+      <a href="/Admin/Clinics"
+         class="nav-item @(activePage == "Clinics" ? "active" : "")"
+         data-tooltip="Clinic Management">
+        <div class="nav-icon"><i class="fas fa-hospital"></i></div>
+        <span>Clinic Management</span>
+      </a>
+
+      <a href="/Admin/DoctorVerification"
+         class="nav-item @(activePage == "DoctorVerification" ? "active" : "")"
+         data-tooltip="Doctor Verification">
+        <div class="nav-icon"><i class="fas fa-user-md"></i></div>
+        <span>Doctor Verification</span>
+      </a>
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <a asp-controller="Account" asp-action="LogoutGet"
+       class="nav-item logout-item" data-tooltip="Logout">
+      <div class="nav-icon"><i class="fas fa-sign-out-alt"></i></div>
+      <span>Logout</span>
+    </a>
+  </div>
+</aside>

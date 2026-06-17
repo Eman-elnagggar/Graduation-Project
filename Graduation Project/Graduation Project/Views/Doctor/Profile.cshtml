@@ -1,0 +1,333 @@
+@model DoctorProfileViewModel
+@{
+  Layout = "~/Views/Shared/_DoctorLayout.cshtml";
+  ViewData["Title"] = "My Profile";
+  ViewData["ActivePage"] = "Profile";
+  ViewData["DoctorId"] = Model.Doctor.DoctorID;
+  ViewData["DoctorName"] = Model.DoctorName;
+  ViewData["PageTitle"] = "My Profile";
+  ViewData["PageSubtitle"] = "Doctor and account information from database";
+
+  var doctorName = Model.DoctorName;
+  var doctorAvatarName = Uri.EscapeDataString(doctorName);
+  var doctorSpecialty = string.IsNullOrWhiteSpace(Model.Doctor.Specialization) ? "-" : Model.Doctor.Specialization;
+  var verificationStatus = string.IsNullOrWhiteSpace(Model.Doctor.VerificationStatus) ? "Not Set" : Model.Doctor.VerificationStatus;
+  var verificationDate = Model.Doctor.VerificationDate?.ToString("dd MMM yyyy") ?? "-";
+  var doctorAddress = string.IsNullOrWhiteSpace(Model.Doctor.Address) ? "-" : Model.Doctor.Address;
+  var clinicName = string.IsNullOrWhiteSpace(Model.ClinicName) ? "-" : Model.ClinicName;
+  var clinicAddress = string.IsNullOrWhiteSpace(Model.ClinicAddress) ? "-" : Model.ClinicAddress;
+  var createdDate = Model.Doctor.User?.CreatedDate.ToString("dd MMM yyyy") ?? "-";
+  var dob = Model.Doctor.User?.DateOfBirth != default ? Model.Doctor.User?.DateOfBirth.ToString("dd MMM yyyy") : "-";
+}
+
+@section Head {
+  <link rel="stylesheet" href="~/css/doctor-profile.css" asp-append-version="true" />
+}
+
+<div class="profile-page">
+  <div class="profile-hero">
+    <div class="profile-hero-bg">
+      <div class="hero-pattern"></div>
+      <div class="hero-gradient"></div>
+    </div>
+
+    <div class="profile-hero-content">
+      <div class="profile-avatar-wrapper">
+        <div class="profile-avatar">
+          <img src="https://ui-avatars.com/api/?name=@doctorAvatarName&background=14967f&color=fff&size=200"
+               alt="Dr. @doctorName" />
+          <div class="avatar-status online"></div>
+        </div>
+      </div>
+
+      <div class="profile-hero-info">
+        <div class="profile-name-row">
+          <h1>Dr. @doctorName</h1>
+          <span class="verified-badge"><i class="fas fa-check-circle"></i> @verificationStatus</span>
+        </div>
+
+        <p class="profile-specialty"><i class="fas fa-stethoscope"></i> @doctorSpecialty</p>
+
+        <div class="profile-meta">
+          <span class="meta-item"><i class="fas fa-id-card"></i> License: @(Model.Doctor.LicenseNumber ?? "-")</span>
+          <span class="meta-item"><i class="fas fa-calendar-alt"></i> Verified: @verificationDate</span>
+          <span class="meta-item"><i class="fas fa-map-marker-alt"></i> @doctorAddress</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="profile-stats-bar">
+    <div class="stat-card">
+      <div class="stat-icon blue"><i class="fas fa-users"></i></div>
+      <div class="stat-content">
+        <span class="stat-value">@Model.TotalPatientsEver</span>
+        <span class="stat-label">Patients Linked</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon teal"><i class="fas fa-calendar-check"></i></div>
+      <div class="stat-content">
+        <span class="stat-value">@Model.TotalAppointments</span>
+        <span class="stat-label">Booked Appointments</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon amber"><i class="fas fa-hospital"></i></div>
+      <div class="stat-content">
+        <span class="stat-value">@Model.ClinicsConnectedCount</span>
+        <span class="stat-label">Clinics Connected</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="fas fa-user-check"></i></div>
+      <div class="stat-content">
+        <span class="stat-value">@(Model.Doctor.User?.IsActive == true ? "Active" : "Inactive")</span>
+        <span class="stat-label">Account Status</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="profile-section-nav">
+    <a asp-action="Profile" asp-route-id="@Model.Doctor.DoctorID" asp-route-section="personal" class="section-pill @(Model.ActiveSection == "personal" ? "active" : "")"><i class="fas fa-user"></i> Personal</a>
+    <a asp-action="Profile" asp-route-id="@Model.Doctor.DoctorID" asp-route-section="professional" class="section-pill @(Model.ActiveSection == "professional" ? "active" : "")"><i class="fas fa-briefcase-medical"></i> Professional</a>
+    <a asp-action="Profile" asp-route-id="@Model.Doctor.DoctorID" asp-route-section="clinics" class="section-pill @(Model.ActiveSection == "clinics" ? "active" : "")"><i class="fas fa-clinic-medical"></i> Clinics</a>
+    <a asp-action="Profile" asp-route-id="@Model.Doctor.DoctorID" asp-route-section="security" class="section-pill @(Model.ActiveSection == "security" ? "active" : "")"><i class="fas fa-lock"></i> Security</a>
+  </div>
+
+  @if (Model.ActiveSection == "personal")
+  {
+    <div class="profile-grid">
+      <div class="profile-card full-width">
+        <div class="card-header">
+          <div class="card-header-left">
+            <div class="card-icon blue"><i class="fas fa-user"></i></div>
+            <div><h3>User Information</h3><p>Data from `AspNetUsers`</p></div>
+          </div>
+          <button type="button" class="btn btn-outline btn-sm section-edit-btn" id="editPersonalBtn" data-edit-form="personalForm" data-actions-id="personalActions">
+            <i class="fas fa-pen"></i> Edit
+          </button>
+        </div>
+        <div class="card-body">
+          <form id="personalForm" data-save-url="/Doctor/SaveProfilePersonal" class="inline-edit-form">
+            <div class="info-grid">
+              <div class="info-item"><label>First Name</label><input class="inline-input" name="firstName" value="@(Model.Doctor.User?.FirstName ?? string.Empty)" disabled /></div>
+              <div class="info-item"><label>Last Name</label><input class="inline-input" name="lastName" value="@(Model.Doctor.User?.LastName ?? string.Empty)" disabled /></div>
+              <div class="info-item"><label>Email</label><input class="inline-input" value="@(Model.Doctor.User?.Email ?? "-")" disabled readonly /></div>
+              <div class="info-item"><label>Phone Number</label><input class="inline-input" name="phone" value="@(Model.Doctor.User?.PhoneNumber ?? string.Empty)" disabled /></div>
+              <div class="info-item"><label>Date of Birth</label><input class="inline-input" type="date" name="dateOfBirth" value="@(Model.Doctor.User?.DateOfBirth != default ? Model.Doctor.User?.DateOfBirth.ToString("yyyy-MM-dd") : string.Empty)" disabled /></div>
+              <div class="info-item"><label>Created Date</label><input class="inline-input" value="@createdDate" disabled readonly /></div>
+            </div>
+            <div class="inline-actions" id="personalActions" style="display:none;">
+              <button type="button" class="btn btn-outline btn-sm cancel-edit-btn" data-edit-form="personalForm" data-actions-id="personalActions" data-edit-btn-id="editPersonalBtn"><i class="fas fa-times"></i> Cancel</button>
+              <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save"></i> Save Changes</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  }
+  else if (Model.ActiveSection == "professional")
+  {
+    <div class="profile-grid">
+      <div class="profile-card full-width">
+        <div class="card-header">
+          <div class="card-header-left">
+            <div class="card-icon teal"><i class="fas fa-briefcase-medical"></i></div>
+            <div><h3>Doctor Information</h3><p>Data from `Doctor`</p></div>
+          </div>
+          <button type="button" class="btn btn-outline btn-sm section-edit-btn" id="editProfessionalBtn" data-edit-form="professionalForm" data-actions-id="professionalActions">
+            <i class="fas fa-pen"></i> Edit
+          </button>
+        </div>
+        <div class="card-body">
+          <form id="professionalForm" data-save-url="/Doctor/SaveProfileProfessional" class="inline-edit-form">
+            <div class="info-grid">
+              <div class="info-item"><label>Doctor ID</label><input class="inline-input" value="@Model.Doctor.DoctorID" disabled readonly /></div>
+              <div class="info-item"><label>User ID</label><input class="inline-input" value="@Model.Doctor.UserID" disabled readonly /></div>
+              <div class="info-item"><label>Specialization</label><input class="inline-input" name="specialization" value="@doctorSpecialty" disabled /></div>
+              <div class="info-item"><label>License Number</label><input class="inline-input" value="@(Model.Doctor.LicenseNumber ?? string.Empty)" disabled readonly /></div>
+              <div class="info-item"><label>Verification Status</label><input class="inline-input" value="@verificationStatus" disabled readonly /></div>
+              <div class="info-item"><label>Verification Date</label><input class="inline-input" value="@verificationDate" disabled readonly /></div>
+              <div class="info-item full-width"><label>Address</label><input class="inline-input" name="address" value="@doctorAddress" disabled /></div>
+              <div class="info-item full-width"><label>License Image Path</label><input class="inline-input" value="@(Model.Doctor.LicenseImagePath ?? "-")" disabled readonly /></div>
+            </div>
+            <div class="inline-actions" id="professionalActions" style="display:none;">
+              <button type="button" class="btn btn-outline btn-sm cancel-edit-btn" data-edit-form="professionalForm" data-actions-id="professionalActions" data-edit-btn-id="editProfessionalBtn"><i class="fas fa-times"></i> Cancel</button>
+              <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save"></i> Save Changes</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  }
+  else if (Model.ActiveSection == "clinics")
+  {
+    <div class="profile-grid">
+      <div class="profile-card full-width">
+        <div class="card-header">
+          <div class="card-header-left">
+            <div class="card-icon amber"><i class="fas fa-clinic-medical"></i></div>
+            <div><h3>Clinic Connection</h3><p>Primary clinic and count from `ClinicDoctor`</p></div>
+          </div>
+          <button type="button" class="btn btn-outline btn-sm section-edit-btn" id="editClinicBtn" data-edit-form="clinicForm" data-actions-id="clinicActions">
+            <i class="fas fa-pen"></i> Edit
+          </button>
+        </div>
+        <div class="card-body">
+          <form id="clinicForm" data-save-url="/Doctor/SaveProfileClinic" class="inline-edit-form">
+            <div class="info-grid">
+              <div class="info-item"><label>Connected Clinics</label><input class="inline-input" value="@Model.ClinicsConnectedCount" disabled readonly /></div>
+              <div class="info-item"><label>Primary Clinic Name</label><input class="inline-input" name="clinicName" value="@(clinicName == "-" ? string.Empty : clinicName)" disabled /></div>
+              <div class="info-item full-width"><label>Primary Clinic Address</label><input class="inline-input" name="clinicAddress" value="@(clinicAddress == "-" ? string.Empty : clinicAddress)" disabled /></div>
+            </div>
+            <div class="inline-actions" id="clinicActions" style="display:none;">
+              <button type="button" class="btn btn-outline btn-sm cancel-edit-btn" data-edit-form="clinicForm" data-actions-id="clinicActions" data-edit-btn-id="editClinicBtn"><i class="fas fa-times"></i> Cancel</button>
+              <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save"></i> Save Changes</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  }
+  else
+  {
+    <div class="profile-grid">
+      <div class="profile-card full-width" id="securitySection">
+        <div class="card-header">
+          <div class="card-header-left">
+            <div class="card-icon red"><i class="fas fa-lock"></i></div>
+            <div><h3>Security</h3><p>Password and account safety controls</p></div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="profile-grid security-grid">
+            <div class="profile-card">
+              <div class="card-header">
+                <div class="card-header-left">
+                  <div class="card-icon red"><i class="fas fa-key"></i></div>
+                  <div><h3>Change Password</h3><p>Keep your account secure</p></div>
+                </div>
+              </div>
+              <div class="card-body">
+                <form id="passwordForm" class="security-form">
+                  <div class="form-group">
+                    <label>Current Password</label>
+                    <div class="password-input">
+                      <input type="password" id="currentPassword" placeholder="Enter current password" required />
+                      <button type="button" class="password-toggle"><i class="fas fa-eye"></i></button>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label>New Password</label>
+                    <div class="password-input">
+                      <input type="password" id="newPassword" placeholder="Enter new password" required />
+                      <button type="button" class="password-toggle"><i class="fas fa-eye"></i></button>
+                    </div>
+                    <div class="password-strength" id="passwordStrength">
+                      <div class="strength-bar"><span id="pwFill"></span></div>
+                      <span class="strength-text" id="pwLabel">Password strength</span>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label>Confirm New Password</label>
+                    <div class="password-input">
+                      <input type="password" id="confirmPassword" placeholder="Confirm new password" required />
+                      <button type="button" class="password-toggle"><i class="fas fa-eye"></i></button>
+                    </div>
+                  </div>
+
+                  <div class="pw-requirements">
+                    <h4>Requirements</h4>
+                    <ul>
+                      <li id="req-length"><i class="fas fa-circle"></i> At least 8 characters</li>
+                      <li id="req-upper"><i class="fas fa-circle"></i> One uppercase letter</li>
+                      <li id="req-lower"><i class="fas fa-circle"></i> One lowercase letter</li>
+                      <li id="req-number"><i class="fas fa-circle"></i> One number</li>
+                      <li id="req-special"><i class="fas fa-circle"></i> One special character (!@@#$%^&amp;*)</li>
+                    </ul>
+                  </div>
+
+                  <div class="form-actions-inline">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-lock"></i> Update Password</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <div class="profile-card">
+              <div class="card-header">
+                <div class="card-header-left">
+                  <div class="card-icon teal"><i class="fas fa-sliders-h"></i></div>
+                  <div><h3>Account Settings</h3><p>Notification and privacy preferences</p></div>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="settings-list">
+                  <div class="setting-item">
+                    <div class="setting-info">
+                      <h4>Email Notifications</h4>
+                      <p>Receive updates about appointments and messages</p>
+                    </div>
+                    <label class="toggle-switch"><input type="checkbox" checked /><span class="toggle-slider"></span></label>
+                  </div>
+                  <div class="setting-item">
+                    <div class="setting-info">
+                      <h4>SMS Notifications</h4>
+                      <p>Receive reminders via SMS</p>
+                    </div>
+                    <label class="toggle-switch"><input type="checkbox" checked /><span class="toggle-slider"></span></label>
+                  </div>
+                  <div class="setting-item">
+                    <div class="setting-info">
+                      <h4>Two-Factor Authentication</h4>
+                      <p>Add an extra layer of account security</p>
+                    </div>
+                    <label class="toggle-switch"><input type="checkbox" /><span class="toggle-slider"></span></label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="profile-card full-width danger-zone-card">
+              <div class="card-header">
+                <div class="card-header-left">
+                  <div class="card-icon red"><i class="fas fa-exclamation-triangle"></i></div>
+                  <div><h3>Danger Zone</h3><p>Irreversible account actions</p></div>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="danger-list">
+                  <div class="danger-item">
+                    <div class="setting-info">
+                      <h4>Download My Data</h4>
+                      <p>Download a copy of your account data</p>
+                    </div>
+                    <button type="button" class="btn btn-outline" id="downloadDataBtn"><i class="fas fa-download"></i> Download</button>
+                  </div>
+                  <div class="danger-item">
+                    <div class="setting-info">
+                      <h4>Delete Account</h4>
+                      <p>Permanently delete your account and all associated data</p>
+                    </div>
+                    <button type="button" class="btn btn-danger-outline" id="deleteAccountBtn"><i class="fas fa-trash"></i> Delete Account</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>
+
+@section Scripts {
+<script>
+window.DOCTOR_PROFILE = { doctorId: @Model.Doctor.DoctorID };
+</script>
+<script src="~/js/doctor-profile.js" asp-append-version="true"></script>
+}

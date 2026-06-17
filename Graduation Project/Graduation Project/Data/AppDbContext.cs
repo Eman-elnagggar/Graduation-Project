@@ -1,9 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Graduation_Project.Models;
 
 namespace Graduation_Project.Data
 {
-    public class AppDbContext : DbContext
+    public class AppDbContext : IdentityDbContext<ApplicationUser>
     {
         public AppDbContext()
         {
@@ -28,43 +29,43 @@ namespace Graduation_Project.Data
         public DbSet<HCV_Test> HCV_Tests { get; set; }
         public DbSet<TSH_Test> TSH_Tests { get; set; }
         public DbSet<Ferritin_Test> Ferritin_Tests { get; set; }
+        public DbSet<FBG_Test> FBG_Tests { get; set; }
         public DbSet<Clinic> Clinics { get; set; }
         public DbSet<ClinicDoctor> ClinicDoctors { get; set; }
         public DbSet<AssistantDoctor> AssistantDoctors { get; set; }
         public DbSet<Doctor> Doctors { get; set; }
         public DbSet<LabTest> LabTests { get; set; }
         public DbSet<MedicalHistory> MedicalHistories { get; set; }
+        public DbSet<Medication> Medications { get; set; }
+        public DbSet<MedicationSchedule> MedicationSchedules { get; set; }
+        public DbSet<MedicationLog> MedicationLogs { get; set; }
+        public DbSet<MedicationReminderSettings> MedicationReminderSettings { get; set; }
         public DbSet<Note> Notes { get; set; }
         public DbSet<Patient> Patients { get; set; }
         public DbSet<PatientBloodPressure> PatientBloodPressure { get; set; }
         public DbSet<PatientBloodSugar> PatientBloodSugar { get; set; }
         public DbSet<PatientDoctor> PatientDoctors { get; set; }
         public DbSet<PatientDrug> PatientDrugs { get; set; }
+        public DbSet<PregnancyRecord> PregnancyRecords { get; set; }
         public DbSet<Place> Places { get; set; }
         public DbSet<Prescription> Prescriptions { get; set; }
         public DbSet<PrescriptionItem> PrescriptionItems { get; set; }
-        public DbSet<Role> Roles { get; set; }
         public DbSet<TestReport> TestReports { get; set; }
         public DbSet<UltrasoundImage> UltrasoundImages { get; set; }
-        public DbSet<User> Users { get; set; }
         public DbSet<WeightTracking> WeightTrackings { get; set; }
+        public DbSet<ChatMessage> ChatMessages { get; set; }
+        public DbSet<ClinicInvitation> ClinicInvitations { get; set; }
+        public DbSet<CommunityPost> CommunityPosts { get; set; }
+        public DbSet<CommunityComment> CommunityComments { get; set; }
+        public DbSet<CommunityLike> CommunityLikes { get; set; }
+        public DbSet<ChatbotMessage> ChatbotMessages { get; set; }
+        public DbSet<UserPushSubscription> UserPushSubscriptions { get; set; }
+        public DbSet<DoctorNotification> DoctorNotifications { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-
-            // ============================================================
-            // 1. USER -> ROLE (One User has One Role)
-            // ============================================================
-            modelBuilder.Entity<User>(entity =>
-            {
-                entity.HasKey(e => e.UserID);
-
-                entity.HasOne(d => d.Role)
-                    .WithMany(p => p.Users)
-                    .HasForeignKey(d => d.RoleID)
-                    .OnDelete(DeleteBehavior.Restrict);
-            });
 
             // ============================================================
             // APPOINTMENT -> PATIENT (optional — availability slots have no patient)
@@ -118,13 +119,14 @@ namespace Graduation_Project.Data
             });
 
             // ============================================================
-            // 5. ASSISTANT -> CLINIC (Many Assistants belong to One Clinic)
+            // 5. ASSISTANT -> CLINIC (Many Assistants belong to One Clinic; optional until invitation acceptance)
             // ============================================================
             modelBuilder.Entity<Assistant>(entity =>
             {
                 entity.HasOne(d => d.Clinic)
                     .WithMany(c => c.Assistants)
                     .HasForeignKey(d => d.ClinicID)
+                    .IsRequired(false)
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
@@ -183,6 +185,21 @@ namespace Graduation_Project.Data
             });
 
             // ============================================================
+            // PATIENT -> PREGNANCYRECORDS (One Patient has Many PregnancyRecords)
+            // ============================================================
+            modelBuilder.Entity<PregnancyRecord>(entity =>
+            {
+                entity.HasKey(e => e.PregnancyRecordID);
+
+                entity.HasOne(d => d.Patient)
+                    .WithMany(p => p.PregnancyRecords)
+                    .HasForeignKey(d => d.PatientID)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => new { e.PatientID, e.StartDate });
+            });
+
+            // ============================================================
             // 8. PATIENT -> LABTESTS (One Patient has Many LabTests)
             // ============================================================
             modelBuilder.Entity<LabTest>(entity =>
@@ -203,6 +220,45 @@ namespace Graduation_Project.Data
                 entity.HasOne(d => d.Doctor)
                     .WithMany()
                     .HasForeignKey(d => d.DoctorID)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // ============================================================
+            // CHATBOT MESSAGES (Patient conversation history)
+            // ============================================================
+            modelBuilder.Entity<ChatbotMessage>(entity =>
+            {
+                entity.HasKey(e => e.ChatbotMessageId);
+
+                entity.Property(e => e.Role)
+                    .HasMaxLength(10)
+                    .IsRequired();
+
+                entity.Property(e => e.Message)
+                    .HasMaxLength(2000)
+                    .IsRequired();
+
+                entity.Property(e => e.RiskLevel)
+                    .HasMaxLength(20);
+
+                entity.Property(e => e.Recommendation)
+                    .HasMaxLength(2000);
+
+                entity.HasIndex(e => new { e.PatientID, e.SentAtUtc });
+
+                entity.HasOne(e => e.Patient)
+                    .WithMany()
+                    .HasForeignKey(e => e.PatientID)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<TestReport>(entity =>
+            {
+                entity.HasOne(d => d.Doctor)
+                    .WithMany()
+                    .HasForeignKey(d => d.DoctorID)
+                    .IsRequired(false)
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
@@ -319,6 +375,52 @@ namespace Graduation_Project.Data
                     .WithOne()
                     .HasForeignKey<Ferritin_Test>(d => d.LabTestID)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ============================================================
+            // 47. FBG_TEST -> LABTEST (One-to-One)
+            // ============================================================
+            modelBuilder.Entity<FBG_Test>(entity =>
+            {
+                entity.HasKey(e => e.LabTestID);
+
+                entity.HasOne(d => d.LabTest)
+                    .WithOne()
+                    .HasForeignKey<FBG_Test>(d => d.LabTestID)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ============================================================
+            // CHATMESSAGES
+            // ============================================================
+            modelBuilder.Entity<ChatMessage>(entity =>
+            {
+                entity.HasKey(e => e.ChatMessageId);
+
+                entity.Property(e => e.SenderUserId)
+                    .HasMaxLength(450)
+                    .IsRequired();
+
+                entity.Property(e => e.ReceiverUserId)
+                    .HasMaxLength(450)
+                    .IsRequired();
+
+                entity.Property(e => e.Message)
+                    .HasMaxLength(2000)
+                    .IsRequired();
+
+                entity.HasOne(e => e.SenderUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.SenderUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.ReceiverUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.ReceiverUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => new { e.SenderUserId, e.ReceiverUserId, e.SentAtUtc });
+                entity.HasIndex(e => new { e.ReceiverUserId, e.IsRead });
             });
 
             // ============================================================
@@ -462,6 +564,7 @@ namespace Graduation_Project.Data
             modelBuilder.Entity<Booking>(entity =>
             {
                 entity.HasKey(e => e.BookingID);
+                entity.Property(e => e.IsActive).HasDefaultValue(true);
 
                 entity.HasOne<Patient>()
                     .WithMany()
@@ -486,13 +589,14 @@ namespace Graduation_Project.Data
             modelBuilder.Entity<Booking>(entity =>
             {
                 entity.HasOne(d => d.Appointment)
-                    .WithOne(a => a.Booking)
-                    .HasForeignKey<Booking>(d => d.AppointmentID)
+                    .WithMany(a => a.Bookings)
+                    .HasForeignKey(d => d.AppointmentID)
                     .OnDelete(DeleteBehavior.Restrict);
-                
-                // Enforce one booking per appointment at database level
+
+                // Enforce only one active booking per appointment at database level
                 entity.HasIndex(e => e.AppointmentID)
-                    .IsUnique();
+                    .IsUnique()
+                    .HasFilter("[IsActive] = 1");
             });
 
             // ============================================================
@@ -625,6 +729,69 @@ namespace Graduation_Project.Data
             });
 
             // ============================================================
+            // MEDICATIONS
+            // ============================================================
+            modelBuilder.Entity<Medication>(entity =>
+            {
+                entity.HasKey(e => e.MedicationId);
+
+                entity.HasOne(d => d.Patient)
+                    .WithMany()
+                    .HasForeignKey(d => d.PatientID)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(d => d.PrescriptionItem)
+                    .WithMany()
+                    .HasForeignKey(d => d.PrescriptionItemId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasIndex(e => new { e.PatientID, e.IsActive });
+                entity.HasIndex(e => e.PrescriptionItemId)
+                    .IsUnique()
+                    .HasFilter("[PrescriptionItemId] IS NOT NULL");
+            });
+
+            modelBuilder.Entity<MedicationSchedule>(entity =>
+            {
+                entity.HasKey(e => e.MedicationScheduleId);
+
+                entity.HasOne(d => d.Medication)
+                    .WithMany(m => m.Schedules)
+                    .HasForeignKey(d => d.MedicationId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => new { e.MedicationId, e.TimeOfDay });
+            });
+
+            modelBuilder.Entity<MedicationLog>(entity =>
+            {
+                entity.HasKey(e => e.MedicationLogId);
+
+                entity.HasOne(d => d.Medication)
+                    .WithMany(m => m.Logs)
+                    .HasForeignKey(d => d.MedicationId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => new { e.MedicationId, e.ScheduledAt });
+                entity.HasIndex(e => new { e.MedicationId, e.Status });
+            });
+
+            // ============================================================
+            // MEDICATION REMINDER SETTINGS
+            // ============================================================
+            modelBuilder.Entity<MedicationReminderSettings>(entity =>
+            {
+                entity.HasKey(e => e.MedicationReminderSettingsId);
+
+                entity.HasOne(d => d.Patient)
+                    .WithMany()
+                    .HasForeignKey(d => d.PatientID)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => e.PatientID).IsUnique();
+            });
+
+            // ============================================================
             // 36. TESTREPORT -> PATIENT (Many Reports belong to One Patient)
             // ============================================================
             modelBuilder.Entity<TestReport>(entity =>
@@ -671,6 +838,97 @@ namespace Graduation_Project.Data
                     .HasForeignKey(d => d.PatientID)
                     .OnDelete(DeleteBehavior.Cascade);
             });
+
+            // ============================================================
+            // CLINIC INVITATIONS
+            // ============================================================
+            modelBuilder.Entity<ClinicInvitation>(entity =>
+            {
+                entity.HasKey(e => e.ClinicInvitationID);
+
+                entity.Property(e => e.AssistantEmail)
+                    .HasMaxLength(256)
+                    .IsRequired();
+
+                entity.Property(e => e.Status)
+                    .HasMaxLength(32)
+                    .IsRequired();
+
+                entity.HasOne(e => e.Doctor)
+                    .WithMany()
+                    .HasForeignKey(e => e.DoctorID)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.Clinic)
+                    .WithMany()
+                    .HasForeignKey(e => e.ClinicID)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.Assistant)
+                    .WithMany()
+                    .HasForeignKey(e => e.AssistantID)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => new { e.DoctorID, e.ClinicID, e.AssistantID, e.Status });
+            });
+
+
+            // ============================================================
+            // COMMUNITY
+            // ============================================================
+            modelBuilder.Entity<CommunityPost>(entity =>
+            {
+                entity.HasKey(e => e.CommunityPostId);
+                entity.Property(e => e.Title).HasMaxLength(150).IsRequired();
+                entity.Property(e => e.Content).HasMaxLength(2000).IsRequired();
+                entity.Property(e => e.Category).HasMaxLength(60);
+                entity.Property(e => e.ImageUrl).HasMaxLength(300);
+                entity.HasOne(e => e.Patient)
+                    .WithMany()
+                    .HasForeignKey(e => e.PatientID)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<CommunityComment>(entity =>
+            {
+                entity.HasKey(e => e.CommunityCommentId);
+                entity.Property(e => e.Content).HasMaxLength(1000).IsRequired();
+                entity.HasOne(e => e.Post)
+                    .WithMany(p => p.Comments)
+                    .HasForeignKey(e => e.CommunityPostId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.Patient)
+                    .WithMany()
+                    .HasForeignKey(e => e.PatientID)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<CommunityLike>(entity =>
+            {
+                entity.HasKey(e => e.CommunityLikeId);
+                entity.HasIndex(e => new { e.CommunityPostId, e.PatientID }).IsUnique();
+                entity.HasOne(e => e.Post)
+                    .WithMany(p => p.Likes)
+                    .HasForeignKey(e => e.CommunityPostId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.Patient)
+                    .WithMany()
+                    .HasForeignKey(e => e.PatientID)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<UserPushSubscription>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.Endpoint).IsUnique();
+                entity.HasIndex(e => e.UserId);
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+
         }
     }
 }

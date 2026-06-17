@@ -1,0 +1,221 @@
+@{
+    Layout = null;
+    ViewData["Title"] = "Register as Assistant — NABD - نبض";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>@ViewData["Title"]</title>
+  <link rel="icon" type="image/png" href="~/images/logo.png" asp-append-version="true" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="~/css/register.css" asp-append-version="true" />
+</head>
+<body>
+
+<div class="rg-stage" data-portal="assistant">
+
+  <!-- ── BRAND PANEL ───────────────────────────────────────── -->
+  <aside class="rg-brand">
+    <span class="rg-brand-glow" aria-hidden="true"></span>
+    <svg class="rg-pulse" viewBox="0 0 460 80" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="rgPulse" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#c084fc" stop-opacity="0"/>
+          <stop offset="45%" stop-color="#c084fc"/>
+          <stop offset="80%" stop-color="#8b5cf6"/>
+          <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <path d="M0 40 H180 l9 -24 9 48 8 -58 11 74 9 -40 H460" />
+    </svg>
+
+    <a class="rg-brand-lockup" href="@Url.Action("Index", "Home")">
+      <span class="rg-brand-mark"><img src="~/images/logo.png" alt="NABD Logo" asp-append-version="true" /></span>
+      <span>
+        <span class="rg-brand-name">NABD <span style="font-weight:600">نبض</span></span>
+        <span class="rg-brand-badge" style="display:block">Assistant Portal</span>
+      </span>
+    </a>
+
+    <div class="rg-brand-mid">
+      <h2 class="rg-headline">Support the<br><span class="grad">care team</span></h2>
+      <p class="rg-desc">As a NABD - نبض assistant, you'll help coordinate patient care, manage appointments, and keep everything running smoothly.</p>
+    </div>
+
+    <div class="rg-features">
+      <div class="rg-feature">
+        <span class="rg-feature-ico"><i class="fas fa-calendar-alt"></i></span>
+        <span class="rg-feature-text">Appointment coordination &amp; scheduling</span>
+      </div>
+      <div class="rg-feature">
+        <span class="rg-feature-ico"><i class="fas fa-bell"></i></span>
+        <span class="rg-feature-text">Patient notification management</span>
+      </div>
+      <div class="rg-feature">
+        <span class="rg-feature-ico"><i class="fas fa-tasks"></i></span>
+        <span class="rg-feature-text">Administrative task management</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── FORM COLUMN ───────────────────────────────────────── -->
+  <main class="rg-main">
+    <div class="rg-main-inner">
+
+      <div class="rg-mobile-brand">
+        <span class="rg-brand-mark"><img src="~/images/logo.png" alt="NABD Logo" asp-append-version="true" /></span>
+        <span class="nm">NABD <span style="color:var(--rg-accent-deep)">نبض</span></span>
+      </div>
+
+      <nav class="rg-switch" aria-label="Choose portal">
+        <a class="rg-switch-item p" href="@Url.Action("RegisterPatient", "Account")">
+          <span class="ico"><i class="fas fa-baby"></i></span>
+          <span class="tx"><b>Patient</b><span>Mothers</span></span>
+        </a>
+        <a class="rg-switch-item d" href="@Url.Action("RegisterDoctor", "Account")">
+          <span class="ico"><i class="fas fa-user-md"></i></span>
+          <span class="tx"><b>Doctor</b><span>Care team</span></span>
+        </a>
+        <span class="rg-switch-item a is-active" aria-current="page">
+          <span class="ico"><i class="fas fa-user-nurse"></i></span>
+          <span class="tx"><b>Assistant</b><span>Clinic staff</span></span>
+        </span>
+      </nav>
+
+      <div class="rg-card">
+        <div class="rg-card-head">
+          <span class="rg-card-icon"><i class="fas fa-user-nurse"></i></span>
+          <div>
+            <div class="rg-card-title">Assistant Registration</div>
+            <div class="rg-card-sub">Create your assistant account on NABD - نبض</div>
+          </div>
+        </div>
+
+        <div class="rg-card-body">
+          @if (TempData["AuthError"] is string authError)
+          {
+            <div class="rg-alert-error">
+              <i class="fas fa-exclamation-circle"></i>
+              <p>@authError</p>
+            </div>
+          }
+
+          @using (Html.BeginForm("RegisterAssistant", "Account", FormMethod.Post,
+                  new { id = "assistantForm", novalidate = "novalidate" }))
+          {
+            @Html.AntiForgeryToken()
+
+            <div class="rg-section">
+              <span class="rg-section-ico"><i class="fas fa-id-badge"></i></span>
+              <div>
+                <div class="rg-section-h">Your details</div>
+                <div class="rg-section-sub">Tell us who you are</div>
+              </div>
+            </div>
+
+            <div class="mc-row">
+              <div class="mc-form-group">
+                <label class="mc-label" for="FirstName"><i class="fas fa-user"></i> First Name <span class="req">*</span></label>
+                <input type="text" id="FirstName" name="FirstName" class="mc-input" placeholder="Nour" required autocomplete="given-name" />
+              </div>
+              <div class="mc-form-group">
+                <label class="mc-label" for="LastName"><i class="fas fa-user"></i> Last Name <span class="req">*</span></label>
+                <input type="text" id="LastName" name="LastName" class="mc-input" placeholder="Ibrahim" required autocomplete="family-name" />
+              </div>
+            </div>
+
+            <div class="mc-form-group">
+              <label class="mc-label" for="Email"><i class="fas fa-envelope"></i> Email Address <span class="req">*</span></label>
+              <div class="mc-input-wrap">
+                <input type="email" id="Email" name="Email" class="mc-input has-icon" placeholder="you@example.com" required autocomplete="email" />
+                <i class="mc-input-icon fas fa-envelope"></i>
+              </div>
+            </div>
+
+            <div class="mc-form-group">
+              <label class="mc-label" for="PhoneNumber"><i class="fas fa-phone"></i> Phone Number <span class="req">*</span></label>
+              <div class="mc-input-wrap">
+                <input type="tel" id="PhoneNumber" name="PhoneNumber" class="mc-input has-icon" placeholder="+20 xxx xxx xxxx" required autocomplete="tel" />
+                <i class="mc-input-icon fas fa-phone"></i>
+              </div>
+            </div>
+
+            <div class="rg-section">
+              <span class="rg-section-ico"><i class="fas fa-lock"></i></span>
+              <div>
+                <div class="rg-section-h">Account security</div>
+                <div class="rg-section-sub">Choose a strong password</div>
+              </div>
+            </div>
+
+            <div class="mc-row">
+              <div class="mc-form-group">
+                <label class="mc-label" for="Password"><i class="fas fa-lock"></i> Password <span class="req">*</span></label>
+                <div class="mc-input-wrap">
+                  <input type="password" id="Password" name="Password" class="mc-input has-eye" placeholder="Min. 8 characters" required data-min-length="8" autocomplete="new-password" />
+                  <button type="button" class="mc-input-eye"><i class="fas fa-eye"></i></button>
+                </div>
+                <div class="mc-pwd-strength">
+                  <div class="mc-pwd-strength-bar"><div class="mc-pwd-strength-fill" id="pwdBar"></div></div>
+                  <div class="mc-pwd-strength-label" id="pwdLabel"></div>
+                </div>
+              </div>
+              <div class="mc-form-group">
+                <label class="mc-label" for="ConfirmPassword"><i class="fas fa-lock"></i> Confirm Password <span class="req">*</span></label>
+                <div class="mc-input-wrap">
+                  <input type="password" id="ConfirmPassword" name="ConfirmPassword" class="mc-input has-eye" placeholder="Repeat password" required data-match="Password" autocomplete="new-password" />
+                  <button type="button" class="mc-input-eye"><i class="fas fa-eye"></i></button>
+                </div>
+              </div>
+            </div>
+
+            <div class="mc-form-group mt-1">
+              <label class="mc-check-group">
+                <input type="checkbox" id="AgreeTerms" name="AgreeTerms" class="mc-check" value="true" required />
+                <span class="mc-check-label">
+                  I agree to the <a href="#" class="mc-link">Terms of Service</a> and <a href="#" class="mc-link">Privacy Policy</a>
+                </span>
+              </label>
+            </div>
+
+            <button type="submit" class="mc-btn mc-btn-primary mt-2">
+              <i class="fas fa-paper-plane"></i> Create Account
+            </button>
+          }
+        </div>
+
+        <div class="rg-card-foot">
+          Already have an account? <a href="@Url.Action("Login", "Account")" class="mc-link">Sign in</a>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="~/js/auth.js"></script>
+<script>
+(function () {
+  'use strict';
+  initLiveValidation('assistantForm');
+  initPasswordStrength('Password', 'pwdBar', 'pwdLabel');
+
+  document.getElementById('assistantForm').addEventListener('submit', function (e) {
+    if (!validateForm('assistantForm')) {
+      e.preventDefault();
+      showToast('Please fix the errors before submitting.', 'error');
+      return;
+    }
+    const terms = document.getElementById('AgreeTerms');
+    if (!terms.checked) {
+      e.preventDefault();
+      setFieldState(terms, 'You must agree to the Terms of Service.');
+      showToast('Please agree to the Terms of Service.', 'error');
+    }
+  });
+}());
+</script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Graduation_Project.Models
@@ -9,10 +9,13 @@ namespace Graduation_Project.Models
         public int PatientID { get; set; }
 
         [ForeignKey("User")]
-        public int UserID { get; set; }
+        public string UserID { get; set; }
 
         public string Address { get; set; }
         public DateTime? DateOfPregnancy { get; set; }
+        public DateTime? LastPregnancyStartedAt { get; set; }
+        public DateTime? PregnancyEndedAt { get; set; }
+        public int PregnancyCount { get; set; }
         public int GestationalWeeks { get; set; }
         public bool IsFirstPregnancy { get; set; }
         public int PreviousPregnancies { get; set; }
@@ -26,8 +29,13 @@ namespace Graduation_Project.Models
         public bool Smoking { get; set; }
         public bool AlcoholUse { get; set; }
 
+        // AI analysis state (updated from result_3 after each submission)
+        public string? DgState { get; set; }
+        public string? RiskState { get; set; }
+
         // Navigation
-        public virtual User User { get; set; }
+        public virtual ApplicationUser User { get; set; }
         public virtual ICollection<PatientDrug> PatientDrugs { get; set; }
+        public virtual ICollection<PregnancyRecord> PregnancyRecords { get; set; }
     }
 }

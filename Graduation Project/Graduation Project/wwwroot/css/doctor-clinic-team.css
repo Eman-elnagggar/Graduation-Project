@@ -1,0 +1,30 @@
+.invite-form .form-input,
+.invite-form select.form-input {
+    min-height: 44px;
+}
+
+.team-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1rem;
+}
+
+.team-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 1rem;
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.05);
+}
+
+.schedule-item {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: .9rem;
+    background: #fff;
+}
+
+@media (max-width: 860px) {
+    .invite-form {
+        grid-template-columns: 1fr !important;
+    }
+}

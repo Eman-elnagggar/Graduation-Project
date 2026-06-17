@@ -6,6 +6,8 @@ namespace Graduation_Project.ViewModels
     {
         public Assistant Assistant { get; set; } = null!;
         public string AssistantName { get; set; } = string.Empty;
+        public DateTime SelectedDate { get; set; } = DateTime.Today;
+        public string SelectedScheduleStatus { get; set; } = "Booked";
 
         // Clinic info
         public Clinic Clinic { get; set; } = null!;
@@ -50,5 +52,23 @@ namespace Graduation_Project.ViewModels
         public string Trimester { get; set; } = string.Empty;
         public DateTime? LastVisitDate { get; set; }
         public bool HasActiveAlerts { get; set; }
+    }
+
+    public class AssistantMessagesViewModel
+    {
+        public Assistant Assistant { get; set; } = null!;
+        public string AssistantName { get; set; } = "Assistant";
+        public List<AssistantConversationSummary> Conversations { get; set; } = new();
+    }
+
+    public class AssistantConversationSummary
+    {
+        public int ParticipantId { get; set; }
+        public string ParticipantType { get; set; } = "Patient";
+        public string ReceiverUserId { get; set; } = string.Empty;
+        public string ParticipantName { get; set; } = "Patient";
+        public int UnreadCount { get; set; }
+        public DateTime? LastMessageTime { get; set; }
+        public string? LastMessagePreview { get; set; }
     }
 }
