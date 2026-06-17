@@ -81,7 +81,14 @@
         };
 
     string StatusDot(string? status) =>
-        (status ?? "").ToLower() is "completed" or "reviewed" ? "reviewed" : "pending";
+        (status ?? "").ToLower() switch
+        {
+            "completed" or "reviewed" => "reviewed",
+            "failed"                  => "failed",
+            _                         => "pending"
+        };
+
+    bool IsFailed(string? status) => (status ?? "").ToLower() == "failed";
 
     var previousTests = ViewBag.PreviousTests as IEnumerable<Graduation_Project.Models.LabTest>
                         ?? Enumerable.Empty<Graduation_Project.Models.LabTest>();
@@ -157,6 +164,10 @@
                 @if (s.HasReport)
                 {
                     <span class="tu-result-badge @resultCls">@resultText</span>
+                }
+                else if (IsFailed(s.Status))
+                {
+                    <span class="lhrow-failed"><i class="fas fa-triangle-exclamation"></i> Failed</span>
                 }
                 else
                 {

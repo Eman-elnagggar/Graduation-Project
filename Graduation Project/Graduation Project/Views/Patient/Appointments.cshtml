@@ -117,6 +117,43 @@
 
 }
 
+@{
+    // ── Reusable visit-memory timeline item ──
+    Func<Graduation_Project.Models.Appointment, object> RenderMemory = @<text>
+        @{
+            var _ap = item;
+            var _dn = _ap.Doctor?.User != null ? $"Dr. {_ap.Doctor.User.FirstName} {_ap.Doctor.User.LastName}".Trim() : "Your doctor";
+            var _status = (_ap.Booking?.Status ?? "Completed").Trim().ToLowerInvariant();
+            var _reason = _ap.Booking?.Reason;
+            if (string.IsNullOrWhiteSpace(_reason)) { _reason = "Prenatal Visit"; }
+            var _kind = _status is "cancelled" or "canceled" ? "cancelled" : _status == "missed" ? "missed" : "completed";
+            string _note = _kind switch
+            {
+                "cancelled" => "This visit was cancelled — you can rebook whenever you're ready. 💛",
+                "missed" => "This visit was missed. Reaching out to rebook keeps your care on track.",
+                _ => "Everything was reviewed and noted — thank you for taking care of yourself and your baby. 💚"
+            };
+            var _statusLabel = _kind switch { "cancelled" => "Cancelled", "missed" => "Missed", _ => "Completed" };
+            var _statusIcon = _kind switch { "cancelled" => "fa-ban", "missed" => "fa-calendar-xmark", _ => "fa-check" };
+        }
+        <div class="pj-mem-item @_kind">
+            <span class="pj-mem-marker"><i class="fas @_statusIcon"></i></span>
+            <div class="pj-mem-card">
+                <div class="pj-mem-top">
+                    <span class="pj-mem-date">@_ap.Date.ToString("MMMM dd, yyyy")</span>
+                    <span class="pj-mem-status"><i class="fas @_statusIcon"></i> @_statusLabel</span>
+                </div>
+                <div class="pj-mem-title">@_reason</div>
+                <div class="pj-mem-note">@_note</div>
+                <div class="pj-mem-doc">
+                    <span><i class="fas fa-user-md"></i> @_dn</span>
+                    <span><i class="fas fa-map-marker-alt"></i> @(_ap.Clinic?.Name ?? "Clinic")</span>
+                </div>
+            </div>
+        </div>
+    </text>;
+}
+
 @section Head {
     @Html.AntiForgeryToken()
     <style>
@@ -387,22 +424,102 @@
 
         /* ── 7 · VISIT MEMORIES ── */
         .pj-mem { position:relative; padding-left:8px; }
-        .pj-mem-item { position:relative; padding:0 0 18px 30px; }
+        .pj-mem-item { position:relative; padding:0 0 18px 32px; }
         .pj-mem-item:last-child { padding-bottom:0; }
-        .pj-mem-item::before { content:''; position:absolute; left:8px; top:20px; bottom:-2px; width:2px; background:var(--line); }
+        .pj-mem-item::before { content:''; position:absolute; left:11px; top:24px; bottom:-2px; width:2px; background:var(--line); }
         .pj-mem-item:last-child::before { display:none; }
-        .pj-mem-marker { position:absolute; left:0; top:8px; width:18px; height:18px; border-radius:50%; background:#fff; border:3px solid var(--rose); box-shadow:0 0 0 4px var(--rose-lt); z-index:1; }
-        .pj-mem-item.cancelled .pj-mem-marker { border-color:var(--ink-3); box-shadow:0 0 0 4px var(--cream); }
-        .pj-mem-card { background:var(--cream); border:1px solid var(--line); border-radius:var(--r-sm); padding:15px 18px; }
-        .pj-mem-date { font-size:.76rem; font-weight:800; color:var(--rose-d); text-transform:uppercase; letter-spacing:.5px; }
-        .pj-mem-title { font-size:1rem; font-weight:800; margin:3px 0 4px; }
+        .pj-mem-marker {
+            position:absolute; left:0; top:6px; width:24px; height:24px; border-radius:50%;
+            display:flex; align-items:center; justify-content:center; color:#fff; font-size:.6rem;
+            border:3px solid #fff; z-index:1;
+        }
+        .pj-mem-item.completed .pj-mem-marker { background:var(--mint); box-shadow:0 0 0 4px var(--mint-lt); }
+        .pj-mem-item.missed    .pj-mem-marker { background:var(--amber); box-shadow:0 0 0 4px var(--amber-lt); }
+        .pj-mem-item.cancelled .pj-mem-marker { background:var(--rose); box-shadow:0 0 0 4px var(--rose-lt); }
+        .pj-mem-card { background:var(--cream); border:1px solid var(--line); border-radius:var(--r-sm); padding:14px 18px; }
+        .pj-mem-top { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:5px; }
+        .pj-mem-date { font-size:.74rem; font-weight:800; color:var(--ink-3); text-transform:uppercase; letter-spacing:.5px; }
+        .pj-mem-status {
+            flex-shrink:0; font-size:.62rem; font-weight:800; text-transform:uppercase; letter-spacing:.4px;
+            padding:3px 10px; border-radius:20px; display:inline-flex; align-items:center; gap:5px;
+        }
+        .pj-mem-item.completed .pj-mem-status { background:var(--mint-lt); color:#059669; }
+        .pj-mem-item.missed    .pj-mem-status { background:var(--amber-lt); color:#d97706; }
+        .pj-mem-item.cancelled .pj-mem-status { background:var(--rose-lt); color:var(--rose-d); }
+        .pj-mem-title { font-size:1rem; font-weight:800; margin:0 0 4px; }
         .pj-mem-note { font-size:.86rem; color:var(--ink-2); line-height:1.5; }
-        .pj-mem-doc { font-size:.78rem; color:var(--ink-3); margin-top:6px; display:flex; gap:14px; flex-wrap:wrap; }
+        .pj-mem-doc { font-size:.78rem; color:var(--ink-3); margin-top:8px; padding-top:8px; border-top:1px dashed var(--line); display:flex; gap:14px; flex-wrap:wrap; }
         .pj-mem-doc i { margin-right:4px; }
 
         .pj-empty { text-align:center; padding:34px 20px; color:var(--ink-3); }
         .pj-empty span { font-size:2.2rem; display:block; margin-bottom:8px; }
         .pj-empty p { margin:0; font-size:.9rem; line-height:1.55; }
+
+        /* Visit memories — show all */
+        .pj-mem-more { display:flex; justify-content:center; margin-top:18px; }
+
+        /* Memories modal */
+        .pj-modal.pj-modal-lg { width:min(640px,100%); display:flex; flex-direction:column; max-height:88vh; }
+        .pj-modal-head .pj-modal-sub { font-size:.78rem; font-weight:700; color:var(--ink-3); margin-top:2px; }
+        .pj-modal-head .pj-modal-title-wrap { min-width:0; }
+        .pj-modal-scroll {
+            padding:20px 24px 24px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:#e7dce7 transparent;
+            background:linear-gradient(180deg,#fff 0%, var(--cream) 100%);
+        }
+        .pj-modal-scroll::-webkit-scrollbar { width:6px; }
+        .pj-modal-scroll::-webkit-scrollbar-thumb { background:#e7dce7; border-radius:6px; }
+
+        /* Modal restyles the timeline into separated, color-tinted cards */
+        .pj-modal-scroll .pj-mem { padding-left:0; display:flex; flex-direction:column; gap:14px; }
+        .pj-modal-scroll .pj-mem-item { padding:0; }
+        .pj-modal-scroll .pj-mem-item::before { display:none; }
+        .pj-modal-scroll .pj-mem-marker {
+            position:absolute; left:16px; top:16px; width:34px; height:34px; font-size:.85rem; border-width:0;
+        }
+        .pj-modal-scroll .pj-mem-card {
+            position:relative; overflow:hidden; border:1px solid var(--line);
+            border-radius:18px; padding:16px 20px 16px 64px; box-shadow:var(--sh-sm);
+            transition:transform .2s, box-shadow .2s, border-color .2s;
+        }
+        .pj-modal-scroll .pj-mem-card::before {
+            content:''; position:absolute; left:0; top:0; bottom:0; width:6px;
+        }
+        .pj-modal-scroll .pj-mem-item.completed .pj-mem-card { background:linear-gradient(120deg,#fff 60%, var(--mint-lt)); }
+        .pj-modal-scroll .pj-mem-item.missed    .pj-mem-card { background:linear-gradient(120deg,#fff 60%, var(--amber-lt)); }
+        .pj-modal-scroll .pj-mem-item.cancelled .pj-mem-card { background:linear-gradient(120deg,#fff 60%, var(--rose-lt)); }
+        .pj-modal-scroll .pj-mem-item.completed .pj-mem-card::before { background:linear-gradient(180deg,var(--mint),#10b981); }
+        .pj-modal-scroll .pj-mem-item.missed    .pj-mem-card::before { background:linear-gradient(180deg,var(--amber),#f59e0b); }
+        .pj-modal-scroll .pj-mem-item.cancelled .pj-mem-card::before { background:linear-gradient(180deg,var(--rose),#f43f5e); }
+        .pj-modal-scroll .pj-mem-card:hover { transform:translateY(-2px); box-shadow:var(--sh); }
+        .pj-modal-scroll .pj-mem-doc { border-top-color:rgba(120,80,110,.12); }
+
+        /* ── Upcoming visits list ── */
+        .pj-up { display:flex; flex-direction:column; gap:12px; }
+        .pj-up-item {
+            display:flex; align-items:center; gap:16px; background:var(--cream);
+            border:1px solid var(--line); border-radius:var(--r-sm); padding:14px 18px;
+            transition:transform .2s, box-shadow .2s;
+        }
+        .pj-up-item:hover { transform:translateY(-2px); box-shadow:var(--sh-sm); }
+        .pj-up-date {
+            flex-shrink:0; width:60px; text-align:center; border-radius:14px; padding:9px 0; color:#fff;
+            background:linear-gradient(150deg,var(--rose),#c084fc); box-shadow:0 6px 14px rgba(192,132,252,.3);
+        }
+        .pj-up-date .d { display:block; font-size:1.5rem; font-weight:800; line-height:1; }
+        .pj-up-date .m { display:block; font-size:.64rem; font-weight:800; text-transform:uppercase; letter-spacing:1px; margin-top:3px; }
+        .pj-up-body { flex:1; min-width:0; }
+        .pj-up-reason { font-size:.98rem; font-weight:800; color:var(--ink); }
+        .pj-up-meta { font-size:.8rem; color:var(--ink-3); margin-top:4px; display:flex; gap:16px; flex-wrap:wrap; }
+        .pj-up-meta i { margin-right:4px; }
+        .pj-up-when { flex-shrink:0; text-align:right; }
+        .pj-up-badge {
+            display:inline-block; font-size:.72rem; font-weight:800; color:var(--violet-d);
+            background:var(--violet-lt); padding:5px 12px; border-radius:20px;
+        }
+        @@media (max-width:560px) {
+            .pj-up-item { flex-wrap:wrap; }
+            .pj-up-when { width:100%; text-align:left; }
+        }
 
         /* ── Reschedule modal ── */
         .pj-modal-overlay { position:fixed; inset:0; z-index:1300; background:rgba(63,53,80,.42); backdrop-filter:blur(3px);
@@ -616,6 +733,43 @@
         </div>
     </section>
 
+    <!-- ════════ UPCOMING VISITS (beyond the next one) ════════ -->
+    @if (Model.UpcomingAppointments.Count > 1)
+    {
+        <section class="pj-card">
+            <div class="pj-card-head">
+                <h2><span class="pj-dot sky"></span> More Upcoming Visits</h2>
+                <span class="pj-card-sub">@(Model.UpcomingAppointments.Count - 1) more scheduled</span>
+            </div>
+            <div class="pj-up">
+                @foreach (var ap in Model.UpcomingAppointments.Skip(1))
+                {
+                    var upDoc = ap.Doctor?.User != null ? $"Dr. {ap.Doctor.User.FirstName} {ap.Doctor.User.LastName}".Trim() : "Your doctor";
+                    var upReason = ap.Booking?.Reason;
+                    if (string.IsNullOrWhiteSpace(upReason)) upReason = "Prenatal Visit";
+                    var upDaysLeft = Math.Max(0, (int)(ap.Date.Date - DateTime.Today).TotalDays);
+                    <div class="pj-up-item">
+                        <div class="pj-up-date">
+                            <span class="d">@ap.Date.Day</span>
+                            <span class="m">@ap.Date.ToString("MMM")</span>
+                        </div>
+                        <div class="pj-up-body">
+                            <div class="pj-up-reason">@upReason</div>
+                            <div class="pj-up-meta">
+                                <span><i class="fas fa-user-md"></i> @upDoc</span>
+                                <span><i class="fas fa-map-marker-alt"></i> @(ap.Clinic?.Name ?? "Clinic")</span>
+                                <span><i class="fas fa-clock"></i> @DateTime.Today.Add(ap.Time).ToString("h:mm tt")</span>
+                            </div>
+                        </div>
+                        <div class="pj-up-when">
+                            <span class="pj-up-badge">@(upDaysLeft == 0 ? "Today" : upDaysLeft == 1 ? "Tomorrow" : $"In {upDaysLeft} days")</span>
+                        </div>
+                    </div>
+                }
+            </div>
+        </section>
+    }
+
     <!-- ════════ 5 · CARE TEAM ════════ -->
     <section>
         <div class="pj-card-head" style="margin-bottom:16px;">
@@ -800,36 +954,25 @@
             <h2><span class="pj-dot amber"></span> Visit Memories</h2>
             <span class="pj-card-sub">Moments from your journey so far</span>
         </div>
-        @if (Model.PastAppointments.Any())
+        @{
+            var pastList = Model.PastAppointments.ToList();
+        }
+        @if (pastList.Any())
         {
             <div class="pj-mem">
-                @foreach (var ap in Model.PastAppointments.Take(6))
+                @foreach (var ap in pastList.Take(5))
                 {
-                    var dn = ap.Doctor?.User != null ? $"Dr. {ap.Doctor.User.FirstName} {ap.Doctor.User.LastName}".Trim() : "Your doctor";
-                    var status = (ap.Booking?.Status ?? "Completed").Trim().ToLowerInvariant();
-                    var reason = ap.Booking?.Reason;
-                    if (string.IsNullOrWhiteSpace(reason)) reason = "Prenatal Visit";
-                    var isCancelled = status is "cancelled" or "canceled" or "missed";
-                    string note = status switch
-                    {
-                        "cancelled" or "canceled" => "This visit was cancelled — you can rebook whenever you're ready. 💛",
-                        "missed" => "This visit was missed. Reaching out to rebook keeps your care on track.",
-                        _ => "Everything was reviewed and noted — thank you for taking care of yourself and your baby. 💚"
-                    };
-                    <div class="pj-mem-item @(isCancelled ? "cancelled" : "")">
-                        <span class="pj-mem-marker"></span>
-                        <div class="pj-mem-card">
-                            <div class="pj-mem-date">@ap.Date.ToString("MMMM dd, yyyy")</div>
-                            <div class="pj-mem-title">@reason</div>
-                            <div class="pj-mem-note">@note</div>
-                            <div class="pj-mem-doc">
-                                <span><i class="fas fa-user-md"></i> @dn</span>
-                                <span><i class="fas fa-map-marker-alt"></i> @(ap.Clinic?.Name ?? "Clinic")</span>
-                            </div>
-                        </div>
-                    </div>
+                    @RenderMemory(ap)
                 }
             </div>
+            @if (pastList.Count > 5)
+            {
+                <div class="pj-mem-more">
+                    <button type="button" class="pj-btn" id="pjShowAllMem">
+                        <i class="fas fa-clock-rotate-left"></i> Show all @pastList.Count visits
+                    </button>
+                </div>
+            }
         }
         else
         {
@@ -841,6 +984,30 @@
     </section>
 
 </div>
+
+<!-- ════════ All visit memories modal ════════ -->
+@if (Model.PastAppointments.Count > 5)
+{
+    <div class="pj-modal-overlay" id="memoriesModal" aria-hidden="true">
+        <div class="pj-modal pj-modal-lg" role="dialog" aria-modal="true" aria-labelledby="memoriesModalTitle">
+            <div class="pj-modal-head">
+                <div class="pj-modal-title-wrap">
+                    <h3 id="memoriesModalTitle"><i class="fas fa-clock-rotate-left"></i> All Visit Memories</h3>
+                    <div class="pj-modal-sub">@Model.PastAppointments.Count visits across your journey</div>
+                </div>
+                <button class="pj-modal-close" id="closeMemoriesModalBtn" type="button" aria-label="Close"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="pj-modal-scroll">
+                <div class="pj-mem">
+                    @foreach (var ap in Model.PastAppointments)
+                    {
+                        @RenderMemory(ap)
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
 
 <!-- ════════ Reschedule modal ════════ -->
 <div class="pj-modal-overlay" id="rescheduleModal" aria-hidden="true">
@@ -898,6 +1065,27 @@
                     ? '<i class="fas fa-circle-info"></i> Hide Details'
                     : '<i class="fas fa-circle-info"></i> View Details';
             });
+
+            // ── Show all visit memories (modal) ──
+            const memoriesModal = document.getElementById("memoriesModal");
+            const showAllMemBtn = document.getElementById("pjShowAllMem");
+            const closeMemoriesBtn = document.getElementById("closeMemoriesModalBtn");
+            function openMemories() {
+                if (!memoriesModal) return;
+                memoriesModal.classList.add("open");
+                memoriesModal.setAttribute("aria-hidden", "false");
+                document.body.style.overflow = "hidden";
+            }
+            function closeMemories() {
+                if (!memoriesModal) return;
+                memoriesModal.classList.remove("open");
+                memoriesModal.setAttribute("aria-hidden", "true");
+                document.body.style.overflow = "";
+            }
+            showAllMemBtn?.addEventListener("click", openMemories);
+            closeMemoriesBtn?.addEventListener("click", closeMemories);
+            memoriesModal?.addEventListener("click", function (e) { if (e.target === memoriesModal) closeMemories(); });
+            document.addEventListener("keydown", function (e) { if (e.key === "Escape" && memoriesModal?.classList.contains("open")) closeMemories(); });
 
             // ── Interactive checklists (localStorage) ──
             function updateGroup(group) {

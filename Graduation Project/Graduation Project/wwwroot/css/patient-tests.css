@@ -583,6 +583,7 @@
 .tu-status-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
 .tu-status-dot.reviewed { background: var(--good); }
 .tu-status-dot.pending { background: var(--warn); }
+.tu-status-dot.failed { background: var(--bad); }
 .lhrow-right { display: flex; align-items: center; gap: .65rem; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
 .tu-result-badge { display: inline-flex; align-items: center; padding: .3rem .75rem; border-radius: 30px; font-size: .73rem; font-weight: 800; }
 .tu-result-badge.normal { background: var(--good-bg); color: var(--good); border: 1px solid var(--good-bd); }
@@ -591,6 +592,7 @@
 .tu-result-badge.pending { background: #f6eef2; color: var(--ink-2); border: 1px solid var(--line); }
 .lhrow-processing { display: inline-flex; align-items: center; gap: .4rem; font-size: .73rem; font-weight: 700; color: var(--warn); background: var(--warn-bg); border: 1px solid var(--warn-bd); padding: .3rem .7rem; border-radius: 30px; }
 .lhrow-processing i { animation: tuSpin 1.4s linear infinite; }
+.lhrow-failed { display: inline-flex; align-items: center; gap: .4rem; font-size: .73rem; font-weight: 800; color: var(--bad); background: var(--bad-bg); border: 1px solid var(--bad-bd); padding: .3rem .7rem; border-radius: 30px; }
 
 .lhrow-actions { display: flex; align-items: center; gap: .4rem; }
 .lh-action {
