@@ -16,10 +16,10 @@
   --lg-navy-deep:   #0b1d30;   /* deeper navy for gradient base */
   --lg-navy-mid:    #16385a;   /* lifted navy for gradient highlight */
 
-  --lg-teal:        #14B8A6;   /* clinical accent */
-  --lg-teal-deep:   #0d9488;   /* darker teal — hover / depth */
-  --lg-teal-bright: #2dd4bf;   /* glow / highlight */
-  --lg-cyan:        #14B8A6;   /* (alias kept for role accent) */
+  --lg-teal:        #0ea5e9;   /* clinical accent (sky) */
+  --lg-teal-deep:   #0284c7;   /* darker sky — hover / depth */
+  --lg-teal-bright: #38bdf8;   /* glow / highlight */
+  --lg-cyan:        #0ea5e9;   /* (alias kept for role accent) */
 
   --lg-pink:      #F472B6;     /* warm patient accent */
   --lg-pink-soft: #fbcfe2;
@@ -50,7 +50,7 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   background:
-    radial-gradient(circle at 15% 12%, rgba(20, 184, 166, .07), transparent 38%),
+    radial-gradient(circle at 15% 12%, rgba(14, 165, 233, .07), transparent 38%),
     radial-gradient(circle at 88% 90%, rgba(244, 114, 182, .07), transparent 40%),
     linear-gradient(180deg, #ffffff 0%, var(--lg-field) 55%, #eef2f7 100%);
 }
@@ -86,14 +86,16 @@ body {
 }
 
 .lg-brand {
-  display: inline-flex; align-items: center; gap: .65rem;
-  text-decoration: none; margin-bottom: 2.4rem;
+    display: inline-flex;
+    align-items: center;
+    gap: .65rem;
+    text-decoration: none;
+    margin-bottom: 1rem;
 }
 .lg-brand-mark {
-  width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
+  width: 120px; height: 60px;  flex-shrink: 0;
   display: grid; place-items: center; overflow: hidden;
-  background: linear-gradient(140deg, var(--lg-navy), var(--lg-navy-mid));
-  box-shadow: 0 8px 18px -8px rgba(16, 42, 67, .55);
+  
 }
 .lg-brand-mark img { width: 76%; height: 76%; object-fit: contain; display: block; }
 .lg-brand-name {
@@ -153,7 +155,7 @@ body {
 .mc-input:focus {
   background: #fff;
   border-color: var(--lg-teal);
-  box-shadow: 0 0 0 4px rgba(31, 184, 157, .14);
+  box-shadow: 0 0 0 4px rgba(14, 165, 233, .14);
 }
 .mc-input.has-eye { padding-right: 2.85rem; }
 .mc-input.is-invalid { border-color: var(--lg-danger); box-shadow: 0 0 0 4px rgba(239,68,68,.12); }
@@ -174,7 +176,7 @@ body {
   color: var(--lg-faint); font-size: .9rem;
   transition: color .2s, background .2s;
 }
-.mc-input-eye:hover { color: var(--lg-teal-deep); background: rgba(31,184,157,.1); }
+.mc-input-eye:hover { color: var(--lg-teal-deep); background: rgba(14,165,233,.1); }
 
 .mc-feedback {
   display: flex; align-items: center; gap: .35rem;
@@ -212,9 +214,9 @@ body {
 .mc-btn-primary {
   color: #fff;
   background: linear-gradient(120deg, var(--lg-teal-deep) 0%, var(--lg-teal) 100%);
-  box-shadow: 0 12px 24px -10px rgba(20, 184, 166, .65);
+  box-shadow: 0 12px 24px -10px rgba(14, 165, 233, .65);
 }
-.mc-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 18px 30px -10px rgba(20, 184, 166, .75); }
+.mc-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 18px 30px -10px rgba(14, 165, 233, .75); }
 .mc-btn-primary:active { transform: translateY(0); }
 
 /* ── DIVIDER ─────────────────────────────────────────────── */
@@ -264,7 +266,7 @@ body {
   display: flex; flex-direction: column; justify-content: space-between;
   color: #e8eef6;
   background:
-    radial-gradient(circle at 82% 8%, rgba(20, 184, 166, .34) 0%, transparent 46%),
+    radial-gradient(circle at 82% 8%, rgba(14, 165, 233, .34) 0%, transparent 46%),
     radial-gradient(circle at 92% 92%, rgba(244, 114, 182, .26) 0%, transparent 48%),
     linear-gradient(155deg, var(--lg-navy-deep) 0%, var(--lg-navy) 58%, var(--lg-navy-mid) 100%);
 }
@@ -287,7 +289,7 @@ body {
   fill: none; stroke: url(#lgPulseGrad); stroke-width: 2.4;
   stroke-linecap: round; stroke-linejoin: round;
   stroke-dasharray: 900; stroke-dashoffset: 900;
-  filter: drop-shadow(0 0 5px rgba(45,212,191,.6));
+  filter: drop-shadow(0 0 5px rgba(56,189,248,.6));
   animation: lgTrace 5.5s var(--lg-ease) infinite;
 }
 @keyframes lgTrace {
@@ -312,7 +314,7 @@ body {
 /* Testimonial */
 .lg-quote { position: relative; z-index: 1; }
 .lg-quote-mark {
-  font-size: 3rem; line-height: 1; color: rgba(45, 212, 191, .55);
+  font-size: 3rem; line-height: 1; color: rgba(56, 189, 248, .55);
   font-family: Georgia, serif; margin-bottom: -.5rem;
 }
 .lg-quote-text {
