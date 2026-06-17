@@ -5,64 +5,211 @@
     ViewData["PatientId"] = Model.Patient.PatientID;
     ViewData["ActivePage"] = "Medications";
     ViewData["UserName"] = Model.UserName;
-    ViewData["PageTitleHtml"] = "Add <span class='topbar-accent'>Medication</span>";
-    ViewData["PageSubtitle"] = "Track your own medicines with reminders.";
+    ViewData["HidePageHeader"] = true;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/patient-medications.css" asp-append-version="true" />
 }
 
 <section class="pm-page pd-wrap" data-patient-medications>
+
+    @* ── HERO ─────────────────────────────────────────── *@
     <div class="pm-hero">
         <div class="pm-hero-left">
-            <span class="pm-hero-eyebrow"><i class="fas fa-plus-circle"></i> Self-managed Medication</span>
+            <span class="pm-hero-eyebrow"><i class="fas fa-plus-circle"></i> Self-Managed Medication</span>
             <h2>Add Medication</h2>
-            <p>Track a medication you are taking on your own.</p>
+            <p>Follow the steps below to add a medication to your tracker.</p>
         </div>
         <div class="pm-hero-actions">
-            <a class="btn btn-outline" href="/PatientMedication/Index/@Model.Patient.PatientID"><i class="fas fa-arrow-left"></i> Back</a>
+            <a class="btn btn-outline" href="/PatientMedication/Index/@Model.Patient.PatientID">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
         </div>
     </div>
 
-    <form class="pm-form" id="selfMedicationForm">
-        @Html.AntiForgeryToken()
-        <input type="hidden" id="patientId" value="@Model.Patient.PatientID" />
-        <div class="card-header">
-            <div class="card-header-left">
-                <div class="card-ico teal"><i class="fas fa-notes-medical"></i></div>
-                <div>
-                    <div class="card-title">Medication Details</div>
-                    <div class="card-sub">Fill the information below to create your tracker record.</div>
-                </div>
+    @Html.AntiForgeryToken()
+    <input type="hidden" id="patientId" value="@Model.Patient.PatientID" />
+
+    @* ── WIZARD STEPS INDICATOR ───────────────────────── *@
+    <div class="pm-wizard-steps" id="wizardSteps">
+        <div class="pm-wstep active" data-step="1">
+            <div class="pm-wstep-num">1</div>
+            <div class="pm-wstep-lbl">Basic Info</div>
+        </div>
+        <div class="pm-wconn" id="conn1"></div>
+        <div class="pm-wstep" data-step="2">
+            <div class="pm-wstep-num">2</div>
+            <div class="pm-wstep-lbl">Dosage</div>
+        </div>
+        <div class="pm-wconn" id="conn2"></div>
+        <div class="pm-wstep" data-step="3">
+            <div class="pm-wstep-num">3</div>
+            <div class="pm-wstep-lbl">Duration</div>
+        </div>
+        <div class="pm-wconn" id="conn3"></div>
+        <div class="pm-wstep" data-step="4">
+            <div class="pm-wstep-num">4</div>
+            <div class="pm-wstep-lbl">Instructions</div>
+        </div>
+        <div class="pm-wconn" id="conn4"></div>
+        <div class="pm-wstep" data-step="5">
+            <div class="pm-wstep-num">5</div>
+            <div class="pm-wstep-lbl">Review</div>
+        </div>
+    </div>
+
+    @* ── STEP 1: Basic Information ────────────────────── *@
+    <div class="pm-wiz-panel active" id="step1">
+        <div class="pm-wiz-panel-ttl">Basic Information</div>
+        <div class="pm-wiz-panel-sub">Enter the medication name and choose its type.</div>
+        <div class="pm-wiz-form-grid">
+            <div class="pm-fg pm-full">
+                <label for="medName">Medication Name <span style="color:#ef4444;">*</span></label>
+                <input type="text" id="medName" class="pm-finput" placeholder="e.g. Metformin, Vitamin D, Omega 3…" required />
+            </div>
+            <div class="pm-fg">
+                <label for="medType">Medication Type</label>
+                <select id="medType" class="pm-fselect">
+                    <option value="">Select type…</option>
+                    <option value="Tablet">💊 Tablet</option>
+                    <option value="Capsule">💊 Capsule</option>
+                    <option value="Syrup">🍶 Syrup / Liquid</option>
+                    <option value="Injection">💉 Injection</option>
+                    <option value="Drops">💧 Drops</option>
+                    <option value="Patch">🩹 Patch</option>
+                    <option value="Supplement">🌿 Supplement / Vitamin</option>
+                    <option value="Other">📦 Other</option>
+                </select>
             </div>
         </div>
-        <div class="pm-form-grid">
-            <div class="form-group">
-                <label>Name</label>
-                <input type="text" id="medName" class="form-input" required />
+        <div class="pm-wiz-nav">
+            <span></span>
+            <button class="pm-wbtn next" data-next="2">
+                Next <i class="fas fa-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+
+    @* ── STEP 2: Dosage & Frequency ───────────────────── *@
+    <div class="pm-wiz-panel" id="step2">
+        <div class="pm-wiz-panel-ttl">Dosage &amp; Frequency</div>
+        <div class="pm-wiz-panel-sub">How much and how often do you take this medication?</div>
+        <div class="pm-wiz-form-grid">
+            <div class="pm-fg">
+                <label for="medDosage">Dosage</label>
+                <input type="text" id="medDosage" class="pm-finput" placeholder="e.g. 500mg, 1 tablet, 5ml" />
             </div>
-            <div class="form-group">
-                <label>Dosage</label>
-                <input type="text" id="medDosage" class="form-input" />
+            <div class="pm-fg">
+                <label for="medPillsPerDose">Pills / Units Per Dose</label>
+                <input type="number" id="medPillsPerDose" class="pm-finput" min="1" placeholder="e.g. 1" />
             </div>
-            <div class="form-group">
+            <div class="pm-fg pm-full">
                 <label>Frequency</label>
-                <input type="text" id="medFrequency" class="form-input" />
-            </div>
-            <div class="form-group">
-                <label>Duration (days)</label>
-                <input type="number" id="medDuration" class="form-input" min="0" />
-            </div>
-            <div class="form-group">
-                <label>Start Date</label>
-                <input type="date" id="medStart" class="form-input" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
-            </div>
-            <div class="form-group pm-full">
-                <label>Instructions</label>
-                <textarea id="medInstructions" class="form-textarea" rows="3"></textarea>
+                <div class="pm-freq-chips" id="freqChips">
+                    <button type="button" class="pm-fchip" data-freq="Once daily">Once daily</button>
+                    <button type="button" class="pm-fchip" data-freq="Twice daily">Twice daily</button>
+                    <button type="button" class="pm-fchip" data-freq="Three times daily">3× daily</button>
+                    <button type="button" class="pm-fchip" data-freq="Every 8 hours">Every 8 hrs</button>
+                    <button type="button" class="pm-fchip" data-freq="Every 12 hours">Every 12 hrs</button>
+                    <button type="button" class="pm-fchip" data-freq="Weekly">Weekly</button>
+                    <button type="button" class="pm-fchip" data-freq="Monthly">Monthly</button>
+                    <button type="button" class="pm-fchip" data-freq="custom">Custom…</button>
+                </div>
+                <input type="text" id="medFrequency" class="pm-finput" style="margin-top:10px;"
+                       placeholder="Selected frequency or type custom…" />
             </div>
         </div>
-        <div class="pm-form-actions">
-            <button type="submit" class="btn btn-primary">Save Medication</button>
+        <div class="pm-wiz-nav">
+            <button class="pm-wbtn back" data-back="1"><i class="fas fa-arrow-left"></i> Back</button>
+            <button class="pm-wbtn next" data-next="3">Next <i class="fas fa-arrow-right"></i></button>
         </div>
-    </form>
+    </div>
+
+    @* ── STEP 3: Duration ─────────────────────────────── *@
+    <div class="pm-wiz-panel" id="step3">
+        <div class="pm-wiz-panel-ttl">Duration &amp; Supply</div>
+        <div class="pm-wiz-panel-sub">Set the treatment period and available pill count.</div>
+        <div class="pm-wiz-form-grid">
+            <div class="pm-fg">
+                <label for="medStart">Start Date</label>
+                <input type="date" id="medStart" class="pm-finput" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="pm-fg">
+                <label for="medDuration">Duration (days)</label>
+                <input type="number" id="medDuration" class="pm-finput" min="0" placeholder="Leave blank for ongoing" />
+            </div>
+            <div class="pm-fg">
+                <label for="medTotalPills">Total Pills in Pack</label>
+                <input type="number" id="medTotalPills" class="pm-finput" min="0" placeholder="e.g. 30" />
+            </div>
+        </div>
+        @* Auto-calculation display *@
+        <div class="pm-calc-row" id="calcRow" style="display:none;">
+            <div class="pm-calc-item">
+                <div class="pm-calc-lbl">Estimated End Date</div>
+                <div class="pm-calc-val" id="calcEndDate">—</div>
+            </div>
+            <div class="pm-calc-item">
+                <div class="pm-calc-lbl">Remaining Days</div>
+                <div class="pm-calc-val" id="calcDaysLeft">—</div>
+            </div>
+        </div>
+        <div class="pm-wiz-nav">
+            <button class="pm-wbtn back" data-back="2"><i class="fas fa-arrow-left"></i> Back</button>
+            <button class="pm-wbtn next" data-next="4">Next <i class="fas fa-arrow-right"></i></button>
+        </div>
+    </div>
+
+    @* ── STEP 4: Instructions ────────────────────────── *@
+    <div class="pm-wiz-panel" id="step4">
+        <div class="pm-wiz-panel-ttl">Instructions &amp; Notes</div>
+        <div class="pm-wiz-panel-sub">Any special instructions for taking this medication?</div>
+        <div class="pm-fg">
+            <label for="medInstructions">Instructions (optional)</label>
+            <textarea id="medInstructions" class="pm-ftextarea" rows="4"
+                      placeholder="e.g. Take after meals, avoid dairy, take before sleep…"></textarea>
+        </div>
+        <div class="pm-example-chips" id="exampleChips">
+            <button type="button" class="pm-echip" data-ex="Take after meals">Take after meals</button>
+            <button type="button" class="pm-echip" data-ex="Take before sleep">Before sleep</button>
+            <button type="button" class="pm-echip" data-ex="Take on empty stomach">Empty stomach</button>
+            <button type="button" class="pm-echip" data-ex="Avoid dairy products">Avoid dairy</button>
+            <button type="button" class="pm-echip" data-ex="Avoid sunlight">Avoid sunlight</button>
+            <button type="button" class="pm-echip" data-ex="Take with plenty of water">With water</button>
+            <button type="button" class="pm-echip" data-ex="Do not crush or chew">Do not crush</button>
+        </div>
+        <div class="pm-wiz-nav">
+            <button class="pm-wbtn back" data-back="3"><i class="fas fa-arrow-left"></i> Back</button>
+            <button class="pm-wbtn next" data-next="5">Review <i class="fas fa-arrow-right"></i></button>
+        </div>
+    </div>
+
+    @* ── STEP 5: Review & Save ───────────────────────── *@
+    <div class="pm-wiz-panel" id="step5">
+        <div class="pm-wiz-panel-ttl">Review &amp; Save</div>
+        <div class="pm-wiz-panel-sub">Check the details below before saving your medication.</div>
+        <div class="pm-review-card" id="reviewCard">
+            <div class="pm-review-ttl"><i class="fas fa-capsules"></i> <span id="rv-name">Medication</span></div>
+            <div class="pm-review-rows">
+                <div class="pm-review-row"><span>Type</span>         <strong id="rv-type">—</strong></div>
+                <div class="pm-review-row"><span>Dosage</span>       <strong id="rv-dosage">—</strong></div>
+                <div class="pm-review-row"><span>Pills / Dose</span> <strong id="rv-pills">—</strong></div>
+                <div class="pm-review-row"><span>Frequency</span>    <strong id="rv-freq">—</strong></div>
+                <div class="pm-review-row"><span>Start Date</span>   <strong id="rv-start">—</strong></div>
+                <div class="pm-review-row"><span>Duration</span>     <strong id="rv-duration">—</strong></div>
+                <div class="pm-review-row"><span>Total Pills</span>  <strong id="rv-total-pills">—</strong></div>
+                <div class="pm-review-row"><span>Instructions</span> <strong id="rv-instructions" style="max-width:60%;text-align:right;">—</strong></div>
+            </div>
+        </div>
+        <div class="pm-wiz-nav">
+            <button class="pm-wbtn back" data-back="4"><i class="fas fa-arrow-left"></i> Back</button>
+            <button class="pm-wbtn submit" id="submitAddMed">
+                <i class="fas fa-save"></i> Save Medication
+            </button>
+        </div>
+    </div>
+
 </section>
 
 @section Scripts {

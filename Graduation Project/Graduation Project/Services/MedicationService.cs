@@ -136,9 +136,45 @@ namespace Graduation_Project.Services
             _medicationRepository.Save();
         }
 
-        /// <summary>
-        /// Soft-removes a medication from the patient's active tracker (sets IsActive = false).
-        /// </summary>
+        public bool UpdateSelfMedication(
+            int medicationId,
+            int patientId,
+            string name,
+            string dosage,
+            string frequency,
+            string instructions,
+            DateTime startDate,
+            int? durationDays,
+            int? totalPills,
+            int? pillsPerDose)
+        {
+            var medication = _medicationRepository.GetById(medicationId);
+            if (medication == null || medication.PatientID != patientId)
+                return false;
+
+            medication.Name = name.Trim();
+            medication.Dosage = dosage.Trim();
+            medication.Frequency = frequency.Trim();
+            medication.Instructions = instructions.Trim();
+            medication.StartDate = startDate.Date;
+            medication.EndDate = durationDays.HasValue && durationDays.Value > 0
+                ? startDate.Date.AddDays(durationDays.Value)
+                : null;
+            medication.TotalPills = totalPills;
+            medication.PillsPerDose = pillsPerDose;
+
+            var existingSchedules = _scheduleRepository.GetByMedicationId(medicationId).ToList();
+            foreach (var s in existingSchedules)
+                _scheduleRepository.Delete(s.MedicationScheduleId);
+            _scheduleRepository.Save();
+
+            _medicationRepository.Update(medication);
+            _medicationRepository.Save();
+
+            EnsureDefaultSchedule(medication, frequency);
+            return true;
+        }
+
         public bool RemoveMedicationForPatient(int medicationId, int patientId)
         {
             var medication = _medicationRepository.GetById(medicationId);

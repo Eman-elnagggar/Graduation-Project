@@ -957,6 +957,9 @@ namespace Graduation_Project.Migrations
                     b.Property<int>("PatientID")
                         .HasColumnType("int");
 
+                    b.Property<int?>("PillsPerDose")
+                        .HasColumnType("int");
+
                     b.Property<int?>("PrescriptionItemId")
                         .HasColumnType("int");
 
@@ -968,6 +971,9 @@ namespace Graduation_Project.Migrations
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<int?>("TotalPills")
+                        .HasColumnType("int");
 
                     b.HasKey("MedicationId");
 
