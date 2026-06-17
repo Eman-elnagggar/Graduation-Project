@@ -1,7 +1,7 @@
 using Graduation_Project.Data;
 using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
-using Microsoft.EntityFrameworkCore;
+using Graduation_Project.ViewModels;
 
 namespace Graduation_Project.Services
 {
@@ -68,6 +68,28 @@ namespace Graduation_Project.Services
                 SkippedDoses = skipped,
                 AdherencePercent = Math.Round(adherence, 1)
             };
+        }
+
+        public List<DailyAdherencePoint> GetWeeklyChartData(int patientId)
+        {
+            var today = DateTime.Today;
+            var startDate = today.AddDays(-6);
+            var logs = _logRepository.GetByPatientId(patientId, startDate, today.AddDays(1)).ToList();
+
+            var result = new List<DailyAdherencePoint>();
+            for (int i = 0; i < 7; i++)
+            {
+                var day = startDate.AddDays(i);
+                var dayLogs = logs.Where(l => l.ScheduledAt.Date == day).ToList();
+                result.Add(new DailyAdherencePoint
+                {
+                    Date = day,
+                    Taken = dayLogs.Count(l => l.Status == MedicationLogStatus.Taken),
+                    Missed = dayLogs.Count(l => l.Status == MedicationLogStatus.Missed),
+                    Skipped = dayLogs.Count(l => l.Status == MedicationLogStatus.Skipped)
+                });
+            }
+            return result;
         }
     }
 

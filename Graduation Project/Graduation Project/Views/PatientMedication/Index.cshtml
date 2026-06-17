@@ -1,4 +1,5 @@
 @using System.Linq
+@using Graduation_Project.Models
 @model Graduation_Project.ViewModels.PatientMedicationIndexViewModel
 @{
     Layout = "~/Views/Shared/_PatientLayout.cshtml";
@@ -6,120 +7,528 @@
     ViewData["PatientId"] = Model.Patient.PatientID;
     ViewData["ActivePage"] = "Medications";
     ViewData["UserName"] = Model.UserName;
-    ViewData["PageTitleHtml"] = "Medication <span class='topbar-accent'>Tracker</span>";
-    ViewData["PageSubtitle"] = "Manage your treatment safely, every day.";
+    ViewData["HidePageHeader"] = true;
 
-    var totalCount = Model.ActiveMedications.Count;
-    var prescriptionCount = Model.ActiveMedications.Count(m => m.Source == Graduation_Project.Models.MedicationSource.Prescription);
-    var selfCount = totalCount - prescriptionCount;
-    var endingSoonCount = Model.ActiveMedications.Count(m => m.EndDate.HasValue && m.EndDate.Value.Date <= DateTime.Today.AddDays(7));
+    var pid = Model.Patient.PatientID;
+    var today = DateTime.Today;
+
+    var totalCount        = Model.ActiveMedications.Count;
+    var prescriptionCount = Model.ActiveMedications.Count(m => m.Source == MedicationSource.Prescription);
+    var endingSoonCount   = Model.ActiveMedications.Count(m => m.EndDate.HasValue && m.EndDate.Value.Date <= today.AddDays(7));
+
+    var pendingToday = Model.TodaySlots.Count(s => s.Status == MedicationLogStatus.Scheduled);
+
+    var weeklyTaken = Model.WeeklyChartData.Sum(d => d.Taken);
+    var weeklyTotal = Model.WeeklyChartData.Sum(d => d.Taken + d.Missed + d.Skipped);
+    var adherencePct = weeklyTotal > 0 ? (int)Math.Round((double)weeklyTaken / weeklyTotal * 100) : 0;
+
+    // Group today's slots by time of day
+    var morningSlots   = Model.TodaySlots.Where(s => s.ScheduledAt.Hour >= 5  && s.ScheduledAt.Hour < 12).OrderBy(s => s.ScheduledAt).ToList();
+    var afternoonSlots = Model.TodaySlots.Where(s => s.ScheduledAt.Hour >= 12 && s.ScheduledAt.Hour < 18).OrderBy(s => s.ScheduledAt).ToList();
+    var eveningSlots   = Model.TodaySlots.Where(s => s.ScheduledAt.Hour >= 18).OrderBy(s => s.ScheduledAt).ToList();
+    var earlySlots     = Model.TodaySlots.Where(s => s.ScheduledAt.Hour < 5).OrderBy(s => s.ScheduledAt).ToList();
 }
 
+@Html.AntiForgeryToken()
+<input type="hidden" id="patientId" value="@pid" />
+
 <section class="pm-page pd-wrap" data-patient-medications>
+
+    @* ── HERO ─────────────────────────────────────────────── *@
     <div class="pm-hero">
         <div class="pm-hero-left">
             <span class="pm-hero-eyebrow"><i class="fas fa-capsules"></i> Patient Medication Hub</span>
             <h2>Medication Tracker</h2>
-            <p>Manage active prescriptions and self-added medications in one place.</p>
+            <p>Manage medications, reminders and adherence in one place.</p>
         </div>
         <div class="pm-hero-actions">
-            <a class="btn btn-primary" href="/PatientMedication/Add/@Model.Patient.PatientID"><i class="fas fa-plus-circle"></i> Add Medication</a>
-            <a class="btn btn-outline" href="/PatientMedication/Daily/@Model.Patient.PatientID"><i class="fas fa-calendar-day"></i> View Today</a>
+            <a class="btn btn-primary" href="/PatientMedication/Add/@pid">
+                <i class="fas fa-plus-circle"></i> Add Medication
+            </a>
+            <a class="btn btn-outline" href="/PatientMedication/Daily/@pid">
+                <i class="fas fa-calendar-day"></i> Today's Schedule
+            </a>
+            <a class="btn btn-outline" href="/PatientMedication/ExportCsv/@pid">
+                <i class="fas fa-file-csv"></i> Export
+            </a>
         </div>
     </div>
 
-    @Html.AntiForgeryToken()
-    <input type="hidden" id="patientId" value="@Model.Patient.PatientID" />
-
-    <div class="pm-settings">
-        <label for="globalLeadTime">Reminder lead time (minutes)</label>
-        <div class="pm-settings-row">
-            <input type="number" id="globalLeadTime" min="0" max="180" value="@Model.GlobalLeadTimeMinutes" />
-            <button class="btn btn-outline" id="saveGlobalLeadTime">Save</button>
+    @* ── KPI STATS ─────────────────────────────────────────── *@
+    <div class="pm-kpi-grid">
+        <div class="pm-kpi-card">
+            <div class="pm-kpi-icon"><i class="fas fa-clock"></i></div>
+            <div class="pm-kpi-value">@pendingToday</div>
+            <div class="pm-kpi-label">Pending Today</div>
+            @if (pendingToday == 0)
+            {
+                <span class="pm-kpi-trend up"><i class="fas fa-check"></i> All clear</span>
+            }
+            else
+            {
+                <span class="pm-kpi-trend warn"><i class="fas fa-exclamation"></i> Doses due</span>
+            }
+        </div>
+        <div class="pm-kpi-card">
+            <div class="pm-kpi-icon"><i class="fas fa-capsules"></i></div>
+            <div class="pm-kpi-value">@totalCount</div>
+            <div class="pm-kpi-label">Active Medications</div>
+            <span class="pm-kpi-trend neutral"><i class="fas fa-pills"></i> @prescriptionCount from Rx</span>
+        </div>
+        <div class="pm-kpi-card">
+            <div class="pm-kpi-icon"><i class="fas fa-chart-line"></i></div>
+            <div class="pm-kpi-value">@(weeklyTotal > 0 ? adherencePct + "%" : "--")</div>
+            <div class="pm-kpi-label">7-Day Adherence</div>
+            @if (weeklyTotal > 0)
+            {
+                <span class="pm-kpi-trend @(adherencePct >= 80 ? "up" : adherencePct >= 50 ? "warn" : "danger")">
+                    <i class="fas fa-@(adherencePct >= 80 ? "arrow-up" : "arrow-down")"></i>
+                    @(adherencePct >= 80 ? "On track" : adherencePct >= 50 ? "Needs attention" : "Low")
+                </span>
+            }
+            else
+            {
+                <span class="pm-kpi-trend neutral">No data yet</span>
+            }
+        </div>
+        <div class="pm-kpi-card">
+            <div class="pm-kpi-icon"><i class="fas fa-hourglass-half"></i></div>
+            <div class="pm-kpi-value">@endingSoonCount</div>
+            <div class="pm-kpi-label">Ending in 7 Days</div>
+            @if (endingSoonCount > 0)
+            {
+                <span class="pm-kpi-trend warn"><i class="fas fa-exclamation-triangle"></i> Refill soon</span>
+            }
+            else
+            {
+                <span class="pm-kpi-trend up"><i class="fas fa-check"></i> All good</span>
+            }
         </div>
     </div>
 
-    <div class="pm-stats">
-        <div class="pm-stat-card">
-            <div class="pm-stat-icon"><i class="fas fa-capsules"></i></div>
-            <span class="pm-stat-label">Active Medications</span>
-            <strong class="pm-stat-value">@totalCount</strong>
+    @* ── TODAY'S TIMELINE ──────────────────────────────────── *@
+    @if (Model.TodaySlots.Any())
+    {
+        <div>
+            <div class="pm-section-row">
+                <h3><i class="fas fa-clock"></i> Today's Doses
+                    <span style="font-size:0.75rem;font-weight:700;padding:2px 9px;border-radius:999px;background:#f1f5f9;color:#64748b;margin-left:4px;">@Model.TodaySlots.Count</span>
+                </h3>
+                <a href="/PatientMedication/Daily/@pid" class="pm-section-see-all">Full schedule <i class="fas fa-arrow-right"></i></a>
+            </div>
+            <div class="pm-today-timeline">
+                @{
+                    var timeGroups = new[]
+                    {
+                        new { Label = "Early Morning", Emoji = "🌙", Slots = earlySlots },
+                        new { Label = "Morning",       Emoji = "☀️", Slots = morningSlots },
+                        new { Label = "Afternoon",     Emoji = "🌤", Slots = afternoonSlots },
+                        new { Label = "Evening",       Emoji = "🌙", Slots = eveningSlots },
+                    };
+                }
+                @foreach (var grp in timeGroups)
+                {
+                    if (!grp.Slots.Any()) continue;
+                    <div class="pm-tl-group">
+                        <div class="pm-tl-group-header">
+                            <span class="pm-tl-group-emoji">@grp.Emoji</span>
+                            <span class="pm-tl-group-label">@grp.Label</span>
+                            <span class="pm-tl-group-count">@grp.Slots.Count dose@(grp.Slots.Count != 1 ? "s" : "")</span>
+                        </div>
+                        @foreach (var slot in grp.Slots)
+                        {
+                            var statusClass = slot.Status switch {
+                                MedicationLogStatus.Taken   => "tl-taken",
+                                MedicationLogStatus.Missed  => "tl-missed",
+                                MedicationLogStatus.Skipped => "tl-skipped",
+                                _ => ""
+                            };
+                            var badgeClass = slot.Status switch {
+                                MedicationLogStatus.Taken   => "b-taken",
+                                MedicationLogStatus.Missed  => "b-missed",
+                                MedicationLogStatus.Skipped => "b-skipped",
+                                _ => "b-scheduled"
+                            };
+                            var badgeLabel = slot.Status switch {
+                                MedicationLogStatus.Taken   => "Taken",
+                                MedicationLogStatus.Missed  => "Missed",
+                                MedicationLogStatus.Skipped => "Skipped",
+                                _ => "Pending"
+                            };
+                            <article class="pm-tl-item @statusClass"
+                                     data-medication-id="@slot.MedicationId"
+                                     data-scheduled-at="@slot.ScheduledAt.ToString("O")">
+                                <div class="pm-tl-time">
+                                    <div class="pm-tl-time-h">@slot.ScheduledAt.ToString("h:mm")</div>
+                                    <div class="pm-tl-time-p">@slot.ScheduledAt.ToString("tt")</div>
+                                </div>
+                                <div class="pm-tl-sep"></div>
+                                <div class="pm-tl-ico"><i class="fas fa-pills"></i></div>
+                                <div class="pm-tl-info">
+                                    <div class="pm-tl-name">@slot.MedicationName</div>
+                                    <div class="pm-tl-dose">@(string.IsNullOrWhiteSpace(slot.Dosage) ? "No dosage specified" : slot.Dosage)</div>
+                                </div>
+                                <span class="pm-tl-badge @badgeClass">@badgeLabel</span>
+                                @if (slot.Status == MedicationLogStatus.Scheduled)
+                                {
+                                    <div class="pm-tl-actions">
+                                        <button class="pm-tl-btn take" data-action="Taken">
+                                            <i class="fas fa-check"></i> Take
+                                        </button>
+                                        <button class="pm-tl-btn skip" data-action="Skipped">
+                                            <i class="fas fa-forward"></i> Skip
+                                        </button>
+                                    </div>
+                                }
+                            </article>
+                        }
+                    </div>
+                }
+            </div>
         </div>
-        <div class="pm-stat-card">
-            <div class="pm-stat-icon"><i class="fas fa-file-prescription"></i></div>
-            <span class="pm-stat-label">From Prescriptions</span>
-            <strong class="pm-stat-value">@prescriptionCount</strong>
+    }
+
+    @* ── ANALYTICS ─────────────────────────────────────────── *@
+    @if (Model.WeeklyChartData.Any(d => d.Taken + d.Missed + d.Skipped > 0))
+    {
+        <div>
+            <div class="pm-section-row">
+                <h3><i class="fas fa-chart-bar"></i> 7-Day Adherence</h3>
+            </div>
+            <div class="pm-analytics-row">
+                <div class="pm-chart-card">
+                    <div class="pm-chart-card-header">
+                        <div class="pm-chart-card-title"><i class="fas fa-chart-bar"></i> Daily Breakdown</div>
+                    </div>
+                    <canvas id="weeklyAdherenceChart" height="100"></canvas>
+                </div>
+                <div class="pm-chart-card">
+                    <div class="pm-chart-card-header">
+                        <div class="pm-chart-card-title"><i class="fas fa-circle-half-stroke"></i> Totals</div>
+                    </div>
+                    <canvas id="donutChart" height="140"></canvas>
+                </div>
+            </div>
         </div>
-        <div class="pm-stat-card">
-            <div class="pm-stat-icon"><i class="fas fa-user-pen"></i></div>
-            <span class="pm-stat-label">Self-added</span>
-            <strong class="pm-stat-value">@selfCount</strong>
+    }
+
+    @* ── REMINDERS ─────────────────────────────────────────── *@
+    <div class="pm-reminder-card">
+        <div class="pm-reminder-ttl"><i class="fas fa-bell"></i> Reminder Lead Time</div>
+        <p style="font-size:0.82rem;color:var(--text-secondary);margin:0 0 14px;">How many minutes before a dose should you be reminded?</p>
+        <div class="pm-reminder-chips">
+            <button class="pm-rc @(Model.GlobalLeadTimeMinutes == 10  ? "active" : "")" data-val="10">10 min</button>
+            <button class="pm-rc @(Model.GlobalLeadTimeMinutes == 20  ? "active" : "")" data-val="20">20 min</button>
+            <button class="pm-rc @(Model.GlobalLeadTimeMinutes == 30  ? "active" : "")" data-val="30">30 min</button>
+            <button class="pm-rc @(Model.GlobalLeadTimeMinutes == 60  ? "active" : "")" data-val="60">1 hour</button>
+            <button class="pm-rc @(Model.GlobalLeadTimeMinutes == 120 ? "active" : "")" data-val="120">2 hours</button>
         </div>
-        <div class="pm-stat-card">
-            <div class="pm-stat-icon"><i class="fas fa-hourglass-half"></i></div>
-            <span class="pm-stat-label">Ending in 7 Days</span>
-            <strong class="pm-stat-value">@endingSoonCount</strong>
+        <div class="pm-reminder-row">
+            <input type="number" id="globalLeadTime" class="pm-reminder-num"
+                   min="0" max="240" value="@Model.GlobalLeadTimeMinutes" placeholder="Custom (mins)" />
+            <button class="pm-reminder-save-btn" id="saveGlobalLeadTime">
+                <i class="fas fa-save"></i> Save
+            </button>
         </div>
     </div>
 
-    <div class="pm-grid">
+    @* ── MEDICATION LIST ───────────────────────────────────── *@
+    <div>
+        <div class="pm-section-row">
+            <h3><i class="fas fa-list-ul"></i> My Medications</h3>
+        </div>
+
         @if (Model.ActiveMedications.Any())
         {
-            foreach (var med in Model.ActiveMedications)
-            {
-                var sourceText = med.Source == Graduation_Project.Models.MedicationSource.Prescription ? "Prescription" : "Self";
-                var sourceClass = med.Source == Graduation_Project.Models.MedicationSource.Prescription ? "is-prescription" : "is-self";
-                var periodText = med.EndDate.HasValue
-                    ? $"{med.StartDate:MMM dd, yyyy} - {med.EndDate.Value:MMM dd, yyyy}"
-                    : $"{med.StartDate:MMM dd, yyyy} - Ongoing";
+            <div class="pm-med-list">
+                @foreach (var med in Model.ActiveMedications)
+                {
+                    var sourceText  = med.Source == MedicationSource.Prescription ? "Prescription" : "Self-added";
+                    var sourceClass = med.Source == MedicationSource.Prescription ? "is-prescription" : "is-self";
+                    var periodText  = med.EndDate.HasValue
+                        ? $"{med.StartDate:MMM dd, yyyy} – {med.EndDate.Value:MMM dd, yyyy}"
+                        : $"{med.StartDate:MMM dd, yyyy} – Ongoing";
+                    var isEndingSoon = med.EndDate.HasValue && med.EndDate.Value.Date <= today.AddDays(7);
+                    var daysLeft     = med.EndDate.HasValue ? (int?)(med.EndDate.Value.Date - today).Days : null;
 
-                <article class="pm-card" data-medication-id="@med.MedicationId">
-                    <div class="card-header">
-                        <div class="card-header-left">
-                            <div class="card-ico teal"><i class="fas fa-capsules"></i></div>
-                            <div>
-                                <div class="card-title">@med.Name</div>
-                                <div class="card-sub">@sourceText medication</div>
+                    var recentLogs  = med.Logs.Where(l => l.ScheduledAt.Date >= today.AddDays(-30)).ToList();
+                    var logTotal    = recentLogs.Count;
+                    var logTaken    = recentLogs.Count(l => l.Status == MedicationLogStatus.Taken);
+                    var adherence   = logTotal > 0 ? (int)Math.Round((double)logTaken / logTotal * 100) : (int?)null;
+
+                    var allLogs     = med.Logs.ToList();
+                    var pillsUsed   = med.PillsPerDose.HasValue ? (int?)(allLogs.Count(l => l.Status == MedicationLogStatus.Taken) * med.PillsPerDose.Value) : null;
+                    var pillsLeft   = med.TotalPills.HasValue && pillsUsed.HasValue ? (int?)(med.TotalPills.Value - pillsUsed.Value) : null;
+                    var refillSoon  = pillsLeft.HasValue && med.PillsPerDose.HasValue && pillsLeft.Value <= (med.PillsPerDose.Value * 7);
+
+                    // Adherence ring SVG
+                    var ringPct  = adherence ?? 0;
+                    var radius   = 20;
+                    var circ     = Math.Round(2 * Math.PI * radius, 1);
+                    var dash     = Math.Round(ringPct / 100.0 * circ, 1);
+                    var gap      = Math.Round(circ - dash, 1);
+                    var ringColor = ringPct >= 80 ? "#10b981" : ringPct >= 50 ? "#f59e0b" : "#ef4444";
+
+                    <article class="pm-med-card-v2 @(isEndingSoon ? "ending-soon" : "")"
+                             data-medication-id="@med.MedicationId" style="position:relative;">
+                        @* collapsed header *@
+                        <div class="pm-med-hdr">
+                            <div class="pm-med-hdr-ico"><i class="fas fa-capsules"></i></div>
+                            <div class="pm-med-hdr-info">
+                                <div class="pm-med-hdr-name">
+                                    @med.Name
+                                    <span class="pm-tag @sourceClass">@sourceText</span>
+                                    @if (isEndingSoon)
+                                    {
+                                        <span class="pm-ending-tag"><i class="fas fa-hourglass-end"></i>
+                                            @(daysLeft == 0 ? "Ends today" : daysLeft == 1 ? "1 day left" : $"{daysLeft} days left")
+                                        </span>
+                                    }
+                                    @if (refillSoon)
+                                    {
+                                        <span class="pm-refill-tag"><i class="fas fa-exclamation-triangle"></i> Refill soon</span>
+                                    }
+                                </div>
+                                <div class="pm-med-hdr-meta">
+                                    @(string.IsNullOrWhiteSpace(med.Dosage) ? "" : med.Dosage + " · ")@(string.IsNullOrWhiteSpace(med.Frequency) ? "Frequency not set" : med.Frequency)
+                                </div>
+                            </div>
+                            <div class="pm-med-hdr-right">
+                                @if (adherence.HasValue)
+                                {
+                                    <div class="pm-ring-wrap" title="@adherence% adherence (30 days)">
+                                        <svg width="52" height="52" viewBox="0 0 52 52">
+                                            <circle cx="26" cy="26" r="@radius" fill="none" stroke="#e2e8f0" stroke-width="5"/>
+                                            <circle cx="26" cy="26" r="@radius" fill="none"
+                                                    stroke="@ringColor" stroke-width="5"
+                                                    stroke-dasharray="@dash @gap"
+                                                    stroke-linecap="round"/>
+                                        </svg>
+                                        <div class="pm-ring-text">@adherence%</div>
+                                    </div>
+                                }
+                                <div class="pm-chevron"><i class="fas fa-chevron-down"></i></div>
                             </div>
                         </div>
-                        <div class="pm-card-header-right">
-                            <span class="pm-tag @sourceClass">@sourceText</span>
-                            <button type="button" class="btn btn-outline pm-delete-med" title="Remove from tracker" aria-label="Remove @med.Name from tracker">
-                                <i class="fas fa-trash-alt"></i> Remove
-                            </button>
-                        </div>
-                    </div>
-                    <div class="pm-card-body">
-                        <div class="pm-row"><span>Dosage</span><strong>@(string.IsNullOrWhiteSpace(med.Dosage) ? "Not specified" : med.Dosage)</strong></div>
-                        <div class="pm-row"><span>Frequency</span><strong>@(string.IsNullOrWhiteSpace(med.Frequency) ? "Not specified" : med.Frequency)</strong></div>
-                        <div class="pm-row"><span>Duration</span><strong>@periodText</strong></div>
-                        <div class="pm-note">
-                            <i class="fas fa-note-sticky"></i>
-                            <span>@(string.IsNullOrWhiteSpace(med.Instructions) ? "No additional instructions." : med.Instructions)</span>
-                        </div>
-                        <div class="pm-lead-time">
-                            <label>Lead time (minutes)</label>
-                            <div class="pm-settings-row">
-                                <input type="number" class="pm-lead-input" min="0" max="180" value="@(med.ReminderLeadTimeMinutes?.ToString() ?? string.Empty)" data-medication-id="@med.MedicationId" />
-                                <button class="btn btn-outline pm-lead-save" data-medication-id="@med.MedicationId">Save</button>
+
+                        @* expanded body *@
+                        <div class="pm-med-body">
+                            <div class="pm-med-tabs">
+                                <button class="pm-med-tab active" data-tab="overview">Overview</button>
+                                <button class="pm-med-tab" data-tab="schedule">Schedule</button>
+                                @if (adherence.HasValue)
+                                {
+                                    <button class="pm-med-tab" data-tab="analytics">Analytics</button>
+                                }
+                            </div>
+
+                            @* Overview tab *@
+                            <div class="pm-med-tab-panel active" data-panel="overview">
+                                <div class="pm-detail-grid">
+                                    <div class="pm-detail-item">
+                                        <div class="pm-detail-lbl">Dosage</div>
+                                        <div class="pm-detail-val">@(string.IsNullOrWhiteSpace(med.Dosage) ? "Not specified" : med.Dosage)</div>
+                                    </div>
+                                    <div class="pm-detail-item">
+                                        <div class="pm-detail-lbl">Frequency</div>
+                                        <div class="pm-detail-val">@(string.IsNullOrWhiteSpace(med.Frequency) ? "Not specified" : med.Frequency)</div>
+                                    </div>
+                                    <div class="pm-detail-item">
+                                        <div class="pm-detail-lbl">Duration</div>
+                                        <div class="pm-detail-val">@periodText</div>
+                                    </div>
+                                    <div class="pm-detail-item">
+                                        <div class="pm-detail-lbl">Source</div>
+                                        <div class="pm-detail-val">@sourceText</div>
+                                    </div>
+                                    @if (med.TotalPills.HasValue && pillsLeft.HasValue)
+                                    {
+                                        <div class="pm-detail-item">
+                                            <div class="pm-detail-lbl">Pills Remaining</div>
+                                            <div class="pm-detail-val">@pillsLeft / @med.TotalPills</div>
+                                        </div>
+                                    }
+                                    @if (adherence.HasValue)
+                                    {
+                                        <div class="pm-detail-item">
+                                            <div class="pm-detail-lbl">30-Day Adherence</div>
+                                            <div class="pm-detail-val">@adherence%
+                                                <div class="pm-adherence-bar" style="margin-top:6px;">
+                                                    <div class="pm-adherence-bar-fill" style="width:@adherence%"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(med.Instructions))
+                                {
+                                    <div class="pm-med-note-box">
+                                        <i class="fas fa-note-sticky"></i>
+                                        <span>@med.Instructions</span>
+                                    </div>
+                                }
+                            </div>
+
+                            @* Schedule tab *@
+                            <div class="pm-med-tab-panel" data-panel="schedule">
+                                <div class="pm-detail-grid">
+                                    <div class="pm-detail-item">
+                                        <div class="pm-detail-lbl">Frequency</div>
+                                        <div class="pm-detail-val">@(string.IsNullOrWhiteSpace(med.Frequency) ? "Not specified" : med.Frequency)</div>
+                                    </div>
+                                    <div class="pm-detail-item">
+                                        <div class="pm-detail-lbl">Start Date</div>
+                                        <div class="pm-detail-val">@med.StartDate.ToString("MMM dd, yyyy")</div>
+                                    </div>
+                                    @if (med.EndDate.HasValue)
+                                    {
+                                        <div class="pm-detail-item">
+                                            <div class="pm-detail-lbl">End Date</div>
+                                            <div class="pm-detail-val">@med.EndDate.Value.ToString("MMM dd, yyyy")</div>
+                                        </div>
+                                    }
+                                    @if (med.PillsPerDose.HasValue)
+                                    {
+                                        <div class="pm-detail-item">
+                                            <div class="pm-detail-lbl">Pills Per Dose</div>
+                                            <div class="pm-detail-val">@med.PillsPerDose</div>
+                                        </div>
+                                    }
+                                </div>
+                                @* Per-medication reminder lead time *@
+                                <div class="pm-lead-slot">
+                                    <label><i class="fas fa-bell" style="color:var(--patient-primary);"></i> Custom reminder (mins)</label>
+                                    <input type="number" class="pm-lead-input-v2 pm-lead-input"
+                                           min="0" max="240"
+                                           value="@(med.ReminderLeadTimeMinutes?.ToString() ?? "")"
+                                           data-medication-id="@med.MedicationId"
+                                           placeholder="Global" />
+                                    <button class="pm-med-btn lead-save pm-lead-save" data-medication-id="@med.MedicationId">
+                                        <i class="fas fa-save"></i> Save
+                                    </button>
+                                </div>
+                            </div>
+
+                            @if (adherence.HasValue)
+                            {
+                                @* Analytics tab *@
+                                <div class="pm-med-tab-panel" data-panel="analytics">
+                                    <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;">
+                                        <div style="flex:1;min-width:120px;">
+                                            <div class="pm-detail-lbl" style="margin-bottom:8px;">Adherence (30 days)</div>
+                                            <div style="font-size:2.2rem;font-weight:800;color:var(--text-primary);letter-spacing:-1px;">@adherence%</div>
+                                            <div class="pm-adherence-bar" style="margin-top:8px;height:8px;">
+                                                <div class="pm-adherence-bar-fill" style="width:@adherence%"></div>
+                                            </div>
+                                        </div>
+                                        <div style="display:flex;flex-direction:column;gap:8px;">
+                                            <div style="display:flex;align-items:center;gap:8px;font-size:0.84rem;">
+                                                <span style="width:10px;height:10px;border-radius:3px;background:#10b981;display:inline-block;"></span>
+                                                <span style="color:var(--text-secondary);font-weight:600;">Taken</span>
+                                                <strong>@logTaken</strong>
+                                            </div>
+                                            <div style="display:flex;align-items:center;gap:8px;font-size:0.84rem;">
+                                                <span style="width:10px;height:10px;border-radius:3px;background:#ef4444;display:inline-block;"></span>
+                                                <span style="color:var(--text-secondary);font-weight:600;">Missed</span>
+                                                <strong>@recentLogs.Count(l => l.Status == MedicationLogStatus.Missed)</strong>
+                                            </div>
+                                            <div style="display:flex;align-items:center;gap:8px;font-size:0.84rem;">
+                                                <span style="width:10px;height:10px;border-radius:3px;background:#f59e0b;display:inline-block;"></span>
+                                                <span style="color:var(--text-secondary);font-weight:600;">Skipped</span>
+                                                <strong>@recentLogs.Count(l => l.Status == MedicationLogStatus.Skipped)</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                            @* Footer actions *@
+                            <div class="pm-med-footer">
+                                @if (med.Source == MedicationSource.Self)
+                                {
+                                    <a href="/PatientMedication/Edit/@pid?medicationId=@med.MedicationId" class="pm-med-btn edit">
+                                        <i class="fas fa-pen"></i> Edit
+                                    </a>
+                                }
+                                <a href="/PatientMedication/History/@pid?medicationId=@med.MedicationId" class="pm-med-btn hist">
+                                    <i class="fas fa-history"></i> History
+                                </a>
+                                <button class="pm-med-btn del pm-delete-med">
+                                    <i class="fas fa-trash-alt"></i> Remove
+                                </button>
                             </div>
                         </div>
-                    </div>
-                </article>
-            }
+                    </article>
+                }
+            </div>
         }
         else
         {
-            <div class="pm-empty">
-                <i class="fas fa-capsules"></i>
-                <h3>No active medications yet</h3>
-                <p>Add your first medication to start tracking reminders and doses.</p>
-                <a class="btn btn-primary" href="/PatientMedication/Add/@Model.Patient.PatientID">Add Medication</a>
+            <div class="pm-empty-v2">
+                <div class="pm-empty-ico"><i class="fas fa-capsules"></i></div>
+                <h3>No medications yet</h3>
+                <p>Add your first medication to start tracking doses, reminders, and adherence.</p>
+                <a class="btn btn-primary" href="/PatientMedication/Add/@pid">
+                    <i class="fas fa-plus-circle"></i> Add your first medication
+                </a>
             </div>
         }
     </div>
+
 </section>
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="~/js/patient-medications.js" asp-append-version="true"></script>
+    @if (Model.WeeklyChartData.Any(d => d.Taken + d.Missed + d.Skipped > 0))
+    {
+        <script>
+        (function(){
+            const labels  = [@Html.Raw(string.Join(",", Model.WeeklyChartData.Select(d => $"\"{d.Date:ddd MM/dd}\"")))];
+            const taken   = [@string.Join(",", Model.WeeklyChartData.Select(d => d.Taken))];
+            const missed  = [@string.Join(",", Model.WeeklyChartData.Select(d => d.Missed))];
+            const skipped = [@string.Join(",", Model.WeeklyChartData.Select(d => d.Skipped))];
+            const totalT  = taken.reduce((a,b)=>a+b,0);
+            const totalM  = missed.reduce((a,b)=>a+b,0);
+            const totalS  = skipped.reduce((a,b)=>a+b,0);
+
+            new Chart(document.getElementById("weeklyAdherenceChart"),{
+                type:"bar",
+                data:{
+                    labels,
+                    datasets:[
+                        {label:"Taken",   data:taken,   backgroundColor:"rgba(16,185,129,0.8)",  borderRadius:6},
+                        {label:"Missed",  data:missed,  backgroundColor:"rgba(239,68,68,0.8)",   borderRadius:6},
+                        {label:"Skipped", data:skipped, backgroundColor:"rgba(245,158,11,0.8)",  borderRadius:6}
+                    ]
+                },
+                options:{
+                    responsive:true,
+                    plugins:{legend:{position:"bottom",labels:{boxWidth:10,borderRadius:3,font:{size:11}}}},
+                    scales:{
+                        x:{stacked:true,grid:{display:false},ticks:{font:{size:11}}},
+                        y:{stacked:true,ticks:{stepSize:1,font:{size:11}},grid:{color:"rgba(0,0,0,0.04)"}}
+                    }
+                }
+            });
+
+            new Chart(document.getElementById("donutChart"),{
+                type:"doughnut",
+                data:{
+                    labels:["Taken","Missed","Skipped"],
+                    datasets:[{
+                        data:[totalT,totalM,totalS],
+                        backgroundColor:["#10b981","#ef4444","#f59e0b"],
+                        borderWidth:0,
+                        hoverOffset:6
+                    }]
+                },
+                options:{
+                    responsive:true,cutout:"70%",
+                    plugins:{legend:{position:"bottom",labels:{boxWidth:10,borderRadius:3,font:{size:11}}}}
+                }
+            });
+        })();
+        </script>
+    }
 }

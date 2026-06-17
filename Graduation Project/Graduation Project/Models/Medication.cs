@@ -20,6 +20,8 @@ namespace Graduation_Project.Models
         public bool IsActive { get; set; } = true;
         public MedicationSource Source { get; set; } = MedicationSource.Prescription;
         public int? ReminderLeadTimeMinutes { get; set; }
+        public int? TotalPills { get; set; }
+        public int? PillsPerDose { get; set; }
 
         [ForeignKey(nameof(PrescriptionItem))]
         public int? PrescriptionItemId { get; set; }

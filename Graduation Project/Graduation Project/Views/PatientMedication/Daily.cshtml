@@ -1,4 +1,5 @@
 @using System.Linq
+@using Graduation_Project.Models
 @model Graduation_Project.ViewModels.PatientMedicationDailyViewModel
 @{
     Layout = "~/Views/Shared/_PatientLayout.cshtml";
@@ -6,88 +7,196 @@
     ViewData["PatientId"] = Model.Patient.PatientID;
     ViewData["ActivePage"] = "Medications";
     ViewData["UserName"] = Model.UserName;
-    ViewData["PageTitleHtml"] = "Today's <span class='topbar-accent'>Medication</span> Plan";
-    ViewData["PageSubtitle"] = Model.Date.ToString("dddd, MMMM dd, yyyy");
+    ViewData["HidePageHeader"] = true;
+
+    var pid = Model.Patient.PatientID;
+    var isToday = Model.Date.Date == DateTime.Today;
 
     var scheduledCount = Model.DueSlots.Count;
-    var takenCount = Model.DueSlots.Count(s => s.Status == Graduation_Project.Models.MedicationLogStatus.Taken);
-    var pendingCount = Model.DueSlots.Count(s => s.Status == Graduation_Project.Models.MedicationLogStatus.Scheduled);
+    var takenCount     = Model.DueSlots.Count(s => s.Status == MedicationLogStatus.Taken);
+    var pendingCount   = Model.DueSlots.Count(s => s.Status == MedicationLogStatus.Scheduled);
+    var missedCount    = Model.DueSlots.Count(s => s.Status == MedicationLogStatus.Missed);
+
+    var prevDate = Model.Date.AddDays(-1).ToString("yyyy-MM-dd");
+    var nextDate = Model.Date.AddDays(1).ToString("yyyy-MM-dd");
+
+    // Group by time of day
+    var earlySlots     = Model.DueSlots.Where(s => s.ScheduledAt.Hour < 5).OrderBy(s => s.ScheduledAt).ToList();
+    var morningSlots   = Model.DueSlots.Where(s => s.ScheduledAt.Hour >= 5  && s.ScheduledAt.Hour < 12).OrderBy(s => s.ScheduledAt).ToList();
+    var afternoonSlots = Model.DueSlots.Where(s => s.ScheduledAt.Hour >= 12 && s.ScheduledAt.Hour < 18).OrderBy(s => s.ScheduledAt).ToList();
+    var eveningSlots   = Model.DueSlots.Where(s => s.ScheduledAt.Hour >= 18).OrderBy(s => s.ScheduledAt).ToList();
+
+    var timeGroups = new (string Emoji, string Label, System.Collections.Generic.List<Graduation_Project.Services.MedicationDueSlot> Slots)[]
+    {
+        ("🌙", "Early Morning (before 5 AM)", earlySlots),
+        ("☀️", "Morning",   morningSlots),
+        ("🌤", "Afternoon", afternoonSlots),
+        ("🌙", "Evening",   eveningSlots),
+    };
 }
 
 @Html.AntiForgeryToken()
-<input type="hidden" id="patientId" value="@Model.Patient.PatientID" />
+<input type="hidden" id="patientId" value="@pid" />
 
 <section class="pm-page pd-wrap" data-patient-medications>
+
+    @* ── HEADER ─────────────────────────────────────────── *@
     <div class="pm-hero">
         <div class="pm-hero-left">
             <span class="pm-hero-eyebrow"><i class="fas fa-calendar-check"></i> Daily Dose Timeline</span>
-            <h2>Today's Schedule</h2>
-            <p>@Model.Date.ToString("MMM dd, yyyy")</p>
+            <h2>@(isToday ? "Today's Schedule" : Model.Date.ToString("MMM dd, yyyy"))</h2>
+            <p>@Model.Date.ToString("dddd, MMMM dd, yyyy")</p>
         </div>
         <div class="pm-hero-actions">
-            <a class="btn btn-outline" href="/PatientMedication/Index/@Model.Patient.PatientID"><i class="fas fa-arrow-left"></i> Back</a>
+            <a class="btn btn-outline" href="/PatientMedication/Index/@pid">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
         </div>
     </div>
 
-    <div class="pm-stats">
-        <div class="pm-stat-card">
-            <div class="pm-stat-icon"><i class="fas fa-clock"></i></div>
-            <span class="pm-stat-label">Scheduled Doses</span>
-            <strong class="pm-stat-value">@scheduledCount</strong>
+    @* ── SUMMARY STATS ───────────────────────────────────── *@
+    <div class="pm-daily-stats">
+        <div class="pm-dstat">
+            <div class="pm-dstat-ico"><i class="fas fa-calendar-check"></i></div>
+            <div class="pm-dstat-val">@scheduledCount</div>
+            <div class="pm-dstat-lbl">Scheduled</div>
         </div>
-        <div class="pm-stat-card">
-            <div class="pm-stat-icon"><i class="fas fa-check-circle"></i></div>
-            <span class="pm-stat-label">Taken</span>
-            <strong class="pm-stat-value">@takenCount</strong>
+        <div class="pm-dstat">
+            <div class="pm-dstat-ico"><i class="fas fa-check-circle"></i></div>
+            <div class="pm-dstat-val">@takenCount</div>
+            <div class="pm-dstat-lbl">Taken</div>
         </div>
-        <div class="pm-stat-card">
-            <div class="pm-stat-icon"><i class="fas fa-hourglass-start"></i></div>
-            <span class="pm-stat-label">Pending</span>
-            <strong class="pm-stat-value">@pendingCount</strong>
+        <div class="pm-dstat">
+            <div class="pm-dstat-ico"><i class="fas fa-hourglass-start"></i></div>
+            <div class="pm-dstat-val">@pendingCount</div>
+            <div class="pm-dstat-lbl">Pending</div>
+        </div>
+        <div class="pm-dstat">
+            <div class="pm-dstat-ico"><i class="fas fa-times-circle"></i></div>
+            <div class="pm-dstat-val">@missedCount</div>
+            <div class="pm-dstat-lbl">Missed</div>
         </div>
     </div>
 
-    <div class="pm-grid pm-grid-single">
-        @if (Model.DueSlots.Any())
+    @* ── DATE NAVIGATION ─────────────────────────────────── *@
+    <div class="pm-date-nav">
+        <a class="pm-date-nav-btn" href="/PatientMedication/Daily/@pid?date=@prevDate">
+            <i class="fas fa-chevron-left"></i> Previous
+        </a>
+        <div class="pm-date-nav-center">
+            <span class="pm-date-nav-main">@Model.Date.ToString("MMMM dd, yyyy")</span>
+            <span class="pm-date-nav-sub">@Model.Date.ToString("dddd")@(isToday ? " · Today" : "")</span>
+        </div>
+        @if (!isToday)
         {
-            foreach (var slot in Model.DueSlots)
+            <a class="pm-today-nav-btn" href="/PatientMedication/Daily/@pid">
+                <i class="fas fa-calendar-day"></i> Today
+            </a>
+        }
+        <a class="pm-date-nav-btn" href="/PatientMedication/Daily/@pid?date=@nextDate">
+            Next <i class="fas fa-chevron-right"></i>
+        </a>
+    </div>
+
+    @* ── DOSE TIMELINE ───────────────────────────────────── *@
+    @if (Model.DueSlots.Any())
+    {
+            <div class="pm-dose-list">
+            @foreach (var grp in timeGroups)
             {
-                <article class="pm-card" data-medication-id="@slot.MedicationId" data-scheduled-at="@slot.ScheduledAt.ToString("O")">
-                    <div class="card-header">
-                        <div class="card-header-left">
-                            <div class="card-ico teal"><i class="fas fa-pills"></i></div>
-                            <div>
-                                <div class="card-title">@slot.MedicationName</div>
-                                <div class="card-sub">Scheduled dose</div>
+                if (!grp.Slots.Any()) continue;
+
+                @* group heading *@
+                <div style="display:flex;align-items:center;gap:10px;padding:6px 0 4px;">
+                    <span style="font-size:1.1rem;">@grp.Emoji</span>
+                    <span style="font-size:0.88rem;font-weight:700;color:var(--text-primary);">@grp.Label</span>
+                    <span style="font-size:0.72rem;font-weight:700;padding:2px 8px;border-radius:999px;background:#f1f5f9;color:#64748b;">
+                        @grp.Slots.Count
+                    </span>
+                </div>
+
+                @foreach (var slot in grp.Slots)
+                {
+                    var dcClass = slot.Status switch {
+                        MedicationLogStatus.Taken   => "dc-taken",
+                        MedicationLogStatus.Missed  => "dc-missed",
+                        MedicationLogStatus.Skipped => "dc-skipped",
+                        _ => ""
+                    };
+                    var spClass = slot.Status switch {
+                        MedicationLogStatus.Taken   => "s-taken",
+                        MedicationLogStatus.Missed  => "s-missed",
+                        MedicationLogStatus.Skipped => "s-skipped",
+                        _ => "s-scheduled"
+                    };
+                    var spLabel = slot.Status switch {
+                        MedicationLogStatus.Taken   => "<i class='fas fa-check-circle'></i> Taken",
+                        MedicationLogStatus.Missed  => "<i class='fas fa-times-circle'></i> Missed",
+                        MedicationLogStatus.Skipped => "<i class='fas fa-forward'></i> Skipped",
+                        _ => "<i class='fas fa-clock'></i> Scheduled"
+                    };
+
+                    <article class="pm-dose-card-v2 @dcClass"
+                             data-medication-id="@slot.MedicationId"
+                             data-scheduled-at="@slot.ScheduledAt.ToString("O")">
+
+                        <div class="pm-dose-card-v2-hdr">
+                            <div class="pm-dose-time-badge">
+                                <div class="pm-dose-tbadge-h">@slot.ScheduledAt.ToString("h:mm")</div>
+                                <div class="pm-dose-tbadge-p">@slot.ScheduledAt.ToString("tt")</div>
+                            </div>
+                            <div class="pm-dose-card-ico"><i class="fas fa-pills"></i></div>
+                            <div class="pm-dose-card-info">
+                                <div class="pm-dose-card-name">@slot.MedicationName</div>
+                                <div class="pm-dose-card-sub">@(string.IsNullOrWhiteSpace(slot.Dosage) ? "Dosage not specified" : slot.Dosage)</div>
+                            </div>
+                            <span class="pm-dose-status-pill @spClass med-status">
+                                @Html.Raw(spLabel)
+                            </span>
+                        </div>
+
+                        <div class="pm-dose-card-v2-body">
+                            @if (!string.IsNullOrWhiteSpace(slot.Instructions))
+                            {
+                                <div class="pm-dose-instructions">
+                                    <i class="fas fa-note-sticky"></i>
+                                    <span>@slot.Instructions</span>
+                                </div>
+                            }
+                            <div class="pm-dose-note-lbl">
+                                <i class="fas fa-pen-to-square"></i> Note (optional)
+                            </div>
+                            <textarea class="pm-dose-note-ta pm-notes-input" rows="2"
+                                      placeholder="e.g. felt nauseous, took with food…"></textarea>
+                            <div class="pm-dose-btns">
+                                <button class="pm-dose-btn-v2 taken" data-action="Taken">
+                                    <i class="fas fa-check-circle"></i> Taken
+                                </button>
+                                <button class="pm-dose-btn-v2 skipped" data-action="Skipped">
+                                    <i class="fas fa-forward"></i> Skipped
+                                </button>
+                                <button class="pm-dose-btn-v2 missed" data-action="Missed">
+                                    <i class="fas fa-times-circle"></i> Missed
+                                </button>
                             </div>
                         </div>
-                        <span class="pm-tag is-time">@slot.ScheduledAt.ToString("h:mm tt")</span>
-                    </div>
-                    <div class="pm-card-body">
-                        <div class="pm-row"><span>Dosage</span><strong>@(string.IsNullOrWhiteSpace(slot.Dosage) ? "Not specified" : slot.Dosage)</strong></div>
-                        <div class="pm-row"><span>Status</span><strong><span class="med-status">@slot.Status</span></strong></div>
-                        <div class="pm-note">
-                            <i class="fas fa-note-sticky"></i>
-                            <span>@(string.IsNullOrWhiteSpace(slot.Instructions) ? "No additional instructions." : slot.Instructions)</span>
-                        </div>
-                    </div>
-                    <div class="pm-card-actions">
-                        <button class="btn btn-success" data-action="Taken">Taken</button>
-                        <button class="btn btn-warning" data-action="Skipped">Skipped</button>
-                        <button class="btn btn-danger" data-action="Missed">Missed</button>
-                    </div>
-                </article>
+                    </article>
+                }
             }
-        }
-        else
-        {
-            <div class="pm-empty">
-                <i class="fas fa-check-circle"></i>
-                <h3>No scheduled doses for today</h3>
-                <p>You are all clear for now. Check tomorrow or review your medications list.</p>
-            </div>
-        }
-    </div>
+        </div>
+    }
+    else
+    {
+        <div class="pm-empty-v2">
+            <div class="pm-empty-ico"><i class="fas fa-check-circle"></i></div>
+            <h3>No scheduled doses</h3>
+            <p>There are no doses scheduled for this day. Use the arrows above to navigate to another day.</p>
+            <a class="btn btn-outline" href="/PatientMedication/Index/@pid">
+                <i class="fas fa-arrow-left"></i> Back to Medications
+            </a>
+        </div>
+    }
+
 </section>
 
 @section Scripts {

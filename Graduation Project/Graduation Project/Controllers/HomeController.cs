@@ -40,13 +40,17 @@ namespace Graduation_Project.Controllers
                     }
 
                     if (User.IsInRole("Doctor"))
-                    {
                         return RedirectToAction("Index", "Doctor");
-                    }
+
+                    if (User.IsInRole("Admin"))
+                        return RedirectToAction("Index", "Admin");
+
+                    if (User.IsInRole("Lab"))
+                        return RedirectToAction("Index", "Admin");
                 }
             }
 
-            return View();
+            return View("~/Views/Home/Index.cshtml");
         }
 
         public IActionResult Privacy()

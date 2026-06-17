@@ -1,0 +1,194 @@
+@using System.Linq
+@using Graduation_Project.Models
+@model Graduation_Project.ViewModels.PatientMedicationHistoryViewModel
+@{
+    Layout = "~/Views/Shared/_PatientLayout.cshtml";
+    ViewData["Title"] = "Medication History";
+    ViewData["PatientId"] = Model.Patient.PatientID;
+    ViewData["ActivePage"] = "Medications";
+    ViewData["UserName"] = Model.UserName;
+    ViewData["HidePageHeader"] = true;
+
+    var med   = Model.Medication;
+    var pid   = Model.Patient.PatientID;
+    var today = DateTime.Today;
+
+    var calendarDays = Enumerable.Range(0, 14).Select(i => today.AddDays(-13 + i)).ToList();
+}
+
+<section class="pm-page pd-wrap">
+
+    @* ── HERO ────────────────────────────────────────────── *@
+    <div class="pm-history-hero">
+        <div class="pm-history-hero-left">
+            <div class="pm-history-eyebrow"><i class="fas fa-history"></i> Dose History</div>
+            <div class="pm-history-name">@med.Name</div>
+            <div class="pm-history-sub">
+                @(string.IsNullOrWhiteSpace(med.Dosage) ? "" : med.Dosage)
+                @(string.IsNullOrWhiteSpace(med.Frequency) ? "" : " · " + med.Frequency)
+            </div>
+        </div>
+        <a class="pm-history-back-btn" href="/PatientMedication/Index/@pid">
+            <i class="fas fa-arrow-left"></i> Back
+        </a>
+    </div>
+
+    @* ── SUMMARY STATS ────────────────────────────────────── *@
+    <div class="pm-kpi-grid">
+        <div class="pm-kpi-card">
+            <div class="pm-kpi-icon"><i class="fas fa-list-check"></i></div>
+            <div class="pm-kpi-value">@Model.Summary.TotalDoses</div>
+            <div class="pm-kpi-label">Total Logged</div>
+            <span class="pm-kpi-trend neutral">All time</span>
+        </div>
+        <div class="pm-kpi-card">
+            <div class="pm-kpi-icon"><i class="fas fa-check-circle"></i></div>
+            <div class="pm-kpi-value">@Model.Summary.TakenDoses</div>
+            <div class="pm-kpi-label">Taken</div>
+            <span class="pm-kpi-trend up"><i class="fas fa-check"></i> Doses taken</span>
+        </div>
+        <div class="pm-kpi-card">
+            <div class="pm-kpi-icon"><i class="fas fa-times-circle"></i></div>
+            <div class="pm-kpi-value">@Model.Summary.MissedDoses</div>
+            <div class="pm-kpi-label">Missed</div>
+            @if (Model.Summary.MissedDoses == 0)
+            {
+                <span class="pm-kpi-trend up"><i class="fas fa-star"></i> Perfect!</span>
+            }
+            else
+            {
+                <span class="pm-kpi-trend danger"><i class="fas fa-exclamation"></i> Doses missed</span>
+            }
+        </div>
+        <div class="pm-kpi-card">
+            <div class="pm-kpi-icon"><i class="fas fa-chart-line"></i></div>
+            <div class="pm-kpi-value">@Model.Summary.AdherencePercent%</div>
+            <div class="pm-kpi-label">Adherence Rate</div>
+            @{
+                var pct = Model.Summary.AdherencePercent;
+            }
+            <span class="pm-kpi-trend @(pct >= 80 ? "up" : pct >= 50 ? "warn" : "danger")">
+                @(pct >= 80 ? "Excellent" : pct >= 50 ? "Needs attention" : "Low adherence")
+            </span>
+        </div>
+    </div>
+
+    @* ── 14-DAY CALENDAR STRIP ───────────────────────────── *@
+    @if (Model.Logs.Any())
+    {
+        <div class="pm-cal-card-v2">
+            <div class="pm-cal-card-ttl"><i class="fas fa-calendar-alt"></i> Last 14 Days</div>
+            <div class="pm-cal-strip-v2">
+                @foreach (var day in calendarDays)
+                {
+                    var dayLogs = Model.Logs.Where(l => l.ScheduledAt.Date == day).ToList();
+                    string dotClass, dotTitle;
+                    if (!dayLogs.Any())
+                    {
+                        dotClass = "v2-empty";
+                        dotTitle = day.ToString("MMM d") + ": no dose";
+                    }
+                    else if (dayLogs.All(l => l.Status == MedicationLogStatus.Taken))
+                    {
+                        dotClass = "v2-taken";
+                        dotTitle = day.ToString("MMM d") + ": all taken";
+                    }
+                    else if (dayLogs.Any(l => l.Status == MedicationLogStatus.Missed))
+                    {
+                        dotClass = "v2-missed";
+                        dotTitle = day.ToString("MMM d") + ": missed";
+                    }
+                    else
+                    {
+                        dotClass = "v2-partial";
+                        dotTitle = day.ToString("MMM d") + ": partial";
+                    }
+
+                    <div class="pm-cal-day-v2 @(day == today ? "v2-today" : "")">
+                        <div class="pm-cal-dot-v2 @dotClass" title="@dotTitle"></div>
+                        <span class="pm-cal-day-num">@day.ToString("dd")</span>
+                    </div>
+                }
+            </div>
+            <div class="pm-cal-legend-v2">
+                <div class="pm-cal-li"><div class="pm-cal-li-dot taken"></div> Taken</div>
+                <div class="pm-cal-li"><div class="pm-cal-li-dot missed"></div> Missed</div>
+                <div class="pm-cal-li"><div class="pm-cal-li-dot partial"></div> Partial</div>
+                <div class="pm-cal-li"><div class="pm-cal-li-dot empty"></div> No dose</div>
+            </div>
+        </div>
+    }
+
+    @* ── LOG TABLE ────────────────────────────────────────── *@
+    <div class="pm-hist-table-card">
+        <div class="pm-hist-table-hdr">
+            <div class="pm-hist-table-hdr-ttl"><i class="fas fa-list-ul"></i> Full Log</div>
+            @if (Model.Logs.Any())
+            {
+                <span style="font-size:0.78rem;font-weight:600;color:var(--text-secondary);">
+                    @Model.Logs.Count entries
+                </span>
+            }
+        </div>
+        @if (Model.Logs.Any())
+        {
+            <div style="overflow-x:auto;">
+                <table class="pm-htable">
+                    <thead>
+                        <tr>
+                            <th>Scheduled</th>
+                            <th>Status</th>
+                            <th>Taken At</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in Model.Logs.OrderByDescending(l => l.ScheduledAt))
+                        {
+                            var spClass = log.Status switch {
+                                MedicationLogStatus.Taken   => "taken",
+                                MedicationLogStatus.Missed  => "missed",
+                                MedicationLogStatus.Skipped => "skipped",
+                                _ => "scheduled"
+                            };
+                            var spIcon = log.Status switch {
+                                MedicationLogStatus.Taken   => "fa-check-circle",
+                                MedicationLogStatus.Missed  => "fa-times-circle",
+                                MedicationLogStatus.Skipped => "fa-forward",
+                                _ => "fa-clock"
+                            };
+                            <tr>
+                                <td style="white-space:nowrap;">@log.ScheduledAt.ToString("MMM dd, yyyy h:mm tt")</td>
+                                <td>
+                                    <span class="pm-spill @spClass">
+                                        <i class="fas @spIcon"></i> @log.Status
+                                    </span>
+                                </td>
+                                <td style="white-space:nowrap;">
+                                    @(log.TakenAt.HasValue ? log.TakenAt.Value.ToString("h:mm tt") : "—")
+                                </td>
+                                <td style="color:var(--text-secondary);font-size:0.84rem;">
+                                    @(string.IsNullOrWhiteSpace(log.Notes) ? "—" : log.Notes)
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="pm-empty-v2" style="border:none;border-radius:0;padding:40px 24px;">
+                <div class="pm-empty-ico" style="width:60px;height:60px;font-size:1.5rem;margin-bottom:14px;">
+                    <i class="fas fa-clipboard-list"></i>
+                </div>
+                <h3>No doses logged yet</h3>
+                <p>Start marking doses as taken, missed, or skipped from the Daily schedule.</p>
+                <a class="btn btn-outline" href="/PatientMedication/Daily/@pid">
+                    <i class="fas fa-calendar-day"></i> Go to Daily Schedule
+                </a>
+            </div>
+        }
+    </div>
+
+</section>
