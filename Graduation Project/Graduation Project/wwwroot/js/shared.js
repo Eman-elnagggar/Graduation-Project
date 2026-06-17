@@ -587,18 +587,32 @@ async function initAssistantTopbarBadge() {
 // ================================
 async function _fetchAndUpdateMsgBadge() {
   const badge = document.getElementById("sidebarMsgBadge");
-  if (!badge) return;
+  // Parent nav badge (e.g. the collapsed "Community" menu) — optional, may not exist.
+  const parentBadge = document.getElementById("navCommunityBadge");
+  if (!badge && !parentBadge) return;
 
   try {
     const resp = await fetch("/Chat/UnreadCount", { credentials: "same-origin" });
     if (!resp.ok) return;
     const data = await resp.json();
     const count = Number(data?.count || 0);
+    const label = count > 99 ? "99+" : String(count);
+
+    // When unread messages exist, morph the "Community" parent menu into "Messages"
+    // so the alert clearly reads as a new message.
+    const parentIcon = document.getElementById("navCommunityIcon");
+    const parentLabel = document.getElementById("navCommunityLabel");
+
     if (count > 0) {
-      badge.textContent = count > 99 ? "99+" : String(count);
-      badge.style.display = "inline-flex";
+      if (badge) { badge.textContent = label; badge.style.display = "inline-flex"; }
+      if (parentBadge) { parentBadge.textContent = label; parentBadge.style.display = "inline-flex"; }
+      if (parentIcon) parentIcon.className = "fas fa-comments";
+      if (parentLabel) parentLabel.textContent = "Messages";
     } else {
-      badge.style.display = "none";
+      if (badge) badge.style.display = "none";
+      if (parentBadge) parentBadge.style.display = "none";
+      if (parentIcon) parentIcon.className = "fas fa-people-group";
+      if (parentLabel) parentLabel.textContent = "Community";
     }
   } catch {
     // no-op

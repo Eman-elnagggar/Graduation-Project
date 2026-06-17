@@ -72,7 +72,7 @@ namespace Graduation_Project.Hubs
                 AttachmentUrl = attachmentUrl,
                 AttachmentType = attachmentType,
                 AttachmentName = attachmentName,
-                SentAtUtc = DateTime.Now,
+                SentAtUtc = DateTime.UtcNow,
                 IsRead = false
             };
 

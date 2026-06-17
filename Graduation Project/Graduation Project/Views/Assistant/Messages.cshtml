@@ -269,6 +269,10 @@
     <aside class="msg-detail" id="msgDetailPanel">
       <div class="mdet-scroll">
 
+        <button class="mdet-close" id="detailCloseBtn" type="button" aria-label="Close details">
+          <i class="fas fa-arrow-left"></i> Back to chat
+        </button>
+
         <div class="mdet-profile">
           <div class="mdet-av-wrap">
             <img src="" alt="Contact avatar" id="detailAvatar" class="mdet-av" />
@@ -331,6 +335,8 @@
 
       </div>
     </aside>
+
+    <div class="msg-detail-backdrop" id="detailBackdrop"></div>
 
   </div>
 
@@ -410,9 +416,13 @@
           if (m.attributeName === 'style') {
             var visible = chatContainer.style.display !== 'none';
             if (detailPanel) {
+              // On desktop the detail panel sits beside the chat and opens with it.
+              // On mobile it's a drawer that only opens when the user taps the info button.
               if (visible) {
-                detailPanel.classList.add('detail-active');
-                document.querySelector('.msg-workspace')?.classList.add('detail-open');
+                if (window.innerWidth > 992) {
+                  detailPanel.classList.add('detail-active');
+                  document.querySelector('.msg-workspace')?.classList.add('detail-open');
+                }
               } else {
                 detailPanel.classList.remove('detail-active');
                 document.querySelector('.msg-workspace')?.classList.remove('detail-open');
@@ -460,6 +470,15 @@
         syncDetail(convId);
       }
     });
+
+    // Close detail drawer (mobile) — back button or backdrop tap
+    function closeDetail() {
+      if (!detailPanel) return;
+      detailPanel.classList.remove('detail-active');
+      document.querySelector('.msg-workspace')?.classList.remove('detail-open');
+    }
+    document.getElementById('detailCloseBtn')?.addEventListener('click', closeDetail);
+    document.getElementById('detailBackdrop')?.addEventListener('click', closeDetail);
 
     // Store last convId on detail panel for toggle re-open
     if (convList) {

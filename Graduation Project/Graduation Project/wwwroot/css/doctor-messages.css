@@ -68,6 +68,45 @@
   --msg-bubble-sent:   #14967F;
 }
 
+/* Doctor theme — teal sidebar header (overrides the default indigo gradient) */
+.theme-doctor .msb-head {
+  background: linear-gradient(135deg, #0B3D36 0%, #0E7A68 45%, #14967F 100%);
+}
+.theme-doctor .msb-head-icon {
+  background: rgba(255,255,255,.16);
+  color: #d1f5ee;
+}
+.theme-doctor .msb-subtitle {
+  color: #a7e8dc;
+}
+.theme-doctor .msb-search-input:focus {
+  box-shadow: 0 0 0 3px rgba(20,150,127,.12);
+}
+.theme-doctor .input-wrapper:focus-within {
+  box-shadow: 0 0 0 3px rgba(20,150,127,.1);
+}
+.theme-doctor .message-wrapper.sent .message-bubble {
+  box-shadow: 0 2px 8px rgba(20,150,127,.22);
+}
+.theme-doctor .dm-send-btn:not(:disabled) {
+  box-shadow: 0 4px 12px rgba(20,150,127,.3);
+}
+
+/* Assistant participant badge (doctor talks to Patients + Assistants) */
+.conversation-role-badge.assistant {
+  background: #ede9fe;
+  color: #6d28d9;
+  border-color: #ddd6fe;
+}
+.msg-suggest-role.role-assistant {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+.mdet-badge.role-assistant {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
 /* ─── 2. Page wrapper ───────────────────────────────────── */
 .doctor-messages-page {
   width: 100%;
@@ -1164,6 +1203,10 @@
   flex-direction: column;
 }
 
+/* Mobile-only affordances — hidden on desktop/tablet */
+.mdet-close { display: none; }
+.msg-detail-backdrop { display: none; }
+
 /* Profile */
 .mdet-profile {
   padding: 28px 20px 20px;
@@ -1459,12 +1502,58 @@
     display: flex !important;
   }
 
-  /* Detail panel hidden on mobile */
-  .msg-detail,
-  .msg-detail.detail-active {
-    display: none !important;
-    width: 0 !important;
+  /* Detail panel: slide-in drawer over the chat on mobile */
+  .msg-detail {
+    position: absolute !important;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 86% !important;
+    min-width: 0 !important;
+    max-width: 360px;
+    z-index: 30;
+    display: block !important;
+    overflow-y: auto;
+    background: var(--msg-surface);
+    border-left: 1px solid var(--msg-border);
+    transform: translateX(100%);
+    transition: transform .28s cubic-bezier(.4,0,.2,1);
+    box-shadow: -8px 0 30px rgba(0,0,0,.18);
   }
+
+  .msg-detail.detail-active {
+    transform: translateX(0);
+    width: 86% !important;
+    min-width: 0 !important;
+  }
+
+  .mdet-scroll { min-width: 0; }
+
+  .mdet-close {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px 20px;
+    border: none;
+    border-bottom: 1px solid var(--msg-border);
+    background: var(--msg-surface);
+    color: var(--msg-primary);
+    font-family: inherit;
+    font-size: .9rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .msg-detail-backdrop {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 25;
+    background: rgba(15,23,42,.4);
+  }
+
+  .msg-workspace.detail-open .msg-detail-backdrop { display: block; z-index:1; }
 
   .sidebar-overlay { display: none !important; }
 

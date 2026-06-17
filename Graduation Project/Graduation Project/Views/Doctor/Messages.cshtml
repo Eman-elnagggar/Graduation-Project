@@ -12,6 +12,12 @@
 
   var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
   var doctorId = Model.Doctor.DoctorID.ToString();
+
+  var totalConversations = Model.Conversations.Count;
+  var totalUnread = Model.Conversations.Sum(c => c.UnreadCount);
+  var patientCount = Model.Conversations.Count(c => c.ParticipantType == "Patient");
+  var assistantCount = Model.Conversations.Count(c => c.ParticipantType == "Assistant");
+
   var conversations = Model.Conversations.Select(c => new
   {
     id = $"{c.ParticipantType}-{c.ParticipantId}",
@@ -26,99 +32,312 @@
     isUrgent = false,
     lastMessageTime = c.LastMessageTime
   }).ToList();
+
+  var suggestedContacts = Model.Conversations
+      .OrderByDescending(c => c.UnreadCount)
+      .ThenByDescending(c => c.LastMessageTime)
+      .Take(4)
+      .ToList();
 }
 
 <div class="doctor-messages-page theme-doctor">
-  <div class="chat-app">
-    <aside class="chat-sidebar" id="chatSidebar">
-    <div class="sidebar-header">
-      <div class="sidebar-title">
-        <div class="sidebar-icon">
-          <i class="fas fa-comments"></i>
+  <div class="msg-workspace chat-app">
+
+    <!-- ═══════════════════════════════════════
+         LEFT PANEL — Conversation List
+    ═══════════════════════════════════════ -->
+    <aside class="msg-sidebar chat-sidebar" id="chatSidebar">
+
+      <div class="msb-head">
+        <div class="msb-head-left">
+          <div class="msb-head-icon">
+            <i class="fas fa-comments"></i>
+          </div>
+          <div>
+            <h2 class="msb-title">Messages</h2>
+            <p class="msb-subtitle">
+              @totalConversations contact@(totalConversations != 1 ? "s" : "")
+              @if (totalUnread > 0)
+              {
+                <span class="msb-unread-chip">@totalUnread new</span>
+              }
+            </p>
+          </div>
         </div>
-        <div>
-          <h2>Messages</h2>
-          <p>Doctor Portal</p>
-        </div>
+        <button class="msb-close-btn sidebar-close" id="sidebarClose" aria-label="Close sidebar">
+          <i class="fas fa-times"></i>
+        </button>
       </div>
-      <button class="sidebar-close" id="sidebarClose"><i class="fas fa-times"></i></button>
-    </div>
 
-    <div class="sidebar-search">
-      <i class="fas fa-search"></i>
-      <input type="text" id="conversationSearch" placeholder="Search conversations..." />
-      <button class="search-clear" id="searchClear" style="display:none;"><i class="fas fa-times"></i></button>
-    </div>
+      <div class="msb-search-wrap">
+        <i class="fas fa-search msb-search-icon"></i>
+        <input type="text" id="conversationSearch" class="msb-search-input"
+               placeholder="Search conversations…" autocomplete="off" />
+        <button class="msb-search-clear search-clear" id="searchClear" style="display:none;" aria-label="Clear search">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
 
-    <div class="sidebar-filters">
-      <button class="filter-btn active" data-filter="all">All <span class="filter-count" id="countAll">0</span></button>
-      <button class="filter-btn" data-filter="unread">Unread <span class="filter-count" id="countUnread">0</span></button>
-      <!-- Urgent filter: reserved for future real-time urgency detection -->
-    </div>
+      <div class="msb-filters">
+        <button class="msb-filter-btn filter-btn active" data-filter="all">
+          All
+          <span class="msb-filter-count filter-count" id="countAll">@totalConversations</span>
+        </button>
+        <button class="msb-filter-btn filter-btn" data-filter="unread">
+          Unread
+          <span class="msb-filter-count filter-count" id="countUnread">@totalUnread</span>
+        </button>
+        <button class="msb-filter-btn filter-btn" data-filter="urgent">
+          Urgent
+          <span class="msb-filter-count filter-count" id="countUrgent">0</span>
+        </button>
+      </div>
 
-    <div class="conversations-list" id="conversationsList"></div>
+      <div class="conversations-list msb-list" id="conversationsList"></div>
+
     </aside>
 
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <main class="chat-main">
-    <!-- Mobile bar: visible on ≤992px to open conversation list -->
-    <div class="chat-mobile-bar">
-      <button class="mobile-chat-toggle" id="mobileMenuBtn" aria-label="Open conversations">
-        <i class="fas fa-bars"></i>
-        <span>Conversations</span>
-      </button>
-      <span class="mobile-active-user" id="mobileActiveUser" style="font-size:.85rem;font-weight:600;color:#0f1c2e;display:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
-    </div>
+    <!-- ═══════════════════════════════════════
+         CENTER PANEL — Active Chat
+    ═══════════════════════════════════════ -->
+    <main class="msg-chat chat-main">
 
-    <div class="chat-empty" id="chatEmpty">
-      <div class="empty-content">
-        <div class="empty-icon"><i class="fas fa-comments"></i></div>
-        <h3>Select a conversation</h3>
-        <p>Choose a patient or assistant from the list to start messaging</p>
-      </div>
-    </div>
-
-    <div class="dm-chat-container" id="chatContainer" style="display:none;">
-      <header class="dm-chat-header">
-        <!-- Back button — mobile only -->
-        <button class="chat-back-btn" id="chatBackBtn" aria-label="Back to conversations">
-          <i class="fas fa-arrow-left"></i>
+      <div class="chat-mobile-bar">
+        <button class="mobile-chat-toggle" id="mobileMenuBtn" aria-label="Back to conversations">
+          <i class="fas fa-chevron-left"></i>
+          <span>Conversations</span>
         </button>
-        <div class="chat-user" id="chatUserInfo">
-          <div class="user-avatar">
-            <img src="" alt="" id="chatUserAvatar" />
-            <span class="status-dot online" id="chatUserStatus"></span>
-          </div>
-          <div class="user-details">
-            <h3 id="chatUserName">Patient Name</h3>
-            <p class="chat-user-role" id="chatUserRole">Patient</p>
-          </div>
-        </div>
-        <div class="chat-header-actions">
-          <button class="header-action-btn" title="View Patient Profile" id="viewProfileBtn"><i class="fas fa-user"></i></button>
-        </div>
-      </header>
+        <span class="mobile-active-user" id="mobileActiveUser" style="display:none;"></span>
+      </div>
 
-      <div class="dm-chat-messages" id="chatMessages"></div>
+      <!-- EMPTY STATE -->
+      <div class="msg-empty chat-empty" id="chatEmpty">
+        <div class="msg-empty-inner">
 
-      <div class="dm-chat-input-area">
-        <div class="file-preview-strip" id="filePreview" style="display:none;">
-          <img id="filePreviewImg" src="" alt="" style="display:none;max-height:60px;border-radius:6px;" />
-          <span id="filePreviewName" class="file-preview-name"></span>
-          <button type="button" id="removeFileBtn" class="remove-file-btn" title="Remove"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="input-row">
-          <input type="file" id="chatFileInput" accept="image/jpeg,image/png,image/gif,image/webp,application/pdf" style="display:none;" />
-          <button type="button" class="attach-btn" id="attachBtn" title="Attach image or PDF"><i class="fas fa-paperclip"></i></button>
-          <div class="input-wrapper">
-            <textarea id="messageInput" placeholder="Type a message..." rows="1" maxlength="2000"></textarea>
+          <div class="msg-empty-illo" aria-hidden="true">
+            <svg viewBox="0 0 240 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="12" y="14" width="148" height="110" rx="14" fill="#E6F5F2"/>
+              <rect x="12" y="14" width="148" height="110" rx="14" stroke="#C2EAE3" stroke-width="1.5"/>
+              <rect x="28" y="34" width="80" height="11" rx="5.5" fill="#5FC9B8"/>
+              <rect x="28" y="52" width="110" height="8" rx="4" fill="#C2EAE3"/>
+              <rect x="28" y="66" width="90" height="8" rx="4" fill="#C2EAE3"/>
+              <rect x="28" y="80" width="70" height="8" rx="4" fill="#E6F5F2"/>
+              <rect x="66" y="100" width="78" height="10" rx="5" fill="#14967F" opacity="0.15"/>
+              <!-- Doctor bubble (right) -->
+              <rect x="82" y="58" width="130" height="90" rx="14" fill="#fff"/>
+              <rect x="82" y="58" width="130" height="90" rx="14" stroke="#E2E8F0" stroke-width="1.5"/>
+              <rect x="98" y="76" width="98" height="11" rx="5.5" fill="#14967F" opacity="0.2"/>
+              <rect x="98" y="94" width="78" height="8" rx="4" fill="#E2E8F0"/>
+              <rect x="98" y="108" width="58" height="8" rx="4" fill="#E2E8F0"/>
+              <!-- Teal sent bubble -->
+              <rect x="98" y="122" width="98" height="18" rx="9" fill="#14967F"/>
+              <rect x="108" y="128" width="60" height="6" rx="3" fill="#5FC9B8"/>
+              <!-- Online dot -->
+              <circle cx="207" cy="66" r="7" fill="#10B981"/>
+              <circle cx="207" cy="66" r="4" fill="#D1FAE5"/>
+              <!-- Notification -->
+              <circle cx="155" cy="24" r="10" fill="#EF4444"/>
+              <text x="151" y="28" font-size="9" fill="white" font-weight="bold" font-family="system-ui">@(totalUnread > 9 ? "9+" : totalUnread > 0 ? totalUnread.ToString() : "0")</text>
+              <!-- Decorative dots -->
+              <circle cx="22" cy="162" r="7" fill="#E6F5F2"/>
+              <circle cx="36" cy="170" r="4" fill="#C2EAE3"/>
+              <circle cx="215" cy="158" r="5" fill="#C2EAE3"/>
+              <circle cx="228" cy="168" r="3" fill="#5FC9B8"/>
+            </svg>
           </div>
-          <button class="dm-send-btn" id="sendBtn" disabled><i class="fas fa-paper-plane"></i></button>
+
+          <h3 class="msg-empty-title">Communication Center</h3>
+          <p class="msg-empty-desc">
+            Select a conversation to start messaging. Stay connected with your patients and assistants.
+          </p>
+
+          <div class="msg-empty-stats">
+            <div class="msg-empty-stat">
+              <span class="msg-stat-val">@totalConversations</span>
+              <span class="msg-stat-lbl">Contacts</span>
+            </div>
+            <div class="msg-stat-sep"></div>
+            <div class="msg-empty-stat">
+              <span class="msg-stat-val @(totalUnread > 0 ? "msg-stat-urgent" : "")">@totalUnread</span>
+              <span class="msg-stat-lbl">Unread</span>
+            </div>
+            <div class="msg-stat-sep"></div>
+            <div class="msg-empty-stat">
+              <span class="msg-stat-val">@patientCount</span>
+              <span class="msg-stat-lbl">Patients</span>
+            </div>
+            <div class="msg-stat-sep"></div>
+            <div class="msg-empty-stat">
+              <span class="msg-stat-val">@assistantCount</span>
+              <span class="msg-stat-lbl">Assistants</span>
+            </div>
+          </div>
+
+          @if (suggestedContacts.Any())
+          {
+            <div class="msg-suggestions">
+              <p class="msg-suggest-label">
+                <i class="fas fa-bolt"></i> Quick access
+              </p>
+              <div class="msg-suggest-grid">
+                @foreach (var c in suggestedContacts)
+                {
+                  var convId = $"{c.ParticipantType}-{c.ParticipantId}";
+                  var avatarUrl = $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(string.IsNullOrWhiteSpace(c.ParticipantName) ? "U" : c.ParticipantName)}&background=14967f&color=fff&size=80";
+                  var isAssistant = c.ParticipantType == "Assistant";
+                  <button class="msg-suggest-card" data-conv-id="@convId" type="button"
+                          aria-label="Open conversation with @c.ParticipantName">
+                    <img src="@avatarUrl" alt="@c.ParticipantName" class="msg-suggest-av" />
+                    <div class="msg-suggest-info">
+                      <span class="msg-suggest-name">@(string.IsNullOrWhiteSpace(c.ParticipantName) ? "User" : c.ParticipantName)</span>
+                      <span class="msg-suggest-role @(isAssistant ? "role-assistant" : "role-patient")">
+                        @(isAssistant ? "Assistant" : "Patient")
+                      </span>
+                    </div>
+                    @if (c.UnreadCount > 0)
+                    {
+                      <span class="msg-suggest-badge">@c.UnreadCount</span>
+                    }
+                    <i class="fas fa-chevron-right msg-suggest-arrow"></i>
+                  </button>
+                }
+              </div>
+            </div>
+          }
         </div>
       </div>
-    </div>
+
+      <!-- ACTIVE CHAT CONTAINER -->
+      <div class="dm-chat-container" id="chatContainer" style="display:none;">
+
+        <header class="dm-chat-header">
+          <button class="chat-back-btn" id="chatBackBtn" aria-label="Back to conversations">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <div class="chat-user" id="chatUserInfo">
+            <div class="chat-hdr-avatar user-avatar">
+              <img src="" alt="" id="chatUserAvatar" />
+              <span class="status-dot online" id="chatUserStatus"></span>
+            </div>
+            <div class="user-details">
+              <h3 id="chatUserName">Name</h3>
+              <p class="chat-user-role" id="chatUserRole">Patient</p>
+            </div>
+          </div>
+          <div class="chat-header-actions">
+            <button class="chat-hdr-btn" id="toggleDetailBtn" title="Contact details" aria-label="Toggle details panel">
+              <i class="fas fa-info-circle"></i>
+            </button>
+          </div>
+        </header>
+
+        <div class="dm-chat-messages" id="chatMessages"></div>
+
+        <div class="dm-chat-input-area">
+          <div class="file-preview-strip" id="filePreview" style="display:none;">
+            <img id="filePreviewImg" src="" alt="" style="display:none;max-height:52px;border-radius:8px;" />
+            <span id="filePreviewName" class="file-preview-name"></span>
+            <button type="button" id="removeFileBtn" class="remove-file-btn" title="Remove file">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div class="input-row">
+            <input type="file" id="chatFileInput"
+                   accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
+                   style="display:none;" />
+            <button type="button" class="attach-btn" id="attachBtn" title="Attach image or PDF">
+              <i class="fas fa-paperclip"></i>
+            </button>
+            <div class="input-wrapper">
+              <textarea id="messageInput" placeholder="Type a message…"
+                        rows="1" maxlength="2000"></textarea>
+            </div>
+            <button class="dm-send-btn" id="sendBtn" disabled title="Send" aria-label="Send message">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </div>
+        </div>
+
+      </div>
     </main>
+
+    <!-- ═══════════════════════════════════════
+         RIGHT PANEL — Contact Details
+    ═══════════════════════════════════════ -->
+    <aside class="msg-detail" id="msgDetailPanel">
+      <div class="mdet-scroll">
+
+        <button class="mdet-close" id="detailCloseBtn" type="button" aria-label="Close details">
+          <i class="fas fa-arrow-left"></i> Back to chat
+        </button>
+
+        <div class="mdet-profile">
+          <div class="mdet-av-wrap">
+            <img src="" alt="Contact avatar" id="detailAvatar" class="mdet-av" />
+            <span class="mdet-status-dot"></span>
+          </div>
+          <h3 class="mdet-name" id="detailName">—</h3>
+          <span class="mdet-badge" id="detailRoleBadge">Patient</span>
+        </div>
+
+        <div class="mdet-section">
+          <h4 class="mdet-section-title">
+            <i class="fas fa-heartbeat"></i> Healthcare Context
+          </h4>
+          <div class="mdet-info-list">
+            <div class="mdet-info-row">
+              <span class="mdet-info-key">Role</span>
+              <span class="mdet-info-val" id="detailRoleText">—</span>
+            </div>
+            <div class="mdet-info-row">
+              <span class="mdet-info-key">Status</span>
+              <span class="mdet-info-val mdet-online-text">
+                <i class="fas fa-circle" style="font-size:.5rem;"></i> Online
+              </span>
+            </div>
+            <div class="mdet-info-row">
+              <span class="mdet-info-key">Messages</span>
+              <span class="mdet-info-val" id="detailMsgCount">0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mdet-section">
+          <h4 class="mdet-section-title">
+            <i class="fas fa-bolt"></i> Quick Actions
+          </h4>
+          <div class="mdet-actions">
+            <a href="#" class="mdet-action" id="detailProfileLink">
+              <i class="fas fa-user"></i>
+              <span>View Profile</span>
+            </a>
+            <a href="#" class="mdet-action" id="detailApptsLink">
+              <i class="fas fa-calendar-check"></i>
+              <span>My Schedule</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="mdet-section">
+          <h4 class="mdet-section-title">
+            <i class="fas fa-shield-alt"></i> Nabd Platform
+          </h4>
+          <div class="mdet-platform-badge">
+            <i class="fas fa-lock"></i>
+            <span>End-to-end encrypted</span>
+          </div>
+          <p class="mdet-platform-note">
+            Messages are encrypted and stored securely on the Nabd platform.
+          </p>
+        </div>
+
+      </div>
+    </aside>
+
+    <div class="msg-detail-backdrop" id="detailBackdrop"></div>
+
   </div>
 
   <div class="toast-container" id="toastContainer"></div>
@@ -141,4 +360,128 @@
     };
   </script>
   <script src="~/js/doctor-messages.js" asp-append-version="true"></script>
+  <script>
+  (function () {
+    var doctorIdNum = @Html.Raw(doctorId);
+    var chatContainer = document.getElementById('chatContainer');
+    var detailPanel   = document.getElementById('msgDetailPanel');
+    var convList      = document.getElementById('conversationsList');
+
+    // ── Sync detail panel from chat header ──────────────────────
+    function syncDetail(convId) {
+      var name   = (document.getElementById('chatUserName')?.textContent  || '').trim();
+      var role   = (document.getElementById('chatUserRole')?.textContent  || 'Patient').trim();
+      var avatar =  document.getElementById('chatUserAvatar')?.src || '';
+
+      var el = function(id) { return document.getElementById(id); };
+      if (el('detailName'))      el('detailName').textContent  = name || '—';
+      if (el('detailRoleText'))  el('detailRoleText').textContent = role;
+      if (el('detailAvatar'))    el('detailAvatar').src = avatar;
+
+      var isAssistant = role.toLowerCase().includes('assistant');
+      var badge = el('detailRoleBadge');
+      if (badge) {
+        badge.textContent = role;
+        badge.className   = 'mdet-badge ' + (isAssistant ? 'role-assistant' : 'role-patient');
+      }
+
+      // Parse participant type + id from convId  (e.g. "Patient-12" or "Assistant-3")
+      if (convId) {
+        var parts = convId.split('-');
+        var pType = parts[0];
+        var pId   = parts.slice(1).join('-');
+
+        if (pType === 'Patient') {
+          var profileHref = '/Doctor/PatientDetails/' + doctorIdNum + '?patientId=' + pId;
+          var schedHref   = '/Doctor/Schedule/' + doctorIdNum;
+          if (el('detailProfileLink')) { el('detailProfileLink').href = profileHref; el('detailProfileLink').style.display = ''; }
+          if (el('detailApptsLink'))   { el('detailApptsLink').href   = schedHref;   el('detailApptsLink').style.display   = ''; }
+        } else {
+          if (el('detailProfileLink')) el('detailProfileLink').style.display = 'none';
+          var schedHref2 = '/Doctor/Schedule/' + doctorIdNum;
+          if (el('detailApptsLink'))   { el('detailApptsLink').href = schedHref2; el('detailApptsLink').style.display = ''; }
+        }
+      }
+    }
+
+    // Update message count from DOM
+    function updateMsgCount() {
+      var count = document.querySelectorAll('#chatMessages .message-wrapper').length;
+      var el = document.getElementById('detailMsgCount');
+      if (el) el.textContent = count;
+    }
+
+    // Watch chatContainer visibility → activate/deactivate detail panel
+    if (chatContainer) {
+      var mutObs = new MutationObserver(function(mutations) {
+        mutations.forEach(function(m) {
+          if (m.attributeName === 'style') {
+            var visible = chatContainer.style.display !== 'none';
+            if (detailPanel) {
+              // On desktop the detail panel sits beside the chat and opens with it.
+              // On mobile it's a drawer that only opens when the user taps the info button.
+              if (visible) {
+                if (window.innerWidth > 992) {
+                  detailPanel.classList.add('detail-active');
+                  document.querySelector('.msg-workspace')?.classList.add('detail-open');
+                }
+              } else {
+                detailPanel.classList.remove('detail-active');
+                document.querySelector('.msg-workspace')?.classList.remove('detail-open');
+              }
+            }
+          }
+        });
+      });
+      mutObs.observe(chatContainer, { attributes: true });
+
+      // Watch messages container for count updates
+      var chatMessages = document.getElementById('chatMessages');
+      if (chatMessages) {
+        var msgObs = new MutationObserver(updateMsgCount);
+        msgObs.observe(chatMessages, { childList: true });
+      }
+    }
+
+    // Capture which conversation was clicked and sync detail
+    if (convList) {
+      convList.addEventListener('click', function (e) {
+        var item = e.target.closest('.conversation-item');
+        if (!item) return;
+        var convId = item.dataset.id || '';
+        if (detailPanel) detailPanel.dataset.lastConvId = convId;
+        setTimeout(function() { syncDetail(convId); }, 120);
+      });
+    }
+
+    // Quick-access suggestion cards in empty state
+    document.querySelectorAll('.msg-suggest-card').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var convId = this.dataset.convId;
+        var listItem = document.querySelector('.conversation-item[data-id="' + convId + '"]');
+        if (listItem) listItem.click();
+      });
+    });
+
+    // Toggle detail panel button
+    document.getElementById('toggleDetailBtn')?.addEventListener('click', function() {
+      if (!detailPanel) return;
+      detailPanel.classList.toggle('detail-active');
+      document.querySelector('.msg-workspace')?.classList.toggle('detail-open');
+      if (detailPanel.classList.contains('detail-active')) {
+        var convId = detailPanel.dataset.lastConvId || '';
+        syncDetail(convId);
+      }
+    });
+
+    // Close detail drawer (mobile) — back button or backdrop tap
+    function closeDetail() {
+      if (!detailPanel) return;
+      detailPanel.classList.remove('detail-active');
+      document.querySelector('.msg-workspace')?.classList.remove('detail-open');
+    }
+    document.getElementById('detailCloseBtn')?.addEventListener('click', closeDetail);
+    document.getElementById('detailBackdrop')?.addEventListener('click', closeDetail);
+  })();
+  </script>
 }

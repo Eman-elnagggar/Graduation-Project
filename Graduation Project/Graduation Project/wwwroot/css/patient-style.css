@@ -5111,6 +5111,25 @@ body.patient-app .main-content {
   display: inline-flex; align-items: center; justify-content: center;
 }
 
+/* Unread message indicator on the collapsed Community parent button */
+.pnav-parent-badge {
+  position: absolute; top: 3px; right: 8px;
+  min-width: 17px; height: 17px; padding: 0 4px;
+  border-radius: 9px;
+  background: var(--pn-rose); color: #fff;
+  font-size: .62rem; font-weight: 800; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 2px solid #fff;
+  pointer-events: none;
+  box-shadow: 0 2px 6px rgba(251, 113, 133, .45);
+  animation: pnavBadgePop .25s ease;
+}
+@keyframes pnavBadgePop {
+  0%   { transform: scale(.5); opacity: 0; }
+  70%  { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 /* Right actions */
 .pnav-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
 .pnav-icon-btn {

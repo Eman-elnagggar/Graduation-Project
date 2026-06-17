@@ -101,9 +101,10 @@
                 <!-- Community (hierarchical) -->
                 <li class="pnav-item pnav-has-menu">
                     <button type="button" class="pnav-link pnav-toggle @On(communityActive)" aria-haspopup="true" aria-expanded="false">
-                        <i class="fas fa-people-group"></i><span>Community</span>
+                        <i class="fas fa-people-group" id="navCommunityIcon"></i><span id="navCommunityLabel">Community</span>
                         <i class="fas fa-chevron-down pnav-caret"></i>
                     </button>
+                    <span class="pnav-parent-badge" id="navCommunityBadge" style="display:none;" aria-label="New messages"></span>
                     <div class="pnav-dropdown">
                         <a class="pnav-drop-link @On(activePage == "Community")" href="/Community/Index/@patientId">
                             <i class="fas fa-users"></i>
