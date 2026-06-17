@@ -111,6 +111,7 @@
                 <p>Live profile metrics</p>
             </div>
 
+            <div class="pp-stat-grid">
             <div class="pp-stat" style="--pct:@weekPct">
                 <div class="pp-stat-ring pp-ring-teal">
                     <svg viewBox="0 0 36 36"><circle class="pp-ring-bg" cx="18" cy="18" r="15.9155"/><circle class="pp-ring-fg" cx="18" cy="18" r="15.9155" stroke-dasharray="@weekPct 100"/></svg>
@@ -158,6 +159,7 @@
                     <span class="pp-stat-num">@(Model.Medications?.Count ?? 0)</span>
                     <span class="pp-stat-lbl">Medications</span>
                 </div>
+            </div>
             </div>
         </div>
     </aside>
@@ -1552,11 +1554,14 @@
         /* ── LAYOUT ────────────────────────────────────────── */
         .pp-layout {
             display: grid;
-            grid-template-columns: 300px 1fr;
+            grid-template-columns: 300px minmax(0, 1fr);
             gap: 1.5rem;
             align-items: start;
         }
-        @@media (max-width: 1024px) { .pp-layout { grid-template-columns: 1fr; } }
+        /* min-width:0 lets grid children shrink below content width so wide
+           rows (tabs, snapshot strip, chips) scroll instead of widening the page */
+        .pp-summary, .pp-main { min-width: 0; }
+        @@media (max-width: 1024px) { .pp-layout { grid-template-columns: minmax(0, 1fr); } }
 
         /* ── STICKY SUMMARY ────────────────────────────────── */
         .pp-summary-inner {
@@ -1570,6 +1575,8 @@
         }
         .pp-summary-head h2 { margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--pp-ink); }
         .pp-summary-head p { margin: .15rem 0 .3rem; font-size: .78rem; color: var(--pp-muted); }
+
+        .pp-stat-grid { display: flex; flex-direction: column; gap: .85rem; }
 
         .pp-stat {
             display: flex; align-items: center; gap: .9rem;
@@ -2139,6 +2146,43 @@
             .pp-hero-glass { justify-content: center; text-align: left; }
             .pp-card-head, .pp-card-body { padding-left: 1.1rem; padding-right: 1.1rem; }
             .pp-summary-inner { position: static; }
+
+            /* Snapshot → single horizontal scrolling strip */
+            .pp-stat-grid {
+                flex-direction: row;
+                gap: .6rem;
+                min-width: 0;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                margin: 0 -.25rem;
+                padding: 0 .25rem .35rem;
+            }
+            .pp-stat-grid::-webkit-scrollbar { display: none; }
+            .pp-stat { flex: 0 0 auto; min-width: 134px; padding: .65rem .75rem; }
+            .pp-stat-num { font-size: 1.3rem; }
+        }
+
+        /* ── PHONE: simplified hero ────────────────────────── */
+        @@media (max-width: 600px) {
+            .pp-hero {
+                padding: 1.25rem 1.1rem; border-radius: 22px; margin-bottom: 1rem;
+            }
+            .pp-hero-glass { gap: 1rem; }
+            .pp-hero-identity { gap: 1rem; align-items: center; }
+            .pp-avatar img { width: 60px; height: 60px; border-radius: 17px; }
+            .pp-avatar-verify { width: 24px; height: 24px; right: -4px; bottom: -4px; }
+            .pp-hero-text { gap: .3rem; }
+            .pp-hero-name { font-size: 1.2rem; }
+            /* Trim secondary detail — keep avatar, name and key status only */
+            .pp-hero-email,
+            .pp-verify,
+            .pp-badge-trim,
+            .pp-badge-due,
+            .pp-hero-progress,
+            .pp-orb { display: none; }
+            .pp-hero-badges { margin-top: .1rem; gap: .4rem; }
+            .pp-badge { padding: .32rem .7rem; font-size: .72rem; }
         }
     </style>
 }

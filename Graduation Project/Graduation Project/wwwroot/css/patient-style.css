@@ -5202,12 +5202,18 @@ body.patient-app .main-content {
     margin: 0; padding: 14px;
     overflow-y: auto;
     opacity: 0; visibility: hidden;
+    /* pointer-events gate the entire panel: descendant .pnav-dropdown items are
+       explicitly visibility:visible (for the open-state accordion), which would
+       otherwise leave their links clickable while the panel is closed and sitting
+       invisibly over the page content. */
+    pointer-events: none;
     transform: translate(-50%, -50%) scale(.96);
     transition: opacity .22s ease, transform .24s cubic-bezier(.4, 0, .2, 1), visibility .24s;
     z-index: 1001;
   }
   .pnav.pnav-open .pnav-menu {
     opacity: 1; visibility: visible;
+    pointer-events: auto;
     transform: translate(-50%, -50%) scale(1);
   }
 

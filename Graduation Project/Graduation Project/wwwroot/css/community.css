@@ -321,10 +321,68 @@
 .cm-toast.error   { background:linear-gradient(120deg,var(--rose),#ef4444); }
 .cm-toast.info    { background:linear-gradient(120deg,var(--violet),#7c3aed); }
 
+/* ════════════════════════════════════════════════════════════
+   Responsive
+════════════════════════════════════════════════════════════ */
+
+/* ── Tablet ── */
+@media (max-width:900px) {
+    .cm-hero { padding:24px 24px; }
+    .cm-hero-title { font-size:1.45rem; }
+    .cm-toolbar { gap:10px; }
+    /* search takes the full first row, controls wrap below */
+    .cm-search-wrap { flex:1 1 100%; order:-1; }
+    .cm-post-image { max-height:380px; }
+}
+
+/* ── Large phone / small tablet ── */
+@media (max-width:680px) {
+    .cm-page { gap:16px; }
+    .cm-hero-top { gap:14px; }
+    .cm-toolbar { flex-direction:column; align-items:stretch; }
+    .cm-search-wrap { flex:1 1 auto; min-width:0; order:0; }
+    /* tabs become a single horizontally scrollable row.
+       min-width:0 + width:100% is required so the row scrolls
+       internally instead of stretching the toolbar/page wider. */
+    .cm-category-tabs {
+        flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch;
+        scrollbar-width:none; padding-bottom:4px;
+        min-width:0; width:100%; max-width:100%;
+    }
+    .cm-category-tabs::-webkit-scrollbar { display:none; }
+    .cm-cat-btn { flex-shrink:0; }
+    .cm-new-post-btn { justify-content:center; width:100%; }
+}
+
+/* ── Phone ── */
 @media (max-width:600px) {
     .cm-hero { padding:22px 18px; border-radius:22px; }
+    .cm-hero-icon { width:50px; height:50px; font-size:1.25rem; border-radius:15px; }
     .cm-hero-title { font-size:1.3rem; }
-    .cm-toolbar { flex-direction:column; align-items:stretch; }
-    .cm-new-post-btn { justify-content:center; }
-    .cm-category-tabs { justify-content:flex-start; overflow-x:auto; flex-wrap:nowrap; padding-bottom:4px; }
+    .cm-hero-sub { font-size:.85rem; }
+    .cm-post-header { padding:16px 16px 10px; }
+    .cm-post-body { padding:0 16px 12px; }
+    .cm-post-title { font-size:1rem; }
+    .cm-post-footer { padding:10px 14px; gap:6px; }
+    .cm-action-btn { padding:6px 9px; font-size:.8rem; }
+    .cm-post-delete-btn { opacity:1; } /* no hover on touch — keep visible */
+    .cm-comments-section { padding:14px 16px; }
+    .cm-modal-overlay { padding:14px; }
+    .cm-modal { padding:20px; border-radius:20px; }
+    .cm-post-image { max-height:300px; }
+    .cm-toast { left:16px; right:16px; bottom:16px; justify-content:center; }
+}
+
+/* ── Small phone ── */
+@media (max-width:380px) {
+    .cm-hero { padding:20px 16px; }
+    .cm-hero-left { gap:12px; }
+    .cm-hero-icon { width:46px; height:46px; font-size:1.15rem; }
+    .cm-hero-title { font-size:1.18rem; }
+    .cm-hero-sub { font-size:.8rem; }
+    .cm-stat-pill { padding:8px 14px; font-size:.8rem; }
+    .cm-post-footer { flex-wrap:wrap; }
+    .cm-comment-input-row { gap:8px; }
+    .cm-modal-actions { flex-direction:column-reverse; }
+    .cm-modal-actions button { width:100%; justify-content:center; }
 }
