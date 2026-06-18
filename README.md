@@ -163,4 +163,17 @@ We plan to continuously improve and expand the **Nabd** ecosystem by integrating
 * Connect Nabd with Electronic Health Record (EHR) systems to enable secure and seamless data exchange between hospitals, clinics, and the platform.
 * Ensure data portability using international healthcare standards to allow medical professionals to access the patient's multi-model AI history instantly.
 
+---
+
+# 👥 Contributors
+
+This project was developed by a dedicated team, with each member contributing to the project:
+
+* **[Eman Elnaggar](https://github.com/Eman-elnagggar)** – AI & Data Science Engineer
+* **[Mennatullah  Taha](https://github.com/menna-taha)** – AI & Data Science Engineer
+* **[Mariam  Elnemrawy](https://github.com/mariamelnemrawy)** – AI & Data Science Engineer 
+* **[Karim  Helal](https://github.com/karimhelal)** – Full-Stack Developer
+* **[Kareem Shakl](https://github.com/kareemshakl)** – Full-Stack Developer
+* **[Haneen Elagamy](https://github.com/Haneen-Elagamy)** – Full-Stack Developer
+* **[Youssef Khedr](https://github.com/Josephobia94)** – Data Analyst 
 
