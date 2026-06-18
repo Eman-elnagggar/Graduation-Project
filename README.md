@@ -108,7 +108,7 @@ The full AI research and development pipeline is documented and available under 
 5. **Model Evaluation:** Detailed assessment using Accuracy, Confusion Matrix, Precision, Recall, and F1-Score.
 6. **Model Optimization & Deployment:** Exporting models and applying quantization (e.g., TFLite, Pickle) for fast inference via FastAPI.
 
- ---
+
 ---
 
 # ⚙️ Technology Stack
