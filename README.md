@@ -60,6 +60,7 @@ Graduation-Project/
 ├── .vs/                             # Visual Studio environment configurations
 ├── Graduation Project.zip           # Compressed backup of the project files
 └── README.md                        # Project main documentation file
+```text
 ---
 ##  Model Architecture
 
