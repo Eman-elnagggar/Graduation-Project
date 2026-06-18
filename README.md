@@ -30,8 +30,9 @@ Beyond AI capabilities, **Nabd** provides a complete healthcare management syste
 Check out our demo video to see **Nabd** in action and explore its full features:
 👉 [Watch the Demo Video Here](رابط_الفيديو_هنا)
 >
-> ## 📁 Repository Structure
+## 📁 Repository Structure
 
+```text
 Graduation-Project/
 ├── Graduation Project/              # Main application development folder
 │   ├── backend/                     # Backend API & Server-side logic (Node.js/Django/FastAPI)
