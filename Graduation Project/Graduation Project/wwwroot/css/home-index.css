@@ -7,14 +7,14 @@
 }
 
 :root {
-    --primary: #0ea5e9;
-    --primary-dark: #0284c7;
-    --primary-light: #e0f2fe;
-    --accent: #8b5cf6;
-    --accent-light: #ede9fe;
-    --cyan: #06b6d4;
-    --cyan-light: #cffafe;
-    --navy: #0f172a;
+    --primary: #1baebe;
+    --primary-dark: #138fa0;
+    --primary-light: #e0f7fa;
+    --accent: #22c9db;
+    --accent-light: #f0fdfe;
+    --cyan: #22c9db;
+    --cyan-light: #e0f7fa;
+    --navy: #0b1f35;
     --navy-2: #1e293b;
     --gray-1: #f8fafc;
     --gray-2: #f1f5f9;
@@ -22,15 +22,15 @@
     --gray-4: #94a3b8;
     --gray-5: #64748b;
     --gray-6: #334155;
-    --text: #0f172a;
+    --text: #0b1f35;
     --text-muted: #64748b;
     --white: #ffffff;
     --radius: 16px;
     --radius-sm: 10px;
     --radius-lg: 24px;
     --shadow-sm: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.05);
-    --shadow: 0 4px 20px rgba(14,165,233,0.10), 0 2px 8px rgba(0,0,0,0.06);
-    --shadow-lg: 0 20px 60px rgba(14,165,233,0.12), 0 8px 24px rgba(0,0,0,0.08);
+    --shadow: 0 4px 20px rgba(27, 174, 190,0.10), 0 2px 8px rgba(0,0,0,0.06);
+    --shadow-lg: 0 20px 60px rgba(27, 174, 190,0.12), 0 8px 24px rgba(0,0,0,0.08);
     --transition: 0.3s cubic-bezier(0.4,0,0.2,1);
 }
 
@@ -87,7 +87,7 @@ ul {
     letter-spacing: 0.02em;
     padding: 6px 14px;
     border-radius: 100px;
-    border: 1px solid rgba(14,165,233,0.2);
+    border: 1px solid rgba(27, 174, 190,0.2);
 }
 
     .badge svg {
@@ -157,12 +157,12 @@ ul {
 .btn-primary {
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
     color: var(--white);
-    box-shadow: 0 4px 15px rgba(14,165,233,0.35);
+    box-shadow: 0 4px 15px rgba(27, 174, 190,0.35);
 }
 
     .btn-primary:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(14,165,233,0.45);
+        box-shadow: 0 8px 25px rgba(27, 174, 190,0.45);
     }
 
 .btn-outline {
@@ -300,7 +300,6 @@ ul {
     width: 100px;
     height: 50px;
     border-radius: 10px;
-    background: white;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -395,7 +394,7 @@ ul {
     display: flex;
     align-items: center;
     padding-top: 68px;
-    background: linear-gradient(160deg, #f0f9ff 0%, #faf5ff 50%, #f0fdf4 100%);
+    background: linear-gradient(160deg, #f0fdfe 0%, #faf5ff 50%, #f0fdf4 100%);
     position: relative;
     overflow: hidden;
 }
@@ -408,7 +407,7 @@ ul {
         width: 700px;
         height: 700px;
         border-radius: 50%;
-        background: radial-gradient(circle, rgba(14,165,233,0.08) 0%, transparent 70%);
+        background: radial-gradient(circle, rgba(27, 174, 190,0.08) 0%, transparent 70%);
         pointer-events: none;
     }
 
@@ -420,7 +419,7 @@ ul {
         width: 500px;
         height: 500px;
         border-radius: 50%;
-        background: radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 70%);
+        background: radial-gradient(circle, rgba(34, 201, 219,0.06) 0%, transparent 70%);
         pointer-events: none;
     }
 
@@ -963,7 +962,7 @@ ul {
         left: 0;
         right: 0;
         bottom: 0;
-        background: radial-gradient(ellipse at 20% 50%, rgba(14,165,233,0.12) 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, rgba(139,92,246,0.10) 0%, transparent 60%);
+        background: radial-gradient(ellipse at 20% 50%, rgba(27, 174, 190,0.12) 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, rgba(34, 201, 219,0.10) 0%, transparent 60%);
     }
 
     .ai-features .section-title {
@@ -1001,14 +1000,14 @@ ul {
         position: absolute;
         inset: 0;
         border-radius: var(--radius);
-        background: linear-gradient(135deg, rgba(14,165,233,0.1), rgba(139,92,246,0.1));
+        background: linear-gradient(135deg, rgba(27, 174, 190,0.1), rgba(34, 201, 219,0.1));
         opacity: 0;
         transition: var(--transition);
     }
 
     .ai-card:hover {
         transform: translateY(-6px);
-        border-color: rgba(14,165,233,0.4);
+        border-color: rgba(27, 174, 190,0.4);
     }
 
         .ai-card:hover::after {
@@ -1142,7 +1141,7 @@ ul {
 
 /* ── CLINIC ─────────────────────────────────────────────── */
 .clinic {
-    background: linear-gradient(160deg, #f0f9ff 0%, #faf5ff 100%);
+    background: linear-gradient(160deg, #f0fdfe 0%, #faf5ff 100%);
 }
 
 .clinic-inner {
@@ -1217,7 +1216,7 @@ ul {
         width: 250px;
         height: 250px;
         border-radius: 50%;
-        background: radial-gradient(circle, rgba(14,165,233,0.15) 0%, transparent 70%);
+        background: radial-gradient(circle, rgba(27, 174, 190,0.15) 0%, transparent 70%);
     }
 
 .clinic-dash-title {
@@ -1464,7 +1463,7 @@ ul {
     font-size: 32px;
     font-weight: 800;
     color: white;
-    box-shadow: 0 8px 24px rgba(14,165,233,0.25);
+    box-shadow: 0 8px 24px rgba(27, 174, 190,0.25);
     border: 4px solid white;
     outline: 2px solid var(--gray-3);
 }
@@ -1490,7 +1489,7 @@ ul {
 
 /* ── FINAL CTA ──────────────────────────────────────────── */
 .final-cta {
-    background: linear-gradient(135deg, var(--primary-dark) 0%, #1e40af 40%, var(--accent) 100%);
+    background: linear-gradient(135deg, var(--primary-dark) 0%, #138fa0 40%, var(--accent) 100%);
     position: relative;
     overflow: hidden;
 }
