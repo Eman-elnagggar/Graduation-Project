@@ -3,7 +3,7 @@
     var activePage = ViewData["ActivePage"] as string ?? "";
     var navUserName = ViewData["NavUserName"] as string ?? "My Account";
     var navAvatar = ViewData["NavAvatar"] as string
-        ?? $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(navUserName)}&background=fb7185&color=fff&size=80";
+        ?? $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(navUserName)}&background=1baebe&color=fff&size=80";
 
     // Top-level active groups
     var homeActive      = activePage == "Dashboard";
@@ -21,7 +21,7 @@
 
         <!-- Brand -->
         <a class="pnav-brand" href="/Patient/Index/@patientId" aria-label="NABD Home">
-            <span class="pnav-brand-icon"><img src="~/images/Patient logo name.png" alt="NABD" asp-append-version="true" /></span>
+            <span class="pnav-brand-icon"><img src="~/images/logo name.png" alt="NABD" asp-append-version="true" /></span>
         </a>
 
         <!-- Mobile toggle -->

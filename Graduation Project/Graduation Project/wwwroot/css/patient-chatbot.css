@@ -4,16 +4,16 @@
 ════════════════════════════════════════════════════════════ */
 .nai-shell,
 .nai-toast {
-    --rose:#fb7185; --rose-lt:#fff1f3;
-    --violet:#a78bfa; --violet-lt:#f4f0ff;
+    --rose:#1baebe; --rose-lt:#f0fdfe;
+    --violet:#22c9db; --violet-lt:#f0fdfe;
     --mint:#34d399; --mint-lt:#ecfdf5;
     --amber:#fbbf24; --amber-lt:#fffaf0;
     --sky:#60a5fa; --sky-lt:#eff6ff;
-    --ink:#3f3550; --ink-2:#6b6478; --ink-3:#9a93a8;
-    --cream:#fffaf7; --line:#f0e9ef;
+    --ink:#1e293b; --ink-2:#4a5568; --ink-3:#8896ab;
+    --cream:#f3f6fb; --line:#e4eaf2;
     --r:24px; --r-sm:18px;
-    --sh:0 10px 30px rgba(120,80,110,.08);
-    --sh-sm:0 4px 16px rgba(120,80,110,.06);
+    --sh:0 10px 30px rgba(15, 23, 42,.08);
+    --sh-sm:0 4px 16px rgba(15, 23, 42,.06);
 }
 
 /* ── SHELL ── */
@@ -39,16 +39,16 @@
     display:flex; align-items:center; justify-content:space-between; gap:14px;
     padding:16px 22px; flex-shrink:0;
     background:
-        radial-gradient(120% 160% at 0% 0%, #ffe4ea 0%, transparent 60%),
-        linear-gradient(120deg, #ffeef1 0%, #fbe9f3 55%, #f3ebff 100%);
+        radial-gradient(120% 160% at 0% 0%, #e0f7fa 0%, transparent 60%),
+        linear-gradient(120deg, #f0fdfe 0%, #f0fdfe 55%, #f0fdfe 100%);
     border-bottom:1px solid var(--line);
 }
 .nai-head-id { display:flex; align-items:center; gap:14px; min-width:0; }
 .nai-avatar {
     position:relative; width:52px; height:52px; flex-shrink:0; border-radius:16px;
     display:flex; align-items:center; justify-content:center; font-size:1.3rem; color:#fff;
-    background:linear-gradient(135deg, var(--rose), #c084fc);
-    box-shadow:0 10px 22px rgba(192,132,252,.4);
+    background:linear-gradient(135deg, var(--rose), #22c9db);
+    box-shadow:0 10px 22px rgba(34, 201, 219,.4);
 }
 .nai-avatar-dot {
     position:absolute; right:-2px; bottom:-2px; width:15px; height:15px; border-radius:50%;
@@ -60,8 +60,8 @@
     display:flex; align-items:center; gap:9px;
 }
 .nai-head-tag {
-    font-size:.64rem; font-weight:800; text-transform:uppercase; letter-spacing:.6px; color:#7c3aed;
-    background:rgba(167,139,250,.18); padding:3px 9px; border-radius:20px;
+    font-size:.64rem; font-weight:800; text-transform:uppercase; letter-spacing:.6px; color:#138fa0;
+    background:rgba(34, 201, 219,.18); padding:3px 9px; border-radius:20px;
 }
 .nai-head-status {
     display:inline-flex; align-items:center; gap:7px;
@@ -81,7 +81,7 @@
     display:inline-flex; align-items:center; gap:6px;
     font-size:.74rem; font-weight:700; color:var(--ink-2);
     background:rgba(255,255,255,.75); border:1px solid rgba(255,255,255,.9);
-    padding:6px 12px; border-radius:30px; box-shadow:0 3px 10px rgba(120,80,110,.06);
+    padding:6px 12px; border-radius:30px; box-shadow:0 3px 10px rgba(15, 23, 42,.06);
 }
 .nai-pill i { color:var(--violet); font-size:.72rem; }
 .nai-icon-btn {
@@ -90,7 +90,7 @@
     border:1px solid var(--line); background:rgba(255,255,255,.75); color:var(--ink-2);
     transition:all .2s ease;
 }
-.nai-icon-btn:hover { background:#fff; color:var(--rose); border-color:#ffd9df; transform:translateY(-1px); }
+.nai-icon-btn:hover { background:#fff; color:var(--rose); border-color:#e0f7fa; transform:translateY(-1px); }
 
 /* ── Day divider ── */
 .nai-day { display:flex; align-items:center; gap:14px; padding:14px 26px 4px; flex-shrink:0; }
@@ -119,8 +119,8 @@
     width:36px; height:36px; flex-shrink:0; border-radius:12px;
     display:flex; align-items:center; justify-content:center; font-size:.85rem; color:#fff;
 }
-.nai-msg-avatar.bot  { background:linear-gradient(135deg,var(--rose),#c084fc); box-shadow:0 4px 12px rgba(192,132,252,.3); }
-.nai-msg-avatar.user { background:linear-gradient(135deg,var(--sky),#6366f1); box-shadow:0 4px 12px rgba(99,102,241,.3); }
+.nai-msg-avatar.bot  { background:linear-gradient(135deg,var(--rose),#22c9db); box-shadow:0 4px 12px rgba(34, 201, 219,.3); }
+.nai-msg-avatar.user { background:linear-gradient(135deg,var(--sky),#1baebe); box-shadow:0 4px 12px rgba(27,174,190,.3); }
 
 .nai-msg-body { display:flex; flex-direction:column; gap:5px; max-width:74%; min-width:0; }
 .nai-msg--user .nai-msg-body { align-items:flex-end; }
@@ -138,8 +138,8 @@
 }
 .nai-bubble.user {
     color:#fff; border-bottom-right-radius:6px;
-    background:linear-gradient(120deg,var(--rose),#c084fc);
-    box-shadow:0 6px 16px rgba(192,132,252,.32);
+    background:linear-gradient(120deg,var(--rose),#22c9db);
+    box-shadow:0 6px 16px rgba(34, 201, 219,.32);
 }
 .nai-time { font-size:.68rem; font-weight:600; color:var(--ink-3); padding:0 4px; }
 
@@ -157,7 +157,7 @@
 .nai-risk-pill::before { content:''; width:6px; height:6px; border-radius:50%; background:currentColor; }
 .nai-risk-pill.is-low    { background:var(--mint-lt);  color:#059669; }
 .nai-risk-pill.is-medium { background:var(--amber-lt); color:#d97706; }
-.nai-risk-pill.is-high   { background:var(--rose-lt);  color:#dc2626; }
+.nai-risk-pill.is-high   { background:#fef2f2;  color:#dc2626; }
 .nai-reco-title {
     display:flex; align-items:center; gap:7px;
     font-size:.74rem; font-weight:800; color:var(--ink); margin-bottom:3px;
@@ -172,7 +172,7 @@
 .nai-caps { display:flex; flex-wrap:wrap; gap:7px; margin:10px 0; }
 .nai-cap {
     display:inline-flex; align-items:center; gap:6px;
-    font-size:.76rem; font-weight:700; color:#7c3aed;
+    font-size:.76rem; font-weight:700; color:#138fa0;
     background:var(--violet-lt); padding:5px 11px; border-radius:20px;
 }
 .nai-cap i { font-size:.72rem; }
@@ -200,7 +200,7 @@
 }
 .nai-quick-chip i { font-size:.76rem; color:var(--violet); }
 .nai-quick-chip:hover {
-    color:#7c3aed; background:var(--violet-lt); border-color:#e6dcff; transform:translateY(-2px);
+    color:#138fa0; background:var(--violet-lt); border-color:#e0f7fa; transform:translateY(-2px);
     box-shadow:var(--sh-sm);
 }
 
@@ -218,18 +218,18 @@
     transition:border-color .2s ease, box-shadow .2s ease, background .2s ease;
 }
 .nai-textarea::placeholder { color:var(--ink-3); }
-.nai-textarea:focus { background:#fff; border-color:var(--violet); box-shadow:0 0 0 4px rgba(167,139,250,.15); }
+.nai-textarea:focus { background:#fff; border-color:var(--violet); box-shadow:0 0 0 4px rgba(34, 201, 219,.15); }
 .nai-counter { position:absolute; right:16px; bottom:12px; font-size:.66rem; font-weight:600; color:var(--ink-3); pointer-events:none; }
 .nai-counter.is-warn  { color:var(--amber); }
 .nai-counter.is-limit { color:var(--rose); }
 .nai-send {
     width:50px; height:50px; flex-shrink:0; border:0; cursor:pointer; border-radius:16px;
     display:flex; align-items:center; justify-content:center; font-size:1rem; color:#fff;
-    background:linear-gradient(120deg,var(--rose),#c084fc);
-    box-shadow:0 8px 18px rgba(192,132,252,.35);
+    background:linear-gradient(120deg,var(--rose),#22c9db);
+    box-shadow:0 8px 18px rgba(34, 201, 219,.35);
     transition:transform .2s ease, box-shadow .2s ease;
 }
-.nai-send:hover { transform:translateY(-2px); box-shadow:0 12px 24px rgba(192,132,252,.45); }
+.nai-send:hover { transform:translateY(-2px); box-shadow:0 12px 24px rgba(34, 201, 219,.45); }
 .nai-send:active { transform:translateY(0); }
 .nai-send:disabled { opacity:.5; cursor:default; transform:none; }
 .nai-note {
@@ -258,7 +258,7 @@
 }
 .nai-card-ico.rose   { background:var(--rose-lt);   color:var(--rose); }
 .nai-card-ico.amber  { background:var(--amber-lt);  color:#d97706; }
-.nai-card-ico.violet { background:var(--violet-lt); color:#7c3aed; }
+.nai-card-ico.violet { background:var(--violet-lt); color:#138fa0; }
 .nai-card-title { margin:0; font-size:.95rem; font-weight:800; color:var(--ink); }
 .nai-card-sub { margin:2px 0 0; font-size:.76rem; color:var(--ink-3); }
 
@@ -268,7 +268,7 @@
 .nai-feat-ico {
     width:32px; height:32px; flex-shrink:0; border-radius:10px; margin-top:1px;
     display:flex; align-items:center; justify-content:center; font-size:.78rem;
-    background:var(--violet-lt); color:#7c3aed;
+    background:var(--violet-lt); color:#138fa0;
 }
 .nai-feat strong { display:block; font-size:.84rem; font-weight:700; color:var(--ink); }
 .nai-feat span { display:block; font-size:.78rem; line-height:1.45; color:var(--ink-2); margin-top:1px; }
@@ -297,17 +297,17 @@
 }
 .nai-topic span { flex:1; min-width:0; }
 .nai-topic-arrow { font-size:.7rem; color:var(--ink-3); transition:transform .2s ease; }
-.nai-topic:hover { background:var(--violet-lt); border-color:#e6dcff; }
-.nai-topic:hover > i:first-child { background:#fff; color:#7c3aed; }
-.nai-topic:hover .nai-topic-arrow { transform:translateX(3px); color:#7c3aed; }
+.nai-topic:hover { background:var(--violet-lt); border-color:#e0f7fa; }
+.nai-topic:hover > i:first-child { background:#fff; color:#138fa0; }
+.nai-topic:hover .nai-topic-arrow { transform:translateX(3px); color:#138fa0; }
 
 /* Emergency */
-.nai-emg { background:linear-gradient(160deg,#fff5f6,#fff1f3); border-color:#ffd9df; }
+.nai-emg { background:linear-gradient(160deg,#fff5f6,#f0fdfe); border-color:#e0f7fa; }
 .nai-emg-text { font-size:.81rem; line-height:1.55; color:#b1465c; margin:0 0 13px; }
 .nai-emg-btn {
     width:100%; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer;
     font-family:inherit; font-size:.85rem; font-weight:700; color:#fff; border:0; border-radius:14px; padding:11px;
-    background:linear-gradient(120deg,#fb7185,#ef4444);
+    background:linear-gradient(120deg,#1baebe,#ef4444);
     box-shadow:0 8px 18px rgba(239,68,68,.3); transition:transform .2s ease, box-shadow .2s ease;
 }
 .nai-emg-btn:hover { transform:translateY(-2px); box-shadow:0 12px 24px rgba(239,68,68,.4); }
