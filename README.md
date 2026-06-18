@@ -1,3 +1,5 @@
+<img width="1280" height="714" alt="image" src="https://github.com/user-attachments/assets/d4231b35-fb70-4d03-bd51-a5a42a6007e8" />
+
 # Nabd (نبض) - AI-Powered Healthcare Platform
 
 ## 📋 Overview
@@ -7,26 +9,20 @@ The platform integrates Machine Learning, Computer Vision, OCR, and Conversation
 
 ---
 
-## 🤖 Key AI Components
-* **Maternal Health Risk Prediction:** Evaluates potential risks throughout the pregnancy journey.
-* **Gestational Diabetes (GDM) Prediction:** Early assessment and screening for diabetes during pregnancy.
-* **Medical Report OCR Analysis:** Automatically extracts and analyzes text and data from medical documents.
-* **Medication Safety Analysis:** Ensures prescribed treatments are safe for both mother and fetus.
-* **Fetal Cardiothoracic Ratio (CTR) Analysis:** Computer Vision-driven analysis directly from ultrasound images.
-* **AI Medical Chatbot:** Providing 24/7 intelligent support and guidance for patients.
+### 🤖 Key AI Components
+* **Maternal Health Risk Prediction**
+* **Gestational Diabetes (GDM) Prediction**
+* **Medical Report OCR Analysis**
+* **Medication Safety Analysis**
+* **Fetal Cardiothoracic Ratio (CTR) Analysis** from ultrasound images
+* **AI Medical Chatbot** for patient support
+
+### 💼 Platform Capabilities
+Beyond AI capabilities, **Nabd** provides a complete healthcare management system that connects patients, doctors, and medical secretaries through:
+* Appointment management
+* Patient follow-up
+* Medical records
+* Communication tools
 
 ---
-
-## 💼 Healthcare Management System
-Beyond its AI capabilities, **Nabd** provides a comprehensive healthcare ecosystem that connects:
-* **Patients**
-* **Doctors**
-* **Medical Secretaries**
-
-This is achieved through a suite of management and communication tools, including:
-* 📅 Appointment management and scheduling.
-* 📈 Continuous patient follow-up.
-* 📁 Digital medical records (EHR).
-* 💬 Integrated communication tools.
-
-> ⚠️ **Important Disclaimer:** Nabd serves as a clinical decision-support platform that enhances healthcare delivery, while ensuring that all final medical decisions remain under strict physician supervision.
+> ⚠️ **Clinical Decision Support:** Nabd serves as a clinical decision-support platform that enhances healthcare delivery while ensuring that all final medical decisions remain under physician supervision.
