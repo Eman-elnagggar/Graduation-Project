@@ -143,7 +143,7 @@ The full AI research and development pipeline is documented and available under 
 
 ---
 
-# <span style="font-size: 32px;">🔮 Future Work</span>
+# <span style="font-size: 32px;"> Future Work</span>
 
 We plan to continuously improve and expand the **Nabd** ecosystem by integrating more advanced technologies and extending its clinical capabilities:
 
