@@ -13,7 +13,6 @@ namespace Graduation_Project.Models
         public float RBCs_Count { get; set; }
         public float MCV { get; set; }
         public float MCH { get; set; }
-        public float MCHC { get; set; }
         public float WBC { get; set; }
         public float lymphocytes { get; set; }
         public float platelet_count { get; set; }

@@ -29,7 +29,6 @@
                 { key: 'mcv',             name: 'MCV',              unit: 'fL',            normalRange: '80–100'          },
                 { key: 'mch',             name: 'MCH',              unit: 'pg',            normalRange: '27–33'           },
                 { key: 'rdw',             name: 'RDW',              unit: '%',             normalRange: '11.5–15'         },
-                { key: 'mchc',            name: 'MCHC',             unit: 'g/dL',          normalRange: '32–36'           },
                 { key: 'lymphocytes',     name: 'Lymphocytes',      unit: '%',             normalRange: '20–40'           },
                 { key: 'platelet_count',  name: 'Platelets',        unit: '/µL',           normalRange: '150000–400000'   }
             ]
