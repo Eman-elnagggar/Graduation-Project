@@ -1,4 +1,4 @@
-﻿/* ================================
+/* ================================
    Assistant Portal - Style Overrides
    Imports shared styles and adds assistant-specific styling
 ================================ */
@@ -2603,7 +2603,7 @@ details.card > .request-list {
 /* ---- KPI Strip ---- */
 .kpi-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 16px;
 }
 
@@ -2639,6 +2639,7 @@ details.card > .request-list {
 .kpi-card--blue    .kpi-icon { background: #eff6ff; color: #2563eb; }
 .kpi-card--success .kpi-icon { background: #f0fdf4; color: #10b981; }
 .kpi-card--warning .kpi-icon { background: #fffbeb; color: #f59e0b; }
+.kpi-card--missed  .kpi-icon { background: #fff3cd; color: #d97706; }
 
 .kpi-value {
   font-size: 1.85rem;
@@ -3307,12 +3308,13 @@ details.card > .request-list {
   color: #94a3b8;
 }
 
-/* Tab bar */
+/* Tab bar — segmented control */
 .appt-tabs {
   display: flex;
+  gap: 6px;
+  padding: 12px 20px;
   border-bottom: 1px solid #f1f5f9;
   background: #fff;
-  gap: 0;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -3325,34 +3327,33 @@ details.card > .request-list {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  padding: 13px 16px;
-  border: none;
-  background: none;
-  font-size: 0.84rem;
+  gap: 8px;
+  padding: 9px 16px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: #f8fafc;
+  font-size: 0.83rem;
   font-weight: 600;
   color: #64748b;
   cursor: pointer;
   font-family: inherit;
-  border-bottom: 2px solid transparent;
   transition: all 0.18s;
   white-space: nowrap;
-  position: relative;
-  bottom: -1px;
 }
 
 .appt-tab:hover {
   color: #7c3aed;
-  background: #fafbff;
+  background: #f3eeff;
 }
 
 .appt-tab.active {
-  color: #7c3aed;
-  border-bottom-color: #7c3aed;
-  background: #fff;
+  color: #fff;
+  background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.28);
 }
 
-.appt-tab i { font-size: 0.8rem; }
+.appt-tab i { font-size: 0.82rem; }
 
 /* Tab count badges */
 .appt-tab-badge {
@@ -3367,9 +3368,14 @@ details.card > .request-list {
   line-height: 1.4;
 }
 
+.appt-tab-badge--all     { background: #ede9fe; color: #6d28d9; }
 .appt-tab-badge--success { background: #dcfce7; color: #15803d; }
 .appt-tab-badge--blue    { background: #dbeafe; color: #1d4ed8; }
 .appt-tab-badge--danger  { background: #fee2e2; color: #b91c1c; }
+.appt-tab-badge--missed  { background: #fff3cd; color: #92400e; }
+
+/* On the active (filled) tab, badges invert to a translucent white */
+.appt-tab.active .appt-tab-badge { background: rgba(255, 255, 255, 0.25); color: #fff; }
 
 /* Tab body — padding wraps the list + pager */
 .appt-tab-body {
@@ -3476,18 +3482,20 @@ details.card > .request-list {
 /* ---- Column header row ---- */
 .appt-list-header {
   display: grid;
-  grid-template-columns: 40px 1fr 100px 150px 1fr 110px;
+  grid-template-columns: 48px 1fr 110px 150px 1fr 120px;
   align-items: center;
-  gap: 12px;
-  padding: 6px 20px;
+  gap: 14px;
+  padding: 10px 22px;
   font-size: 0.68rem;
   font-weight: 700;
   color: #94a3b8;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid #eef1f6;
   background: #fafbff;
 }
+
+.appt-col-actions { text-align: right; }
 
 /* ---- Appointment row list container ---- */
 .appt-list {
@@ -3497,34 +3505,49 @@ details.card > .request-list {
 
 /* ---- Individual appointment row ---- */
 .appt-row {
+  position: relative;
   display: grid;
-  grid-template-columns: 40px 1fr 100px 150px 1fr 110px;
+  grid-template-columns: 48px 1fr 110px 150px 1fr 120px;
   align-items: center;
-  gap: 12px;
-  padding: 11px 20px;
-  border-bottom: 1px solid #f8fafc;
-  transition: background 0.12s;
+  gap: 14px;
+  padding: 14px 22px;
+  border-bottom: 1px solid #f4f6fb;
+  transition: background 0.14s, box-shadow 0.14s;
   cursor: default;
 }
 
 .appt-row:last-child { border-bottom: none; }
 
-.appt-row:hover { background: #fafbff; }
+.appt-row::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, #7c3aed, #8b5cf6);
+  opacity: 0;
+  transition: opacity 0.14s;
+}
+
+.appt-row:hover { background: #faf8ff; }
+.appt-row:hover::before { opacity: 1; }
 
 /* Patient avatar — colored initials circle */
 .appt-row-avatar {
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.68rem;
+  font-size: 0.74rem;
   font-weight: 700;
   color: #fff;
   flex-shrink: 0;
   letter-spacing: 0.5px;
   user-select: none;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
 }
 
 /* Patient column */
@@ -3536,8 +3559,8 @@ details.card > .request-list {
 }
 
 .appt-row-pname {
-  font-size: 0.875rem;
-  font-weight: 650;
+  font-size: 0.9rem;
+  font-weight: 700;
   color: #0f172a;
   white-space: nowrap;
   overflow: hidden;
@@ -3545,7 +3568,7 @@ details.card > .request-list {
 }
 
 .appt-row-pdoc {
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   color: #64748b;
   white-space: nowrap;
   overflow: hidden;
@@ -3555,12 +3578,19 @@ details.card > .request-list {
 /* Time column */
 .appt-row-time {
   display: flex;
-  align-items: center;
-  gap: 5px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
   font-size: 0.875rem;
   font-weight: 600;
   color: #0f172a;
   white-space: nowrap;
+}
+
+.appt-row-time-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .appt-row-time i {
@@ -3572,6 +3602,21 @@ details.card > .request-list {
   font-size: 0.7rem;
   font-weight: 500;
   color: #64748b;
+}
+
+/* Secondary date line (shown for cross-date rows, e.g. Missed) */
+.appt-row-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.appt-row-date i {
+  font-size: 0.66rem;
+  color: #94a3b8;
 }
 
 /* Phone column */
@@ -3602,11 +3647,12 @@ details.card > .request-list {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 3px 9px;
+  padding: 4px 11px;
   border-radius: 20px;
-  font-size: 0.71rem;
-  font-weight: 600;
+  font-size: 0.72rem;
+  font-weight: 700;
   white-space: nowrap;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.04);
 }
 
 .appt-row-sdot {
@@ -3621,16 +3667,18 @@ details.card > .request-list {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  padding: 2px 6px;
+  padding: 3px 8px;
   border-radius: 8px;
   font-size: 0.65rem;
   font-weight: 700;
   white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
-.appt-row-chip--today   { background: #f0fdf4; color: #15803d; }
-.appt-row-chip--past    { background: #fff7ed; color: #c2410c; }
-.appt-row-chip--checkin { background: #d1fae5; color: #065f46; }
+.appt-row-chip--today   { background: #f0fdf4; color: #15803d; box-shadow: inset 0 0 0 1px #bbf7d0; }
+.appt-row-chip--past    { background: #fff7ed; color: #c2410c; box-shadow: inset 0 0 0 1px #fed7aa; }
+.appt-row-chip--checkin { background: #d1fae5; color: #065f46; box-shadow: inset 0 0 0 1px #6ee7b7; }
 
 /* Actions column */
 .appt-row-actions {
@@ -3675,7 +3723,7 @@ details.card > .request-list {
 @media (max-width: 1024px) {
   .appt-row,
   .appt-list-header {
-    grid-template-columns: 36px 1fr 90px 1fr 100px;
+    grid-template-columns: 48px 1fr 100px 1fr 110px;
   }
   .appt-row-phone     { display: none; }
   .appt-col-phone     { display: none; }
@@ -3690,8 +3738,8 @@ details.card > .request-list {
 
   .appt-row,
   .appt-list-header {
-    grid-template-columns: 32px 1fr 85px 1fr 90px;
-    padding: 10px 14px;
+    grid-template-columns: 44px 1fr 90px 1fr 100px;
+    padding: 12px 14px;
     gap: 10px;
   }
 }
@@ -3699,10 +3747,10 @@ details.card > .request-list {
 @media (max-width: 576px) {
   /* Stack to 3-column layout on mobile */
   .appt-row {
-    grid-template-columns: 32px 1fr auto;
+    grid-template-columns: 44px 1fr auto;
     grid-template-rows: auto auto;
-    gap: 6px 10px;
-    padding: 12px 14px;
+    gap: 6px 12px;
+    padding: 13px 14px;
   }
 
   .appt-row-avatar  { grid-row: 1 / 3; }

@@ -133,7 +133,14 @@
                     "accepted" => "fa-check-circle",
                     "declined" => "fa-times-circle",
                     "cancelled" => "fa-ban",
+                    "pendingleaveapproval" => "fa-hourglass-half",
+                    "superseded" => "fa-random",
                     _ => "fa-clock"
+                };
+                var statusLabel = inv.Status?.ToLowerInvariant() switch
+                {
+                    "pendingleaveapproval" => "Awaiting Leave Approval",
+                    _ => inv.Status
                 };
 
                 <div class="invitation-card invitation-card--history">
@@ -155,7 +162,7 @@
                         </div>
                         <div class="invitation-status">
                             <span class="status-badge @statusClass">
-                                <i class="fas @statusIcon"></i> @inv.Status
+                                <i class="fas @statusIcon"></i> @statusLabel
                             </span>
                         </div>
                     </div>
