@@ -3,16 +3,16 @@
    Warm companion-app aesthetic — focused on doctor-issued Rx
 ════════════════════════════════════════════════════════════ */
 .px {
-    --rose:#fb7185; --rose-lt:#fff1f3; --rose-d:#e11d62;
-    --violet:#a78bfa; --violet-lt:#f4f0ff; --violet-d:#7c3aed;
+    --rose:#1baebe; --rose-lt:#f0fdfe; --rose-d:#138fa0;
+    --violet:#22c9db; --violet-lt:#f0fdfe; --violet-d:#138fa0;
     --mint:#34d399; --mint-lt:#ecfdf5; --mint-d:#059669;
     --amber:#fbbf24; --amber-lt:#fffaf0;
     --sky:#60a5fa; --sky-lt:#eff6ff;
-    --ink:#3f3550; --ink-2:#6b6478; --ink-3:#9a93a8;
-    --bg:#fff9fa; --cream:#fffaf7; --line:#f0e9ef;
+    --ink:#1e293b; --ink-2:#4a5568; --ink-3:#8896ab;
+    --bg:#fff9fa; --cream:#f3f6fb; --line:#e4eaf2;
     --r:22px; --r-sm:16px;
-    --sh:0 10px 30px rgba(120,80,110,.08);
-    --sh-sm:0 4px 16px rgba(120,80,110,.06);
+    --sh:0 10px 30px rgba(15, 23, 42,.08);
+    --sh-sm:0 4px 16px rgba(15, 23, 42,.06);
 
     font-family:'Inter',system-ui,sans-serif;
     color:var(--ink);
@@ -28,13 +28,13 @@
     position:relative; overflow:hidden; border-radius:24px; padding:22px 28px;
     border:1px solid rgba(255,255,255,.7); box-shadow:var(--sh-sm);
     background:
-        radial-gradient(120% 160% at 0% 0%, #ffe4ea 0%, transparent 52%),
+        radial-gradient(120% 160% at 0% 0%, #e0f7fa 0%, transparent 52%),
         radial-gradient(120% 160% at 100% 100%, #efe2ff 0%, transparent 52%),
-        linear-gradient(120deg, #fff3f5 0%, #fde9ee 48%, #f6effe 100%);
+        linear-gradient(120deg, #fff3f5 0%, #f0fdfe 48%, #f6effe 100%);
 }
 .px-head-botanical {
     position:absolute; right:-14px; top:-20px; width:74px; height:104px;
-    color:#dc9bb6; opacity:.3; transform:rotate(166deg); pointer-events:none; z-index:0;
+    color:#8896ab; opacity:.3; transform:rotate(166deg); pointer-events:none; z-index:0;
 }
 .px-head-bar {
     position:relative; z-index:1; display:flex; align-items:center; justify-content:space-between;
@@ -47,7 +47,7 @@
 }
 .px-head-title { font-size:1.7rem; font-weight:800; letter-spacing:-.6px; margin:5px 0 0; }
 .px-head-title b {
-    background:linear-gradient(120deg,var(--rose),#c084fc);
+    background:linear-gradient(120deg,var(--rose),#22c9db);
     -webkit-background-clip:text; background-clip:text; color:transparent; font-weight:800;
 }
 .px-head-sub { font-size:.92rem; color:var(--ink-2); margin:4px 0 0; }
@@ -85,7 +85,7 @@
     width:100%; border:1.5px solid var(--line); border-radius:14px; background:var(--cream);
     padding:12px 40px 12px 40px; font-family:inherit; font-size:.92rem; color:var(--ink); transition:.18s;
 }
-.px-search input:focus { outline:0; border-color:var(--rose); background:#fff; box-shadow:0 0 0 4px rgba(251,113,133,.12); }
+.px-search input:focus { outline:0; border-color:var(--rose); background:#fff; box-shadow:0 0 0 4px rgba(27, 174, 190,.12); }
 .px-search input::placeholder { color:var(--ink-3); }
 .px-search-clear {
     position:absolute; right:10px; width:26px; height:26px; border:0; border-radius:50%;
@@ -101,9 +101,9 @@
     cursor:pointer; transition:.2s; white-space:nowrap;
 }
 .px-tab:hover { border-color:var(--rose); color:var(--rose-d); }
-.px-tab.active { background:linear-gradient(90deg,var(--rose),#f472b6); border-color:transparent; color:#fff; box-shadow:0 6px 16px rgba(251,113,133,.3); }
+.px-tab.active { background:linear-gradient(90deg,var(--rose),#22c9db); border-color:transparent; color:#fff; box-shadow:0 6px 16px rgba(27, 174, 190,.3); }
 .px-tab-count {
-    font-size:.74rem; font-weight:800; background:rgba(120,80,110,.1); color:var(--ink-2);
+    font-size:.74rem; font-weight:800; background:rgba(15, 23, 42,.1); color:var(--ink-2);
     padding:1px 8px; border-radius:20px; min-width:20px; text-align:center;
 }
 .px-tab.active .px-tab-count { background:rgba(255,255,255,.3); color:#fff; }
@@ -125,9 +125,9 @@
 }
 .px-rx::before {
     content:''; position:absolute; left:0; top:0; bottom:0; width:5px;
-    background:linear-gradient(180deg,var(--rose),#c084fc); opacity:.85;
+    background:linear-gradient(180deg,var(--rose),#22c9db); opacity:.85;
 }
-.px-rx:hover { box-shadow:var(--sh); border-color:rgba(251,113,133,.35); }
+.px-rx:hover { box-shadow:var(--sh); border-color:rgba(27, 174, 190,.35); }
 .px-rx.open { box-shadow:var(--sh); }
 
 /* top row */
@@ -139,7 +139,7 @@
 .px-rx-avatar {
     width:48px; height:48px; flex-shrink:0; border-radius:14px; display:flex; align-items:center; justify-content:center;
     font-size:1.2rem; font-weight:800; color:#fff;
-    background:linear-gradient(135deg,#a78bfa,#7c3aed); box-shadow:0 6px 16px rgba(124,58,237,.3);
+    background:linear-gradient(135deg,#22c9db,#138fa0); box-shadow:0 6px 16px rgba(19, 143, 160,.3);
 }
 .px-rx-doctor-info { display:flex; flex-direction:column; min-width:0; }
 .px-rx-doctor-name { font-size:1.04rem; font-weight:800; color:var(--ink); line-height:1.25; }
@@ -179,7 +179,7 @@
 /* doctor note */
 .px-note {
     display:flex; gap:13px; align-items:flex-start; background:var(--violet-lt);
-    border:1px solid rgba(167,139,250,.25); border-radius:var(--r-sm); padding:14px 16px;
+    border:1px solid rgba(34, 201, 219,.25); border-radius:var(--r-sm); padding:14px 16px;
 }
 .px-note > i { color:var(--violet-d); font-size:.95rem; margin-top:3px; }
 .px-note-lbl { font-size:.7rem; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--violet-d); }
@@ -191,7 +191,7 @@
     display:flex; gap:13px; align-items:flex-start; background:var(--cream);
     border:1px solid var(--line); border-radius:var(--r-sm); padding:15px 16px; transition:.2s;
 }
-.px-med:hover { border-color:rgba(251,113,133,.4); background:#fff; box-shadow:var(--sh-sm); }
+.px-med:hover { border-color:rgba(27, 174, 190,.4); background:#fff; box-shadow:var(--sh-sm); }
 .px-med-ico {
     width:42px; height:42px; flex-shrink:0; border-radius:12px; display:flex; align-items:center; justify-content:center;
     font-size:1.05rem; background:var(--rose-lt); color:var(--rose);
@@ -219,7 +219,7 @@
 }
 .px-empty-ico {
     width:84px; height:84px; margin:0 auto 18px; border-radius:50%; display:flex; align-items:center; justify-content:center;
-    font-size:2.2rem; color:var(--rose); background:linear-gradient(135deg,#fff1f3,#f4f0ff);
+    font-size:2.2rem; color:var(--rose); background:linear-gradient(135deg,#f0fdfe,#f0fdfe);
 }
 .px-empty h3 { font-size:1.25rem; font-weight:800; color:var(--ink); }
 .px-empty p { max-width:440px; margin:8px auto 0; color:var(--ink-2); font-size:.92rem; line-height:1.55; }

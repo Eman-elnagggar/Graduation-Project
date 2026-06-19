@@ -12,20 +12,20 @@
 
 :root {
   /* ── Brand palette ── */
-  --lg-navy:        #102A43;   /* primary dark — brand panel */
-  --lg-navy-deep:   #0b1d30;   /* deeper navy for gradient base */
-  --lg-navy-mid:    #16385a;   /* lifted navy for gradient highlight */
+  --lg-navy:        #0b1f35;   /* primary dark — brand panel */
+  --lg-navy-deep:   #081826;   /* deeper navy for gradient base */
+  --lg-navy-mid:    #152d47;   /* lifted navy for gradient highlight */
 
-  --lg-teal:        #0ea5e9;   /* clinical accent (sky) */
-  --lg-teal-deep:   #0284c7;   /* darker sky — hover / depth */
-  --lg-teal-bright: #38bdf8;   /* glow / highlight */
-  --lg-cyan:        #0ea5e9;   /* (alias kept for role accent) */
+  --lg-teal:        #1baebe;   /* clinical accent (sky) */
+  --lg-teal-deep:   #138fa0;   /* darker sky — hover / depth */
+  --lg-teal-bright: #22c9db;   /* glow / highlight */
+  --lg-cyan:        #1baebe;   /* (alias kept for role accent) */
 
-  --lg-pink:      #F472B6;     /* warm patient accent */
-  --lg-pink-soft: #fbcfe2;
+  --lg-pink:      #1baebe;     /* warm patient accent */
+  --lg-pink-soft: #e0f7fa;
 
   /* Neutrals */
-  --lg-ink:    #0F172A;        /* text */
+  --lg-ink:    #0b1f35;        /* text */
   --lg-text:   #334155;
   --lg-muted:  #64748B;        /* muted */
   --lg-faint:  #94a3b8;
@@ -50,8 +50,8 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   background:
-    radial-gradient(circle at 15% 12%, rgba(14, 165, 233, .07), transparent 38%),
-    radial-gradient(circle at 88% 90%, rgba(244, 114, 182, .07), transparent 40%),
+    radial-gradient(circle at 15% 12%, rgba(27, 174, 190, .07), transparent 38%),
+    radial-gradient(circle at 88% 90%, rgba(27, 174, 190, .07), transparent 40%),
     linear-gradient(180deg, #ffffff 0%, var(--lg-field) 55%, #eef2f7 100%);
 }
 
@@ -155,7 +155,7 @@ body {
 .mc-input:focus {
   background: #fff;
   border-color: var(--lg-teal);
-  box-shadow: 0 0 0 4px rgba(14, 165, 233, .14);
+  box-shadow: 0 0 0 4px rgba(27, 174, 190, .14);
 }
 .mc-input.has-eye { padding-right: 2.85rem; }
 .mc-input.is-invalid { border-color: var(--lg-danger); box-shadow: 0 0 0 4px rgba(239,68,68,.12); }
@@ -176,7 +176,7 @@ body {
   color: var(--lg-faint); font-size: .9rem;
   transition: color .2s, background .2s;
 }
-.mc-input-eye:hover { color: var(--lg-teal-deep); background: rgba(14,165,233,.1); }
+.mc-input-eye:hover { color: var(--lg-teal-deep); background: rgba(27, 174, 190,.1); }
 
 .mc-feedback {
   display: flex; align-items: center; gap: .35rem;
@@ -214,9 +214,9 @@ body {
 .mc-btn-primary {
   color: #fff;
   background: linear-gradient(120deg, var(--lg-teal-deep) 0%, var(--lg-teal) 100%);
-  box-shadow: 0 12px 24px -10px rgba(14, 165, 233, .65);
+  box-shadow: 0 12px 24px -10px rgba(27, 174, 190, .65);
 }
-.mc-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 18px 30px -10px rgba(14, 165, 233, .75); }
+.mc-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 18px 30px -10px rgba(27, 174, 190, .75); }
 .mc-btn-primary:active { transform: translateY(0); }
 
 /* ── DIVIDER ─────────────────────────────────────────────── */
@@ -250,9 +250,9 @@ body {
   background: color-mix(in srgb, var(--r-color, var(--lg-teal)) 14%, #fff);
 }
 .lg-role-name { font-size: .82rem; font-weight: 700; color: var(--lg-ink); line-height: 1; }
-.lg-role.is-patient   { --r-color: var(--lg-pink); }
-.lg-role.is-doctor    { --r-color: var(--lg-teal); }
-.lg-role.is-assistant { --r-color: #8b5cf6; }
+.lg-role.is-patient   { --r-color: #1baebe; }  /* Patient portal — cyan */
+.lg-role.is-doctor    { --r-color: #1aad94; }  /* Doctor portal — teal */
+.lg-role.is-assistant { --r-color: #7c3aed; }  /* Assistant portal — purple */
 
 .lg-signup {
   margin-top: 1.6rem; text-align: center;
@@ -266,8 +266,8 @@ body {
   display: flex; flex-direction: column; justify-content: space-between;
   color: #e8eef6;
   background:
-    radial-gradient(circle at 82% 8%, rgba(14, 165, 233, .34) 0%, transparent 46%),
-    radial-gradient(circle at 92% 92%, rgba(244, 114, 182, .26) 0%, transparent 48%),
+    radial-gradient(circle at 82% 8%, rgba(27, 174, 190, .34) 0%, transparent 46%),
+    radial-gradient(circle at 92% 92%, rgba(27, 174, 190, .26) 0%, transparent 48%),
     linear-gradient(155deg, var(--lg-navy-deep) 0%, var(--lg-navy) 58%, var(--lg-navy-mid) 100%);
 }
 /* grid texture */
@@ -289,7 +289,7 @@ body {
   fill: none; stroke: url(#lgPulseGrad); stroke-width: 2.4;
   stroke-linecap: round; stroke-linejoin: round;
   stroke-dasharray: 900; stroke-dashoffset: 900;
-  filter: drop-shadow(0 0 5px rgba(56,189,248,.6));
+  filter: drop-shadow(0 0 5px rgba(34, 201, 219,.6));
   animation: lgTrace 5.5s var(--lg-ease) infinite;
 }
 @keyframes lgTrace {
@@ -314,7 +314,7 @@ body {
 /* Testimonial */
 .lg-quote { position: relative; z-index: 1; }
 .lg-quote-mark {
-  font-size: 3rem; line-height: 1; color: rgba(56, 189, 248, .55);
+  font-size: 3rem; line-height: 1; color: rgba(34, 201, 219, .55);
   font-family: Georgia, serif; margin-bottom: -.5rem;
 }
 .lg-quote-text {

@@ -6,29 +6,35 @@
 ================================ */
 :root {
   /* Brand colours — reference design-system.css values (no duplication) */
-  --primary:      var(--role-primary,      #1baebe);
-  --primary-dark: var(--role-primary-dark, #158a97);
-  --accent:       var(--role-accent,       #00b4d8);
-  --secondary:    var(--secondary,         #0077b6);
+  --primary:       var(--role-primary,       #1baebe);
+  --primary-dark:  var(--role-primary-dark,  #138fa0);
+  --primary-light: var(--role-primary-light, #22c9db);
+  --accent:        var(--role-accent,        #22c9db);
+  --secondary:     var(--secondary,          #0077b6);
 
   /* Semantic status — reference design-system.css (defined there) */
-  --success: var(--success, #4caf50);
-  --warning: var(--warning, #ff9800);
-  --danger:  var(--danger,  #f44336);
-  --info:    var(--info,    #2196f3);
+  --success: var(--success, #22c55e);
+  --warning: var(--warning, #f59e0b);
+  --danger:  var(--danger,  #ef4444);
+  --info:    var(--info,    #3b82f6);
 
   /* Surface / bg tokens */
-  --bg-primary: var(--surface-page, #f8fafc);
+  --bg-primary: var(--surface-page, #f3f6fb);
   --bg-white:   var(--surface-card, #ffffff);
   --bg-card:    var(--surface-card, #ffffff);
 
+  /* Cyan surfaces + navy (reference design-system.css) */
+  --bg-tint:      var(--primary-surface,      #e0f7fa);
+  --bg-tint-soft: var(--primary-surface-soft, #f0fdfe);
+
   /* Text tokens */
   --text-primary:   var(--text-strong, #1e293b);
-  --text-secondary: var(--text-muted,  #64748b);
-  --text-muted:     #94a3b8;
+  --text-secondary: #4a5568;
+  --text-muted:     #8896ab;
 
   /* Border / shadow */
-  --border-color: var(--border-subtle, #e2e8f0);
+  --border-color: var(--border-subtle, #e4eaf2);
+  --border-soft:  var(--border-soft,   #cdd6e3);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);

@@ -49,16 +49,16 @@
   --rg-pulse-b: #14B8A6;
 }
 [data-portal="patient"] {
-  --rg-accent:        #F472B6;
-  --rg-accent-deep:   #db2777;
-  --rg-accent-bright: #fb7fbf;
-  --rg-accent-soft:   rgba(244, 114, 182, .13);
-  --rg-panel: linear-gradient(155deg, #1b1330 0%, #331a3c 55%, #4a1f43 100%);
-  --rg-glow-1: rgba(244, 114, 182, .34);
-  --rg-glow-2: rgba(20, 184, 166, .14);
-  --rg-accent-grad: linear-gradient(100deg, #fb7fbf, #f472b6 55%, #fbcfe2);
-  --rg-pulse-a: #fb7fbf;
-  --rg-pulse-b: #f9a8d4;
+  --rg-accent:        #1baebe;
+  --rg-accent-deep:   #138fa0;
+  --rg-accent-bright: #22c9db;
+  --rg-accent-soft:   rgba(27, 174, 190, .13);
+  --rg-panel: linear-gradient(155deg, #0b1f35 0%, #152d47 58%, #0e4f5a 100%);
+  --rg-glow-1: rgba(27, 174, 190, .34);
+  --rg-glow-2: rgba(34, 201, 219, .16);
+  --rg-accent-grad: linear-gradient(100deg, #22c9db, #1baebe 55%, #7fe3ee);
+  --rg-pulse-a: #22c9db;
+  --rg-pulse-b: #7fe3ee;
 }
 [data-portal="assistant"] {
   --rg-accent:        #8b5cf6;
@@ -224,7 +224,7 @@ body {
   content: '\f00c'; font-family: 'Font Awesome 6 Free'; font-weight: 900;
   position: absolute; top: .5rem; right: .6rem; font-size: .6rem; color: var(--si-c);
 }
-.rg-switch-item.p { --si-c: #F472B6; }
+.rg-switch-item.p { --si-c: #1baebe; }
 .rg-switch-item.d { --si-c: #14B8A6; }
 .rg-switch-item.a { --si-c: #8b5cf6; }
 
