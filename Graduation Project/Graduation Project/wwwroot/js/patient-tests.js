@@ -1067,6 +1067,7 @@
     function getStatusClass(s) {
         const l = (s || '').toLowerCase();
         if (l === 'completed' || l === 'reviewed') return 'reviewed';
+        if (l === 'failed') return 'failed';
         return 'pending';
     }
 

@@ -77,7 +77,7 @@
     var hidePageHeader = (ViewData["HidePageHeader"] as bool?) ?? false;
 
     ViewData["NavUserName"] = normalizedUserName;
-    ViewData["NavAvatar"] = $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(normalizedUserName)}&background=fb7185&color=fff&size=80";
+    ViewData["NavAvatar"] = $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(normalizedUserName)}&background=1baebe&color=fff&size=80";
 }
 
 <body class="patient-app" data-patient-id="@layoutPatientId">
@@ -313,7 +313,7 @@
                 position: fixed;
                 inset: 0;
                 z-index: 1200;
-                background: rgba(74, 68, 83, 0.5);
+                background: rgba(11, 31, 53, 0.55);
                 backdrop-filter: blur(4px);
                 display: flex;
                 align-items: center;
@@ -327,8 +327,8 @@
                 overflow: auto;
                 border-radius: 24px;
                 background: #fff;
-                border: 1px solid #f3e7ee;
-                box-shadow: 0 30px 70px rgba(74, 68, 83, 0.32);
+                border: 1px solid #e4eaf2;
+                box-shadow: 0 30px 70px rgba(11, 31, 53, 0.32);
                 padding: 30px 28px;
             }
 
@@ -347,14 +347,14 @@
 
             .risk-ack-modal h3 {
                 margin: 0;
-                color: #4A4453;
+                color: #1e293b;
                 font-size: 1.25rem;
                 font-weight: 800;
                 letter-spacing: -.3px;
             }
 
             .risk-ack-sub {
-                color: #7c7488;
+                color: #4a5568;
                 margin: 8px 0 18px;
                 font-size: .9rem;
                 line-height: 1.55;
@@ -368,9 +368,9 @@
             }
 
             .risk-ack-item {
-                border: 1px solid #f6c3cd;
-                border-left: 4px solid #d2495f;
-                background: #fff0f2;
+                border: 1px solid #f7c9c9;
+                border-left: 4px solid #ef4444;
+                background: #fef2f2;
                 border-radius: 14px;
                 padding: 14px 16px;
             }
@@ -378,19 +378,19 @@
             .risk-ack-item-title {
                 font-size: .9rem;
                 font-weight: 800;
-                color: #4A4453;
+                color: #1e293b;
             }
 
             .risk-ack-item-msg {
                 margin-top: 4px;
                 font-size: .84rem;
-                color: #b23a4e;
+                color: #b91c1c;
             }
 
             .risk-ack-item-time {
                 margin-top: 6px;
                 font-size: .72rem;
-                color: #a79fb0;
+                color: #8896ab;
             }
 
             .risk-ack-btn {
@@ -398,18 +398,18 @@
                 border: 0;
                 border-radius: 30px;
                 padding: 13px 16px;
-                background: linear-gradient(135deg, #F47FA8 0%, #e0568c 100%);
+                background: linear-gradient(135deg, #1baebe 0%, #138fa0 100%);
                 color: #fff;
                 font-weight: 700;
                 font-size: .92rem;
                 cursor: pointer;
-                box-shadow: 0 10px 24px rgba(244, 127, 168, 0.4);
+                box-shadow: 0 10px 24px rgba(27, 174, 190, 0.4);
                 transition: transform .2s, box-shadow .2s;
             }
 
                 .risk-ack-btn:hover:not(:disabled) {
                     transform: translateY(-2px);
-                    box-shadow: 0 14px 30px rgba(244, 127, 168, 0.52);
+                    box-shadow: 0 14px 30px rgba(27, 174, 190, 0.52);
                 }
 
                 .risk-ack-btn:disabled {

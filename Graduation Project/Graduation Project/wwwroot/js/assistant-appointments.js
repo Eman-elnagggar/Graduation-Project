@@ -4,13 +4,13 @@ const assistantId = Number(assistantAppointmentsConfig.assistantId || 0);
 const selectedDoctorId = assistantAppointmentsConfig.selectedDoctorId ?? null;
 const urls = assistantAppointmentsConfig.urls || {};
 
-const ALL_STATUSES = ["Confirmed", "Modified", "Cancelled"];
+const ALL_STATUSES = ["Confirmed", "Modified", "Cancelled", "Missed"];
 const PAGE_SIZE = 20;
 const AUTO_REFRESH_MS = 60_000;
 let currentDate = assistantAppointmentsConfig.selectedDate || new Date().toISOString().slice(0, 10);
 const antiForgeryToken = document.querySelector('input[name="__RequestVerificationToken"]')?.value || "";
 
-let currentTab = "Confirmed";
+let currentTab = "All";
 let modifyingAppointmentId = null;
 let modifyingDoctorId = null;
 let autoRefreshTimer = null;
@@ -18,9 +18,11 @@ let isBusy = false;
 let currentSearch = "";
 let searchDebounce = null;
 const paginationState = {
+    All: { page: 1, totalPages: 1, total: 0 },
     Confirmed: { page: 1, totalPages: 1, total: 0 },
     Modified: { page: 1, totalPages: 1, total: 0 },
-    Cancelled: { page: 1, totalPages: 1, total: 0 }
+    Cancelled: { page: 1, totalPages: 1, total: 0 },
+    Missed: { page: 1, totalPages: 1, total: 0 }
 };
 
 const cache = {};
@@ -56,6 +58,7 @@ function getStatusClass(status) {
         case "confirmed": return "confirmed";
         case "modified": return "reviewed";
         case "cancelled": return "danger";
+        case "missed": return "missed";
         default: return "";
     }
 }
@@ -201,11 +204,23 @@ function renderError(status, message) {
 }
 
 function renderEmpty(status) {
-    const icons = { Confirmed: "fa-calendar-check", Modified: "fa-edit", Cancelled: "fa-calendar-times" };
+    const icons = {
+        All: "fa-calendar-day",
+        Confirmed: "fa-calendar-check",
+        Modified: "fa-edit",
+        Cancelled: "fa-calendar-times",
+        Missed: "fa-user-clock"
+    };
     const messages = {
+        All: "No appointments on this date",
         Confirmed: "No confirmed appointments found",
         Modified: "No modified appointments at the moment",
-        Cancelled: "No cancelled appointments"
+        Cancelled: "No cancelled appointments",
+        Missed: "No missed appointments"
+    };
+    const subtitles = {
+        All: "Pick another date or add a new appointment to see it here",
+        Missed: "Appointments where the patient did not check in will appear here"
     };
     const el = document.getElementById(`${status}AppointmentsList`);
     if (!el) return;
@@ -213,7 +228,7 @@ function renderEmpty(status) {
         <div class="empty-state">
             <i class="fas ${icons[status] || "fa-calendar"}"></i>
             <p>${messages[status] || "No " + status.toLowerCase() + " appointments"}</p>
-            <p class="appointment-muted-note">Appointments will appear here when their status changes</p>
+            <p class="appointment-muted-note">${subtitles[status] || "Appointments will appear here when their status changes"}</p>
         </div>`;
 }
 
@@ -222,6 +237,7 @@ function getStripeClass(status) {
         case "confirmed": return "stripe-confirmed";
         case "modified": return "stripe-modified";
         case "cancelled": return "stripe-cancelled";
+        case "missed": return "stripe-missed";
         default: return "";
     }
 }
@@ -234,22 +250,26 @@ function renderAppointments(appointments, status) {
         return;
     }
 
-    const canModify   = status === "Confirmed";
-    const canCancel   = status !== "Cancelled";
-    const canReinstate = status === "Cancelled" || status === "Modified";
-
     const AVATAR_PALETTE = ["#7c3aed", "#2563eb", "#059669", "#d97706", "#dc2626", "#0891b2", "#6366f1"];
     const STATUS_MAP = {
         confirmed: { bg: "#dcfce7", fg: "#15803d", dot: "#10b981" },
         modified:  { bg: "#dbeafe", fg: "#1d4ed8", dot: "#2563eb" },
-        cancelled: { bg: "#fee2e2", fg: "#b91c1c", dot: "#ef4444" }
+        cancelled: { bg: "#fee2e2", fg: "#b91c1c", dot: "#ef4444" },
+        missed:    { bg: "#fff3cd", fg: "#92400e", dot: "#f59e0b" }
     };
 
     list.innerHTML = appointments.map(a => {
         const fmt       = formatTime(a.time);
         const isApt     = a.isToday;
         const isPastApt = !isApt && isPast(a.date);
-        const s         = STATUS_MAP[a.status?.toLowerCase()] || STATUS_MAP.confirmed;
+        const rowStatus = (a.status || "").toLowerCase();
+        const s         = STATUS_MAP[rowStatus] || STATUS_MAP.confirmed;
+
+        // Capabilities are driven by each appointment's own status so the
+        // "All" tab shows the right actions per row.
+        const canModify    = rowStatus === "confirmed";
+        const canCancel    = rowStatus !== "cancelled";
+        const canReinstate = rowStatus === "cancelled" || rowStatus === "modified";
 
         const initials  = (a.patientName || "?").trim().split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase();
         const avatarBg  = AVATAR_PALETTE[(a.patientName?.charCodeAt(0) || 0) % AVATAR_PALETTE.length];
@@ -264,7 +284,7 @@ function renderAppointments(appointments, status) {
             ? `<button class="appt-icon-btn appt-icon-btn--blue" title="Modify" data-action="modify-${a.appointmentId}" onclick="openModifyModal(${a.appointmentId})"><i class="fas fa-edit"></i></button>`
             : "";
 
-        const checkInBtn = status === "Confirmed" && !isPastApt && !a.isCheckedIn
+        const checkInBtn = canModify && !isPastApt && !a.isCheckedIn
             ? `<button class="appt-icon-btn appt-icon-btn--green" title="Check In" data-action="checkin-${a.appointmentId}" onclick="handleCheckIn(${a.appointmentId})"><i class="fas fa-user-check"></i></button>`
             : "";
 
@@ -280,6 +300,13 @@ function renderAppointments(appointments, status) {
             ? `<div class="appt-row-phone"><i class="fas fa-phone"></i> ${escapeHtml(a.patientPhone)}</div>`
             : `<div class="appt-row-phone appt-row-phone--nil">—</div>`;
 
+        // Show the appointment's date whenever it isn't the selected day
+        // (e.g. the Missed tab, which spans past dates).
+        const showDate = status === "Missed" || a.date !== currentDate;
+        const dateLine = showDate
+            ? `<span class="appt-row-date"><i class="fas fa-calendar-day"></i> ${escapeHtml(formatDate(a.date))}</span>`
+            : "";
+
         return `
 <div class="appt-row" data-appointment-id="${a.appointmentId}"
      data-search="${escapeHtml(((a.patientName || "") + " " + (a.doctorName || "") + " " + (a.patientPhone || "")).toLowerCase())}">
@@ -288,7 +315,10 @@ function renderAppointments(appointments, status) {
     <span class="appt-row-pname">${escapeHtml(a.patientName)}</span>
     <span class="appt-row-pdoc">${escapeHtml(a.doctorName)}${a.doctorSpecialization ? " · " + escapeHtml(a.doctorSpecialization) : ""}</span>
   </div>
-  <div class="appt-row-time"><i class="fas fa-clock"></i> ${fmt.time} <small>${fmt.period}</small></div>
+  <div class="appt-row-time">
+    <span class="appt-row-time-main"><i class="fas fa-clock"></i> ${fmt.time} <small>${fmt.period}</small></span>
+    ${dateLine}
+  </div>
   ${phoneHtml}
   <div class="appt-row-status">
     <span class="appt-row-sbadge" style="background:${s.bg};color:${s.fg}">
@@ -368,28 +398,34 @@ async function refreshCounts() {
         applyCountsToUI({
             Confirmed: counts.confirmed,
             Modified: counts.modified,
-            Cancelled: counts.cancelled
+            Cancelled: counts.cancelled,
+            Missed: counts.missed
         });
     } catch { }
 }
 
 function applyCountsToUI(counts) {
-    const total = (counts.Confirmed || 0) + (counts.Modified || 0) + (counts.Cancelled || 0);
+    const total = (counts.Confirmed || 0) + (counts.Modified || 0) + (counts.Cancelled || 0) + (counts.Missed || 0);
+    // "All" reflects every appointment on the selected date (active bookings, any status).
+    setText("allTabCount", (counts.Confirmed || 0) + (counts.Modified || 0) + (counts.Cancelled || 0));
     setText("confirmedTabCount", counts.Confirmed);
     setText("modifiedTabCount", counts.Modified);
     setText("cancelledTabCount", counts.Cancelled);
+    setText("missedTabCount", counts.Missed);
     setText("heroConfirmedCount", counts.Confirmed);
     setText("heroModifiedCount", counts.Modified);
     setText("heroCancelledCount", counts.Cancelled);
+    setText("heroMissedCount", counts.Missed);
     setText("statConfirmed", counts.Confirmed);
     setText("statModified", counts.Modified);
     setText("statCancelled", counts.Cancelled);
+    setText("statMissed", counts.Missed);
     setText("statTotal", total);
 }
 
 function reloadAfterMutation() {
     Object.keys(cache).forEach(k => delete cache[k]);
-    ALL_STATUSES.forEach(s => paginationState[s] = { page: 1, totalPages: 1, total: 0 });
+    Object.keys(paginationState).forEach(s => paginationState[s] = { page: 1, totalPages: 1, total: 0 });
     loadAllData();
 }
 
@@ -420,7 +456,7 @@ function handleSearchInput(value) {
     if (searchDebounce) clearTimeout(searchDebounce);
     searchDebounce = setTimeout(() => {
         Object.keys(cache).forEach(k => delete cache[k]);
-        ALL_STATUSES.forEach(s => paginationState[s].page = 1);
+        Object.keys(paginationState).forEach(s => paginationState[s].page = 1);
         loadTab(currentTab, 1);
     }, 300);
 }

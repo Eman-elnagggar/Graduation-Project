@@ -495,22 +495,10 @@ namespace Graduation_Project.Controllers
             await EnsureRoleAsync("Assistant");
             await _userManager.AddToRoleAsync(user, "Assistant");
 
-            var clinic = _context.Clinics.FirstOrDefault();
-            if (clinic == null)
-            {
-                clinic = new Clinic
-                {
-                    Name = "Default Clinic",
-                    Location = "TBD"
-                };
-                _context.Clinics.Add(clinic);
-                await _context.SaveChangesAsync();
-            }
-
             var assistant = new Assistant
             {
                 UserID = user.Id,
-                ClinicID = clinic.ClinicID
+                ClinicID = null
             };
 
             _context.Assistants.Add(assistant);
@@ -855,7 +843,12 @@ namespace Graduation_Project.Controllers
             {
                 var assistant = await _context.Assistants.FirstOrDefaultAsync(a => a.UserID == user.Id);
                 if (assistant != null)
+                {
+                    if (assistant.ClinicID == null)
+                        return RedirectToAction("ClinicInvitations", "Assistant", new { id = assistant.AssistantID });
+
                     return RedirectToAction("Index", "Assistant", new { id = assistant.AssistantID });
+                }
             }
 
             if (await _userManager.IsInRoleAsync(user, "Doctor"))

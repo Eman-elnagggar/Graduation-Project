@@ -68,9 +68,45 @@ namespace Graduation_Project.Controllers
             _roleManager = roleManager;
         }
 
+        // ── Clinic Guard ────────────────────────────────────────────────────────
+        // If the assistant has no clinic yet, only the invitation-related actions
+        // are allowed. Every other page is redirected to ClinicInvitations.
+        private static readonly HashSet<string> _allowedWithoutClinic =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                nameof(ClinicInvitations),
+                nameof(AcceptClinicInvitation),
+                nameof(DeclineClinicInvitation)
+            };
+
+        public override void OnActionExecuting(Microsoft.AspNetCore.Mvc.Filters.ActionExecutingContext context)
+        {
+            base.OnActionExecuting(context);
+
+            var actionName = context.ActionDescriptor.RouteValues["action"] ?? string.Empty;
+            if (_allowedWithoutClinic.Contains(actionName))
+                return;
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userId))
+                return; // let [Authorize] handle unauthenticated users
+
+            var assistant = _context.Assistants
+                .AsNoTracking()
+                .FirstOrDefault(a => a.UserID == userId);
+
+            if (assistant != null && assistant.ClinicID == null)
+            {
+                context.Result = RedirectToAction(
+                    nameof(ClinicInvitations),
+                    new { id = assistant.AssistantID });
+            }
+        }
+        // ────────────────────────────────────────────────────────────────────────
+
         public IActionResult Index(int id, int? doctorId, DateTime? date, string? status)
         {
-            // Fast initial load � only 2 DB queries (assistant + clinic)
+            // OnActionExecuting guarantees ClinicID != null by this point
             var accessResult = TryResolveAssistantClinic(id, out var assistant, out var clinic);
             if (accessResult != null) return accessResult;
 
@@ -85,7 +121,7 @@ namespace Graduation_Project.Controllers
                 ? doctorSummaries.FirstOrDefault(d => d.DoctorID == doctorId.Value)?.FullName ?? "Doctor"
                 : "All Doctors";
 
-            // Return page skeleton � heavy data (stats, schedule) loaded via AJAX
+            // Return page skeleton — heavy data (stats, schedule) loaded via AJAX
             var patientIds = _patientDoctorRepository
                 .GetApprovedByDoctors(relevantDoctorIds)
                 .Select(pd => pd.PatientID)
@@ -559,14 +595,13 @@ namespace Graduation_Project.Controllers
 
         private List<int> GetRelevantDoctorIds(Assistant assistant, Clinic clinic)
         {
+            // Only show doctors who explicitly invited this assistant and she accepted.
+            // Intersect with clinic doctors as a safety check (both sides must agree).
             var assistantDoctorIds = assistant.AssistantDoctors?
                 .Select(ad => ad.DoctorID).ToHashSet() ?? new HashSet<int>();
             var clinicDoctorIds = clinic.ClinicDoctors?
                 .Select(cd => cd.DoctorID).ToHashSet() ?? new HashSet<int>();
-            var relevantDoctorIds = assistantDoctorIds.Intersect(clinicDoctorIds).ToList();
-            if (!relevantDoctorIds.Any())
-                relevantDoctorIds = clinicDoctorIds.ToList();
-            return relevantDoctorIds;
+            return assistantDoctorIds.Intersect(clinicDoctorIds).ToList();
         }
 
         private List<AssistantDoctorSummary> BuildDoctorSummaries(
@@ -832,6 +867,7 @@ namespace Graduation_Project.Controllers
                 confirmed = counts.Confirmed,
                 modified = counts.Modified,
                 cancelled = counts.Cancelled,
+                missed = counts.Missed,
                 total = counts.Total
             });
         }
@@ -2173,7 +2209,6 @@ namespace Graduation_Project.Controllers
                 return RedirectToAction(nameof(ClinicInvitations), new { id = assistant.AssistantID });
             }
 
-            // Update tracked assistant entity to ensure clinic assignment is persisted.
             var trackedAssistant = _context.Assistants.FirstOrDefault(a => a.AssistantID == assistant.AssistantID);
             if (trackedAssistant == null)
             {
@@ -2181,29 +2216,86 @@ namespace Graduation_Project.Controllers
                 return RedirectToAction(nameof(ClinicInvitations), new { id = assistant.AssistantID });
             }
 
-            trackedAssistant.ClinicID = invitation.ClinicID;
-
-            var alreadyLinked = _context.AssistantDoctors.Any(ad =>
-                ad.DoctorID == invitation.DoctorID && ad.AssistantID == assistant.AssistantID);
-
-            if (!alreadyLinked)
-            {
-                _context.AssistantDoctors.Add(new AssistantDoctor
-                {
-                    DoctorID = invitation.DoctorID,
-                    AssistantID = assistant.AssistantID
-                });
-            }
-
-            invitation.Status = "Accepted";
-            invitation.RespondedAtUtc = DateTime.UtcNow;
-            invitation.ResponseMessage = "Accepted by assistant";
-            _context.SaveChanges();
+            bool isSwitchingClinic = trackedAssistant.ClinicID.HasValue
+                                  && trackedAssistant.ClinicID.Value != invitation.ClinicID;
 
             var assistantUser = _context.Users.FirstOrDefault(u => u.Id == trackedAssistant.UserID);
             var assistantName = assistantUser != null
                 ? $"{assistantUser.FirstName} {assistantUser.LastName}".Trim()
                 : invitation.AssistantEmail;
+
+            if (isSwitchingClinic)
+            {
+                // ── Clinic switch requires approval ──────────────────────────────
+                // Don't let her stack a second clinic change while one is in flight.
+                bool hasPendingLeave = _context.AssistantLeaveRequests
+                    .Any(r => r.AssistantID == trackedAssistant.AssistantID && r.Status == "Pending");
+                if (hasPendingLeave)
+                {
+                    TempData["InviteError"] = "You already have a clinic change awaiting approval. Resolve it before accepting another invitation.";
+                    return RedirectToAction(nameof(ClinicInvitations), new { id = assistant.AssistantID });
+                }
+
+                // Every doctor she is linked to within her CURRENT clinic must approve.
+                int oldClinicId = trackedAssistant.ClinicID!.Value;
+                var approverDoctorIds = (from ad in _context.AssistantDoctors
+                                         join cd in _context.ClinicDoctors on ad.DoctorID equals cd.DoctorID
+                                         where ad.AssistantID == trackedAssistant.AssistantID
+                                            && cd.ClinicID == oldClinicId
+                                         select ad.DoctorID)
+                                        .Distinct()
+                                        .ToList();
+
+                if (approverDoctorIds.Count > 0)
+                {
+                    var leaveRequest = new AssistantLeaveRequest
+                    {
+                        AssistantID = trackedAssistant.AssistantID,
+                        OldClinicID = oldClinicId,
+                        NewClinicID = invitation.ClinicID,
+                        NewDoctorID = invitation.DoctorID,
+                        ClinicInvitationID = invitation.ClinicInvitationID,
+                        Status = "Pending",
+                        CreatedAtUtc = DateTime.UtcNow
+                    };
+                    foreach (var docId in approverDoctorIds)
+                    {
+                        leaveRequest.Approvals.Add(new AssistantLeaveApproval
+                        {
+                            DoctorID = docId,
+                            Status = "Pending"
+                        });
+                    }
+                    _context.AssistantLeaveRequests.Add(leaveRequest);
+
+                    // Hold the invitation in an intermediate state so it can't be
+                    // re-accepted and the switch side-effects don't fire yet.
+                    invitation.Status = "PendingLeaveApproval";
+                    invitation.ResponseMessage = "Awaiting leave approval from current clinic doctors";
+                    _context.SaveChanges();
+
+                    foreach (var docId in approverDoctorIds)
+                    {
+                        _ = _doctorNotificationService.NotifyAsync(
+                            docId,
+                            "Assistant Leave Request",
+                            $"{assistantName} has requested to leave your clinic to join another. Your approval is required.",
+                            "leave_request",
+                            $"/Doctor/Clinics/{docId}");
+                    }
+
+                    TempData["InviteSuccess"] = "Your request to switch clinics was submitted and is awaiting approval from every doctor in your current clinic.";
+                    return RedirectToAction(nameof(ClinicInvitations), new { id = assistant.AssistantID });
+                }
+
+                // No doctors to approve in the old clinic → switch immediately.
+            }
+
+            // Immediate path: first-time assignment, same clinic, or a switch with
+            // no required approvers.
+            ClinicSwitchHelper.ExecuteSwitch(_context, trackedAssistant, invitation, removeOldLinks: isSwitchingClinic);
+            _context.SaveChanges();
+
             _ = _doctorNotificationService.NotifyAsync(
                 invitation.DoctorID,
                 "Assistant Joined Your Team",
@@ -2211,7 +2303,11 @@ namespace Graduation_Project.Controllers
                 "invitation_accepted",
                 "/Doctor/ClinicTeam");
 
-            TempData["InviteSuccess"] = "Invitation accepted. You are now part of the doctor's clinic team.";
+            var successMsg = isSwitchingClinic
+                ? "Clinic switched. All previous doctor links have been removed. You are now part of the new clinic team."
+                : "Invitation accepted. You are now part of the doctor's clinic team.";
+
+            TempData["InviteSuccess"] = successMsg;
             return RedirectToAction(nameof(ClinicInvitations), new { id = assistant.AssistantID });
         }
 

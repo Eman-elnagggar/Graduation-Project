@@ -80,20 +80,22 @@ namespace Graduation_Project.Services
 
         public AssistantAppointmentStatusCounts GetCounts(AssistantScheduleScope scope, DateTime date)
         {
-            var statuses = new[] { "Confirmed", "Modified", "Cancelled" };
+            var statuses = new[] { "Confirmed", "Modified", "Cancelled", "Missed" };
             var counts = _appointmentRepository
                 .GetStatusCountsByClinicDoctorsAndDate(scope.ClinicId, scope.ActiveDoctorIds, date, statuses);
 
             var confirmed = counts.GetValueOrDefault("Confirmed");
             var modified = counts.GetValueOrDefault("Modified");
             var cancelled = counts.GetValueOrDefault("Cancelled");
+            var missed = counts.GetValueOrDefault("Missed");
 
             return new AssistantAppointmentStatusCounts
             {
                 Confirmed = confirmed,
                 Modified = modified,
                 Cancelled = cancelled,
-                Total = confirmed + modified + cancelled
+                Missed = missed,
+                Total = confirmed + modified + cancelled + missed
             };
         }
 
@@ -124,6 +126,7 @@ namespace Graduation_Project.Services
         public int Confirmed { get; set; }
         public int Modified { get; set; }
         public int Cancelled { get; set; }
+        public int Missed { get; set; }
         public int Total { get; set; }
     }
 

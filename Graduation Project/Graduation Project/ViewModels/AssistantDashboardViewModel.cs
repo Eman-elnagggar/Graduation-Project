@@ -9,8 +9,8 @@ namespace Graduation_Project.ViewModels
         public DateTime SelectedDate { get; set; } = DateTime.Today;
         public string SelectedScheduleStatus { get; set; } = "Booked";
 
-        // Clinic info
-        public Clinic Clinic { get; set; } = null!;
+        // Clinic info (null if not yet assigned)
+        public Clinic? Clinic { get; set; }
         public string ClinicName { get; set; } = string.Empty;
 
         // Linked doctors

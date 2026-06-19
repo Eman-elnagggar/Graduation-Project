@@ -51,6 +51,8 @@ namespace Graduation_Project.Data
         public DbSet<WeightTracking> WeightTrackings { get; set; }
         public DbSet<ChatMessage> ChatMessages { get; set; }
         public DbSet<ClinicInvitation> ClinicInvitations { get; set; }
+        public DbSet<AssistantLeaveRequest> AssistantLeaveRequests { get; set; }
+        public DbSet<AssistantLeaveApproval> AssistantLeaveApprovals { get; set; }
         public DbSet<CommunityPost> CommunityPosts { get; set; }
         public DbSet<CommunityComment> CommunityComments { get; set; }
         public DbSet<CommunityLike> CommunityLikes { get; set; }
@@ -866,6 +868,66 @@ namespace Graduation_Project.Data
                     .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasIndex(e => new { e.DoctorID, e.ClinicID, e.AssistantID, e.Status });
+            });
+
+            // ============================================================
+            // ASSISTANT LEAVE REQUESTS (clinic-switch approval workflow)
+            // ============================================================
+            modelBuilder.Entity<AssistantLeaveRequest>(entity =>
+            {
+                entity.HasKey(e => e.AssistantLeaveRequestID);
+
+                entity.Property(e => e.Status)
+                    .HasMaxLength(32)
+                    .IsRequired();
+
+                entity.HasOne(e => e.Assistant)
+                    .WithMany()
+                    .HasForeignKey(e => e.AssistantID)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.OldClinic)
+                    .WithMany()
+                    .HasForeignKey(e => e.OldClinicID)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.NewClinic)
+                    .WithMany()
+                    .HasForeignKey(e => e.NewClinicID)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.NewDoctor)
+                    .WithMany()
+                    .HasForeignKey(e => e.NewDoctorID)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.Invitation)
+                    .WithMany()
+                    .HasForeignKey(e => e.ClinicInvitationID)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => new { e.AssistantID, e.Status });
+            });
+
+            modelBuilder.Entity<AssistantLeaveApproval>(entity =>
+            {
+                entity.HasKey(e => e.AssistantLeaveApprovalID);
+
+                entity.Property(e => e.Status)
+                    .HasMaxLength(32)
+                    .IsRequired();
+
+                entity.HasOne(e => e.LeaveRequest)
+                    .WithMany(r => r.Approvals)
+                    .HasForeignKey(e => e.AssistantLeaveRequestID)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Doctor)
+                    .WithMany()
+                    .HasForeignKey(e => e.DoctorID)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => new { e.DoctorID, e.Status });
             });
 
 
