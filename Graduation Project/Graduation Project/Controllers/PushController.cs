@@ -59,6 +59,26 @@ namespace Graduation_Project.Controllers
             return Ok();
         }
 
+        [HttpGet]
+        public IActionResult Status()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            var count = _db.UserPushSubscriptions.Count(s => s.UserId == userId);
+            return Json(new { subscriptions = count });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Test()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            var count = _db.UserPushSubscriptions.Count(s => s.UserId == userId);
+
+            if (count > 0)
+                await _push.SendToUserAsync(userId, "NABD نبض", "Test notification ✓", "/");
+
+            return Json(new { subscriptions = count });
+        }
+
         [HttpPost]
         public async Task<IActionResult> Unsubscribe([FromBody] PushUnsubscribeRequest request)
         {
