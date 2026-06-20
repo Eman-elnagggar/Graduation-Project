@@ -382,6 +382,9 @@ namespace Graduation_Project.Controllers
                             ? (c.Patient.User.FirstName + " " + c.Patient.User.LastName).Trim()
                             : "Anonymous"),
                     AuthorIsDoctor = c.DoctorID != null,
+                    AuthorUserId = c.DoctorID != null
+                        ? (c.Doctor != null ? c.Doctor.UserID : null)
+                        : (c.Patient != null && c.Patient.User != null ? c.Patient.User.Id : null),
                     IsMyComment = isDoctor
                         ? c.DoctorID == currentDoctorId
                         : c.PatientID == currentPatientId

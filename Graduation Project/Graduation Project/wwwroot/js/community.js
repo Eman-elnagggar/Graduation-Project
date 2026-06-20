@@ -401,6 +401,9 @@
         listEl.querySelectorAll('.cm-comment-delete').forEach(btn => {
             btn.addEventListener('click', () => deleteComment(btn.dataset.commentId, postId));
         });
+        listEl.querySelectorAll('.cm-comment-message-btn').forEach(btn => {
+            btn.addEventListener('click', () => messageAuthor(btn.dataset.userId));
+        });
     }
 
     function commentItemHtml(c) {
@@ -412,13 +415,21 @@
         const authorBadge = c.authorIsDoctor
             ? `<span class="cm-doctor-badge"><i class="fas fa-user-md"></i> Doctor</span>`
             : '';
+        const messageBtn = (!c.isMyComment && !c.authorIsDoctor && c.authorUserId && MESSAGES_URL)
+            ? `<button class="cm-comment-message-btn" data-user-id="${escHtml(c.authorUserId)}" title="Message ${escHtml(c.authorName)}">
+                <i class="far fa-paper-plane"></i> Message
+               </button>`
+            : '';
         return `
 <div class="cm-comment-item" id="comment-${c.communityCommentId}">
     <img class="cm-comment-avatar" src="${avatarUrl}" alt="${escHtml(c.authorName)}" />
     <div class="cm-comment-bubble">
         <div class="cm-comment-author">${escHtml(c.authorName)} ${authorBadge} ${deleteBtn}</div>
         <div class="cm-comment-text">${escHtml(c.content)}</div>
-        <div class="cm-comment-time">${formatTimeAgo(c.createdAt)}</div>
+        <div class="cm-comment-footer">
+            <span class="cm-comment-time">${formatTimeAgo(c.createdAt)}</span>
+            ${messageBtn}
+        </div>
     </div>
 </div>`;
     }
