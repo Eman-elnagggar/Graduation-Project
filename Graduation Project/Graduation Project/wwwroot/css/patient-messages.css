@@ -110,6 +110,7 @@
 }
 .pm-shell .conversation-role-badge.doctor { background:var(--sky-lt); color:#2563eb; }
 .pm-shell .conversation-role-badge.assistant { background:var(--violet-lt); color:#138fa0; }
+.pm-shell .conversation-role-badge.patient { background:#ffe4e6; color:#e11d48; }
 .pm-shell .conversation-time { flex-shrink:0; font-size:.7rem; font-weight:600; color:var(--ink-3); }
 .pm-shell .conversation-message { font-size:.82rem; color:var(--ink-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .pm-shell .conversation-item.unread .conversation-name { font-weight:800; }

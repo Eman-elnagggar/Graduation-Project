@@ -7,7 +7,7 @@ using System.Security.Claims;
 
 namespace Graduation_Project.Controllers
 {
-    [Authorize(Roles = "Patient")]
+    [Authorize(Roles = "Patient,Doctor")]
     public class CommunityController : Controller
     {
         private readonly AppDbContext _db;
@@ -19,6 +19,8 @@ namespace Graduation_Project.Controllers
             _env = env;
         }
 
+        private bool IsDoctor() => User.IsInRole("Doctor");
+
         private int GetCurrentPatientId()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -29,15 +31,44 @@ namespace Graduation_Project.Controllers
                 .FirstOrDefault();
         }
 
+        private int GetCurrentDoctorId()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userId)) return 0;
+            return _db.Doctors
+                .Where(d => d.UserID == userId)
+                .Select(d => d.DoctorID)
+                .FirstOrDefault();
+        }
+
         [HttpGet]
         public IActionResult Index(int id = 0)
         {
-            if (id <= 0)
-                id = GetCurrentPatientId();
-
             ViewData["Title"] = "Community";
             ViewData["ActivePage"] = "Community";
-            ViewData["PatientId"] = id;
+
+            if (IsDoctor())
+            {
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var doctor = _db.Doctors
+                    .Include(d => d.User)
+                    .FirstOrDefault(d => d.UserID == userId);
+
+                ViewData["IsDoctor"] = true;
+                ViewData["DoctorId"] = doctor?.DoctorID ?? 0;
+                ViewData["DoctorName"] = doctor?.User != null
+                    ? $"{doctor.User.FirstName} {doctor.User.LastName}".Trim()
+                    : "Doctor";
+            }
+            else
+            {
+                if (id <= 0)
+                    id = GetCurrentPatientId();
+
+                ViewData["IsDoctor"] = false;
+                ViewData["PatientId"] = id;
+            }
+
             return View();
         }
 
@@ -47,11 +78,14 @@ namespace Graduation_Project.Controllers
         [HttpGet]
         public IActionResult GetPosts(string? category, string? search, int page = 1)
         {
-            var currentPatientId = GetCurrentPatientId();
+            var isDoctor = IsDoctor();
+            var currentPatientId = isDoctor ? 0 : GetCurrentPatientId();
+            var currentDoctorId = isDoctor ? GetCurrentDoctorId() : 0;
             const int pageSize = 10;
 
             var query = _db.CommunityPosts
                 .Include(p => p.Patient).ThenInclude(p => p!.User)
+                .Include(p => p.Doctor).ThenInclude(d => d!.User)
                 .Include(p => p.Likes)
                 .Include(p => p.Comments)
                 .AsQueryable();
@@ -76,14 +110,25 @@ namespace Graduation_Project.Controllers
                     p.Category,
                     p.ImageUrl,
                     p.CreatedAt,
-                    AuthorName = (p.Patient != null && p.Patient.User != null)
-                        ? (p.Patient.User.FirstName + " " + p.Patient.User.LastName).Trim()
-                        : "Anonymous",
-                    AuthorId = p.PatientID,
+                    AuthorName = p.DoctorID != null
+                        ? (p.Doctor != null && p.Doctor.User != null
+                            ? ("Dr. " + p.Doctor.User.FirstName + " " + p.Doctor.User.LastName).Trim()
+                            : "Doctor")
+                        : (p.Patient != null && p.Patient.User != null
+                            ? (p.Patient.User.FirstName + " " + p.Patient.User.LastName).Trim()
+                            : "Anonymous"),
+                    AuthorIsDoctor = p.DoctorID != null,
+                    AuthorUserId = p.DoctorID != null
+                        ? (p.Doctor != null ? p.Doctor.UserID : null)
+                        : (p.Patient != null && p.Patient.User != null ? p.Patient.User.Id : null),
                     LikeCount = p.Likes.Count,
                     CommentCount = p.Comments.Count,
-                    IsLikedByMe = p.Likes.Any(l => l.PatientID == currentPatientId),
-                    IsMyPost = p.PatientID == currentPatientId
+                    IsLikedByMe = isDoctor
+                        ? p.Likes.Any(l => l.DoctorID == currentDoctorId)
+                        : p.Likes.Any(l => l.PatientID == currentPatientId),
+                    IsMyPost = isDoctor
+                        ? p.DoctorID == currentDoctorId
+                        : p.PatientID == currentPatientId
                 })
                 .ToList();
 
@@ -108,14 +153,21 @@ namespace Graduation_Project.Controllers
             if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(content))
                 return Json(new { success = false, message = "Title and content are required." });
 
-            var patientId = GetCurrentPatientId();
-            if (patientId <= 0)
+            var isDoctor = IsDoctor();
+            var patientId = isDoctor ? 0 : GetCurrentPatientId();
+            var doctorId = isDoctor ? GetCurrentDoctorId() : 0;
+
+            if (isDoctor && doctorId <= 0)
+                return Json(new { success = false, message = "Doctor not found." });
+            if (!isDoctor && patientId <= 0)
                 return Json(new { success = false, message = "Patient not found." });
+
+            var folderKey = isDoctor ? $"doctor-{doctorId}" : patientId.ToString();
 
             string? imageUrl = null;
             if (image != null && image.Length > 0)
             {
-                var (savedUrl, error) = await SaveImageAsync(image, patientId);
+                var (savedUrl, error) = await SaveImageAsync(image, folderKey);
                 if (error != null)
                     return Json(new { success = false, message = error });
                 imageUrl = savedUrl;
@@ -127,7 +179,8 @@ namespace Graduation_Project.Controllers
                 Content = content.Trim(),
                 Category = category.Trim(),
                 ImageUrl = imageUrl,
-                PatientID = patientId,
+                PatientID = isDoctor ? (int?)null : patientId,
+                DoctorID = isDoctor ? doctorId : (int?)null,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -135,13 +188,24 @@ namespace Graduation_Project.Controllers
             _db.CommunityPosts.Add(post);
             _db.SaveChanges();
 
-            var patient = _db.Patients
-                .Include(p => p.User)
-                .FirstOrDefault(p => p.PatientID == patientId);
-
-            var authorName = patient?.User != null
-                ? (patient.User.FirstName + " " + patient.User.LastName).Trim()
-                : "Anonymous";
+            string authorName;
+            string? authorUserId;
+            if (isDoctor)
+            {
+                var doctor = _db.Doctors.Include(d => d.User).FirstOrDefault(d => d.DoctorID == doctorId);
+                authorName = doctor?.User != null
+                    ? $"Dr. {doctor.User.FirstName} {doctor.User.LastName}".Trim()
+                    : "Doctor";
+                authorUserId = doctor?.UserID;
+            }
+            else
+            {
+                var patient = _db.Patients.Include(p => p.User).FirstOrDefault(p => p.PatientID == patientId);
+                authorName = patient?.User != null
+                    ? $"{patient.User.FirstName} {patient.User.LastName}".Trim()
+                    : "Anonymous";
+                authorUserId = patient?.User?.Id;
+            }
 
             return Json(new
             {
@@ -155,7 +219,8 @@ namespace Graduation_Project.Controllers
                     post.ImageUrl,
                     post.CreatedAt,
                     AuthorName = authorName,
-                    AuthorId = patientId,
+                    AuthorIsDoctor = isDoctor,
+                    AuthorUserId = authorUserId,
                     LikeCount = 0,
                     CommentCount = 0,
                     IsLikedByMe = false,
@@ -171,13 +236,12 @@ namespace Graduation_Project.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult DeletePost([FromForm] int postId)
         {
-            var patientId = GetCurrentPatientId();
             var post = _db.CommunityPosts.FirstOrDefault(p => p.CommunityPostId == postId);
 
             if (post == null)
                 return Json(new { success = false, message = "Post not found." });
 
-            if (post.PatientID != patientId)
+            if (!OwnsAuthored(post.PatientID, post.DoctorID))
                 return Json(new { success = false, message = "You can only delete your own posts." });
 
             DeleteImageFile(post.ImageUrl);
@@ -189,9 +253,25 @@ namespace Graduation_Project.Controllers
         }
 
         // ────────────────────────────────────────────────
+        // Returns true when the authored content (patient/doctor ids)
+        // belongs to the current user.
+        // ────────────────────────────────────────────────
+        private bool OwnsAuthored(int? patientId, int? doctorId)
+        {
+            if (IsDoctor())
+            {
+                var myDoctorId = GetCurrentDoctorId();
+                return myDoctorId != 0 && doctorId == myDoctorId;
+            }
+
+            var myPatientId = GetCurrentPatientId();
+            return myPatientId != 0 && patientId == myPatientId;
+        }
+
+        // ────────────────────────────────────────────────
         // Image helpers
         // ────────────────────────────────────────────────
-        private async Task<(string? url, string? error)> SaveImageAsync(IFormFile image, int patientId)
+        private async Task<(string? url, string? error)> SaveImageAsync(IFormFile image, string folderKey)
         {
             if (image.Length > 5 * 1024 * 1024)
                 return (null, "Image exceeds the 5 MB limit.");
@@ -204,7 +284,7 @@ namespace Graduation_Project.Controllers
             if (!allowedTypes.Contains(image.ContentType))
                 return (null, "Only JPEG, PNG, GIF, or WebP images are allowed.");
 
-            var dir = Path.Combine(_env.WebRootPath, "uploads", "community", patientId.ToString());
+            var dir = Path.Combine(_env.WebRootPath, "uploads", "community", folderKey);
             Directory.CreateDirectory(dir);
 
             var ext = Path.GetExtension(image.FileName);
@@ -214,7 +294,7 @@ namespace Graduation_Project.Controllers
             using (var stream = System.IO.File.Create(filePath))
                 await image.CopyToAsync(stream);
 
-            return ($"/uploads/community/{patientId}/{fileName}", null);
+            return ($"/uploads/community/{folderKey}/{fileName}", null);
         }
 
         private void DeleteImageFile(string? imageUrl)
@@ -240,12 +320,16 @@ namespace Graduation_Project.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult ToggleLike([FromForm] int postId)
         {
-            var patientId = GetCurrentPatientId();
-            if (patientId <= 0)
-                return Json(new { success = false });
+            var isDoctor = IsDoctor();
+            var patientId = isDoctor ? 0 : GetCurrentPatientId();
+            var doctorId = isDoctor ? GetCurrentDoctorId() : 0;
 
-            var existing = _db.CommunityLikes
-                .FirstOrDefault(l => l.CommunityPostId == postId && l.PatientID == patientId);
+            if (isDoctor && doctorId <= 0) return Json(new { success = false });
+            if (!isDoctor && patientId <= 0) return Json(new { success = false });
+
+            var existing = isDoctor
+                ? _db.CommunityLikes.FirstOrDefault(l => l.CommunityPostId == postId && l.DoctorID == doctorId)
+                : _db.CommunityLikes.FirstOrDefault(l => l.CommunityPostId == postId && l.PatientID == patientId);
 
             if (existing != null)
             {
@@ -256,7 +340,8 @@ namespace Graduation_Project.Controllers
                 _db.CommunityLikes.Add(new CommunityLike
                 {
                     CommunityPostId = postId,
-                    PatientID = patientId,
+                    PatientID = isDoctor ? (int?)null : patientId,
+                    DoctorID = isDoctor ? doctorId : (int?)null,
                     CreatedAt = DateTime.UtcNow
                 });
             }
@@ -275,10 +360,13 @@ namespace Graduation_Project.Controllers
         [HttpGet]
         public IActionResult GetComments(int postId)
         {
-            var currentPatientId = GetCurrentPatientId();
+            var isDoctor = IsDoctor();
+            var currentPatientId = isDoctor ? 0 : GetCurrentPatientId();
+            var currentDoctorId = isDoctor ? GetCurrentDoctorId() : 0;
 
             var comments = _db.CommunityComments
                 .Include(c => c.Patient).ThenInclude(p => p!.User)
+                .Include(c => c.Doctor).ThenInclude(d => d!.User)
                 .Where(c => c.CommunityPostId == postId)
                 .OrderBy(c => c.CreatedAt)
                 .Select(c => new
@@ -286,10 +374,17 @@ namespace Graduation_Project.Controllers
                     c.CommunityCommentId,
                     c.Content,
                     c.CreatedAt,
-                    AuthorName = (c.Patient != null && c.Patient.User != null)
-                        ? (c.Patient.User.FirstName + " " + c.Patient.User.LastName).Trim()
-                        : "Anonymous",
-                    IsMyComment = c.PatientID == currentPatientId
+                    AuthorName = c.DoctorID != null
+                        ? (c.Doctor != null && c.Doctor.User != null
+                            ? ("Dr. " + c.Doctor.User.FirstName + " " + c.Doctor.User.LastName).Trim()
+                            : "Doctor")
+                        : (c.Patient != null && c.Patient.User != null
+                            ? (c.Patient.User.FirstName + " " + c.Patient.User.LastName).Trim()
+                            : "Anonymous"),
+                    AuthorIsDoctor = c.DoctorID != null,
+                    IsMyComment = isDoctor
+                        ? c.DoctorID == currentDoctorId
+                        : c.PatientID == currentPatientId
                 })
                 .ToList();
 
@@ -306,8 +401,13 @@ namespace Graduation_Project.Controllers
             if (string.IsNullOrWhiteSpace(content))
                 return Json(new { success = false, message = "Comment cannot be empty." });
 
-            var patientId = GetCurrentPatientId();
-            if (patientId <= 0)
+            var isDoctor = IsDoctor();
+            var patientId = isDoctor ? 0 : GetCurrentPatientId();
+            var doctorId = isDoctor ? GetCurrentDoctorId() : 0;
+
+            if (isDoctor && doctorId <= 0)
+                return Json(new { success = false, message = "Doctor not found." });
+            if (!isDoctor && patientId <= 0)
                 return Json(new { success = false, message = "Patient not found." });
 
             var post = _db.CommunityPosts.Find(postId);
@@ -317,7 +417,8 @@ namespace Graduation_Project.Controllers
             var comment = new CommunityComment
             {
                 CommunityPostId = postId,
-                PatientID = patientId,
+                PatientID = isDoctor ? (int?)null : patientId,
+                DoctorID = isDoctor ? doctorId : (int?)null,
                 Content = content.Trim(),
                 CreatedAt = DateTime.UtcNow
             };
@@ -325,10 +426,21 @@ namespace Graduation_Project.Controllers
             _db.CommunityComments.Add(comment);
             _db.SaveChanges();
 
-            var patient = _db.Patients.Include(p => p.User).FirstOrDefault(p => p.PatientID == patientId);
-            var authorName = patient?.User != null
-                ? (patient.User.FirstName + " " + patient.User.LastName).Trim()
-                : "Anonymous";
+            string authorName;
+            if (isDoctor)
+            {
+                var doctor = _db.Doctors.Include(d => d.User).FirstOrDefault(d => d.DoctorID == doctorId);
+                authorName = doctor?.User != null
+                    ? $"Dr. {doctor.User.FirstName} {doctor.User.LastName}".Trim()
+                    : "Doctor";
+            }
+            else
+            {
+                var patient = _db.Patients.Include(p => p.User).FirstOrDefault(p => p.PatientID == patientId);
+                authorName = patient?.User != null
+                    ? $"{patient.User.FirstName} {patient.User.LastName}".Trim()
+                    : "Anonymous";
+            }
 
             return Json(new
             {
@@ -339,6 +451,7 @@ namespace Graduation_Project.Controllers
                     comment.Content,
                     comment.CreatedAt,
                     AuthorName = authorName,
+                    AuthorIsDoctor = isDoctor,
                     IsMyComment = true
                 }
             });
@@ -351,13 +464,12 @@ namespace Graduation_Project.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult DeleteComment([FromForm] int commentId)
         {
-            var patientId = GetCurrentPatientId();
             var comment = _db.CommunityComments.FirstOrDefault(c => c.CommunityCommentId == commentId);
 
             if (comment == null)
                 return Json(new { success = false, message = "Comment not found." });
 
-            if (comment.PatientID != patientId)
+            if (!OwnsAuthored(comment.PatientID, comment.DoctorID))
                 return Json(new { success = false, message = "You can only delete your own comments." });
 
             _db.CommunityComments.Remove(comment);
