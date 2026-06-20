@@ -10,34 +10,26 @@ app = FastAPI()
 async def root():
     return RedirectResponse(url="/docs")
 
-# =========================
 # Load Model
-# =========================
 model = joblib.load("model.pkl")
 
 FEATURES = list(model.feature_names_in_)
 print("Model Features:", FEATURES)
 
-# =========================
 # Risk Mapping
-# =========================
 risk_map = {
     0: "Low Risk",
     1: "Moderate Risk",
     2: "High Risk"
 }
 
-# =========================
 # API Endpoint
-# =========================
 @app.post("/predict")
 def predict(data: dict):
     try:
         df_fe = pd.DataFrame([data])
 
-        # =========================
         # Feature Engineering
-        # =========================
 
         # MAP
         df_fe['MAP'] = (
@@ -59,20 +51,14 @@ def predict(data: dict):
             df_fe['MAP'] * df_fe['fasting_glucose_mgdl']
         )
 
-        # =========================
         # BMI (NEW)
-        # =========================
         df_fe['height_m'] = df_fe['height_cm'].replace(0, np.nan) / 100
         df_fe['bmi'] = df_fe['weight_kg'] / (df_fe['height_m'] ** 2)
 
-        # =========================
         # Match training features
-        # =========================
         df_fe = df_fe.reindex(columns=FEATURES)
 
-        # =========================
         # Prediction
-        # =========================
         proba = model.predict_proba(df_fe)[0]
         classes = model.classes_
 
@@ -81,9 +67,7 @@ def predict(data: dict):
         prediction = int(classes[idx])
         confidence = float(proba[idx])
 
-        # =========================
         # Response
-        # =========================
         return {
             "prediction": prediction,
             "risk_level": risk_map.get(prediction, "Unknown"),
