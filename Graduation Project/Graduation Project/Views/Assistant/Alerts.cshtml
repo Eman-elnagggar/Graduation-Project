@@ -11,7 +11,6 @@
 
     var totalAlerts   = Model.Alerts.Count;
     var unreadCount   = Model.UnreadCount;
-    var urgentCount   = Model.Alerts.Count(a => a.Severity?.ToLower() == "danger");
     var pendingCount  = Model.Alerts.Count(a => a.Severity?.ToLower() == "warning");
     var resolvedCount = Model.Alerts.Count(a => a.Severity?.ToLower() is "success" or "info");
 
@@ -45,7 +44,6 @@
     };
 
     Func<string?, string> getBadgeLabel = type => type?.ToLower() switch {
-        "danger"  => "Urgent",
         "warning" => "Changed",
         "success" => "Confirmed",
         _         => "Activity"
@@ -102,13 +100,6 @@
                 <div class="kpi-label">Unread</div>
             </div>
         </div>
-        <div class="kpi-card kpi-card--danger">
-            <div class="kpi-icon"><i class="fas fa-exclamation-circle"></i></div>
-            <div class="kpi-body">
-                <div class="kpi-value">@urgentCount</div>
-                <div class="kpi-label">Urgent</div>
-            </div>
-        </div>
         <div class="kpi-card kpi-card--success">
             <div class="kpi-icon"><i class="fas fa-check-circle"></i></div>
             <div class="kpi-body">
@@ -150,10 +141,6 @@
             <button class="notif-tab" data-filter="unread" onclick="filterAlerts('unread')">
                 Unread
                 <span class="notif-tab-count notif-tab-count--red" id="filterCount-unread">@unreadCount</span>
-            </button>
-            <button class="notif-tab" data-filter="danger" onclick="filterAlerts('danger')">
-                Urgent
-                <span class="notif-tab-count notif-tab-count--red" id="filterCount-danger">@urgentCount</span>
             </button>
             <button class="notif-tab" data-filter="warning" onclick="filterAlerts('warning')">
                 Changes

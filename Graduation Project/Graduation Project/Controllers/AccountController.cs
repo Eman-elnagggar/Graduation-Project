@@ -682,10 +682,37 @@ namespace Graduation_Project.Controllers
                     ViewBag.PatientId = patient.PatientID;
             }
 
-            ViewBag.AttemptedUrl = string.IsNullOrWhiteSpace(returnUrl) ? Request.Path.Value : returnUrl;
+            var attemptedUrl = string.IsNullOrWhiteSpace(returnUrl) ? Request.Path.Value : returnUrl;
+            ViewBag.AttemptedUrl = attemptedUrl;
             ViewBag.UserRole = currentRole;
+            ViewBag.RequiredRole = InferRequiredRole(attemptedUrl);
 
             return View();
+        }
+
+        // Best-effort guess of which role the attempted resource is reserved for,
+        // based on the first path segment (i.e. the controller name).
+        private static string? InferRequiredRole(string? url)
+        {
+            if (string.IsNullOrWhiteSpace(url))
+                return null;
+
+            var path = url.Split('?', '#')[0];
+            var segment = path
+                .Split('/', StringSplitOptions.RemoveEmptyEntries)
+                .FirstOrDefault()?
+                .ToLowerInvariant();
+
+            return segment switch
+            {
+                "doctor" => "Doctor",
+                "admin" => "Admin",
+                "assistant" => "Assistant",
+                "lab" => "Lab",
+                "ultrasound" => "Doctor",
+                "patient" or "patientmedicalhistory" => "Patient",
+                _ => null
+            };
         }
 
         [HttpPost]
