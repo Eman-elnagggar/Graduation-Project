@@ -16,10 +16,6 @@ namespace Graduation_Project.ViewModels
             a.AlertType?.ToLower() == "danger" ||
             a.AlertType?.ToLower() == "critical");
         public int WarningCount  => Alerts.Count(a => a.AlertType?.ToLower() == "warning");
-        public int InfoCount     => Alerts.Count(a =>
-            a.AlertType?.ToLower() != "danger"   &&
-            a.AlertType?.ToLower() != "critical" &&
-            a.AlertType?.ToLower() != "warning");
         public int UnreadCount   => Alerts.Count(a => !a.IsRead);
         public int TotalCount    => Alerts.Count;
     }

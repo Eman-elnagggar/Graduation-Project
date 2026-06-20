@@ -59,6 +59,7 @@ namespace Graduation_Project.Data
         public DbSet<ChatbotMessage> ChatbotMessages { get; set; }
         public DbSet<UserPushSubscription> UserPushSubscriptions { get; set; }
         public DbSet<DoctorNotification> DoctorNotifications { get; set; }
+        public DbSet<PatientNotification> PatientNotifications { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -508,6 +509,19 @@ namespace Graduation_Project.Data
             modelBuilder.Entity<Alert>(entity =>
             {
                 entity.HasKey(e => e.AlertID);
+
+                entity.HasOne(d => d.Patient)
+                    .WithMany()
+                    .HasForeignKey(d => d.PatientID)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ============================================================
+            // 19b. PATIENT -> NOTIFICATIONS (reminders / status / operational)
+            // ============================================================
+            modelBuilder.Entity<PatientNotification>(entity =>
+            {
+                entity.HasKey(e => e.Id);
 
                 entity.HasOne(d => d.Patient)
                     .WithMany()

@@ -16,6 +16,7 @@ namespace Graduation_Project.Services
         private readonly ILogger<AnalysisService> _logger;
         private readonly IWebHostEnvironment _env;
         private readonly IDoctorNotificationService _doctorNotification;
+        private readonly IPatientNotificationService _patientNotification;
         private const string SubmitCbcNameNormalized = "cbc (complete blood count)";
         private const string SubmitUrinalysisNameNormalized = "urinalysis";
         private const string SubmitFbgNameNormalized = "fasting blood glucose";
@@ -32,7 +33,8 @@ namespace Graduation_Project.Services
             AnalysisSubmitClient submitClient,
             ILogger<AnalysisService> logger,
             IWebHostEnvironment env,
-            IDoctorNotificationService doctorNotification)
+            IDoctorNotificationService doctorNotification,
+            IPatientNotificationService patientNotification)
         {
             _context = context;
             _ocrClient = ocrClient;
@@ -40,6 +42,7 @@ namespace Graduation_Project.Services
             _logger = logger;
             _env = env;
             _doctorNotification = doctorNotification;
+            _patientNotification = patientNotification;
         }
 
         public async Task<AnalysisUploadResponse> UploadAndExtractAsync(AnalysisUploadRequest request, CancellationToken cancellationToken = default)
@@ -665,6 +668,13 @@ namespace Graduation_Project.Services
                         $"/Doctor/PatientDetails/{pd.DoctorID}?patientId={patientId}");
                 }
             }
+
+            // Let the patient know their results are ready (bell notification).
+            _patientNotification.Notify(patientId,
+                "Lab Results Ready",
+                "Your lab test has been analyzed. View the results in your Medical History.",
+                PatientNotificationTypes.LabResult,
+                "/PatientMedicalHistory/MedicalHistory/" + patientId);
         }
 
         private static void UpdatePatientFromRisk(Patient patient, AnalysisSubmitResponse response)

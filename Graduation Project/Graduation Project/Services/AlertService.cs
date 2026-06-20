@@ -1,5 +1,7 @@
+using Graduation_Project.Data;
 using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
+using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
 namespace Graduation_Project.Services
@@ -13,11 +15,13 @@ namespace Graduation_Project.Services
     {
         private readonly IAlert _alertRepository;
         private readonly IPushNotificationService _push;
+        private readonly AppDbContext _context;
 
-        public AlertService(IAlert alertRepository, IPushNotificationService push)
+        public AlertService(IAlert alertRepository, IPushNotificationService push, AppDbContext context)
         {
             _alertRepository = alertRepository;
             _push = push;
+            _context = context;
         }
 
         /// <summary>
@@ -203,6 +207,9 @@ namespace Graduation_Project.Services
                     AlertTypes.Danger);
             }
 
+            // ?? Proactive monitoring (adherence, gaps, trends, overdue care) ?
+            EvaluateProactiveAlerts(patientId, newAlerts, existingKeys);
+
             // ?? Persist ????????????????????????????????????????????????????
             if (newAlerts.Count > 0)
             {
@@ -304,6 +311,124 @@ namespace Graduation_Project.Services
             if (el.TryGetProperty(key, out var prop))
                 return prop.ValueKind == JsonValueKind.String ? prop.GetString() : prop.ToString();
             return null;
+        }
+
+        /// <summary>
+        /// Proactive, data-driven alerts that look beyond the latest reading:
+        /// medication adherence, logging gaps, rising trends and overdue checkups.
+        /// All are deduplicated per day via <paramref name="existingKeys"/>.
+        /// </summary>
+        private void EvaluateProactiveAlerts(int patientId, List<Alert> newAlerts, HashSet<string> existingKeys)
+        {
+            var now = DateTime.Now;
+            var weekAgo = now.AddDays(-7);
+            var today = DateTime.Today;
+
+            // 1) Missed-medication adherence — 3+ missed/skipped doses in the last 7 days.
+            int missedDoses = _context.MedicationLogs
+                .Count(l => l.Medication.PatientID == patientId
+                            && (l.Status == MedicationLogStatus.Missed || l.Status == MedicationLogStatus.Skipped)
+                            && l.ScheduledAt >= weekAgo);
+            if (missedDoses >= 3)
+            {
+                TryAdd(newAlerts, existingKeys, patientId,
+                    "Missed Medication Doses",
+                    $"You've missed {missedDoses} medication doses in the past week. Taking your medication consistently is important — please follow your schedule.",
+                    AlertTypes.Warning);
+            }
+
+            // 2) No readings logged in 7 days (only nudge patients who have logged before).
+            var lastBp = _context.PatientBloodPressure
+                .Where(r => r.PatientID == patientId)
+                .OrderByDescending(r => r.DateTime)
+                .Select(r => (DateTime?)r.DateTime)
+                .FirstOrDefault();
+            if (lastBp.HasValue && lastBp.Value < weekAgo)
+            {
+                TryAdd(newAlerts, existingKeys, patientId,
+                    "Log Your Blood Pressure",
+                    "You haven't recorded a blood pressure reading in over a week. Regular monitoring helps keep you and your baby safe.",
+                    AlertTypes.Info);
+            }
+
+            var lastBs = _context.PatientBloodSugar
+                .Where(r => r.PatientID == patientId)
+                .OrderByDescending(r => r.DateTime)
+                .Select(r => (DateTime?)r.DateTime)
+                .FirstOrDefault();
+            if (lastBs.HasValue && lastBs.Value < weekAgo)
+            {
+                TryAdd(newAlerts, existingKeys, patientId,
+                    "Log Your Blood Sugar",
+                    "You haven't recorded a blood sugar reading in over a week. Keeping a regular log helps your care team spot issues early.",
+                    AlertTypes.Info);
+            }
+
+            // 3) Rising trend — last 3 readings climbing.
+            var recentBp = _context.PatientBloodPressure
+                .Where(r => r.PatientID == patientId)
+                .OrderByDescending(r => r.DateTime)
+                .Take(3)
+                .ToList();
+            if (recentBp.Count == 3)
+            {
+                var newest = ParseSystolic(recentBp[0].BloodPressure);
+                var mid = ParseSystolic(recentBp[1].BloodPressure);
+                var oldest = ParseSystolic(recentBp[2].BloodPressure);
+                if (newest.HasValue && mid.HasValue && oldest.HasValue
+                    && newest > mid && mid > oldest
+                    && newest - oldest >= 10 && newest >= 130)
+                {
+                    TryAdd(newAlerts, existingKeys, patientId,
+                        "Blood Pressure Trending Up",
+                        $"Your last three blood pressure readings have been rising ({oldest} → {mid} → {newest} systolic). Please monitor closely and contact your doctor.",
+                        AlertTypes.Warning);
+                }
+            }
+
+            var recentBs = _context.PatientBloodSugar
+                .Where(r => r.PatientID == patientId)
+                .OrderByDescending(r => r.DateTime)
+                .Take(3)
+                .ToList();
+            if (recentBs.Count == 3)
+            {
+                double newest = recentBs[0].BloodSugar, mid = recentBs[1].BloodSugar, oldest = recentBs[2].BloodSugar;
+                if (newest > mid && mid > oldest && newest - oldest >= 15 && newest >= 110)
+                {
+                    TryAdd(newAlerts, existingKeys, patientId,
+                        "Blood Sugar Trending Up",
+                        $"Your last three blood sugar readings have been rising ({oldest:0} → {mid:0} → {newest:0} mg/dL). Please monitor closely and consult your doctor.",
+                        AlertTypes.Warning);
+                }
+            }
+
+            // 4) Overdue checkup — no upcoming appointment and last one was 4+ weeks ago.
+            bool hasUpcoming = _context.Appointments
+                .Any(a => a.PatientID == patientId && a.isBooked && a.Date >= today);
+            if (!hasUpcoming)
+            {
+                var lastApptDate = _context.Appointments
+                    .Where(a => a.PatientID == patientId && a.isBooked && a.Date < today)
+                    .OrderByDescending(a => a.Date)
+                    .Select(a => (DateTime?)a.Date)
+                    .FirstOrDefault();
+                if (lastApptDate.HasValue && lastApptDate.Value < today.AddDays(-28))
+                {
+                    TryAdd(newAlerts, existingKeys, patientId,
+                        "Checkup Recommended",
+                        "It's been over four weeks since your last appointment and none is scheduled. Consider booking a prenatal checkup.",
+                        AlertTypes.Info);
+                }
+            }
+        }
+
+        private static int? ParseSystolic(string? bloodPressure)
+        {
+            if (string.IsNullOrWhiteSpace(bloodPressure) || !bloodPressure.Contains('/'))
+                return null;
+            var parts = bloodPressure.Split('/');
+            return int.TryParse(parts[0].Trim(), out var systolic) ? systolic : (int?)null;
         }
 
         private static void TryAdd(

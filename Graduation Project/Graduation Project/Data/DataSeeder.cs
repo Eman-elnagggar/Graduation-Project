@@ -11,6 +11,17 @@ namespace Graduation_Project.Data
             // Apply any pending migrations automatically
             await context.Database.MigrateAsync();
 
+            // One-time cleanup: rows that used to be stored as Alerts but are now
+            // PatientNotifications (reminders / status / operational). These linger in
+            // the Alerts table on databases created before the alert/notification split,
+            // so they would otherwise still show on the clinical Alerts page.
+            // (Appointment reminders intentionally remain on the Alerts page.)
+            await context.Alerts
+                .Where(a => a.Title == "Medication Reminder"
+                            || a.Title == "Ultrasound Analysis Ready"
+                            || a.Category == "Operational")
+                .ExecuteDeleteAsync();
+
             // ============================================================
             // 1. ROLES (Identity)
             // ============================================================
@@ -668,27 +679,37 @@ namespace Graduation_Project.Data
             }
 
             // ============================================================
-            // 24. ALERTS
+            // 24. ALERTS (clinical health alerts only)
             // ============================================================
             if (!context.Alerts.Any())
             {
                 context.Alerts.AddRange(
-                    new Alert { PatientID = pSarah.PatientID,   Title = "Low Hemoglobin Detected",  Message = "Your CBC shows hemoglobin of 10.8 g/dL. Consider increasing iron supplementation.",             AlertType = "Warning",  DateCreated = new DateTime(2025, 3, 16), IsRead = false },
-                    new Alert { PatientID = pSarah.PatientID,   Title = "Upcoming Appointment",      Message = "You have an appointment with Dr. Ahmed Hassan tomorrow at 10:00 AM.",                            AlertType = "Info",     DateCreated = new DateTime(2025, 3, 19), IsRead = false },
-                    new Alert { PatientID = pSarah.PatientID,   Title = "Blood Pressure Normal",     Message = "Your blood pressure reading of 118/76 mmHg is within the normal range.",                        AlertType = "Success",  DateCreated = new DateTime(2025, 3, 17), IsRead = true  },
-                    new Alert { PatientID = pFatima.PatientID,  Title = "Elevated Blood Pressure",   Message = "Your blood pressure has been consistently elevated. Follow up with your doctor immediately.",    AlertType = "Critical", DateCreated = new DateTime(2025, 3, 11), IsRead = false },
-                    new Alert { PatientID = pFatima.PatientID,  Title = "Elevated WBC Count",        Message = "Your CBC shows an elevated WBC count of 12,000. This may indicate an infection.",               AlertType = "Warning",  DateCreated = new DateTime(2025, 3, 10), IsRead = false },
-                    new Alert { PatientID = pYasmine.PatientID, Title = "Welcome to MamaCare",       Message = "Welcome! Your first trimester panel results are all normal. Keep following your care plan.",     AlertType = "Success",  DateCreated = new DateTime(2025, 2, 28), IsRead = true  },
-                    new Alert { PatientID = pHana.PatientID,    Title = "Iron Deficiency Anemia",    Message = "Your ferritin level is critically low at 8 ng/mL. IV iron therapy has been prescribed.",         AlertType = "Critical", DateCreated = new DateTime(2025, 3, 1),  IsRead = false },
-                    new Alert { PatientID = pHana.PatientID,    Title = "Upcoming Appointment",      Message = "Your appointment with Dr. Karim Mostafa is on March 25 at 2:00 PM.",                             AlertType = "Info",     DateCreated = new DateTime(2025, 3, 20), IsRead = false },
-                    new Alert { PatientID = pReem.PatientID,    Title = "HbA1c Above Target",        Message = "Your HbA1c is 6.8%, above the gestational diabetes target. Dietary adjustments recommended.",    AlertType = "Warning",  DateCreated = new DateTime(2025, 3, 5),  IsRead = false },
-                    new Alert { PatientID = pReem.PatientID,    Title = "Prenatal Vitamin Reminder", Message = "Remember to take your daily prenatal vitamin and folic acid supplement.",                         AlertType = "Info",     DateCreated = new DateTime(2025, 3, 18), IsRead = false },
-                    // Today's alerts
-                    new Alert { PatientID = pSarah.PatientID,   Title = "Appointment Today",         Message = "You have appointments at MamaCare Central today. Please arrive 15 minutes early.",                AlertType = "Info",     DateCreated = DateTime.Today,             IsRead = false },
-                    new Alert { PatientID = pFatima.PatientID,  Title = "Appointment Today",         Message = "You have appointments today with Dr. Ahmed and Dr. Mona. Bring your recent test results.",       AlertType = "Info",     DateCreated = DateTime.Today,             IsRead = false },
-                    new Alert { PatientID = pHana.PatientID,    Title = "Iron Therapy Reminder",     Message = "Your weekly IV iron infusion is due. Contact the clinic to schedule your appointment.",            AlertType = "Warning",  DateCreated = DateTime.Today,             IsRead = false },
-                    new Alert { PatientID = pYasmine.PatientID, Title = "First Trimester Update",    Message = "Your first trimester is progressing well. Next screening scheduled soon.",                         AlertType = "Success",  DateCreated = DateTime.Today,             IsRead = false },
-                    new Alert { PatientID = pReem.PatientID,    Title = "Blood Sugar Alert",         Message = "Your recent blood sugar readings are above target. Please follow the adjusted dietary plan.",      AlertType = "Critical", DateCreated = DateTime.Today,             IsRead = false }
+                    new Alert { PatientID = pSarah.PatientID,   Title = "Low Hemoglobin Detected",  Message = "Your CBC shows hemoglobin of 10.8 g/dL. Consider increasing iron supplementation.",             AlertType = "warning",  DateCreated = new DateTime(2025, 3, 16), IsRead = false },
+                    new Alert { PatientID = pFatima.PatientID,  Title = "Elevated Blood Pressure",   Message = "Your blood pressure has been consistently elevated. Follow up with your doctor immediately.",    AlertType = "danger", DateCreated = new DateTime(2025, 3, 11), IsRead = false },
+                    new Alert { PatientID = pFatima.PatientID,  Title = "Elevated WBC Count",        Message = "Your CBC shows an elevated WBC count of 12,000. This may indicate an infection.",               AlertType = "warning",  DateCreated = new DateTime(2025, 3, 10), IsRead = false },
+                    new Alert { PatientID = pHana.PatientID,    Title = "Iron Deficiency Anemia",    Message = "Your ferritin level is critically low at 8 ng/mL. IV iron therapy has been prescribed.",         AlertType = "danger", DateCreated = new DateTime(2025, 3, 1),  IsRead = false },
+                    new Alert { PatientID = pReem.PatientID,    Title = "HbA1c Above Target",        Message = "Your HbA1c is 6.8%, above the gestational diabetes target. Dietary adjustments recommended.",    AlertType = "warning",  DateCreated = new DateTime(2025, 3, 5),  IsRead = false },
+                    new Alert { PatientID = pReem.PatientID,    Title = "Blood Sugar Alert",         Message = "Your recent blood sugar readings are above target. Please follow the adjusted dietary plan.",      AlertType = "danger", DateCreated = DateTime.Today,             IsRead = false },
+                    // Upcoming appointment reminders (shown on the Alerts page)
+                    new Alert { PatientID = pSarah.PatientID,   Title = "Appointment Tomorrow",      Message = "You have an appointment with Dr. Ahmed Hassan tomorrow at 10:00 AM.",                              AlertType = "info",     DateCreated = new DateTime(2025, 3, 19), IsRead = false },
+                    new Alert { PatientID = pHana.PatientID,    Title = "Appointment Tomorrow",      Message = "Your appointment with Dr. Karim Mostafa is on March 25 at 2:00 PM.",                               AlertType = "info",     DateCreated = new DateTime(2025, 3, 20), IsRead = false }
+                );
+                await context.SaveChangesAsync();
+            }
+
+            // ============================================================
+            // 24b. PATIENT NOTIFICATIONS (reminders / status / operational)
+            // ============================================================
+            if (!context.PatientNotifications.Any())
+            {
+                context.PatientNotifications.AddRange(
+                    // Patient-facing notifications (shown in the bell)
+                    new PatientNotification { PatientID = pReem.PatientID,    Title = "Medication Reminder",       Message = "Remember to take your daily prenatal vitamin and folic acid supplement.",             NotificationType = "medication",  Severity = "info", DateCreated = new DateTime(2025, 3, 18), IsRead = false, ActionUrl = "/Patient/Medications" },
+                    new PatientNotification { PatientID = pYasmine.PatientID, Title = "Ultrasound Analysis Ready",  Message = "Dr. Mona analyzed your week 12 dating scan. Result: normal. View it in your Medical History.", NotificationType = "ultrasound", Severity = "info", DateCreated = new DateTime(2025, 2, 28), IsRead = true,  ActionUrl = "/PatientMedicalHistory/MedicalHistory/" + pYasmine.PatientID },
+                    new PatientNotification { PatientID = pSarah.PatientID,   Title = "Medication Reminder",       Message = "It's time to take your iron supplement (60mg).",                                       NotificationType = "medication",  Severity = "info", DateCreated = DateTime.Today,             IsRead = false, ActionUrl = "/Patient/Medications" },
+                    // Operational notifications (clinic-facing — shown to assistants)
+                    new PatientNotification { PatientID = pSarah.PatientID,   Title = "Patient Checked In",        Message = "Sarah has checked in for her appointment with Dr. Ahmed Hassan today.",               NotificationType = "operational", Severity = "info",    DateCreated = DateTime.Today,            IsRead = false, ActionUrl = "/Assistant/Alerts" },
+                    new PatientNotification { PatientID = pFatima.PatientID,  Title = "Appointment Rescheduled",   Message = "Appointment for Fatima with Dr. Mona has been rescheduled to Mar 28, 2025 at 11:00.",  NotificationType = "operational", Severity = "warning", DateCreated = DateTime.Today,            IsRead = false, ActionUrl = "/Assistant/Alerts" }
                 );
                 await context.SaveChangesAsync();
             }

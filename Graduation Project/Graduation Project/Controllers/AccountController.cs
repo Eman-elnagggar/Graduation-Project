@@ -1,4 +1,5 @@
 using Graduation_Project.Data;
+using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
 using Graduation_Project.ViewModels;
 using Graduation_Project.Services;
@@ -21,6 +22,7 @@ namespace Graduation_Project.Controllers
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _environment;
         private readonly IEmailService _emailService;
+        private readonly IPatientNotificationService _patientNotifications;
 
         public AccountController(
             UserManager<ApplicationUser> userManager,
@@ -28,7 +30,8 @@ namespace Graduation_Project.Controllers
             RoleManager<IdentityRole> roleManager,
             AppDbContext context,
             IWebHostEnvironment environment,
-            IEmailService emailService)
+            IEmailService emailService,
+            IPatientNotificationService patientNotifications)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -36,6 +39,7 @@ namespace Graduation_Project.Controllers
             _context = context;
             _environment = environment;
             _emailService = emailService;
+            _patientNotifications = patientNotifications;
         }
 
         private static string? NormalizeBabyGender(string? value)
@@ -340,6 +344,12 @@ namespace Graduation_Project.Controllers
             }
 
             await _context.SaveChangesAsync();
+
+            _patientNotifications.Notify(patient.PatientID,
+                "Welcome to NABD",
+                "Your account is ready! Explore your dashboard, track your health, and stay connected with your care team.",
+                PatientNotificationTypes.Account,
+                "/Patient/Index");
 
             await _signInManager.SignInAsync(user, isPersistent: false);
             return await RedirectToRoleLandingAsync(user);
@@ -814,6 +824,21 @@ namespace Graduation_Project.Controllers
             }
 
             await _signInManager.RefreshSignInAsync(user);
+
+            // Confirmation notification for patients.
+            var patientId = await _context.Patients
+                .Where(p => p.UserID == user.Id)
+                .Select(p => p.PatientID)
+                .FirstOrDefaultAsync();
+            if (patientId > 0)
+            {
+                _patientNotifications.Notify(patientId,
+                    "Password Changed",
+                    "Your account password was changed successfully. If this wasn't you, contact support immediately.",
+                    PatientNotificationTypes.Account,
+                    "/Patient/Index");
+            }
+
             return Json(new { success = true });
         }
 

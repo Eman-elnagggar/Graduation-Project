@@ -27,6 +27,7 @@ namespace Graduation_Project.Controllers
         private readonly ILabTest _labTestRepository;
         private readonly AssistantScheduleService _assistantScheduleService;
         private readonly IDoctorNotificationService _doctorNotificationService;
+        private readonly IPatientNotificationService _patientNotificationService;
         private readonly AppDbContext _context;
         private readonly IChatMessageCrypto _chatMessageCrypto;
         private readonly IWebHostEnvironment _env;
@@ -44,6 +45,7 @@ namespace Graduation_Project.Controllers
             ILabTest labTestRepository,
             AssistantScheduleService assistantScheduleService,
             IDoctorNotificationService doctorNotificationService,
+            IPatientNotificationService patientNotificationService,
             AppDbContext context,
             IChatMessageCrypto chatMessageCrypto,
             IWebHostEnvironment env,
@@ -60,6 +62,7 @@ namespace Graduation_Project.Controllers
             _labTestRepository = labTestRepository;
             _assistantScheduleService = assistantScheduleService;
             _doctorNotificationService = doctorNotificationService;
+            _patientNotificationService = patientNotificationService;
             _context = context;
             _chatMessageCrypto = chatMessageCrypto;
             _env = env;
@@ -128,9 +131,9 @@ namespace Graduation_Project.Controllers
                 .Distinct()
                 .ToList();
 
-            var recentAlerts = _alertRepository
-                .GetUnreadByPatientIds(patientIds, 10)
-                .Where(a => a.Category == "Operational")
+            var recentAlerts = _patientNotificationService
+                .GetForPatients(patientIds, PatientNotificationTypes.Operational)
+                .Where(n => !n.IsRead)
                 .Take(5)
                 .ToList();
 
@@ -405,9 +408,9 @@ namespace Graduation_Project.Controllers
                 .Select(pd => pd.PatientID).Distinct().ToList();
 
             var pendingAlertsCount = uniquePatientIds.Any()
-                ? _context.Alerts
+                ? _context.PatientNotifications
                     .AsNoTracking()
-                    .Count(a => uniquePatientIds.Contains(a.PatientID) && !a.IsRead && a.Category == "Operational")
+                    .Count(n => uniquePatientIds.Contains(n.PatientID) && !n.IsRead && n.NotificationType == PatientNotificationTypes.Operational)
                 : 0;
 
             var testsThisWeek = isFiltered
@@ -445,9 +448,9 @@ namespace Graduation_Project.Controllers
                 .ToList();
 
             var unreadCount = patientIds.Any()
-                ? _context.Alerts
+                ? _context.PatientNotifications
                     .AsNoTracking()
-                    .Count(a => patientIds.Contains(a.PatientID) && !a.IsRead && a.Category == "Operational")
+                    .Count(n => patientIds.Contains(n.PatientID) && !n.IsRead && n.NotificationType == PatientNotificationTypes.Operational)
                 : 0;
 
             return Json(new { unreadCount });
@@ -467,26 +470,26 @@ namespace Graduation_Project.Controllers
                 .ToList();
 
             var alerts = patientIds.Any()
-                ? _context.Alerts
+                ? _context.PatientNotifications
                     .AsNoTracking()
-                    .Include(a => a.Patient)
+                    .Include(n => n.Patient)
                         .ThenInclude(p => p.User)
-                    .Where(a => patientIds.Contains(a.PatientID) && a.Category == "Operational")
-                    .OrderByDescending(a => a.DateCreated)
+                    .Where(n => patientIds.Contains(n.PatientID) && n.NotificationType == PatientNotificationTypes.Operational)
+                    .OrderByDescending(n => n.DateCreated)
                     .Take(20)
                     .ToList()
-                : new List<Alert>();
+                : new List<PatientNotification>();
 
-            var result = alerts.Select(a => new
+            var result = alerts.Select(n => new
             {
-                alertId   = a.AlertID,
-                title     = a.Title,
-                message   = a.Message,
-                alertType = a.AlertType ?? "info",
-                dateCreated = a.DateCreated.ToString("o"),
-                isRead    = a.IsRead,
-                patientName = a.Patient?.User != null
-                    ? $"{a.Patient.User.FirstName} {a.Patient.User.LastName}".Trim()
+                alertId   = n.Id,
+                title     = n.Title,
+                message   = n.Message,
+                alertType = n.Severity ?? "info",
+                dateCreated = n.DateCreated.ToString("o"),
+                isRead    = n.IsRead,
+                patientName = n.Patient?.User != null
+                    ? $"{n.Patient.User.FirstName} {n.Patient.User.LastName}".Trim()
                     : "Patient"
             });
 
@@ -1163,9 +1166,8 @@ namespace Graduation_Project.Controllers
                 .Distinct()
                 .ToList();
 
-            var alerts = _alertRepository.GetByPatientIds(patientIds)
-                .Where(a => a.Category == "Operational")
-                .ToList();
+            var alerts = _patientNotificationService
+                .GetForPatients(patientIds, PatientNotificationTypes.Operational);
 
             var vm = new AssistantAlertsViewModel
             {
@@ -1193,9 +1195,9 @@ namespace Graduation_Project.Controllers
             var accessResult = TryResolveAssistantClinic(id, out var assistant, out var clinic, true);
             if (accessResult != null) return accessResult;
 
-            var alert = _alertRepository.GetById(alertId);
-            if (alert == null)
-                return Json(new { success = false, message = "Alert not found." });
+            var notification = _context.PatientNotifications.Find(alertId);
+            if (notification == null)
+                return Json(new { success = false, message = "Notification not found." });
 
             var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
             var patientIds = _patientDoctorRepository
@@ -1203,12 +1205,10 @@ namespace Graduation_Project.Controllers
                 .Select(pd => pd.PatientID)
                 .ToHashSet();
 
-            if (!patientIds.Contains(alert.PatientID))
+            if (!patientIds.Contains(notification.PatientID))
                 return Json(new { success = false, message = "Access denied." });
 
-            alert.IsRead = true;
-            _alertRepository.Update(alert);
-            _alertRepository.Save();
+            _patientNotificationService.MarkRead(alertId);
 
             return Json(new { success = true });
         }
@@ -1226,17 +1226,9 @@ namespace Graduation_Project.Controllers
                 .Select(pd => pd.PatientID)
                 .ToList();
 
-            var unread = _alertRepository.GetUnreadByPatientIds(patientIds, int.MaxValue)
-                .Where(a => a.Category == "Operational")
-                .ToList();
-            foreach (var alert in unread)
-            {
-                alert.IsRead = true;
-                _alertRepository.Update(alert);
-            }
-            _alertRepository.Save();
+            var count = _patientNotificationService.MarkAllRead(patientIds, PatientNotificationTypes.Operational);
 
-            return Json(new { success = true, count = unread.Count });
+            return Json(new { success = true, count });
         }
 
         public IActionResult Availability(int id, int? doctorId)
@@ -1661,7 +1653,15 @@ namespace Graduation_Project.Controllers
                 CreateOperationalAlert(patient.PatientID,
                     "New Patient Registered",
                     $"{newPatientFullName} has been registered and assigned to {newPatientDoctorName}.",
-                    AlertTypes.Info);
+                    AlertTypes.Info,
+                    alsoNotifyPatient: false);
+
+                // Welcome notification for the new patient.
+                _patientNotificationService.Notify(patient.PatientID,
+                    "Welcome to NABD",
+                    $"Welcome! Your account is ready and you've been assigned to {newPatientDoctorName}. Explore your dashboard to get started.",
+                    PatientNotificationTypes.Account,
+                    "/Patient/Index");
 
                 if (model.IsPregnant && model.PregnancyDate.HasValue)
                 {
@@ -1699,19 +1699,19 @@ namespace Graduation_Project.Controllers
             }
         }
 
-        private void CreateOperationalAlert(int patientId, string title, string message, string alertType = AlertTypes.Info)
+        private void CreateOperationalAlert(int patientId, string title, string message,
+            string alertType = AlertTypes.Info, bool alsoNotifyPatient = true)
         {
-            _alertRepository.Add(new Alert
+            // Clinic-facing operational notification (shown to assistants).
+            _patientNotificationService.Notify(patientId, title, message,
+                PatientNotificationTypes.Operational, "/Assistant/Alerts", severity: alertType);
+
+            // Patient-facing copy so the patient is informed of the appointment change too.
+            if (alsoNotifyPatient)
             {
-                PatientID   = patientId,
-                Title       = title,
-                Message     = message,
-                AlertType   = alertType,
-                Category    = "Operational",
-                DateCreated = DateTime.Now,
-                IsRead      = false
-            });
-            _alertRepository.Save();
+                _patientNotificationService.Notify(patientId, title, message,
+                    PatientNotificationTypes.Appointment, "/Patient/Appointments", severity: alertType);
+            }
         }
 
         private static string GenerateTemporaryPassword()

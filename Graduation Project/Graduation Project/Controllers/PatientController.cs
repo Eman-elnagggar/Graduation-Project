@@ -26,6 +26,7 @@ namespace Graduation_Project.Controllers
         private readonly IAlert _alertRepository;
         private readonly AlertService _alertService;
         private readonly IDoctorNotificationService _doctorNotificationService;
+        private readonly IPatientNotificationService _patientNotificationService;
         private readonly MedicationReminderService _medicationReminderService;
         private readonly AppDbContext _context;
         private readonly IChatMessageCrypto _chatMessageCrypto;
@@ -43,6 +44,7 @@ namespace Graduation_Project.Controllers
             IAlert alertRepository,
             AlertService alertService,
             IDoctorNotificationService doctorNotificationService,
+            IPatientNotificationService patientNotificationService,
             MedicationReminderService medicationReminderService,
             AppDbContext context,
             IChatMessageCrypto chatMessageCrypto,
@@ -59,6 +61,7 @@ namespace Graduation_Project.Controllers
             _alertRepository = alertRepository;
             _alertService = alertService;
             _doctorNotificationService = doctorNotificationService;
+            _patientNotificationService = patientNotificationService;
             _medicationReminderService = medicationReminderService;
             _context = context;
             _chatMessageCrypto = chatMessageCrypto;
@@ -114,6 +117,27 @@ namespace Graduation_Project.Controllers
             else if (patient.GestationalWeeks > 0)
             {
                 currentWeek = Math.Clamp(patient.GestationalWeeks, 0, 40);
+            }
+
+            // Pregnancy milestone notification — fires once per gestational week
+            // (the title is unique per week, so it is never duplicated).
+            if (hasActivePregnancy && currentWeek >= 1)
+            {
+                var milestoneTitle = $"You're in week {currentWeek}";
+                bool alreadySent = _context.PatientNotifications
+                    .Any(n => n.PatientID == id && n.Title == milestoneTitle);
+
+                if (!alreadySent)
+                {
+                    var trimester = currentWeek <= 13 ? "first"
+                                  : currentWeek <= 27 ? "second"
+                                  : "third";
+                    _patientNotificationService.Notify(id,
+                        milestoneTitle,
+                        $"You've reached week {currentWeek} of your pregnancy — your {trimester} trimester. Keep up with your care plan!",
+                        PatientNotificationTypes.Pregnancy,
+                        "/Patient/Index");
+                }
             }
 
             // Calculate due date (280 days = 40 weeks from start)

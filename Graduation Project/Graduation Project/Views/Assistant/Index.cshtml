@@ -186,14 +186,14 @@
                     <div class="alert-list">
                         @foreach (var alert in Model.RecentAlerts.Take(5))
                         {
-                            var rowClass = alert.AlertType?.ToLower() switch
+                            var rowClass = alert.Severity?.ToLower() switch
                             {
                                 "danger"  => "alert-row--danger",
                                 "warning" => "alert-row--warning",
                                 "success" => "alert-row--success",
                                 _         => "alert-row--info"
                             };
-                            var alertIcon = alert.AlertType?.ToLower() switch
+                            var alertIcon = alert.Severity?.ToLower() switch
                             {
                                 "danger"  => "fa-exclamation-circle",
                                 "warning" => "fa-exclamation-triangle",
@@ -214,7 +214,7 @@
                                         @patientName &nbsp;&middot;&nbsp; @alert.DateCreated.ToString("MMM dd, hh:mm tt")
                                     </div>
                                 </div>
-                                <span class="alert-row-type">@alert.AlertType</span>
+                                <span class="alert-row-type">@alert.Severity</span>
                             </div>
                         }
                     </div>

@@ -14,12 +14,15 @@ namespace Graduation_Project.Hubs
         private readonly AppDbContext _db;
         private readonly IChatMessageCrypto _chatMessageCrypto;
         private readonly IPushNotificationService _push;
+        private readonly IPatientNotificationService _patientNotifications;
 
-        public ChatHub(AppDbContext db, IChatMessageCrypto chatMessageCrypto, IPushNotificationService push)
+        public ChatHub(AppDbContext db, IChatMessageCrypto chatMessageCrypto,
+            IPushNotificationService push, IPatientNotificationService patientNotifications)
         {
             _db = db;
             _chatMessageCrypto = chatMessageCrypto;
             _push = push;
+            _patientNotifications = patientNotifications;
         }
 
         public async Task SendMessage(string receiverId, string message)
@@ -93,10 +96,21 @@ namespace Graduation_Project.Hubs
                 var sender = await _db.Users.FindAsync(senderId);
                 var senderName = BuildDisplayName(sender);
 
-                var isPatient = await _db.Patients.AnyAsync(p => p.UserID == receiverId);
+                var receiverPatient = await _db.Patients.FirstOrDefaultAsync(p => p.UserID == receiverId);
+                var isPatient = receiverPatient != null;
                 var url = isPatient ? "/Patient/Messages" : "/Doctor/Messages";
 
                 var preview = text.Length > 80 ? text[..80] + "…" : text;
+
+                // Persist a bell notification for patient recipients (push is sent below,
+                // so the notification itself does not re-push).
+                if (receiverPatient != null)
+                {
+                    _patientNotifications.Notify(receiverPatient.PatientID,
+                        $"New message from {senderName}", preview,
+                        PatientNotificationTypes.Message, url, sendPush: false);
+                }
+
                 await _push.SendToUserAsync(receiverId, $"New message from {senderName}", preview, url);
             }
             catch { }

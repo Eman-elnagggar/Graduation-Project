@@ -1,5 +1,7 @@
 using Graduation_Project.Data;
+using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
+using Graduation_Project.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,11 +14,14 @@ namespace Graduation_Project.Controllers
     {
         private readonly AppDbContext _db;
         private readonly IWebHostEnvironment _env;
+        private readonly IPatientNotificationService _patientNotifications;
 
-        public CommunityController(AppDbContext db, IWebHostEnvironment env)
+        public CommunityController(AppDbContext db, IWebHostEnvironment env,
+            IPatientNotificationService patientNotifications)
         {
             _db = db;
             _env = env;
+            _patientNotifications = patientNotifications;
         }
 
         private bool IsDoctor() => User.IsInRole("Doctor");
@@ -39,6 +44,22 @@ namespace Graduation_Project.Controllers
                 .Where(d => d.UserID == userId)
                 .Select(d => d.DoctorID)
                 .FirstOrDefault();
+        }
+
+        private string GetActorDisplayName(bool isDoctor, int doctorId, int patientId)
+        {
+            if (isDoctor)
+            {
+                var doctor = _db.Doctors.Include(d => d.User).FirstOrDefault(d => d.DoctorID == doctorId);
+                return doctor?.User != null
+                    ? $"Dr. {doctor.User.FirstName} {doctor.User.LastName}".Trim()
+                    : "A doctor";
+            }
+
+            var patient = _db.Patients.Include(p => p.User).FirstOrDefault(p => p.PatientID == patientId);
+            return patient?.User != null
+                ? $"{patient.User.FirstName} {patient.User.LastName}".Trim()
+                : "Someone";
         }
 
         [HttpGet]
@@ -351,6 +372,23 @@ namespace Graduation_Project.Controllers
             var likeCount = _db.CommunityLikes.Count(l => l.CommunityPostId == postId);
             var liked = existing == null;
 
+            // Notify the post author (if a patient) when their post gets a new like —
+            // not on unlike, and not when liking their own post.
+            if (liked)
+            {
+                var post = _db.CommunityPosts.Find(postId);
+                if (post?.PatientID is int likePostOwner
+                    && !(isDoctor == false && likePostOwner == patientId))
+                {
+                    var likerName = GetActorDisplayName(isDoctor, doctorId, patientId);
+                    _patientNotifications.Notify(likePostOwner,
+                        "New like on your post",
+                        $"{likerName} liked your post \"{post.Title}\".",
+                        PatientNotificationTypes.Community,
+                        "/Community");
+                }
+            }
+
             return Json(new { success = true, liked, likeCount });
         }
 
@@ -443,6 +481,19 @@ namespace Graduation_Project.Controllers
                 authorName = patient?.User != null
                     ? $"{patient.User.FirstName} {patient.User.LastName}".Trim()
                     : "Anonymous";
+            }
+
+            // Notify the post author (if a patient) about the new comment — unless they
+            // are commenting on their own post.
+            if (post.PatientID is int commentPostOwner
+                && !(isDoctor == false && commentPostOwner == patientId))
+            {
+                var snippet = comment.Content.Length > 80 ? comment.Content[..80] + "…" : comment.Content;
+                _patientNotifications.Notify(commentPostOwner,
+                    "New comment on your post",
+                    $"{authorName} commented on \"{post.Title}\": {snippet}",
+                    PatientNotificationTypes.Community,
+                    "/Community");
             }
 
             return Json(new

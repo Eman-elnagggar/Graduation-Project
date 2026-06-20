@@ -24,6 +24,7 @@ namespace Graduation_Project.Controllers
         private readonly IUltrasoundImage _ultrasoundRepository;
         private readonly IUltrasoundAIService _aiService;
         private readonly UltrasoundImageStorage _storage;
+        private readonly IPatientNotificationService _notifications;
         private readonly IAlert _alertRepository;
         private readonly IPatient _patientRepository;
         private readonly ILogger<UltrasoundController> _logger;
@@ -34,6 +35,7 @@ namespace Graduation_Project.Controllers
             IUltrasoundImage ultrasoundRepository,
             IUltrasoundAIService aiService,
             UltrasoundImageStorage storage,
+            IPatientNotificationService notifications,
             IAlert alertRepository,
             IPatient patientRepository,
             ILogger<UltrasoundController> logger)
@@ -43,6 +45,7 @@ namespace Graduation_Project.Controllers
             _ultrasoundRepository = ultrasoundRepository;
             _aiService = aiService;
             _storage = storage;
+            _notifications = notifications;
             _alertRepository = alertRepository;
             _patientRepository = patientRepository;
             _logger = logger;
@@ -122,6 +125,9 @@ namespace Graduation_Project.Controllers
                 _ultrasoundRepository.Add(record);
                 _ultrasoundRepository.Save();
 
+                // Surface the new scan on the patient's Alerts page.
+                AddUltrasoundAlert(model.PatientId, BuildDoctorDisplayName(doctor!), record);
+
                 TempData["SuccessMessage"] = "Ultrasound image saved successfully with your note.";
                 return RedirectToAction(nameof(History),
                     new { id = doctor.DoctorID, patientId = model.PatientId });
@@ -143,6 +149,7 @@ namespace Graduation_Project.Controllers
                 record.Prediction = aiResult.Prediction ?? string.Empty;
                 record.ConfidenceScore = aiResult.ConfidenceScore;
                 record.AI_Result_JSON = aiResult.RawJson ?? string.Empty;
+                record.DetectedAnomaly = IsUltrasoundAnomaly(record.Prediction) ? record.Prediction : string.Empty;
                 record.Status = UltrasoundStatus.Completed;
                 analysisSucceeded = true;
             }
@@ -169,21 +176,78 @@ namespace Graduation_Project.Controllers
                 string prediction = string.IsNullOrWhiteSpace(record.Prediction)
                     ? "result is ready" : record.Prediction;
 
-                var alert = new Alert
-                {
-                    PatientID = model.PatientId,
-                    Title = "Ultrasound Analysis Ready",
-                    Message = $"{doctorName} uploaded and analyzed an ultrasound scan for you. Result: {prediction}. View the full result in your Medical History.",
-                    AlertType = AlertTypes.Info,
-                    DateCreated = DateTime.Now,
-                    IsRead = false
-                };
+                // Always: a "ready" status notification in the patient's bell.
+                _notifications.Notify(model.PatientId,
+                    "Ultrasound Analysis Ready",
+                    $"{doctorName} uploaded and analyzed an ultrasound scan for you. Result: {prediction}. View the full result in your Medical History.",
+                    PatientNotificationTypes.Ultrasound,
+                    "/PatientMedicalHistory/MedicalHistory/" + model.PatientId);
 
-                _alertRepository.Add(alert);
-                _alertRepository.Save();
+                // Every analyzed ultrasound result also surfaces on the Alerts page
+                // (info for a clear result, warning/danger when an anomaly is flagged).
+                AddUltrasoundAlert(model.PatientId, doctorName, record);
             }
 
             return RedirectToAction(nameof(Result), new { id = record.ImageID });
+        }
+
+        // The AI returns a free-text prediction with no explicit normal/abnormal flag,
+        // so anything that is not clearly a "clear/normal" result is treated as a finding.
+        private static readonly string[] _clearPredictionKeywords =
+            { "normal", "healthy", "no anomaly", "no abnormal", "negative", "clear", "low risk", "benign", "none" };
+
+        private static readonly string[] _highRiskPredictionKeywords =
+            { "high", "critical", "severe", "malignant", "danger" };
+
+        private static bool IsUltrasoundAnomaly(string? prediction)
+        {
+            if (string.IsNullOrWhiteSpace(prediction)) return false;
+            var p = prediction.Trim().ToLowerInvariant();
+            return !_clearPredictionKeywords.Any(k => p.Contains(k));
+        }
+
+        private static bool IsHighRiskPrediction(string? prediction)
+        {
+            if (string.IsNullOrWhiteSpace(prediction)) return false;
+            var p = prediction.ToLowerInvariant();
+            return _highRiskPredictionKeywords.Any(k => p.Contains(k));
+        }
+
+        private static string BuildDoctorDisplayName(Doctor doctor)
+            => doctor.User != null
+                ? $"Dr. {doctor.User.FirstName} {doctor.User.LastName}".Trim()
+                : "Your doctor";
+
+        // Surfaces a new ultrasound scan on the patient's Alerts page. A clear/normal
+        // result (or a plain upload without AI) is informational; a flagged anomaly is
+        // a warning, escalating to danger for high-risk findings.
+        private void AddUltrasoundAlert(int patientId, string doctorName, UltrasoundImage record)
+        {
+            bool anomaly  = IsUltrasoundAnomaly(record.Prediction);
+            bool analyzed = !string.IsNullOrWhiteSpace(record.Prediction);
+
+            string title = anomaly ? "Ultrasound Finding Detected" : "New Ultrasound Result";
+
+            string message = anomaly
+                ? $"Your recent ultrasound analysis flagged: {record.Prediction}. Please review this with {doctorName}."
+                : analyzed
+                    ? $"{doctorName} analyzed a new ultrasound scan. Result: {record.Prediction}. View it in your Medical History."
+                    : $"{doctorName} uploaded a new ultrasound scan to your records. View it in your Medical History.";
+
+            string severity = anomaly
+                ? (IsHighRiskPrediction(record.Prediction) ? AlertTypes.Danger : AlertTypes.Warning)
+                : AlertTypes.Info;
+
+            _alertRepository.Add(new Alert
+            {
+                PatientID   = patientId,
+                Title       = title,
+                Message     = message,
+                AlertType   = severity,
+                DateCreated = DateTime.Now,
+                IsRead      = false
+            });
+            _alertRepository.Save();
         }
 
         // ── GET: Result ────────────────────────────────────────────────────────

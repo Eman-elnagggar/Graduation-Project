@@ -27,8 +27,8 @@ namespace Graduation_Project.ViewModels
         // Today's appointments (all or filtered by selected doctor)
         public List<Appointment> TodaysAppointments { get; set; } = new();
 
-        // Recent unread alerts across clinic patients
-        public List<Alert> RecentAlerts { get; set; } = new();
+        // Recent unread operational notifications across clinic patients
+        public List<PatientNotification> RecentAlerts { get; set; } = new();
 
         // Patients assigned to the doctor(s)
         public List<AssistantPatientSummary> Patients { get; set; } = new();

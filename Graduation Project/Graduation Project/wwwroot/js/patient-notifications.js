@@ -130,7 +130,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const loadAlerts = async () => {
     try {
-      const response = await fetch(`/PatientAlerts/GetNotifications?patientId=${patientId}`);
+      const response = await fetch(`/PatientNotifications/GetNotifications?patientId=${patientId}`);
       if (!response.ok) throw new Error("Failed to load notifications.");
 
       const data = await response.json();
@@ -180,7 +180,7 @@ document.addEventListener("DOMContentLoaded", () => {
         __RequestVerificationToken: antiForgery,
       });
 
-      await fetch("/PatientAlerts/MarkAlertRead", {
+      await fetch("/PatientNotifications/MarkAlertRead", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: body.toString(),
@@ -208,7 +208,7 @@ document.addEventListener("DOMContentLoaded", () => {
         __RequestVerificationToken: antiForgery,
       });
 
-      await fetch("/PatientAlerts/MarkAllAlertsRead", {
+      await fetch("/PatientNotifications/MarkAllAlertsRead", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: body.toString(),

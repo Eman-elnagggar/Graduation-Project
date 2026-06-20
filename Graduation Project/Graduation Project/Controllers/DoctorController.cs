@@ -22,6 +22,7 @@ namespace Graduation_Project.Controllers
         private readonly MedicationAdherenceService _medicationAdherenceService;
         private readonly IWebHostEnvironment _env;
         private readonly IDoctorNotificationService _doctorNotificationService;
+        private readonly IPatientNotificationService _patientNotificationService;
         private readonly IPushNotificationService _push;
 
         public DoctorController(
@@ -34,6 +35,7 @@ namespace Graduation_Project.Controllers
             MedicationAdherenceService medicationAdherenceService,
             IWebHostEnvironment env,
             IDoctorNotificationService doctorNotificationService,
+            IPatientNotificationService patientNotificationService,
             IPushNotificationService push)
         {
             _appointmentRepository = appointmentRepository;
@@ -45,6 +47,7 @@ namespace Graduation_Project.Controllers
             _medicationAdherenceService = medicationAdherenceService;
             _env = env;
             _doctorNotificationService = doctorNotificationService;
+            _patientNotificationService = patientNotificationService;
             _push = push;
         }
 
@@ -1493,40 +1496,6 @@ namespace Graduation_Project.Controllers
                 });
             }
 
-            foreach (var appt in appointmentHistory)
-            {
-                timelineEntries.Add(new MedicalHistoryEntry
-                {
-                    DateTime = appt.Date.Date.Add(appt.Time),
-                    EventType = "appointment",
-                    Status = "normal",
-                    Title = string.IsNullOrWhiteSpace(appt.Booking?.Reason) ? "Consultation" : appt.Booking.Reason,
-                    SubTitle = $"Appointment {((appt.Date.Date.Add(appt.Time) < DateTime.Now) ? "completed" : "upcoming")}",
-                    Appointment = appt
-                });
-            }
-
-            foreach (var alert in alerts)
-            {
-                var status = (alert.AlertType ?? "").ToLowerInvariant() switch
-                {
-                    "danger" => "critical",
-                    "critical" => "critical",
-                    "warning" => "attention",
-                    _ => "normal"
-                };
-
-                timelineEntries.Add(new MedicalHistoryEntry
-                {
-                    DateTime = alert.DateCreated,
-                    EventType = "alert",
-                    Status = status,
-                    Title = alert.Title,
-                    SubTitle = alert.Message,
-                    Alert = alert
-                });
-            }
-
             foreach (var note in notes)
             {
                 timelineEntries.Add(new MedicalHistoryEntry
@@ -1788,6 +1757,13 @@ namespace Graduation_Project.Controllers
                 _medicationService.CreateFromPrescription(item, prescription.PrescriptionDate);
             }
 
+            var medCount = prescription.Items.Count;
+            _patientNotificationService.Notify(patientId,
+                "New Prescription",
+                $"Your doctor issued a new prescription with {medCount} medication{(medCount != 1 ? "s" : "")}. Check your medications.",
+                PatientNotificationTypes.Prescription,
+                "/Patient/Medications");
+
             return Json(new { success = true, message = "Prescription saved successfully.", prescriptionId = prescription.PrescriptionID });
         }
 
@@ -1843,6 +1819,12 @@ namespace Graduation_Project.Controllers
             }
 
             _context.SaveChanges();
+
+            _patientNotificationService.Notify(patientId,
+                "New Doctor Note",
+                "Your doctor added a new note to your record. Open Messages to read it.",
+                PatientNotificationTypes.Note,
+                "/Patient/Messages");
 
             return RedirectToAction(nameof(PatientDetails), new { id = doctor.DoctorID, patientId });
         }
