@@ -43,10 +43,9 @@ def predict(patient: PatientData):
         for i, label in enumerate(mlb.classes_):
             conf = probabilities[i][0][1] * 100 if len(probabilities[i][0]) > 1 else 0.0
             
-            # الفلاتر الصارمة: لو الرقم طبيعي، امسح الحالة دي من حساباتك خالص
             if label == 'Leukocytosis' and patient.WBC <= 11.0:
                 continue
-            if label == 'Leukopenia' and patient.WBC >= 4.0: # الفلتر اللي كان ناقص
+            if label == 'Leukopenia' and patient.WBC >= 4.0: 
                 continue
             if label == 'Anemia' and patient.Hb >= 12.0:
                 continue
@@ -62,9 +61,7 @@ def predict(patient: PatientData):
                 if patient.RDW <= 14.5:
                     continue
 
-            # إظهار الحالات التي تتخطى الـ 30% فقط بعد تجاوز الفلاتر
             if conf >= 30:
-                # صياغة أسباب ذكية ومربوطة بالأرقام
                 if label == 'Anemia':
                     reason = f"Hemoglobin ({patient.Hb}) is below normal range (<12 g/dL)."
                 elif label == 'Leukocytosis':
@@ -83,17 +80,17 @@ def predict(patient: PatientData):
                     found_diseases_info.append(finding)
 
         # --- 4. Final Report Generation ---
-        if not all_findings: # الحالة بقت طبيعية تماماً بعد الفلاتر
+        if not all_findings: 
             conclusion = "Conclusion: Your blood profile is within normal ranges."
             reasons = "Reasoning: All core blood parameters (Hb, WBC, RBC, Platelets) are within standard clinical limits."
             steps = "Steps: Maintain a healthy lifestyle and continue with regular annual check-ups."
             urgency = "Low"
-        elif not found_diseases_info: # لو فيه حالات بسيطة (بين 30% و 70%)
+        elif not found_diseases_info: 
             conclusion = "Conclusion: Minor variations detected in your blood work."
             reasons = "Reasoning: " + " ".join([f["reason"] for f in all_findings])
             steps = "Steps: 1. Monitor your health. 2. Share these results with your physician during your next visit."
             urgency = "Low"
-        else: # حالات مؤكدة (> 70%)
+        else: 
             urgency = "High"
             conclusion = f"Conclusion: The system detected patterns of {', '.join([d['condition'] for d in found_diseases_info])}."
             reasons = "Reasoning: " + " ".join([d['reason'] for d in found_diseases_info])
