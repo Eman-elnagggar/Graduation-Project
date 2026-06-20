@@ -1185,7 +1185,6 @@ namespace Graduation_Project.Services
             return key switch
             {
                 "hb" when value > 25m && value <= 200m => value / 10m,
-                "mchc" when value > 50m && value <= 500m => value / 10m,
                 "wbc" when value > 0m && value < 100m => value * 1000m,
                 "platelet_count" when value > 0m && value < 1000m => value * 1000m,
                 "lymphocytes" when value > 0m && value < 10m => value * 10m,
@@ -1270,7 +1269,6 @@ namespace Graduation_Project.Services
                     ["rbcs_count"] = "RBCs_Count",
                     ["mcv"] = "MCV",
                     ["mch"] = "MCH",
-                    ["mchc"] = "MCHC",
                     ["rdw"] = "RDW",
                     ["lymphocytes"] = "lymphocytes",
                     ["platelet_count"] = "platelet_count"

@@ -1,5 +1,6 @@
 @{
-    Layout = "~/Views/Shared/_PatientLayout.cshtml";
+    var isDoctorView = ViewData["IsDoctor"] as bool? ?? false;
+    Layout = isDoctorView ? "~/Views/Shared/_DoctorLayout.cshtml" : "~/Views/Shared/_PatientLayout.cshtml";
     ViewData["Title"] = "Community";
     ViewData["ActivePage"] = "Community";
     ViewData["PageTitleHtml"] = "Community <span class='topbar-accent'>Forum</span>";
@@ -124,6 +125,12 @@
 </div>
 
 @section Scripts {
+    <script>
+        window.__communityConfig = {
+            // Private DM is only offered to patients (messaging another patient).
+            messagesUrl: '@(isDoctorView ? "" : Url.Action("Messages", "Patient", new { id = ViewData["PatientId"] }))'
+        };
+    </script>
     <script src="~/js/community.js" asp-append-version="true"></script>
     <script>
         document.getElementById('cmCancelBtn').addEventListener('click', function () {

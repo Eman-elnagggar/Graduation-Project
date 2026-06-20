@@ -212,6 +212,13 @@
 .cm-post-avatar { width:42px; height:42px; border-radius:13px; object-fit:cover; flex-shrink:0; }
 .cm-post-author-name { font-size:.93rem; font-weight:700; color:var(--ink); }
 .cm-post-meta { display:flex; align-items:center; gap:7px; font-size:.78rem; color:var(--ink-3); margin-top:2px; }
+.cm-doctor-badge {
+    display:inline-flex; align-items:center; gap:4px; vertical-align:middle;
+    padding:2px 8px; border-radius:30px; margin-left:4px;
+    font-size:.66rem; font-weight:800; text-transform:uppercase; letter-spacing:.03em;
+    background:#d1f0e9; color:#14967f;
+}
+.cm-doctor-badge i { font-size:.68rem; }
 .cm-post-category-badge {
     display:inline-block; padding:4px 11px; border-radius:30px;
     font-size:.7rem; font-weight:800; text-transform:uppercase; letter-spacing:.04em;

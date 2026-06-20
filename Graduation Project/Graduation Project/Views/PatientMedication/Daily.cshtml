@@ -42,7 +42,7 @@
 @Html.AntiForgeryToken()
 <input type="hidden" id="patientId" value="@pid" />
 
-<div class="meds-page pd-wrap" data-patient-medications>
+<div class="meds-page pd-wrap" data-patient-medications data-meds-daily data-date="@Model.Date.ToString("yyyy-MM-dd")">
 
     @* ── HEADER ─────────────────────────────────────────────── *@
     <div class="meds-daily-header">
@@ -84,28 +84,28 @@
         <div class="meds-dstat">
             <div class="meds-dstat-icon meds-dstat-icon--blue"><i class="fas fa-list"></i></div>
             <div>
-                <div class="meds-dstat-val">@scheduledCount</div>
+                <div class="meds-dstat-val" id="pmStatScheduled">@scheduledCount</div>
                 <div class="meds-dstat-lbl">Scheduled</div>
             </div>
         </div>
         <div class="meds-dstat">
             <div class="meds-dstat-icon meds-dstat-icon--green"><i class="fas fa-check-circle"></i></div>
             <div>
-                <div class="meds-dstat-val">@takenCount</div>
+                <div class="meds-dstat-val" id="pmStatTaken">@takenCount</div>
                 <div class="meds-dstat-lbl">Taken</div>
             </div>
         </div>
         <div class="meds-dstat">
             <div class="meds-dstat-icon meds-dstat-icon--orange"><i class="fas fa-clock"></i></div>
             <div>
-                <div class="meds-dstat-val">@pendingCount</div>
+                <div class="meds-dstat-val" id="pmStatPending">@pendingCount</div>
                 <div class="meds-dstat-lbl">Pending</div>
             </div>
         </div>
         <div class="meds-dstat">
             <div class="meds-dstat-icon meds-dstat-icon--red"><i class="fas fa-times-circle"></i></div>
             <div>
-                <div class="meds-dstat-val">@missedCount</div>
+                <div class="meds-dstat-val" id="pmStatMissed">@missedCount</div>
                 <div class="meds-dstat-lbl">Missed</div>
             </div>
         </div>
@@ -118,11 +118,11 @@
             <div class="meds-progress-header" style="margin-bottom:10px;">
                 <div class="meds-progress-label">Day Progress</div>
                 <div class="meds-progress-fraction" style="font-size:1.2rem;">
-                    @takenCount<span>/@scheduledCount</span>
+                    <span id="pmProgressTaken">@takenCount</span><span>/@scheduledCount</span>
                 </div>
             </div>
             <div class="meds-progress-track">
-                <div class="meds-progress-fill" style="width:@progressPct%"></div>
+                <div class="meds-progress-fill" id="pmProgressFill" style="width:@progressPct%"></div>
             </div>
         </div>
     }

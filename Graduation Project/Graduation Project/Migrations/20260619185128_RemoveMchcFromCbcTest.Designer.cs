@@ -4,6 +4,7 @@ using Graduation_Project.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Graduation_Project.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260619185128_RemoveMchcFromCbcTest")]
+    partial class RemoveMchcFromCbcTest
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -270,95 +273,6 @@ namespace Graduation_Project.Migrations
                     b.HasIndex("DoctorID");
 
                     b.ToTable("AssistantDoctors");
-                });
-
-            modelBuilder.Entity("Graduation_Project.Models.AssistantLeaveApproval", b =>
-                {
-                    b.Property<int>("AssistantLeaveApprovalID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AssistantLeaveApprovalID"));
-
-                    b.Property<int>("AssistantLeaveRequestID")
-                        .HasColumnType("int");
-
-                    b.Property<int>("DoctorID")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("RespondedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
-
-                    b.HasKey("AssistantLeaveApprovalID");
-
-                    b.HasIndex("AssistantLeaveRequestID");
-
-                    b.HasIndex("DoctorID", "Status");
-
-                    b.ToTable("AssistantLeaveApprovals");
-                });
-
-            modelBuilder.Entity("Graduation_Project.Models.AssistantLeaveRequest", b =>
-                {
-                    b.Property<int>("AssistantLeaveRequestID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AssistantLeaveRequestID"));
-
-                    b.Property<int>("AssistantID")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ClinicInvitationID")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("NewClinicID")
-                        .HasColumnType("int");
-
-                    b.Property<int>("NewDoctorID")
-                        .HasColumnType("int");
-
-                    b.Property<int>("OldClinicID")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ResolutionMessage")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime?>("ResolvedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
-
-                    b.HasKey("AssistantLeaveRequestID");
-
-                    b.HasIndex("ClinicInvitationID");
-
-                    b.HasIndex("NewClinicID");
-
-                    b.HasIndex("NewDoctorID");
-
-                    b.HasIndex("OldClinicID");
-
-                    b.HasIndex("AssistantID", "Status");
-
-                    b.ToTable("AssistantLeaveRequests");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.BloodGroup_Test", b =>
@@ -665,17 +579,12 @@ namespace Graduation_Project.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("DoctorID")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("PatientID")
+                    b.Property<int>("PatientID")
                         .HasColumnType("int");
 
                     b.HasKey("CommunityCommentId");
 
                     b.HasIndex("CommunityPostId");
-
-                    b.HasIndex("DoctorID");
 
                     b.HasIndex("PatientID");
 
@@ -696,25 +605,15 @@ namespace Graduation_Project.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("DoctorID")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("PatientID")
+                    b.Property<int>("PatientID")
                         .HasColumnType("int");
 
                     b.HasKey("CommunityLikeId");
 
-                    b.HasIndex("DoctorID");
-
                     b.HasIndex("PatientID");
 
-                    b.HasIndex("CommunityPostId", "DoctorID")
-                        .IsUnique()
-                        .HasFilter("[DoctorID] IS NOT NULL");
-
                     b.HasIndex("CommunityPostId", "PatientID")
-                        .IsUnique()
-                        .HasFilter("[PatientID] IS NOT NULL");
+                        .IsUnique();
 
                     b.ToTable("CommunityLikes");
                 });
@@ -740,14 +639,11 @@ namespace Graduation_Project.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("DoctorID")
-                        .HasColumnType("int");
-
                     b.Property<string>("ImageUrl")
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
 
-                    b.Property<int?>("PatientID")
+                    b.Property<int>("PatientID")
                         .HasColumnType("int");
 
                     b.Property<string>("Title")
@@ -759,8 +655,6 @@ namespace Graduation_Project.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("CommunityPostId");
-
-                    b.HasIndex("DoctorID");
 
                     b.HasIndex("PatientID");
 
@@ -2003,68 +1897,6 @@ namespace Graduation_Project.Migrations
                     b.Navigation("Doctor");
                 });
 
-            modelBuilder.Entity("Graduation_Project.Models.AssistantLeaveApproval", b =>
-                {
-                    b.HasOne("Graduation_Project.Models.AssistantLeaveRequest", "LeaveRequest")
-                        .WithMany("Approvals")
-                        .HasForeignKey("AssistantLeaveRequestID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Graduation_Project.Models.Doctor", "Doctor")
-                        .WithMany()
-                        .HasForeignKey("DoctorID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Doctor");
-
-                    b.Navigation("LeaveRequest");
-                });
-
-            modelBuilder.Entity("Graduation_Project.Models.AssistantLeaveRequest", b =>
-                {
-                    b.HasOne("Graduation_Project.Models.Assistant", "Assistant")
-                        .WithMany()
-                        .HasForeignKey("AssistantID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Graduation_Project.Models.ClinicInvitation", "Invitation")
-                        .WithMany()
-                        .HasForeignKey("ClinicInvitationID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Graduation_Project.Models.Clinic", "NewClinic")
-                        .WithMany()
-                        .HasForeignKey("NewClinicID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Graduation_Project.Models.Doctor", "NewDoctor")
-                        .WithMany()
-                        .HasForeignKey("NewDoctorID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Graduation_Project.Models.Clinic", "OldClinic")
-                        .WithMany()
-                        .HasForeignKey("OldClinicID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Assistant");
-
-                    b.Navigation("Invitation");
-
-                    b.Navigation("NewClinic");
-
-                    b.Navigation("NewDoctor");
-
-                    b.Navigation("OldClinic");
-                });
-
             modelBuilder.Entity("Graduation_Project.Models.BloodGroup_Test", b =>
                 {
                     b.HasOne("Graduation_Project.Models.LabTest", "LabTest")
@@ -2200,17 +2032,11 @@ namespace Graduation_Project.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Graduation_Project.Models.Doctor", "Doctor")
-                        .WithMany()
-                        .HasForeignKey("DoctorID")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("Graduation_Project.Models.Patient", "Patient")
                         .WithMany()
                         .HasForeignKey("PatientID")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Doctor");
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Patient");
 
@@ -2225,17 +2051,11 @@ namespace Graduation_Project.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Graduation_Project.Models.Doctor", "Doctor")
-                        .WithMany()
-                        .HasForeignKey("DoctorID")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("Graduation_Project.Models.Patient", "Patient")
                         .WithMany()
                         .HasForeignKey("PatientID")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Doctor");
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Patient");
 
@@ -2244,17 +2064,11 @@ namespace Graduation_Project.Migrations
 
             modelBuilder.Entity("Graduation_Project.Models.CommunityPost", b =>
                 {
-                    b.HasOne("Graduation_Project.Models.Doctor", "Doctor")
-                        .WithMany()
-                        .HasForeignKey("DoctorID")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("Graduation_Project.Models.Patient", "Patient")
                         .WithMany()
                         .HasForeignKey("PatientID")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.Navigation("Doctor");
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Patient");
                 });
@@ -2728,11 +2542,6 @@ namespace Graduation_Project.Migrations
             modelBuilder.Entity("Graduation_Project.Models.Assistant", b =>
                 {
                     b.Navigation("AssistantDoctors");
-                });
-
-            modelBuilder.Entity("Graduation_Project.Models.AssistantLeaveRequest", b =>
-                {
-                    b.Navigation("Approvals");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.Clinic", b =>

@@ -319,7 +319,7 @@ namespace Graduation_Project.Controllers
             return RedirectToLocalOrDashboard(id, returnUrl);
         }
 
-        public IActionResult Messages(int id)
+        public IActionResult Messages(int id, string? user = null)
         {
             var (patient, failure) = AuthorizePatientAccess(id);
             if (failure != null)
@@ -423,6 +423,72 @@ namespace Graduation_Project.Controllers
                 .ThenBy(c => c.ParticipantName)
                 .ToList();
 
+            // ── Patient-to-patient (community) conversations ──────────────
+            // Any other patient this user has exchanged messages with, plus an
+            // optionally requested peer (?user=) opened from the community.
+            var peerUserIds = _context.ChatMessages
+                .Where(m => m.SenderUserId == patientUserId || m.ReceiverUserId == patientUserId)
+                .Select(m => m.SenderUserId == patientUserId ? m.ReceiverUserId : m.SenderUserId)
+                .Distinct()
+                .ToList();
+
+            var peerPatients = _context.Patients
+                .Include(p => p.User)
+                .Where(p => p.UserID != null && p.UserID != patientUserId && peerUserIds.Contains(p.UserID))
+                .ToList();
+
+            if (!string.IsNullOrWhiteSpace(user)
+                && user != patientUserId
+                && peerPatients.All(p => p.UserID != user))
+            {
+                var requestedPeer = _context.Patients
+                    .Include(p => p.User)
+                    .FirstOrDefault(p => p.UserID == user);
+                if (requestedPeer != null)
+                    peerPatients.Add(requestedPeer);
+            }
+
+            if (peerPatients.Count > 0)
+            {
+                var peerUserIdList = peerPatients
+                    .Select(p => p.UserID!)
+                    .Where(uid => !string.IsNullOrWhiteSpace(uid))
+                    .Distinct()
+                    .ToList();
+
+                var peerMessages = _context.ChatMessages
+                    .Where(m => (m.SenderUserId == patientUserId && peerUserIdList.Contains(m.ReceiverUserId))
+                             || (m.ReceiverUserId == patientUserId && peerUserIdList.Contains(m.SenderUserId)))
+                    .OrderByDescending(m => m.SentAtUtc)
+                    .ToList();
+
+                var peerConversations = peerPatients
+                    .Where(p => !string.IsNullOrWhiteSpace(p.UserID))
+                    .GroupBy(p => p.UserID)
+                    .Select(g => g.First())
+                    .Select(p => new PatientConversationSummary
+                    {
+                        ParticipantId = p.PatientID,
+                        ParticipantType = "Patient",
+                        ReceiverUserId = p.UserID!,
+                        ParticipantName = p.User != null
+                            ? $"{p.User.FirstName} {p.User.LastName}".Trim()
+                            : "Community Member",
+                        UnreadCount = peerMessages.Count(m => m.SenderUserId == p.UserID && m.ReceiverUserId == patientUserId && !m.IsRead),
+                        LastMessageTime = peerMessages
+                            .Where(m => m.SenderUserId == p.UserID || m.ReceiverUserId == p.UserID)
+                            .Select(m => (DateTime?)m.SentAtUtc)
+                            .FirstOrDefault(),
+                        LastMessagePreview = peerMessages
+                            .Where(m => m.SenderUserId == p.UserID || m.ReceiverUserId == p.UserID)
+                            .Select(m => _chatMessageCrypto.Decrypt(m.Message))
+                            .FirstOrDefault() ?? "Start a conversation"
+                    })
+                    .ToList();
+
+                conversations.AddRange(peerConversations);
+            }
+
             var vm = new PatientMessagesViewModel
             {
                 Patient = patient,
@@ -506,7 +572,12 @@ namespace Graduation_Project.Controllers
                 .Distinct()
                 .ToList();
 
-            if (string.IsNullOrWhiteSpace(userId) || !linkedUserIds.Contains(userId))
+            // Allow conversations with linked care team OR any other patient (community DMs).
+            var isPeerPatient = !string.IsNullOrWhiteSpace(userId)
+                && userId != patient.UserID
+                && _context.Patients.Any(p => p.UserID == userId);
+
+            if (string.IsNullOrWhiteSpace(userId) || (!linkedUserIds.Contains(userId) && !isPeerPatient))
                 return Forbid();
 
             if (string.IsNullOrWhiteSpace(patient.UserID))

@@ -241,7 +241,7 @@ namespace Graduation_Project.Data
                     new Assistant { UserID = uLayla.UserID, ClinicID = cCentral.ClinicID },
                     new Assistant { UserID = uDina.UserID,  ClinicID = cFetal.ClinicID   },
                     new Assistant { UserID = uNoura.UserID, ClinicID = cAlex.ClinicID    },
-                    new Assistant { UserID = uAmira.UserID, ClinicID = cCentral.ClinicID },  // second assistant at Central — no AssistantDoctor records (fallback)
+                    new Assistant { UserID = uAmira.UserID, ClinicID = cCentral.ClinicID },  // second assistant at Central ï¿½ no AssistantDoctor records (fallback)
                     new Assistant { UserID = uHeba.UserID,  ClinicID = cDokki.ClinicID   }   // clinic with pending-verification doctor, no approved patients
                 );
                 await context.SaveChangesAsync();
@@ -265,7 +265,7 @@ namespace Graduation_Project.Data
                     // Dina: handles Mona + Karim (full overlap at Fetal which has Mona + Karim)
                     new AssistantDoctor { AssistantID = aDina.AssistantID,  DoctorID = dMona.DoctorID  },
                     new AssistantDoctor { AssistantID = aDina.AssistantID,  DoctorID = dKarim.DoctorID },
-                    // Noura: handles only Karim (partial overlap — Alex has Karim + Nadia, Noura sees only Karim)
+                    // Noura: handles only Karim (partial overlap ï¿½ Alex has Karim + Nadia, Noura sees only Karim)
                     new AssistantDoctor { AssistantID = aNoura.AssistantID, DoctorID = dKarim.DoctorID },
                     // Heba: handles Omar (single doctor at Dokki, pending verification, no approved patients)
                     new AssistantDoctor { AssistantID = aHeba.AssistantID,  DoctorID = dOmar.DoctorID  }
@@ -382,12 +382,12 @@ namespace Graduation_Project.Data
                     // ?? Today's appointments: Fetal Health clinic (Dina handles Mona+Karim) ??
                     new Appointment { DoctorID = dMona.DoctorID,  PatientID = pYasmine.PatientID, ClinicID = cFetal.ClinicID,     Date = DateTime.Today, Time = new TimeSpan(9,  30, 0), isBooked = true  },
                     new Appointment { DoctorID = dKarim.DoctorID, PatientID = pHana.PatientID,    ClinicID = cFetal.ClinicID,     Date = DateTime.Today, Time = new TimeSpan(11, 0,  0), isBooked = true  },
-                    // ?? Today's appointments: Alexandria clinic (Noura handles only Karim — Nadia's appointment hidden) ??
+                    // ?? Today's appointments: Alexandria clinic (Noura handles only Karim ï¿½ Nadia's appointment hidden) ??
                     new Appointment { DoctorID = dKarim.DoctorID, PatientID = pHana.PatientID,    ClinicID = cAlex.ClinicID,      Date = DateTime.Today, Time = new TimeSpan(14, 0,  0), isBooked = true  },
                     new Appointment { DoctorID = dNadia.DoctorID, PatientID = pReem.PatientID,    ClinicID = cAlex.ClinicID,      Date = DateTime.Today, Time = new TimeSpan(15, 30, 0), isBooked = true  },
                     // ?? Today's appointments: Endocrine clinic (no assistant assigned) ??
                     new Appointment { DoctorID = dNadia.DoctorID, PatientID = pReem.PatientID,    ClinicID = cEndocrine.ClinicID, Date = DateTime.Today, Time = new TimeSpan(10, 0,  0), isBooked = true  },
-                    // ?? Today's appointments: Dokki clinic (Heba — Omar has no approved patients, open slots) ??
+                    // ?? Today's appointments: Dokki clinic (Heba ï¿½ Omar has no approved patients, open slots) ??
                     new Appointment { DoctorID = dOmar.DoctorID,  PatientID = pYasmine.PatientID, ClinicID = cDokki.ClinicID,     Date = DateTime.Today, Time = new TimeSpan(12, 0,  0), isBooked = false },
                     new Appointment { DoctorID = dOmar.DoctorID,  PatientID = pHana.PatientID,    ClinicID = cDokki.ClinicID,     Date = DateTime.Today, Time = new TimeSpan(14, 0,  0), isBooked = false }
                 );
@@ -515,11 +515,11 @@ namespace Graduation_Project.Data
             if (!context.CBC_Tests.Any())
             {
                 context.CBC_Tests.AddRange(
-                    new CBC_Test { LabTestID = cbcTests[0].LabTestID, HB = 10.8f, RBCs_Count = 3.9f, MCV = 78.0f, MCH = 25.0f, MCHC = 31.5f, WBC = 8500f, lymphocytes = 32.0f, platelet_count = 230000f },
-                    new CBC_Test { LabTestID = cbcTests[1].LabTestID, HB = 11.5f, RBCs_Count = 4.1f, MCV = 85.0f, MCH = 27.0f, MCHC = 33.0f, WBC = 12000f, lymphocytes = 28.0f, platelet_count = 210000f },
-                    new CBC_Test { LabTestID = cbcTests[2].LabTestID, HB = 12.2f, RBCs_Count = 4.3f, MCV = 88.0f, MCH = 29.0f, MCHC = 34.0f, WBC = 7800f, lymphocytes = 35.0f, platelet_count = 250000f },
-                    new CBC_Test { LabTestID = cbcTests[3].LabTestID, HB = 9.5f, RBCs_Count = 3.5f, MCV = 72.0f, MCH = 22.0f, MCHC = 29.0f, WBC = 9200f, lymphocytes = 30.0f, platelet_count = 180000f },
-                    new CBC_Test { LabTestID = cbcTests[4].LabTestID, HB = 11.8f, RBCs_Count = 4.0f, MCV = 86.0f, MCH = 28.0f, MCHC = 33.5f, WBC = 8000f, lymphocytes = 33.0f, platelet_count = 220000f }
+                    new CBC_Test { LabTestID = cbcTests[0].LabTestID, HB = 10.8f, RBCs_Count = 3.9f, MCV = 78.0f, MCH = 25.0f, WBC = 8500f, lymphocytes = 32.0f, platelet_count = 230000f },
+                    new CBC_Test { LabTestID = cbcTests[1].LabTestID, HB = 11.5f, RBCs_Count = 4.1f, MCV = 85.0f, MCH = 27.0f, WBC = 12000f, lymphocytes = 28.0f, platelet_count = 210000f },
+                    new CBC_Test { LabTestID = cbcTests[2].LabTestID, HB = 12.2f, RBCs_Count = 4.3f, MCV = 88.0f, MCH = 29.0f, WBC = 7800f, lymphocytes = 35.0f, platelet_count = 250000f },
+                    new CBC_Test { LabTestID = cbcTests[3].LabTestID, HB = 9.5f, RBCs_Count = 3.5f, MCV = 72.0f, MCH = 22.0f, WBC = 9200f, lymphocytes = 30.0f, platelet_count = 180000f },
+                    new CBC_Test { LabTestID = cbcTests[4].LabTestID, HB = 11.8f, RBCs_Count = 4.0f, MCV = 86.0f, MCH = 28.0f, WBC = 8000f, lymphocytes = 33.0f, platelet_count = 220000f }
                 );
                 await context.SaveChangesAsync();
             }

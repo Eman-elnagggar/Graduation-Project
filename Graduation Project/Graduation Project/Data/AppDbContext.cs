@@ -945,6 +945,10 @@ namespace Graduation_Project.Data
                     .WithMany()
                     .HasForeignKey(e => e.PatientID)
                     .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.Doctor)
+                    .WithMany()
+                    .HasForeignKey(e => e.DoctorID)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<CommunityComment>(entity =>
@@ -959,16 +963,29 @@ namespace Graduation_Project.Data
                     .WithMany()
                     .HasForeignKey(e => e.PatientID)
                     .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Doctor)
+                    .WithMany()
+                    .HasForeignKey(e => e.DoctorID)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<CommunityLike>(entity =>
             {
                 entity.HasKey(e => e.CommunityLikeId);
-                entity.HasIndex(e => new { e.CommunityPostId, e.PatientID }).IsUnique();
+                entity.HasIndex(e => new { e.CommunityPostId, e.PatientID })
+                    .IsUnique()
+                    .HasFilter("[PatientID] IS NOT NULL");
+                entity.HasIndex(e => new { e.CommunityPostId, e.DoctorID })
+                    .IsUnique()
+                    .HasFilter("[DoctorID] IS NOT NULL");
                 entity.HasOne(e => e.Post)
                     .WithMany(p => p.Likes)
                     .HasForeignKey(e => e.CommunityPostId)
                     .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.Doctor)
+                    .WithMany()
+                    .HasForeignKey(e => e.DoctorID)
+                    .OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne(e => e.Patient)
                     .WithMany()
                     .HasForeignKey(e => e.PatientID)
