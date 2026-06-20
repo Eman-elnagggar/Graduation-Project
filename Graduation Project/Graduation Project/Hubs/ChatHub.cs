@@ -15,14 +15,17 @@ namespace Graduation_Project.Hubs
         private readonly IChatMessageCrypto _chatMessageCrypto;
         private readonly IPushNotificationService _push;
         private readonly IPatientNotificationService _patientNotifications;
+        private readonly IDoctorNotificationService _doctorNotifications;
 
         public ChatHub(AppDbContext db, IChatMessageCrypto chatMessageCrypto,
-            IPushNotificationService push, IPatientNotificationService patientNotifications)
+            IPushNotificationService push, IPatientNotificationService patientNotifications,
+            IDoctorNotificationService doctorNotifications)
         {
             _db = db;
             _chatMessageCrypto = chatMessageCrypto;
             _push = push;
             _patientNotifications = patientNotifications;
+            _doctorNotifications = doctorNotifications;
         }
 
         public async Task SendMessage(string receiverId, string message)
@@ -101,17 +104,26 @@ namespace Graduation_Project.Hubs
                 var url = isPatient ? "/Patient/Messages" : "/Doctor/Messages";
 
                 var preview = text.Length > 80 ? text[..80] + "…" : text;
+                var title = $"New message from {senderName}";
 
-                // Persist a bell notification for patient recipients (push is sent below,
-                // so the notification itself does not re-push).
+                // Persist a bell notification for the recipient (push is sent below, so these
+                // pass sendPush:false to avoid a duplicate push).
                 if (receiverPatient != null)
                 {
                     _patientNotifications.Notify(receiverPatient.PatientID,
-                        $"New message from {senderName}", preview,
-                        PatientNotificationTypes.Message, url, sendPush: false);
+                        title, preview, PatientNotificationTypes.Message, url, sendPush: false);
+                }
+                else
+                {
+                    var receiverDoctor = await _db.Doctors.FirstOrDefaultAsync(d => d.UserID == receiverId);
+                    if (receiverDoctor != null)
+                    {
+                        await _doctorNotifications.NotifyAsync(receiverDoctor.DoctorID,
+                            title, preview, PatientNotificationTypes.Message, url, sendPush: false);
+                    }
                 }
 
-                await _push.SendToUserAsync(receiverId, $"New message from {senderName}", preview, url);
+                await _push.SendToUserAsync(receiverId, title, preview, url);
             }
             catch { }
         }
