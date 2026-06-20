@@ -24,6 +24,129 @@ document.addEventListener("DOMContentLoaded", () => {
         return res.json();
     };
 
+    /* ── Shared dose status rendering (Daily + Index) ────── */
+    const setText = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+    };
+
+    // Daily page card (.pm-dose-card-v2 with a .med-status pill)
+    const applyDailyStatus = (card, status) => {
+        const statusEl = card.querySelector(".med-status");
+        if (statusEl) {
+            const icons = { Taken: "fa-check-circle", Skipped: "fa-forward", Missed: "fa-times-circle", Scheduled: "fa-clock" };
+            const cls   = { Taken: "s-taken", Skipped: "s-skipped", Missed: "s-missed", Scheduled: "s-scheduled" };
+            statusEl.className = `pm-dose-status-pill ${cls[status] || "s-scheduled"} med-status`;
+            statusEl.innerHTML = `<i class="fas ${icons[status] || "fa-clock"}"></i> ${status}`;
+        }
+        card.classList.remove("dc-taken", "dc-missed", "dc-skipped");
+        if (status === "Taken")   card.classList.add("dc-taken");
+        if (status === "Missed")  card.classList.add("dc-missed");
+        if (status === "Skipped") card.classList.add("dc-skipped");
+    };
+
+    // Index page timeline card (.meds-dose with a .pm-tl-badge)
+    const applyIndexStatus = (card, status) => {
+        const badge = card.querySelector(".pm-tl-badge");
+        if (badge) {
+            const cls = { Taken: "b-taken", Skipped: "b-skipped", Missed: "b-missed", Scheduled: "b-scheduled" };
+            badge.className = `pm-tl-badge ${cls[status] || "b-scheduled"}`;
+            badge.textContent = status === "Scheduled" ? "Pending" : status;
+        }
+        card.classList.remove("meds-dose--taken", "meds-dose--missed", "meds-dose--skipped");
+        if (status === "Taken")   card.classList.add("meds-dose--taken");
+        if (status === "Missed")  card.classList.add("meds-dose--missed");
+        if (status === "Skipped") card.classList.add("meds-dose--skipped");
+        if (status !== "Scheduled") {
+            const actions = card.querySelector(".pm-tl-actions");
+            if (actions) {
+                actions.style.opacity = "0.4";
+                actions.style.pointerEvents = "none";
+            }
+        }
+    };
+
+    // Recompute the Daily page's summary counters + progress bar from the cards.
+    const recomputeDailyStats = () => {
+        if (!document.querySelector("[data-meds-daily]")) return;
+        const cards   = Array.from(document.querySelectorAll(".pm-dose-card-v2"));
+        const total   = cards.length;
+        const taken   = cards.filter(c => c.classList.contains("dc-taken")).length;
+        const missed  = cards.filter(c => c.classList.contains("dc-missed")).length;
+        const skipped = cards.filter(c => c.classList.contains("dc-skipped")).length;
+        const pending = Math.max(0, total - taken - missed - skipped);
+        const pct     = total > 0 ? Math.round(taken / total * 100) : 0;
+        setText("pmStatScheduled", total);
+        setText("pmStatTaken", taken);
+        setText("pmStatPending", pending);
+        setText("pmStatMissed", missed);
+        setText("pmProgressTaken", taken);
+        const fill = document.getElementById("pmProgressFill");
+        if (fill) fill.style.width = pct + "%";
+    };
+
+    // Apply an incoming status change to whichever cards match this dose.
+    const syncDoseCards = (medicationId, scheduledAt, status) => {
+        const mid = String(medicationId);
+        const at  = new Date(scheduledAt).getTime();
+        document.querySelectorAll(".pm-dose-card-v2[data-medication-id]").forEach(card => {
+            if (card.getAttribute("data-medication-id") !== mid) return;
+            if (new Date(card.getAttribute("data-scheduled-at")).getTime() === at) {
+                applyDailyStatus(card, status);
+            }
+        });
+        document.querySelectorAll(".meds-dose[data-medication-id]").forEach(card => {
+            if (card.getAttribute("data-medication-id") !== mid) return;
+            if (new Date(card.getAttribute("data-scheduled-at")).getTime() === at) {
+                applyIndexStatus(card, status);
+            }
+        });
+        recomputeDailyStats();
+    };
+
+    /* ── Real-time sync via SignalR ──────────────────────── */
+    const medsRoot = document.querySelector("[data-patient-medications]");
+    if (medsRoot && patientId()) {
+        const SIGNALR_CDNS = [
+            "https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js",
+            "https://cdn.jsdelivr.net/npm/@microsoft/signalr@8.0.7/dist/browser/signalr.min.js",
+            "https://unpkg.com/@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"
+        ];
+        const loadScript = (src) => new Promise(resolve => {
+            const s = document.createElement("script");
+            s.src = src;
+            s.async = true;
+            s.onload = () => resolve(true);
+            s.onerror = () => resolve(false);
+            document.head.appendChild(s);
+        });
+        (async () => {
+            if (!window.signalR) {
+                for (const url of SIGNALR_CDNS) {
+                    await loadScript(url);
+                    if (window.signalR) break;
+                }
+            }
+            if (!window.signalR) return; // graceful: clicks still update locally
+
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/medicationHub")
+                .withAutomaticReconnect()
+                .build();
+
+            connection.on("DoseUpdated", (payload) => {
+                if (!payload) return;
+                syncDoseCards(payload.medicationId, payload.scheduledAt, payload.status);
+            });
+
+            try {
+                await connection.start();
+            } catch {
+                /* ignore — local updates keep working */
+            }
+        })();
+    }
+
     /* ── Wizard (Add.cshtml & Edit.cshtml) ───────────────── */
     const wizardSteps = document.getElementById("wizardSteps");
     if (wizardSteps) {
@@ -343,20 +466,8 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             if (data?.success) {
-                // Update status pill
-                const statusEl = card.querySelector(".med-status");
-                if (statusEl) {
-                    const icons = { Taken: "fa-check-circle", Skipped: "fa-forward", Missed: "fa-times-circle" };
-                    const cls   = { Taken: "s-taken", Skipped: "s-skipped", Missed: "s-missed" };
-                    statusEl.className = `pm-dose-status-pill ${cls[status] || ""} med-status`;
-                    statusEl.innerHTML = `<i class="fas ${icons[status] || "fa-clock"}"></i> ${status}`;
-                }
-
-                // Apply card color class
-                card.classList.remove("dc-taken", "dc-missed", "dc-skipped");
-                if (status === "Taken")   card.classList.add("dc-taken");
-                if (status === "Missed")  card.classList.add("dc-missed");
-                if (status === "Skipped") card.classList.add("dc-skipped");
+                applyDailyStatus(card, status);
+                recomputeDailyStats();
 
                 // Animate
                 card.classList.add("dose-done");
@@ -388,26 +499,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             if (data?.success) {
-                // Update badge
-                const badge = card.querySelector(".pm-tl-badge");
-                if (badge) {
-                    const cls   = { Taken: "b-taken", Skipped: "b-skipped" };
-                    badge.className = `pm-tl-badge ${cls[status] || "b-scheduled"}`;
-                    badge.textContent = status;
-                }
-
-                // Update card color
-                card.classList.remove("tl-taken", "tl-missed", "tl-skipped");
-                if (status === "Taken")   card.classList.add("tl-taken");
-                if (status === "Skipped") card.classList.add("tl-skipped");
-
-                // Hide action buttons after logging
-                const actions = card.querySelector(".pm-tl-actions");
-                if (actions) {
-                    actions.style.opacity = "0.4";
-                    actions.style.pointerEvents = "none";
-                }
-
+                applyIndexStatus(card, status);
                 notify(`Marked as ${status}.`, "success");
             } else {
                 notify(data?.message || "Unable to update medication log.", "error");
