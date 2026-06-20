@@ -128,7 +128,9 @@ document.addEventListener("DOMContentLoaded", () => {
     badge.textContent = unreadCount > 99 ? "99+" : String(unreadCount);
   };
 
-  const loadAlerts = async () => {
+  const isPanelOpen = () => document.body.classList.contains("pp-notif-open");
+
+  const loadAlerts = async ({ silent = false } = {}) => {
     try {
       const response = await fetch(`/PatientNotifications/GetNotifications?patientId=${patientId}`);
       if (!response.ok) throw new Error("Failed to load notifications.");
@@ -136,14 +138,20 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await response.json();
       if (!data.success) throw new Error(data.message || "Failed to load notifications.");
 
-      renderAlerts(data.alerts || []);
+      // While the panel is open the user may be reading/clicking items, so a
+      // background poll only refreshes the badge and leaves the list untouched.
+      if (!silent || !isPanelOpen()) {
+        renderAlerts(data.alerts || []);
+      }
       currentUnreadCount = data.unreadCount || 0;
       updateBadge(currentUnreadCount);
       if (topbarUserName && data.userName) {
         topbarUserName.textContent = data.userName;
       }
     } catch {
-      list.innerHTML = '<div class="pp-notif-error">Unable to load alerts right now.</div>';
+      if (!silent) {
+        list.innerHTML = '<div class="pp-notif-error">Unable to load alerts right now.</div>';
+      }
     }
   };
 
@@ -248,4 +256,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
   updateTopbarDate();
   loadAlerts();
+
+  // Auto-refresh so new messages (and any other notifications) surface in the
+  // bell without a manual page refresh. Pause while the tab is hidden to avoid
+  // needless polling, and refresh immediately when the tab regains focus.
+  const POLL_INTERVAL_MS = 25000;
+  let pollTimer = null;
+
+  const startPolling = () => {
+    if (pollTimer) return;
+    pollTimer = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        loadAlerts({ silent: true });
+      }
+    }, POLL_INTERVAL_MS);
+  };
+
+  const stopPolling = () => {
+    if (!pollTimer) return;
+    clearInterval(pollTimer);
+    pollTimer = null;
+  };
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      loadAlerts({ silent: true });
+      startPolling();
+    } else {
+      stopPolling();
+    }
+  });
+
+  startPolling();
 });

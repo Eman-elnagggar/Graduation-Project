@@ -16,16 +16,18 @@ namespace Graduation_Project.Hubs
         private readonly IPushNotificationService _push;
         private readonly IPatientNotificationService _patientNotifications;
         private readonly IDoctorNotificationService _doctorNotifications;
+        private readonly ILogger<ChatHub> _logger;
 
         public ChatHub(AppDbContext db, IChatMessageCrypto chatMessageCrypto,
             IPushNotificationService push, IPatientNotificationService patientNotifications,
-            IDoctorNotificationService doctorNotifications)
+            IDoctorNotificationService doctorNotifications, ILogger<ChatHub> logger)
         {
             _db = db;
             _chatMessageCrypto = chatMessageCrypto;
             _push = push;
             _patientNotifications = patientNotifications;
             _doctorNotifications = doctorNotifications;
+            _logger = logger;
         }
 
         public async Task SendMessage(string receiverId, string message)
@@ -56,7 +58,9 @@ namespace Graduation_Project.Hubs
             await Clients.User(receiverId).SendAsync("ReceiveMessage", senderId, text, chatMessage.SentAtUtc, (string?)null, (string?)null, (string?)null);
             await Clients.Caller.SendAsync("ReceiveMessage", senderId, text, chatMessage.SentAtUtc, (string?)null, (string?)null, (string?)null);
 
-            _ = SendMessagePushAsync(senderId, receiverId, text);
+            // Awaited (not fire-and-forget): the Hub's scoped DbContext is disposed
+            // when this method returns, so a detached task would persist nothing.
+            await SendMessagePushAsync(senderId, receiverId, text);
         }
 
         public async Task SendFileMessage(string receiverId, string text, string attachmentUrl, string attachmentType, string attachmentName)
@@ -89,7 +93,7 @@ namespace Graduation_Project.Hubs
             await Clients.Caller.SendAsync("ReceiveMessage", senderId, safeText, chatMessage.SentAtUtc, attachmentUrl, attachmentType, attachmentName);
 
             var notifBody = string.IsNullOrEmpty(safeText) ? "sent you a file" : safeText;
-            _ = SendMessagePushAsync(senderId, receiverId, notifBody);
+            await SendMessagePushAsync(senderId, receiverId, notifBody);
         }
 
         private async Task SendMessagePushAsync(string senderId, string receiverId, string text)
@@ -123,9 +127,19 @@ namespace Graduation_Project.Hubs
                     }
                 }
 
+                var subscriptionCount = await _db.UserPushSubscriptions.CountAsync(s => s.UserId == receiverId);
+                if (subscriptionCount == 0)
+                {
+                    _logger.LogWarning("Message push skipped: recipient {ReceiverId} has no push subscription " +
+                        "(they have not enabled notifications on a device).", receiverId);
+                }
+
                 await _push.SendToUserAsync(receiverId, title, preview, url);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to persist/send message notification to {ReceiverId}.", receiverId);
+            }
         }
 
         private static string BuildDisplayName(ApplicationUser? user)

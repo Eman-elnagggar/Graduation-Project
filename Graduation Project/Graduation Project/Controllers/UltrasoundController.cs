@@ -125,8 +125,17 @@ namespace Graduation_Project.Controllers
                 _ultrasoundRepository.Add(record);
                 _ultrasoundRepository.Save();
 
+                var noteDoctorName = BuildDoctorDisplayName(doctor!);
+
+                // Bell notification + phone push so the patient knows a new scan was added.
+                _notifications.Notify(model.PatientId,
+                    "New Ultrasound Scan",
+                    $"{noteDoctorName} uploaded a new ultrasound scan to your records. View it in your Medical History.",
+                    PatientNotificationTypes.Ultrasound,
+                    "/PatientMedicalHistory/MedicalHistory/" + model.PatientId);
+
                 // Surface the new scan on the patient's Alerts page.
-                AddUltrasoundAlert(model.PatientId, BuildDoctorDisplayName(doctor!), record);
+                AddUltrasoundAlert(model.PatientId, noteDoctorName, record);
 
                 TempData["SuccessMessage"] = "Ultrasound image saved successfully with your note.";
                 return RedirectToAction(nameof(History),
