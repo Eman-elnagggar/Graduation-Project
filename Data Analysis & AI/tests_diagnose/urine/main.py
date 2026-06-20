@@ -9,9 +9,7 @@ app = FastAPI(
     description="Customized Medical Urinalysis API - No Age, No Gender, with Score Confidence."
 )
 
-# =========================
 # Load trained ML model
-# =========================
 try:
     ml_model = joblib.load("ml_model.pkl")
     print("ML Model loaded successfully!")
@@ -19,9 +17,7 @@ except Exception as e:
     print(f"Error loading model: {e}")
     ml_model = None
 
-# =========================
 # Request Body Schema
-# =========================
 class UrinalysisInput(BaseModel):
     color: str
     ph: float
@@ -34,13 +30,9 @@ class UrinalysisInput(BaseModel):
     leukocytes: str
     nitrite: str
 
-# =========================
 # Preprocessing / Mapping
-# =========================
 def preprocess_features(df: pd.DataFrame) -> pd.DataFrame:
     df_encoded = df.copy()
-    
-    # تحويل كل القيم النصية إلى UPPERCASE تلقائياً
     for col in df_encoded.columns:
         if df_encoded[col].dtype == 'object':
             df_encoded[col] = df_encoded[col].astype(str).str.strip().str.upper()
@@ -71,9 +63,7 @@ def preprocess_features(df: pd.DataFrame) -> pd.DataFrame:
     
     return df_encoded
 
-# =========================
 # Rule-based system
-# =========================
 def rule_based_system(row):
     leukocytes = row.get("leukocytes", 0)
     rbcs = row.get("rbcs", 0)
@@ -95,9 +85,7 @@ def rule_based_system(row):
     else:
         return "None (Normal Case)"
 
-# =========================
 # API endpoint
-# =========================
 @app.post("/predict")
 def predict(data: UrinalysisInput):
 
@@ -115,12 +103,10 @@ def predict(data: UrinalysisInput):
         rule_row = df_processed.iloc[0].to_dict()
         rule_result = rule_based_system(rule_row)
 
-        # 4️⃣ تهيئة البيانات للموديل الـ ML
         df_processed.columns = df_processed.columns.str.upper()
         expected_cols = list(ml_model.feature_names_in_)
         df_processed = df_processed.reindex(columns=expected_cols, fill_value=0)
 
-        # 5️⃣ حساب الـ ML Prediction والـ Confidence
         raw_ml_pred = ml_model.predict(df_processed)[0]
         ml_result_string = "UTI / Abnormal Case" if int(raw_ml_pred) == 1 else "Normal Case"
 
@@ -128,9 +114,8 @@ def predict(data: UrinalysisInput):
             probabilities = ml_model.predict_proba(df_processed)[0]
             ml_confidence = float(max(probabilities))
         else:
-            ml_confidence = 0.97  # قيمة افتراضية للتست
+            ml_confidence = 0.97  
 
-        # 6️⃣ بناء مخرجات الخصائص: "KEY": ["diagnose", "recommendation"]
         output_dict = {}
         
         mapped_leukocytes = rule_row.get("leukocytes", 0)
@@ -149,7 +134,7 @@ def predict(data: UrinalysisInput):
                 output_dict[key_upper] = [diag, rec]
                 
             elif key == "rbcs":
-                diag = "Hematuria Detected (High RBCs)" if mapped_rbcs > 5 else "Normal"
+                diag = "Hematuria Detected (High RBCs)" if mapped_rbcs > 2 else "Normal"
                 rec = "Further renal and tract evaluation advised." if mapped_rbcs > 5 else "No action needed."
                 output_dict[key_upper] = [diag, rec]
                 
@@ -194,7 +179,6 @@ def predict(data: UrinalysisInput):
             else:
                 output_dict[key_upper] = ["Normal", "No action needed."]
 
-        # 7️⃣ تجهيز لستة الحالات المركبة (additional_result)
         additional_results = []
         if mapped_leukocytes > 5 or mapped_nitrite == 1:
             additional_results.append("Urinary Tract Infection (UTI) Complex Triggered")
@@ -204,7 +188,6 @@ def predict(data: UrinalysisInput):
         if not additional_results:
             additional_results.append("No composite diseases triggered.")
 
-        # 8️⃣ دمج النتائج مع إضافة الـ confidence الكلي في النهاية
         output_dict["model_result"] = ml_result_string
         output_dict["confidence"] = f"{ml_confidence * 100 if ml_confidence <= 1.0 else ml_confidence:.1f}%"
         output_dict["additional_result"] = additional_results
