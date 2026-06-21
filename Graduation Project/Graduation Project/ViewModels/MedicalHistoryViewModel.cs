@@ -13,15 +13,16 @@ namespace Graduation_Project.ViewModels
         // ?? quick-stat counts ????????????????????????????????????????????
         public int LabTestCount { get; set; }
         public int UltrasoundCount { get; set; }
-        public int AppointmentCount { get; set; }
         public int BloodPressureCount { get; set; }
-        public int AlertCount { get; set; }
+        public int BloodSugarCount { get; set; }
+        public int DoctorNoteCount { get; set; }
+        public int MedicationCount { get; set; }
     }
 
     /// <summary>
-    /// One flattened timeline entry built from any health-related record.
+    /// One flattened timeline entry built from any clinical record.
     /// EventType values: bp-reading | blood-sugar | lab-test | ultrasound |
-    ///                   appointment | alert | doctor-note | medication
+    ///                   doctor-note | medication | pregnancy-started | pregnancy-ended
     /// Status values:    normal | attention | critical
     /// </summary>
     public class MedicalHistoryEntry
@@ -39,8 +40,6 @@ namespace Graduation_Project.ViewModels
         public PatientBloodSugar? BloodSugar { get; set; }
         public LabTest? LabTest { get; set; }
         public UltrasoundImage? Ultrasound { get; set; }
-        public Appointment? Appointment { get; set; }
-        public Alert? Alert { get; set; }
         public Note? DoctorNote { get; set; }
         public Prescription? Prescription { get; set; }
     }

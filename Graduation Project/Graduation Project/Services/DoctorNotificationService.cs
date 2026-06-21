@@ -16,7 +16,7 @@ namespace Graduation_Project.Services
             _push = push;
         }
 
-        public async Task NotifyAsync(int doctorId, string title, string message, string type, string? actionUrl = null)
+        public async Task NotifyAsync(int doctorId, string title, string message, string type, string? actionUrl = null, bool sendPush = true)
         {
             _context.DoctorNotifications.Add(new DoctorNotification
             {
@@ -29,6 +29,9 @@ namespace Graduation_Project.Services
                 ActionUrl = actionUrl
             });
             await _context.SaveChangesAsync();
+
+            // Callers that send their own push (e.g. ChatHub) pass sendPush:false to avoid duplicates.
+            if (!sendPush) return;
 
             var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.DoctorID == doctorId);
             if (!string.IsNullOrEmpty(doctor?.UserID))

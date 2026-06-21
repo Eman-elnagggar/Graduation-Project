@@ -1,4 +1,5 @@
 using Graduation_Project.Data;
+using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
 using Graduation_Project.ViewModels;
 using Graduation_Project.Services;
@@ -21,6 +22,7 @@ namespace Graduation_Project.Controllers
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _environment;
         private readonly IEmailService _emailService;
+        private readonly IPatientNotificationService _patientNotifications;
 
         public AccountController(
             UserManager<ApplicationUser> userManager,
@@ -28,7 +30,8 @@ namespace Graduation_Project.Controllers
             RoleManager<IdentityRole> roleManager,
             AppDbContext context,
             IWebHostEnvironment environment,
-            IEmailService emailService)
+            IEmailService emailService,
+            IPatientNotificationService patientNotifications)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -36,6 +39,7 @@ namespace Graduation_Project.Controllers
             _context = context;
             _environment = environment;
             _emailService = emailService;
+            _patientNotifications = patientNotifications;
         }
 
         private static string? NormalizeBabyGender(string? value)
@@ -341,6 +345,12 @@ namespace Graduation_Project.Controllers
 
             await _context.SaveChangesAsync();
 
+            _patientNotifications.Notify(patient.PatientID,
+                "Welcome to NABD",
+                "Your account is ready! Explore your dashboard, track your health, and stay connected with your care team.",
+                PatientNotificationTypes.Account,
+                "/Patient/Index");
+
             await _signInManager.SignInAsync(user, isPersistent: false);
             return await RedirectToRoleLandingAsync(user);
             await SendEmailConfirmationAsync(user);
@@ -495,22 +505,10 @@ namespace Graduation_Project.Controllers
             await EnsureRoleAsync("Assistant");
             await _userManager.AddToRoleAsync(user, "Assistant");
 
-            var clinic = _context.Clinics.FirstOrDefault();
-            if (clinic == null)
-            {
-                clinic = new Clinic
-                {
-                    Name = "Default Clinic",
-                    Location = "TBD"
-                };
-                _context.Clinics.Add(clinic);
-                await _context.SaveChangesAsync();
-            }
-
             var assistant = new Assistant
             {
                 UserID = user.Id,
-                ClinicID = clinic.ClinicID
+                ClinicID = null
             };
 
             _context.Assistants.Add(assistant);
@@ -684,10 +682,37 @@ namespace Graduation_Project.Controllers
                     ViewBag.PatientId = patient.PatientID;
             }
 
-            ViewBag.AttemptedUrl = string.IsNullOrWhiteSpace(returnUrl) ? Request.Path.Value : returnUrl;
+            var attemptedUrl = string.IsNullOrWhiteSpace(returnUrl) ? Request.Path.Value : returnUrl;
+            ViewBag.AttemptedUrl = attemptedUrl;
             ViewBag.UserRole = currentRole;
+            ViewBag.RequiredRole = InferRequiredRole(attemptedUrl);
 
             return View();
+        }
+
+        // Best-effort guess of which role the attempted resource is reserved for,
+        // based on the first path segment (i.e. the controller name).
+        private static string? InferRequiredRole(string? url)
+        {
+            if (string.IsNullOrWhiteSpace(url))
+                return null;
+
+            var path = url.Split('?', '#')[0];
+            var segment = path
+                .Split('/', StringSplitOptions.RemoveEmptyEntries)
+                .FirstOrDefault()?
+                .ToLowerInvariant();
+
+            return segment switch
+            {
+                "doctor" => "Doctor",
+                "admin" => "Admin",
+                "assistant" => "Assistant",
+                "lab" => "Lab",
+                "ultrasound" => "Doctor",
+                "patient" or "patientmedicalhistory" => "Patient",
+                _ => null
+            };
         }
 
         [HttpPost]
@@ -826,6 +851,21 @@ namespace Graduation_Project.Controllers
             }
 
             await _signInManager.RefreshSignInAsync(user);
+
+            // Confirmation notification for patients.
+            var patientId = await _context.Patients
+                .Where(p => p.UserID == user.Id)
+                .Select(p => p.PatientID)
+                .FirstOrDefaultAsync();
+            if (patientId > 0)
+            {
+                _patientNotifications.Notify(patientId,
+                    "Password Changed",
+                    "Your account password was changed successfully. If this wasn't you, contact support immediately.",
+                    PatientNotificationTypes.Account,
+                    "/Patient/Index");
+            }
+
             return Json(new { success = true });
         }
 
@@ -855,7 +895,12 @@ namespace Graduation_Project.Controllers
             {
                 var assistant = await _context.Assistants.FirstOrDefaultAsync(a => a.UserID == user.Id);
                 if (assistant != null)
+                {
+                    if (assistant.ClinicID == null)
+                        return RedirectToAction("ClinicInvitations", "Assistant", new { id = assistant.AssistantID });
+
                     return RedirectToAction("Index", "Assistant", new { id = assistant.AssistantID });
+                }
             }
 
             if (await _userManager.IsInRoleAsync(user, "Doctor"))

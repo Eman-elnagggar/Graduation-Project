@@ -17,8 +17,6 @@ namespace Graduation_Project.Controllers
         private readonly IPatientBloodSugar _patientBloodSugar;
         private readonly ILabTest _labTest;
         private readonly IUltrasoundImage _ultrasoundImage;
-        private readonly IAppointment _appointment;
-        private readonly IAlert _alertRepository;
         private readonly INote _noteRepository;
         private readonly IPrescription _prescriptionRepository;
         private readonly AppDbContext _context;
@@ -29,8 +27,6 @@ namespace Graduation_Project.Controllers
             IPatientBloodSugar patientBloodSugar,
             ILabTest labTest,
             IUltrasoundImage ultrasoundImage,
-            IAppointment appointment,
-            IAlert alertRepository,
             INote noteRepository,
             IPrescription prescriptionRepository,
             AppDbContext context)
@@ -40,8 +36,6 @@ namespace Graduation_Project.Controllers
             _patientBloodSugar = patientBloodSugar;
             _labTest = labTest;
             _ultrasoundImage = ultrasoundImage;
-            _appointment = appointment;
-            _alertRepository = alertRepository;
             _noteRepository = noteRepository;
             _prescriptionRepository = prescriptionRepository;
             _context = context;
@@ -64,18 +58,10 @@ namespace Graduation_Project.Controllers
             var bsReadings = _patientBloodSugar.GetRecentByPatientId(id, 200).ToList();
             var labTests = _labTest.GetLabTestsByPatientId(id).ToList();
             var ultrasounds = _ultrasoundImage.GetUltrasoundsByPatientId(id).ToList();
-            var appointments = _appointment.GetByPatientId(id).ToList();
-            var alerts = _alertRepository.GetByPatientId(id).ToList();
             var notes = _noteRepository.GetByPatientId(id).ToList();
             var prescriptions = _prescriptionRepository.GetByPatientId(id).ToList();
             var pregnancyRecords = _context.PregnancyRecords
                 .Where(r => r.PatientID == id)
-                .ToList();
-            var medicationLogs = _context.MedicationLogs
-                .Include(l => l.Medication)
-                .Where(l => l.Medication.PatientID == id)
-                .OrderByDescending(l => l.ScheduledAt)
-                .Take(200)
                 .ToList();
 
             var entries = new List<MedicalHistoryEntry>();
@@ -150,40 +136,6 @@ namespace Graduation_Project.Controllers
                 });
             }
 
-            foreach (var appt in appointments)
-            {
-                bool isPast = appt.Date < DateTime.Now;
-                entries.Add(new MedicalHistoryEntry
-                {
-                    DateTime = appt.Date,
-                    EventType = "appointment",
-                    Status = "normal",
-                    Title = isPast ? "Appointment - Completed" : "Upcoming Appointment",
-                    DoctorName = appt.Doctor?.User != null
-                        ? $"Dr. {appt.Doctor.User.FirstName} {appt.Doctor.User.LastName}"
-                        : null,
-                    ClinicName = appt.Clinic?.Name,
-                    Appointment = appt
-                });
-            }
-
-            foreach (var alert in alerts)
-            {
-                string status = alert.AlertType?.ToLower() is "danger" or "critical" ? "critical"
-                              : alert.AlertType?.ToLower() == "warning" ? "attention"
-                              : "normal";
-
-                entries.Add(new MedicalHistoryEntry
-                {
-                    DateTime = alert.DateCreated,
-                    EventType = "alert",
-                    Status = status,
-                    Title = alert.Title,
-                    SubTitle = alert.Message,
-                    Alert = alert
-                });
-            }
-
             foreach (var note in notes)
             {
                 entries.Add(new MedicalHistoryEntry
@@ -245,22 +197,6 @@ namespace Graduation_Project.Controllers
                 }
             }
 
-            foreach (var log in medicationLogs)
-            {
-                entries.Add(new MedicalHistoryEntry
-                {
-                    DateTime = log.ScheduledAt,
-                    EventType = MedicalHistoryEventTypes.MedicationLog,
-                    Status = log.Status == MedicationLogStatus.Missed ? "attention"
-                           : log.Status == MedicationLogStatus.Skipped ? "attention"
-                           : "normal",
-                    Title = $"Medication {log.Status}",
-                    SubTitle = log.Medication != null
-                        ? $"{log.Medication.Name} @ {log.ScheduledAt:hh:mm tt}"
-                        : $"Medication @ {log.ScheduledAt:hh:mm tt}"
-                });
-            }
-
             entries = entries.OrderByDescending(e => e.DateTime).ToList();
 
             var viewModel = new MedicalHistoryViewModel
@@ -270,9 +206,10 @@ namespace Graduation_Project.Controllers
                 TimelineEntries = entries,
                 LabTestCount = labTests.Count,
                 UltrasoundCount = ultrasounds.Count,
-                AppointmentCount = appointments.Count,
                 BloodPressureCount = bpReadings.Count,
-                AlertCount = alerts.Count
+                BloodSugarCount = bsReadings.Count,
+                DoctorNoteCount = notes.Count,
+                MedicationCount = prescriptions.Count
             };
 
             return View("~/Views/Patient/MedicalHistory.cshtml", viewModel);

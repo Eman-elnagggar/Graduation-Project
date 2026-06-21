@@ -105,6 +105,19 @@ namespace Graduation_Project.ViewModels
         public List<Assistant> Assistants { get; set; } = new();
         public List<PendingInvitationViewModel> PendingInvitations { get; set; } = new();
         public List<Clinic> LinkedClinics { get; set; } = new();
+        public List<DoctorLeaveRequestViewModel> LeaveRequests { get; set; } = new();
+    }
+
+    public class DoctorLeaveRequestViewModel
+    {
+        public int LeaveRequestID { get; set; }
+        public string AssistantName { get; set; } = string.Empty;
+        public string OldClinicName { get; set; } = string.Empty;
+        public string NewClinicName { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public int ApprovedCount { get; set; }
+        public int TotalApprovers { get; set; }
+        public bool ThisDoctorResponded { get; set; }
     }
 
     public class PendingInvitationViewModel

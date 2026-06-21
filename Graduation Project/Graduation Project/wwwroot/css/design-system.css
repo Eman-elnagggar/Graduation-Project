@@ -26,31 +26,44 @@
   --ds-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --ds-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
 
-  /* ── Brand / role colours (canonical source of truth) ── */
-  --role-primary:      #1baebe;
-  --role-primary-dark: #158a97;
-  --role-accent:       #00b4d8;
+  /* ── Brand / role colours (canonical source of truth) ──
+     NABD Patient Portal healthcare identity: Cyan + Navy + White. */
+  --role-primary:       #1baebe;  /* Primary        */
+  --role-primary-dark:  #138fa0;  /* Primary Dark   */
+  --role-primary-light: #22c9db;  /* Primary Light  */
+  --role-accent:        #22c9db;  /* Accent (= primary light, calm cyan) */
+
+  /* Primary cyan surfaces (tints) */
+  --primary-surface:      #e0f7fa;  /* Primary Surface      */
+  --primary-surface-soft: #f0fdfe;  /* Primary Surface Soft */
+
+  /* Navy — hero / premium dark surfaces */
+  --navy:     #0b1f35;  /* Navy     */
+  --navy-mid: #152d47;  /* Navy Mid */
 
   /* Aliases — keeps both naming conventions working ────── */
-  --primary:      var(--role-primary);
-  --primary-dark: var(--role-primary-dark);
-  --accent:       var(--role-accent);
-  --secondary:    #0077b6;
+  --primary:       var(--role-primary);
+  --primary-dark:  var(--role-primary-dark);
+  --primary-light: var(--role-primary-light);
+  --accent:        var(--role-accent);
+  --secondary:     #0077b6;
 
   /* ── Semantic status colours ─────────────────────────── */
   /* FIX: these were referenced (e.g. var(--danger) in .icon-btn .dot)
      but never defined in this file — causing transparent badges.      */
-  --danger:  #f44336;
-  --warning: #ff9800;
-  --success: #4caf50;
-  --info:    #2196f3;
+  --danger:  #ef4444;
+  --warning: #f59e0b;
+  --success: #22c55e;
+  --info:    #3b82f6;
 
   /* ── Surface / text / border tokens ─────────────────── */
-  --surface-page: #f8fafc;
-  --surface-card: #ffffff;
-  --text-strong:  #1e293b;
-  --text-muted:   #64748b;
-  --border-subtle:#e2e8f0;
+  --surface-page:  #f3f6fb;  /* Background   */
+  --surface-card:  #ffffff;  /* Surface      */
+  --text-strong:   #1e293b;  /* Text Primary   */
+  --text-secondary:#4a5568;  /* Text Secondary */
+  --text-muted:    #8896ab;  /* Text Muted     */
+  --border-subtle: #e4eaf2;  /* Border      */
+  --border-soft:   #cdd6e3;  /* Border Soft */
 }
 
 body {

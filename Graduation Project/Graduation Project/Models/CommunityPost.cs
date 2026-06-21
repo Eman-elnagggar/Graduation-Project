@@ -20,8 +20,12 @@ namespace Graduation_Project.Models
         [MaxLength(300)]
         public string? ImageUrl { get; set; }
 
-        public int PatientID { get; set; }
+        // Author is either a Patient or a Doctor (exactly one is set).
+        public int? PatientID { get; set; }
         public Patient? Patient { get; set; }
+
+        public int? DoctorID { get; set; }
+        public Doctor? Doctor { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

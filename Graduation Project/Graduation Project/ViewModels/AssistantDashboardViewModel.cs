@@ -9,8 +9,8 @@ namespace Graduation_Project.ViewModels
         public DateTime SelectedDate { get; set; } = DateTime.Today;
         public string SelectedScheduleStatus { get; set; } = "Booked";
 
-        // Clinic info
-        public Clinic Clinic { get; set; } = null!;
+        // Clinic info (null if not yet assigned)
+        public Clinic? Clinic { get; set; }
         public string ClinicName { get; set; } = string.Empty;
 
         // Linked doctors
@@ -27,8 +27,8 @@ namespace Graduation_Project.ViewModels
         // Today's appointments (all or filtered by selected doctor)
         public List<Appointment> TodaysAppointments { get; set; } = new();
 
-        // Recent unread alerts across clinic patients
-        public List<Alert> RecentAlerts { get; set; } = new();
+        // Recent unread operational notifications across clinic patients
+        public List<PatientNotification> RecentAlerts { get; set; } = new();
 
         // Patients assigned to the doctor(s)
         public List<AssistantPatientSummary> Patients { get; set; } = new();

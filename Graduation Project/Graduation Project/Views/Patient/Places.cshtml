@@ -542,25 +542,25 @@
            PLACES PAGE — FULL MODERN DESIGN SYSTEM
         ══════════════════════════════════════════ */
         :root {
-            --pl-primary: #fb7185;
-            --pl-primary-dk: #f43f5e;
-            --pl-primary-lt: #fff1f3;
-            --pl-text: #3f3550;
-            --pl-muted: #6b6478;
-            --pl-light: #fffaf7;
-            --pl-border: #f0e9ef;
+            --pl-primary: #1baebe;
+            --pl-primary-dk: #138fa0;
+            --pl-primary-lt: #f0fdfe;
+            --pl-text: #1e293b;
+            --pl-muted: #4a5568;
+            --pl-light: #f3f6fb;
+            --pl-border: #e4eaf2;
             --pl-radius: 24px;
             --pl-radius-sm: 14px;
-            --pl-shadow: 0 4px 16px rgba(120,80,110,.06);
-            --pl-shadow-md: 0 10px 30px rgba(120,80,110,.10);
-            --pl-shadow-hov: 0 16px 40px rgba(120,80,110,.16);
+            --pl-shadow: 0 4px 16px rgba(15, 23, 42,.06);
+            --pl-shadow-md: 0 10px 30px rgba(15, 23, 42,.10);
+            --pl-shadow-hov: 0 16px 40px rgba(15, 23, 42,.16);
             /* type colours */
             --c-hospital: #60a5fa;
             --c-clinic: #34d399;
-            --c-lab: #a78bfa;
+            --c-lab: #22c9db;
             --c-pharmacy: #fbbf24;
-            --c-imaging: #ec4899;
-            --c-other: #9a93a8;
+            --c-imaging: #0b1f35;
+            --c-other: #8896ab;
         }
 
         /* ── HERO HEADER ─────────────────────────── */
@@ -568,7 +568,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: linear-gradient(120deg, #ffe1ea 0%, #ffe8dc 42%, #ece4ff 100%);
+            background: linear-gradient(120deg, #e0f7fa 0%, #f0fdfe 42%, #e0f7fa 100%);
             border-radius: var(--pl-radius);
             padding: 1.8rem 2rem;
             margin-bottom: 1.5rem;
@@ -586,7 +586,7 @@
                 right: 10%;
                 width: 240px;
                 height: 240px;
-                background: radial-gradient(circle, rgba(251,113,133,.28) 0%, transparent 70%);
+                background: radial-gradient(circle, rgba(27, 174, 190,.28) 0%, transparent 70%);
                 pointer-events: none;
             }
 
@@ -597,7 +597,7 @@
                 left: 15%;
                 width: 260px;
                 height: 260px;
-                background: radial-gradient(circle, rgba(167,139,250,.22) 0%, transparent 70%);
+                background: radial-gradient(circle, rgba(34, 201, 219,.22) 0%, transparent 70%);
                 pointer-events: none;
             }
 
@@ -611,14 +611,14 @@
         .pl-hero-icon {
             width: 56px;
             height: 56px;
-            background: linear-gradient(135deg, var(--pl-primary), #f472b6);
+            background: linear-gradient(135deg, var(--pl-primary), #22c9db);
             border-radius: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 1.4rem;
             color: #fff;
-            box-shadow: 0 8px 22px rgba(251,113,133,.4);
+            box-shadow: 0 8px 22px rgba(27, 174, 190,.4);
             flex-shrink: 0;
         }
 
@@ -631,7 +631,7 @@
             padding: 5px 13px;
             border-radius: 30px;
             margin-bottom: 8px;
-            box-shadow: 0 2px 8px rgba(120,80,110,.06);
+            box-shadow: 0 2px 8px rgba(15, 23, 42,.06);
         }
 
         .pl-hero-title {
@@ -763,7 +763,7 @@
             }
 
             .pl-stat-icon.other {
-                background: #f4f0ff;
+                background: #f0fdfe;
                 color: var(--c-lab);
             }
 
@@ -826,14 +826,14 @@
         .pl-add-toggle-icon {
             width: 42px;
             height: 42px;
-            background: linear-gradient(135deg, var(--pl-primary), #f472b6);
+            background: linear-gradient(135deg, var(--pl-primary), #22c9db);
             border-radius: 13px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: #fff;
             font-size: 1rem;
-            box-shadow: 0 4px 12px rgba(251,113,133,.35);
+            box-shadow: 0 4px 12px rgba(27, 174, 190,.35);
             flex-shrink: 0;
         }
 
@@ -931,7 +931,7 @@
 
             .pl-input:focus {
                 border-color: var(--pl-primary);
-                box-shadow: 0 0 0 4px rgba(251,113,133,.12);
+                box-shadow: 0 0 0 4px rgba(27, 174, 190,.12);
                 background: #fff;
             }
 
@@ -964,13 +964,13 @@
         }
 
         .pl-btn-primary {
-            background: linear-gradient(90deg, var(--pl-primary), #f472b6);
+            background: linear-gradient(90deg, var(--pl-primary), #22c9db);
             color: #fff;
-            box-shadow: 0 6px 16px rgba(251,113,133,.32);
+            box-shadow: 0 6px 16px rgba(27, 174, 190,.32);
         }
 
             .pl-btn-primary:hover {
-                box-shadow: 0 10px 22px rgba(251,113,133,.4);
+                box-shadow: 0 10px 22px rgba(27, 174, 190,.4);
                 transform: translateY(-1px);
             }
 
@@ -990,20 +990,20 @@
             justify-content: center;
             background: var(--pl-primary-lt);
             color: var(--pl-primary-dk);
-            border: 1.5px solid #fecdd3;
+            border: 1.5px solid #cdd6e3;
             font-size: .8rem;
             padding: .45rem .75rem;
         }
 
             .pl-btn-edit:hover {
-                background: #ffe4e9;
+                background: #e0f7fa;
                 border-color: var(--pl-primary);
             }
 
         .pl-btn-delete {
             flex: 1;
             justify-content: center;
-            background: #fff1f2;
+            background: #f0fdfe;
             color: #dc2626;
             border: 1.5px solid #fca5a5;
             font-size: .8rem;
@@ -1035,7 +1035,7 @@
         .pl-list-icon {
             width: 42px;
             height: 42px;
-            background: linear-gradient(135deg, #fff1f3, #ffe1ea);
+            background: linear-gradient(135deg, #f0fdfe, #e0f7fa);
             border-radius: 13px;
             display: flex;
             align-items: center;
@@ -1144,7 +1144,7 @@
             }
 
             .pl-place-thumb.lab {
-                background: linear-gradient(135deg,#ede9fe,#ddd6fe);
+                background: linear-gradient(135deg,#e0f7fa,#e0f7fa);
                 color: var(--c-lab);
             }
 
@@ -1154,7 +1154,7 @@
             }
 
             .pl-place-thumb.imaging {
-                background: linear-gradient(135deg,#fce7f3,#fbcfe8);
+                background: linear-gradient(135deg,#f0fdfe,#e0f7fa);
                 color: var(--c-imaging);
             }
 
@@ -1321,7 +1321,7 @@
             align-items: center;
             justify-content: space-between;
             padding: 1.3rem 1.7rem;
-            background: linear-gradient(135deg, #fffaf7, #fff1f3);
+            background: linear-gradient(135deg, #f3f6fb, #f0fdfe);
             border-bottom: 1px solid var(--pl-border);
         }
 

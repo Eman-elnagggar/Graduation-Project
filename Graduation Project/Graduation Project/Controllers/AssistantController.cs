@@ -27,6 +27,7 @@ namespace Graduation_Project.Controllers
         private readonly ILabTest _labTestRepository;
         private readonly AssistantScheduleService _assistantScheduleService;
         private readonly IDoctorNotificationService _doctorNotificationService;
+        private readonly IPatientNotificationService _patientNotificationService;
         private readonly AppDbContext _context;
         private readonly IChatMessageCrypto _chatMessageCrypto;
         private readonly IWebHostEnvironment _env;
@@ -44,6 +45,7 @@ namespace Graduation_Project.Controllers
             ILabTest labTestRepository,
             AssistantScheduleService assistantScheduleService,
             IDoctorNotificationService doctorNotificationService,
+            IPatientNotificationService patientNotificationService,
             AppDbContext context,
             IChatMessageCrypto chatMessageCrypto,
             IWebHostEnvironment env,
@@ -60,6 +62,7 @@ namespace Graduation_Project.Controllers
             _labTestRepository = labTestRepository;
             _assistantScheduleService = assistantScheduleService;
             _doctorNotificationService = doctorNotificationService;
+            _patientNotificationService = patientNotificationService;
             _context = context;
             _chatMessageCrypto = chatMessageCrypto;
             _env = env;
@@ -68,9 +71,45 @@ namespace Graduation_Project.Controllers
             _roleManager = roleManager;
         }
 
+        // ── Clinic Guard ────────────────────────────────────────────────────────
+        // If the assistant has no clinic yet, only the invitation-related actions
+        // are allowed. Every other page is redirected to ClinicInvitations.
+        private static readonly HashSet<string> _allowedWithoutClinic =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                nameof(ClinicInvitations),
+                nameof(AcceptClinicInvitation),
+                nameof(DeclineClinicInvitation)
+            };
+
+        public override void OnActionExecuting(Microsoft.AspNetCore.Mvc.Filters.ActionExecutingContext context)
+        {
+            base.OnActionExecuting(context);
+
+            var actionName = context.ActionDescriptor.RouteValues["action"] ?? string.Empty;
+            if (_allowedWithoutClinic.Contains(actionName))
+                return;
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userId))
+                return; // let [Authorize] handle unauthenticated users
+
+            var assistant = _context.Assistants
+                .AsNoTracking()
+                .FirstOrDefault(a => a.UserID == userId);
+
+            if (assistant != null && assistant.ClinicID == null)
+            {
+                context.Result = RedirectToAction(
+                    nameof(ClinicInvitations),
+                    new { id = assistant.AssistantID });
+            }
+        }
+        // ────────────────────────────────────────────────────────────────────────
+
         public IActionResult Index(int id, int? doctorId, DateTime? date, string? status)
         {
-            // Fast initial load � only 2 DB queries (assistant + clinic)
+            // OnActionExecuting guarantees ClinicID != null by this point
             var accessResult = TryResolveAssistantClinic(id, out var assistant, out var clinic);
             if (accessResult != null) return accessResult;
 
@@ -85,16 +124,16 @@ namespace Graduation_Project.Controllers
                 ? doctorSummaries.FirstOrDefault(d => d.DoctorID == doctorId.Value)?.FullName ?? "Doctor"
                 : "All Doctors";
 
-            // Return page skeleton � heavy data (stats, schedule) loaded via AJAX
+            // Return page skeleton — heavy data (stats, schedule) loaded via AJAX
             var patientIds = _patientDoctorRepository
                 .GetApprovedByDoctors(relevantDoctorIds)
                 .Select(pd => pd.PatientID)
                 .Distinct()
                 .ToList();
 
-            var recentAlerts = _alertRepository
-                .GetUnreadByPatientIds(patientIds, 10)
-                .Where(a => a.Category == "Operational")
+            var recentAlerts = _patientNotificationService
+                .GetForPatients(patientIds, PatientNotificationTypes.Operational)
+                .Where(n => !n.IsRead)
                 .Take(5)
                 .ToList();
 
@@ -369,9 +408,9 @@ namespace Graduation_Project.Controllers
                 .Select(pd => pd.PatientID).Distinct().ToList();
 
             var pendingAlertsCount = uniquePatientIds.Any()
-                ? _context.Alerts
+                ? _context.PatientNotifications
                     .AsNoTracking()
-                    .Count(a => uniquePatientIds.Contains(a.PatientID) && !a.IsRead && a.Category == "Operational")
+                    .Count(n => uniquePatientIds.Contains(n.PatientID) && !n.IsRead && n.NotificationType == PatientNotificationTypes.Operational)
                 : 0;
 
             var testsThisWeek = isFiltered
@@ -409,9 +448,9 @@ namespace Graduation_Project.Controllers
                 .ToList();
 
             var unreadCount = patientIds.Any()
-                ? _context.Alerts
+                ? _context.PatientNotifications
                     .AsNoTracking()
-                    .Count(a => patientIds.Contains(a.PatientID) && !a.IsRead && a.Category == "Operational")
+                    .Count(n => patientIds.Contains(n.PatientID) && !n.IsRead && n.NotificationType == PatientNotificationTypes.Operational)
                 : 0;
 
             return Json(new { unreadCount });
@@ -431,26 +470,26 @@ namespace Graduation_Project.Controllers
                 .ToList();
 
             var alerts = patientIds.Any()
-                ? _context.Alerts
+                ? _context.PatientNotifications
                     .AsNoTracking()
-                    .Include(a => a.Patient)
+                    .Include(n => n.Patient)
                         .ThenInclude(p => p.User)
-                    .Where(a => patientIds.Contains(a.PatientID) && a.Category == "Operational")
-                    .OrderByDescending(a => a.DateCreated)
+                    .Where(n => patientIds.Contains(n.PatientID) && n.NotificationType == PatientNotificationTypes.Operational)
+                    .OrderByDescending(n => n.DateCreated)
                     .Take(20)
                     .ToList()
-                : new List<Alert>();
+                : new List<PatientNotification>();
 
-            var result = alerts.Select(a => new
+            var result = alerts.Select(n => new
             {
-                alertId   = a.AlertID,
-                title     = a.Title,
-                message   = a.Message,
-                alertType = a.AlertType ?? "info",
-                dateCreated = a.DateCreated.ToString("o"),
-                isRead    = a.IsRead,
-                patientName = a.Patient?.User != null
-                    ? $"{a.Patient.User.FirstName} {a.Patient.User.LastName}".Trim()
+                alertId   = n.Id,
+                title     = n.Title,
+                message   = n.Message,
+                alertType = n.Severity ?? "info",
+                dateCreated = n.DateCreated.ToString("o"),
+                isRead    = n.IsRead,
+                patientName = n.Patient?.User != null
+                    ? $"{n.Patient.User.FirstName} {n.Patient.User.LastName}".Trim()
                     : "Patient"
             });
 
@@ -559,14 +598,13 @@ namespace Graduation_Project.Controllers
 
         private List<int> GetRelevantDoctorIds(Assistant assistant, Clinic clinic)
         {
+            // Only show doctors who explicitly invited this assistant and she accepted.
+            // Intersect with clinic doctors as a safety check (both sides must agree).
             var assistantDoctorIds = assistant.AssistantDoctors?
                 .Select(ad => ad.DoctorID).ToHashSet() ?? new HashSet<int>();
             var clinicDoctorIds = clinic.ClinicDoctors?
                 .Select(cd => cd.DoctorID).ToHashSet() ?? new HashSet<int>();
-            var relevantDoctorIds = assistantDoctorIds.Intersect(clinicDoctorIds).ToList();
-            if (!relevantDoctorIds.Any())
-                relevantDoctorIds = clinicDoctorIds.ToList();
-            return relevantDoctorIds;
+            return assistantDoctorIds.Intersect(clinicDoctorIds).ToList();
         }
 
         private List<AssistantDoctorSummary> BuildDoctorSummaries(
@@ -832,6 +870,7 @@ namespace Graduation_Project.Controllers
                 confirmed = counts.Confirmed,
                 modified = counts.Modified,
                 cancelled = counts.Cancelled,
+                missed = counts.Missed,
                 total = counts.Total
             });
         }
@@ -1127,9 +1166,8 @@ namespace Graduation_Project.Controllers
                 .Distinct()
                 .ToList();
 
-            var alerts = _alertRepository.GetByPatientIds(patientIds)
-                .Where(a => a.Category == "Operational")
-                .ToList();
+            var alerts = _patientNotificationService
+                .GetForPatients(patientIds, PatientNotificationTypes.Operational);
 
             var vm = new AssistantAlertsViewModel
             {
@@ -1157,9 +1195,9 @@ namespace Graduation_Project.Controllers
             var accessResult = TryResolveAssistantClinic(id, out var assistant, out var clinic, true);
             if (accessResult != null) return accessResult;
 
-            var alert = _alertRepository.GetById(alertId);
-            if (alert == null)
-                return Json(new { success = false, message = "Alert not found." });
+            var notification = _context.PatientNotifications.Find(alertId);
+            if (notification == null)
+                return Json(new { success = false, message = "Notification not found." });
 
             var relevantDoctorIds = GetRelevantDoctorIds(assistant, clinic);
             var patientIds = _patientDoctorRepository
@@ -1167,12 +1205,10 @@ namespace Graduation_Project.Controllers
                 .Select(pd => pd.PatientID)
                 .ToHashSet();
 
-            if (!patientIds.Contains(alert.PatientID))
+            if (!patientIds.Contains(notification.PatientID))
                 return Json(new { success = false, message = "Access denied." });
 
-            alert.IsRead = true;
-            _alertRepository.Update(alert);
-            _alertRepository.Save();
+            _patientNotificationService.MarkRead(alertId);
 
             return Json(new { success = true });
         }
@@ -1190,17 +1226,9 @@ namespace Graduation_Project.Controllers
                 .Select(pd => pd.PatientID)
                 .ToList();
 
-            var unread = _alertRepository.GetUnreadByPatientIds(patientIds, int.MaxValue)
-                .Where(a => a.Category == "Operational")
-                .ToList();
-            foreach (var alert in unread)
-            {
-                alert.IsRead = true;
-                _alertRepository.Update(alert);
-            }
-            _alertRepository.Save();
+            var count = _patientNotificationService.MarkAllRead(patientIds, PatientNotificationTypes.Operational);
 
-            return Json(new { success = true, count = unread.Count });
+            return Json(new { success = true, count });
         }
 
         public IActionResult Availability(int id, int? doctorId)
@@ -1625,7 +1653,15 @@ namespace Graduation_Project.Controllers
                 CreateOperationalAlert(patient.PatientID,
                     "New Patient Registered",
                     $"{newPatientFullName} has been registered and assigned to {newPatientDoctorName}.",
-                    AlertTypes.Info);
+                    AlertTypes.Info,
+                    alsoNotifyPatient: false);
+
+                // Welcome notification for the new patient.
+                _patientNotificationService.Notify(patient.PatientID,
+                    "Welcome to NABD",
+                    $"Welcome! Your account is ready and you've been assigned to {newPatientDoctorName}. Explore your dashboard to get started.",
+                    PatientNotificationTypes.Account,
+                    "/Patient/Index");
 
                 if (model.IsPregnant && model.PregnancyDate.HasValue)
                 {
@@ -1663,19 +1699,19 @@ namespace Graduation_Project.Controllers
             }
         }
 
-        private void CreateOperationalAlert(int patientId, string title, string message, string alertType = AlertTypes.Info)
+        private void CreateOperationalAlert(int patientId, string title, string message,
+            string alertType = AlertTypes.Info, bool alsoNotifyPatient = true)
         {
-            _alertRepository.Add(new Alert
+            // Clinic-facing operational notification (shown to assistants).
+            _patientNotificationService.Notify(patientId, title, message,
+                PatientNotificationTypes.Operational, "/Assistant/Alerts", severity: alertType);
+
+            // Patient-facing copy so the patient is informed of the appointment change too.
+            if (alsoNotifyPatient)
             {
-                PatientID   = patientId,
-                Title       = title,
-                Message     = message,
-                AlertType   = alertType,
-                Category    = "Operational",
-                DateCreated = DateTime.Now,
-                IsRead      = false
-            });
-            _alertRepository.Save();
+                _patientNotificationService.Notify(patientId, title, message,
+                    PatientNotificationTypes.Appointment, "/Patient/Appointments", severity: alertType);
+            }
         }
 
         private static string GenerateTemporaryPassword()
@@ -2173,7 +2209,6 @@ namespace Graduation_Project.Controllers
                 return RedirectToAction(nameof(ClinicInvitations), new { id = assistant.AssistantID });
             }
 
-            // Update tracked assistant entity to ensure clinic assignment is persisted.
             var trackedAssistant = _context.Assistants.FirstOrDefault(a => a.AssistantID == assistant.AssistantID);
             if (trackedAssistant == null)
             {
@@ -2181,29 +2216,86 @@ namespace Graduation_Project.Controllers
                 return RedirectToAction(nameof(ClinicInvitations), new { id = assistant.AssistantID });
             }
 
-            trackedAssistant.ClinicID = invitation.ClinicID;
-
-            var alreadyLinked = _context.AssistantDoctors.Any(ad =>
-                ad.DoctorID == invitation.DoctorID && ad.AssistantID == assistant.AssistantID);
-
-            if (!alreadyLinked)
-            {
-                _context.AssistantDoctors.Add(new AssistantDoctor
-                {
-                    DoctorID = invitation.DoctorID,
-                    AssistantID = assistant.AssistantID
-                });
-            }
-
-            invitation.Status = "Accepted";
-            invitation.RespondedAtUtc = DateTime.UtcNow;
-            invitation.ResponseMessage = "Accepted by assistant";
-            _context.SaveChanges();
+            bool isSwitchingClinic = trackedAssistant.ClinicID.HasValue
+                                  && trackedAssistant.ClinicID.Value != invitation.ClinicID;
 
             var assistantUser = _context.Users.FirstOrDefault(u => u.Id == trackedAssistant.UserID);
             var assistantName = assistantUser != null
                 ? $"{assistantUser.FirstName} {assistantUser.LastName}".Trim()
                 : invitation.AssistantEmail;
+
+            if (isSwitchingClinic)
+            {
+                // ── Clinic switch requires approval ──────────────────────────────
+                // Don't let her stack a second clinic change while one is in flight.
+                bool hasPendingLeave = _context.AssistantLeaveRequests
+                    .Any(r => r.AssistantID == trackedAssistant.AssistantID && r.Status == "Pending");
+                if (hasPendingLeave)
+                {
+                    TempData["InviteError"] = "You already have a clinic change awaiting approval. Resolve it before accepting another invitation.";
+                    return RedirectToAction(nameof(ClinicInvitations), new { id = assistant.AssistantID });
+                }
+
+                // Every doctor she is linked to within her CURRENT clinic must approve.
+                int oldClinicId = trackedAssistant.ClinicID!.Value;
+                var approverDoctorIds = (from ad in _context.AssistantDoctors
+                                         join cd in _context.ClinicDoctors on ad.DoctorID equals cd.DoctorID
+                                         where ad.AssistantID == trackedAssistant.AssistantID
+                                            && cd.ClinicID == oldClinicId
+                                         select ad.DoctorID)
+                                        .Distinct()
+                                        .ToList();
+
+                if (approverDoctorIds.Count > 0)
+                {
+                    var leaveRequest = new AssistantLeaveRequest
+                    {
+                        AssistantID = trackedAssistant.AssistantID,
+                        OldClinicID = oldClinicId,
+                        NewClinicID = invitation.ClinicID,
+                        NewDoctorID = invitation.DoctorID,
+                        ClinicInvitationID = invitation.ClinicInvitationID,
+                        Status = "Pending",
+                        CreatedAtUtc = DateTime.UtcNow
+                    };
+                    foreach (var docId in approverDoctorIds)
+                    {
+                        leaveRequest.Approvals.Add(new AssistantLeaveApproval
+                        {
+                            DoctorID = docId,
+                            Status = "Pending"
+                        });
+                    }
+                    _context.AssistantLeaveRequests.Add(leaveRequest);
+
+                    // Hold the invitation in an intermediate state so it can't be
+                    // re-accepted and the switch side-effects don't fire yet.
+                    invitation.Status = "PendingLeaveApproval";
+                    invitation.ResponseMessage = "Awaiting leave approval from current clinic doctors";
+                    _context.SaveChanges();
+
+                    foreach (var docId in approverDoctorIds)
+                    {
+                        _ = _doctorNotificationService.NotifyAsync(
+                            docId,
+                            "Assistant Leave Request",
+                            $"{assistantName} has requested to leave your clinic to join another. Your approval is required.",
+                            "leave_request",
+                            $"/Doctor/Clinics/{docId}");
+                    }
+
+                    TempData["InviteSuccess"] = "Your request to switch clinics was submitted and is awaiting approval from every doctor in your current clinic.";
+                    return RedirectToAction(nameof(ClinicInvitations), new { id = assistant.AssistantID });
+                }
+
+                // No doctors to approve in the old clinic → switch immediately.
+            }
+
+            // Immediate path: first-time assignment, same clinic, or a switch with
+            // no required approvers.
+            ClinicSwitchHelper.ExecuteSwitch(_context, trackedAssistant, invitation, removeOldLinks: isSwitchingClinic);
+            _context.SaveChanges();
+
             _ = _doctorNotificationService.NotifyAsync(
                 invitation.DoctorID,
                 "Assistant Joined Your Team",
@@ -2211,7 +2303,11 @@ namespace Graduation_Project.Controllers
                 "invitation_accepted",
                 "/Doctor/ClinicTeam");
 
-            TempData["InviteSuccess"] = "Invitation accepted. You are now part of the doctor's clinic team.";
+            var successMsg = isSwitchingClinic
+                ? "Clinic switched. All previous doctor links have been removed. You are now part of the new clinic team."
+                : "Invitation accepted. You are now part of the doctor's clinic team.";
+
+            TempData["InviteSuccess"] = successMsg;
             return RedirectToAction(nameof(ClinicInvitations), new { id = assistant.AssistantID });
         }
 

@@ -17,11 +17,8 @@
         "blood-sugar" => "t-bs",
         "lab-test" => "t-lab",
         "ultrasound" => "t-ultrasound",
-        "appointment" => "t-appointment",
-        "alert" => "t-alert",
         "doctor-note" => "t-doctor",
         "medication" => "t-medication",
-        "medication-log" => "t-medication",
         _ => "t-default"
     };
     string AccentIcon(string? t) => t switch
@@ -30,11 +27,8 @@
         "blood-sugar" => "fas fa-tint",
         "lab-test" => "fas fa-flask",
         "ultrasound" => "fas fa-baby",
-        "appointment" => "fas fa-calendar-check",
-        "alert" => "fas fa-exclamation-triangle",
         "doctor-note" => "fas fa-user-md",
         "medication" => "fas fa-pills",
-        "medication-log" => "fas fa-pills",
         "pregnancy-started" => "fas fa-play-circle",
         "pregnancy-ended" => "fas fa-flag-checkered",
         _ => "fas fa-circle"
@@ -98,13 +92,6 @@
                     <span class="mh-chip-label">Ultrasounds</span>
                 </span>
             </button>
-            <button type="button" class="mh-chip t-appointment" data-type="appointment" aria-pressed="false">
-                <span class="mh-chip-ico"><i class="fas fa-calendar-check"></i></span>
-                <span class="mh-chip-text">
-                    <span class="mh-chip-count">@Model.AppointmentCount</span>
-                    <span class="mh-chip-label">Appointments</span>
-                </span>
-            </button>
             <button type="button" class="mh-chip t-bp" data-type="bp-reading" aria-pressed="false">
                 <span class="mh-chip-ico"><i class="fas fa-heartbeat"></i></span>
                 <span class="mh-chip-text">
@@ -112,11 +99,25 @@
                     <span class="mh-chip-label">Blood Pressure</span>
                 </span>
             </button>
-            <button type="button" class="mh-chip t-alert" data-type="alert" aria-pressed="false">
-                <span class="mh-chip-ico"><i class="fas fa-bell"></i></span>
+            <button type="button" class="mh-chip t-bs" data-type="blood-sugar" aria-pressed="false">
+                <span class="mh-chip-ico"><i class="fas fa-tint"></i></span>
                 <span class="mh-chip-text">
-                    <span class="mh-chip-count">@Model.AlertCount</span>
-                    <span class="mh-chip-label">Health Alerts</span>
+                    <span class="mh-chip-count">@Model.BloodSugarCount</span>
+                    <span class="mh-chip-label">Blood Sugar</span>
+                </span>
+            </button>
+            <button type="button" class="mh-chip t-doctor" data-type="doctor-note" aria-pressed="false">
+                <span class="mh-chip-ico"><i class="fas fa-user-md"></i></span>
+                <span class="mh-chip-text">
+                    <span class="mh-chip-count">@Model.DoctorNoteCount</span>
+                    <span class="mh-chip-label">Doctor Notes</span>
+                </span>
+            </button>
+            <button type="button" class="mh-chip t-medication" data-type="medication" aria-pressed="false">
+                <span class="mh-chip-ico"><i class="fas fa-pills"></i></span>
+                <span class="mh-chip-text">
+                    <span class="mh-chip-count">@Model.MedicationCount</span>
+                    <span class="mh-chip-label">Medications</span>
                 </span>
             </button>
         </div>
@@ -131,13 +132,10 @@
                 <option value="all">All Events</option>
                 <option value="lab-test">Lab Tests</option>
                 <option value="ultrasound">Ultrasounds</option>
-                <option value="appointment">Appointments</option>
                 <option value="bp-reading">Blood Pressure</option>
                 <option value="blood-sugar">Blood Sugar</option>
-                <option value="alert">Alerts</option>
                 <option value="doctor-note">Doctor Notes</option>
                 <option value="medication">Medications</option>
-                <option value="medication-log">Medication Logs</option>
                 <option value="pregnancy-started">Pregnancy Started</option>
                 <option value="pregnancy-ended">Pregnancy Updates</option>
             </select>
@@ -300,49 +298,6 @@
                                             }
                                         }
 
-                                        @* ── Appointment ── *@
-                                        @if (entry.Appointment != null)
-                                        {
-                                            bool isPast = entry.Appointment.Date < DateTime.Now;
-                                            var apptDt = entry.Appointment.Date.Date.Add(entry.Appointment.Time);
-                                            <div class="mh-appt">
-                                                <span class="mh-appt-status @(isPast ? "completed" : "upcoming")">
-                                                    <i class="fas @(isPast ? "fa-check-circle" : "fa-clock")"></i> @(isPast ? "Completed" : "Upcoming")
-                                                </span>
-                                                <div class="mh-appt-details">
-                                                    @if (!string.IsNullOrWhiteSpace(entry.DoctorName))
-                                                    {
-                                                        <div class="mh-appt-detail"><i class="fas fa-user-md"></i> <span>@entry.DoctorName</span></div>
-                                                    }
-                                                    @if (!string.IsNullOrWhiteSpace(entry.ClinicName))
-                                                    {
-                                                        <div class="mh-appt-detail"><i class="fas fa-hospital"></i> <span>@entry.ClinicName</span></div>
-                                                    }
-                                                    <div class="mh-appt-detail"><i class="fas fa-calendar"></i> <span>@apptDt.ToString("MMM dd, yyyy 'at' h:mm tt")</span></div>
-                                                </div>
-                                            </div>
-                                        }
-
-                                        @* ── Alert ── *@
-                                        @if (entry.Alert != null)
-                                        {
-                                            string at = (entry.Alert.AlertType ?? "info").ToLower();
-                                            string ac = at is "danger" or "critical" ? "danger" : at == "warning" ? "warning" : at == "success" ? "success" : "info";
-                                            <div class="mh-alert @ac">
-                                                <div class="mh-alert-head">
-                                                    <span class="mh-alert-sev"><i class="fas fa-exclamation-triangle"></i> @entry.Alert.AlertType</span>
-                                                    @if (!entry.Alert.IsRead)
-                                                    {
-                                                        <span class="mh-alert-unread"></span>
-                                                    }
-                                                </div>
-                                                <p class="mh-alert-msg">@entry.Alert.Message</p>
-                                                <div class="mh-alert-foot">
-                                                    <i class="fas @(entry.Alert.IsRead ? "fa-envelope-open" : "fa-envelope")"></i> @(entry.Alert.IsRead ? "Read" : "Unread")
-                                                </div>
-                                            </div>
-                                        }
-
                                         @* ── Doctor Note ── *@
                                         @if (entry.DoctorNote != null)
                                         {
@@ -383,17 +338,13 @@
                                     </div>
 
                                     <div class="mh-card-foot">
-                                        @if (!string.IsNullOrWhiteSpace(entry.DoctorName) && entry.Appointment == null)
+                                        @if (!string.IsNullOrWhiteSpace(entry.DoctorName))
                                         {
                                             <span class="mh-foot-info"><i class="fas fa-user-md"></i> @entry.DoctorName</span>
                                         }
                                         else if (entry.BloodPressure != null || entry.BloodSugar != null)
                                         {
                                             <span class="mh-foot-info"><i class="fas fa-user"></i> Self-recorded</span>
-                                        }
-                                        else if (entry.Alert != null)
-                                        {
-                                            <span class="mh-foot-info"><i class="fas fa-robot"></i> System Alert</span>
                                         }
                                         else
                                         {
@@ -445,8 +396,8 @@
                 <div id="mhModalVerdictRow" class="mhrm-verdict-row"></div>
                 <div id="mhModalReportContent"></div>
             </div>
-            <div id="mhModalError" style="display:none;text-align:center;padding:3rem 1.5rem;color:#9a93a8">
-                <i class="fas fa-exclamation-circle" style="font-size:2rem;display:block;margin-bottom:.75rem;color:#fb7185"></i>
+            <div id="mhModalError" style="display:none;text-align:center;padding:3rem 1.5rem;color:#8896ab">
+                <i class="fas fa-exclamation-circle" style="font-size:2rem;display:block;margin-bottom:.75rem;color:#1baebe"></i>
                 <p id="mhModalErrorMsg">Could not load the report.</p>
             </div>
         </div>
@@ -599,7 +550,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }).join('');
         if (diagList.length) {
             cards += '<div class="mhrm-insight-card high" style="grid-column:1/-1;flex-direction:row;align-items:flex-start;gap:.7rem">'
-                +'<div style="flex-shrink:0;margin-top:.1rem"><i class="fas fa-exclamation-triangle" style="color:#e11d48"></i></div>'
+                +'<div style="flex-shrink:0;margin-top:.1rem"><i class="fas fa-exclamation-triangle" style="color:#138fa0"></i></div>'
                 +'<div><div class="mhrm-insight-label">Additional Diagnoses</div>'
                 +diagList.map(d=>'<div class="mhrm-insight-value"><span class="mhrm-insight-dot"></span>'+mhEsc(d)+'</div>').join('')
                 +'</div></div>';
@@ -611,7 +562,7 @@ document.addEventListener("DOMContentLoaded", function () {
         'cbc (complete blood count)': [
             {key:'hb',name:'Hemoglobin',unit:'g/dL'},{key:'wbc',name:'WBC',unit:'/µL'},{key:'rbcs_count',name:'RBC',unit:'million/µL'},
             {key:'mcv',name:'MCV',unit:'fL'},{key:'mch',name:'MCH',unit:'pg'},{key:'rdw',name:'RDW',unit:'%'},
-            {key:'mchc',name:'MCHC',unit:'g/dL'},{key:'lymphocytes',name:'Lymphocytes',unit:'%'},{key:'platelet_count',name:'Platelets',unit:'/µL'}
+            {key:'lymphocytes',name:'Lymphocytes',unit:'%'},{key:'platelet_count',name:'Platelets',unit:'/µL'}
         ],
         'urinalysis': [
             {key:'color',name:'Color',unit:''},{key:'ph',name:'pH',unit:''},{key:'specific_gravity',name:'Specific Gravity',unit:''},
@@ -687,7 +638,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 +'<div class="mhrm-ai-block"><div class="mhrm-ai-block-body">'+mhFormatText(analysis.report)+'</div></div></div>';
         }
 
-        mhModalReportContent.innerHTML = html || '<p style="padding:1.5rem;color:#9a93a8">No detailed data available for this report.</p>';
+        mhModalReportContent.innerHTML = html || '<p style="padding:1.5rem;color:#8896ab">No detailed data available for this report.</p>';
         mhShowContent();
     }
 

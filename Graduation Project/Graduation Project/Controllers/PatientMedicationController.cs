@@ -1,10 +1,12 @@
 using Graduation_Project.Data;
+using Graduation_Project.Hubs;
 using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
 using Graduation_Project.Services;
 using Graduation_Project.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Text;
@@ -19,19 +21,22 @@ namespace Graduation_Project.Controllers
         private readonly MedicationAdherenceService _adherenceService;
         private readonly MedicationReminderService _reminderService;
         private readonly AppDbContext _context;
+        private readonly IHubContext<MedicationHub> _medicationHub;
 
         public PatientMedicationController(
             IPatient patientRepository,
             MedicationService medicationService,
             MedicationAdherenceService adherenceService,
             MedicationReminderService reminderService,
-            AppDbContext context)
+            AppDbContext context,
+            IHubContext<MedicationHub> medicationHub)
         {
             _patientRepository = patientRepository;
             _medicationService = medicationService;
             _adherenceService = adherenceService;
             _reminderService = reminderService;
             _context = context;
+            _medicationHub = medicationHub;
         }
 
         public IActionResult Index(int id)
@@ -316,9 +321,9 @@ namespace Graduation_Project.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult LogDose([FromBody] LogDoseRequest request)
+        public async Task<IActionResult> LogDose([FromBody] LogDoseRequest request)
         {
-            var (_, failure) = AuthorizePatientAccess(request.PatientId, true);
+            var (patient, failure) = AuthorizePatientAccess(request.PatientId, true);
             if (failure != null)
                 return failure;
 
@@ -326,6 +331,18 @@ namespace Graduation_Project.Controllers
                 parsedStatus = MedicationLogStatus.Scheduled;
 
             _adherenceService.LogDose(request.MedicationId, request.ScheduledAt, parsedStatus, request.Notes);
+
+            // Broadcast the change to every open tab/device for this patient so the
+            // tracker updates live without a page refresh.
+            if (!string.IsNullOrEmpty(patient?.UserID))
+            {
+                await _medicationHub.Clients.User(patient.UserID).SendAsync("DoseUpdated", new
+                {
+                    medicationId = request.MedicationId,
+                    scheduledAt = request.ScheduledAt.ToString("O"),
+                    status = parsedStatus.ToString()
+                });
+            }
 
             return Json(new { success = true });
         }

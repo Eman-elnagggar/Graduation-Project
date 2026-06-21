@@ -3,18 +3,18 @@
    Aligned with the patient dashboard's warm design system
 ════════════════════════════════════════════════════════════ */
 .al-hero, .al-stats-grid, .al-filter-bar-wrap, .al-list-section, .al-toast {
-    --rose:#fb7185; --rose-lt:#fff1f3;
-    --violet:#a78bfa; --violet-lt:#f4f0ff;
+    --rose:#1baebe; --rose-lt:#f0fdfe;
+    --violet:#22c9db; --violet-lt:#f0fdfe;
     --mint:#34d399; --mint-lt:#ecfdf5;
     --amber:#fbbf24; --amber-lt:#fffaf0;
     --sky:#60a5fa; --sky-lt:#eff6ff;
-    --ink:#3f3550; --ink-2:#6b6478; --ink-3:#9a93a8;
-    --cream:#fffaf7; --line:#f0e9ef;
+    --ink:#1e293b; --ink-2:#4a5568; --ink-3:#8896ab;
+    --cream:#f3f6fb; --line:#e4eaf2;
     --r:24px; --r-sm:18px;
-    --sh:0 10px 30px rgba(120,80,110,.08);
-    --sh-sm:0 4px 16px rgba(120,80,110,.06);
+    --sh:0 10px 30px rgba(15, 23, 42,.08);
+    --sh-sm:0 4px 16px rgba(15, 23, 42,.06);
     /* severity */
-    --red:#ef4444; --red-lt:#fff1f2;
+    --red:#ef4444; --red-lt:#fef2f2;
     --amb:#f59e0b; --amb-lt:#fffbeb;
     --blu:#3b82f6; --blu-lt:#eff6ff;
     font-family:'Inter',system-ui,sans-serif;
@@ -25,21 +25,21 @@
     position:relative; overflow:hidden;
     display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;
     background:
-        radial-gradient(125% 150% at 0% 0%, #ffe4ea 0%, transparent 55%),
-        radial-gradient(130% 150% at 100% 100%, #f0e6ff 0%, transparent 55%),
-        linear-gradient(120deg, #ffeef1 0%, #fbe9f3 50%, #f3ebff 100%);
+        radial-gradient(125% 150% at 0% 0%, #e0f7fa 0%, transparent 55%),
+        radial-gradient(130% 150% at 100% 100%, #e0f7fa 0%, transparent 55%),
+        linear-gradient(120deg, #f0fdfe 0%, #f0fdfe 50%, #e0f7fa 100%);
     border:1px solid rgba(255,255,255,.7); border-radius:28px; padding:26px 30px; margin-bottom:20px;
     box-shadow:var(--sh);
 }
 .al-hero::after {
     content:""; position:absolute; top:-40%; right:-4%; width:340px; height:340px; pointer-events:none;
-    background:radial-gradient(circle, rgba(167,139,250,.2), transparent 65%); filter:blur(8px);
+    background:radial-gradient(circle, rgba(34, 201, 219,.2), transparent 65%); filter:blur(8px);
 }
 .al-hero-left { position:relative; z-index:1; display:flex; align-items:center; gap:16px; }
 .al-hero-icon {
     position:relative; width:58px; height:58px; flex-shrink:0; border-radius:17px;
     display:flex; align-items:center; justify-content:center; font-size:1.4rem; color:#fff;
-    background:linear-gradient(135deg, var(--rose), #c084fc); box-shadow:0 10px 24px rgba(192,132,252,.4);
+    background:linear-gradient(135deg, var(--rose), #22c9db); box-shadow:0 10px 24px rgba(34, 201, 219,.4);
 }
 .al-hero-badge {
     position:absolute; top:-6px; right:-6px; min-width:20px; height:20px; padding:0 5px; border-radius:10px;
@@ -64,7 +64,7 @@
 .al-stat-critical .al-stat-icon { background:var(--red-lt); color:#dc2626; }
 .al-stat-warning  .al-stat-icon { background:var(--amb-lt); color:#d97706; }
 .al-stat-info     .al-stat-icon { background:var(--sky-lt); color:#2563eb; }
-.al-stat-unread   .al-stat-icon { background:var(--violet-lt); color:#7c3aed; }
+.al-stat-unread   .al-stat-icon { background:var(--violet-lt); color:#138fa0; }
 .al-stat-critical { border-top:3px solid var(--red); }
 .al-stat-warning  { border-top:3px solid var(--amb); }
 .al-stat-info     { border-top:3px solid var(--blu); }
@@ -86,12 +86,12 @@
     padding:8px 15px; border-radius:30px; border:1px solid var(--line); background:var(--cream);
     font-size:.82rem; font-weight:700; color:var(--ink-2); transition:all .2s;
 }
-.al-tab:hover { background:var(--violet-lt); border-color:#e6dcff; color:#7c3aed; transform:translateY(-1px); }
-.al-tab.active { color:#fff; border-color:transparent; background:linear-gradient(120deg,var(--rose),#c084fc); box-shadow:0 6px 14px rgba(192,132,252,.3); }
-.al-tab-critical.active { background:linear-gradient(120deg,#fb7185,#ef4444); box-shadow:0 6px 14px rgba(239,68,68,.3); }
+.al-tab:hover { background:var(--violet-lt); border-color:#cdd6e3; color:#138fa0; transform:translateY(-1px); }
+.al-tab.active { color:#fff; border-color:transparent; background:linear-gradient(120deg,var(--rose),#22c9db); box-shadow:0 6px 14px rgba(34, 201, 219,.3); }
+.al-tab-critical.active { background:linear-gradient(120deg,#f87171,#ef4444); box-shadow:0 6px 14px rgba(239,68,68,.3); }
 .al-tab-warning.active  { background:linear-gradient(120deg,#fbbf24,#f59e0b); box-shadow:0 6px 14px rgba(245,158,11,.3); }
 .al-tab-info.active     { background:linear-gradient(120deg,#60a5fa,#3b82f6); box-shadow:0 6px 14px rgba(59,130,246,.3); }
-.al-tab-unread.active   { background:linear-gradient(120deg,#a78bfa,#7c3aed); box-shadow:0 6px 14px rgba(124,58,237,.3); }
+.al-tab-unread.active   { background:linear-gradient(120deg,#22c9db,#138fa0); box-shadow:0 6px 14px rgba(19, 143, 160,.3); }
 .al-tab-count { background:var(--cream); color:var(--ink-2); border-radius:20px; padding:1px 8px; font-size:.7rem; min-width:18px; text-align:center; }
 .al-tab.active .al-tab-count { background:rgba(255,255,255,.28); color:#fff; }
 
@@ -113,7 +113,7 @@
     transition:transform .2s, box-shadow .2s;
 }
 .al-card:hover { transform:translateY(-2px); box-shadow:var(--sh); }
-.al-card.al-unread.al-card-critical { background:linear-gradient(120deg,#fff7f8,#fff1f2); }
+.al-card.al-unread.al-card-critical { background:linear-gradient(120deg,#fff5f5,#fef2f2); }
 .al-card.al-unread.al-card-warning  { background:linear-gradient(120deg,#fffdf6,#fffbeb); }
 .al-card.al-unread.al-card-info      { background:linear-gradient(120deg,#f8fbff,#eff6ff); }
 
@@ -182,7 +182,7 @@
 }
 .al-toast > i { font-size:1.05rem; }
 .al-toast-success { background:linear-gradient(120deg,var(--mint),#10b981); }
-.al-toast-info    { background:linear-gradient(120deg,var(--violet),#7c3aed); }
+.al-toast-info    { background:linear-gradient(120deg,var(--violet),#138fa0); }
 .al-toast-error   { background:linear-gradient(120deg,var(--rose),#ef4444); }
 .al-toast-close { background:none; border:none; cursor:pointer; color:#fff; opacity:.85; padding:2px 5px; margin-left:4px; }
 .al-toast-close:hover { opacity:1; }

@@ -51,12 +51,15 @@ namespace Graduation_Project.Data
         public DbSet<WeightTracking> WeightTrackings { get; set; }
         public DbSet<ChatMessage> ChatMessages { get; set; }
         public DbSet<ClinicInvitation> ClinicInvitations { get; set; }
+        public DbSet<AssistantLeaveRequest> AssistantLeaveRequests { get; set; }
+        public DbSet<AssistantLeaveApproval> AssistantLeaveApprovals { get; set; }
         public DbSet<CommunityPost> CommunityPosts { get; set; }
         public DbSet<CommunityComment> CommunityComments { get; set; }
         public DbSet<CommunityLike> CommunityLikes { get; set; }
         public DbSet<ChatbotMessage> ChatbotMessages { get; set; }
         public DbSet<UserPushSubscription> UserPushSubscriptions { get; set; }
         public DbSet<DoctorNotification> DoctorNotifications { get; set; }
+        public DbSet<PatientNotification> PatientNotifications { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -514,6 +517,19 @@ namespace Graduation_Project.Data
             });
 
             // ============================================================
+            // 19b. PATIENT -> NOTIFICATIONS (reminders / status / operational)
+            // ============================================================
+            modelBuilder.Entity<PatientNotification>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.HasOne(d => d.Patient)
+                    .WithMany()
+                    .HasForeignKey(d => d.PatientID)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ============================================================
             // 20. PATIENT -> APPOINTMENTS (One Patient has Many Appointments)
             // ============================================================
             modelBuilder.Entity<Appointment>(entity =>
@@ -868,6 +884,66 @@ namespace Graduation_Project.Data
                 entity.HasIndex(e => new { e.DoctorID, e.ClinicID, e.AssistantID, e.Status });
             });
 
+            // ============================================================
+            // ASSISTANT LEAVE REQUESTS (clinic-switch approval workflow)
+            // ============================================================
+            modelBuilder.Entity<AssistantLeaveRequest>(entity =>
+            {
+                entity.HasKey(e => e.AssistantLeaveRequestID);
+
+                entity.Property(e => e.Status)
+                    .HasMaxLength(32)
+                    .IsRequired();
+
+                entity.HasOne(e => e.Assistant)
+                    .WithMany()
+                    .HasForeignKey(e => e.AssistantID)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.OldClinic)
+                    .WithMany()
+                    .HasForeignKey(e => e.OldClinicID)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.NewClinic)
+                    .WithMany()
+                    .HasForeignKey(e => e.NewClinicID)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.NewDoctor)
+                    .WithMany()
+                    .HasForeignKey(e => e.NewDoctorID)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.Invitation)
+                    .WithMany()
+                    .HasForeignKey(e => e.ClinicInvitationID)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => new { e.AssistantID, e.Status });
+            });
+
+            modelBuilder.Entity<AssistantLeaveApproval>(entity =>
+            {
+                entity.HasKey(e => e.AssistantLeaveApprovalID);
+
+                entity.Property(e => e.Status)
+                    .HasMaxLength(32)
+                    .IsRequired();
+
+                entity.HasOne(e => e.LeaveRequest)
+                    .WithMany(r => r.Approvals)
+                    .HasForeignKey(e => e.AssistantLeaveRequestID)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Doctor)
+                    .WithMany()
+                    .HasForeignKey(e => e.DoctorID)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => new { e.DoctorID, e.Status });
+            });
+
 
             // ============================================================
             // COMMUNITY
@@ -883,6 +959,10 @@ namespace Graduation_Project.Data
                     .WithMany()
                     .HasForeignKey(e => e.PatientID)
                     .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.Doctor)
+                    .WithMany()
+                    .HasForeignKey(e => e.DoctorID)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<CommunityComment>(entity =>
@@ -897,16 +977,29 @@ namespace Graduation_Project.Data
                     .WithMany()
                     .HasForeignKey(e => e.PatientID)
                     .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Doctor)
+                    .WithMany()
+                    .HasForeignKey(e => e.DoctorID)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<CommunityLike>(entity =>
             {
                 entity.HasKey(e => e.CommunityLikeId);
-                entity.HasIndex(e => new { e.CommunityPostId, e.PatientID }).IsUnique();
+                entity.HasIndex(e => new { e.CommunityPostId, e.PatientID })
+                    .IsUnique()
+                    .HasFilter("[PatientID] IS NOT NULL");
+                entity.HasIndex(e => new { e.CommunityPostId, e.DoctorID })
+                    .IsUnique()
+                    .HasFilter("[DoctorID] IS NOT NULL");
                 entity.HasOne(e => e.Post)
                     .WithMany(p => p.Likes)
                     .HasForeignKey(e => e.CommunityPostId)
                     .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.Doctor)
+                    .WithMany()
+                    .HasForeignKey(e => e.DoctorID)
+                    .OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne(e => e.Patient)
                     .WithMany()
                     .HasForeignKey(e => e.PatientID)

@@ -1,0 +1,116 @@
+@* Notification enable/test banner — driven by window.NabdPush (push-notifications.js) *@
+<div id="nabdNotifBanner" class="nabd-notif-banner" hidden>
+    <div class="nabd-notif-banner__text">
+        <span class="nabd-notif-banner__icon" aria-hidden="true">🔔</span>
+        <span id="nabdNotifMsg">فعّل الإشعارات لتصلك التنبيهات على هاتفك مباشرة</span>
+    </div>
+    <div class="nabd-notif-banner__actions">
+        <button type="button" id="nabdNotifEnable" class="nabd-notif-btn nabd-notif-btn--primary">تفعيل الإشعارات</button>
+        <button type="button" id="nabdNotifTest" class="nabd-notif-btn" hidden>إرسال اختبار</button>
+        <button type="button" id="nabdNotifDismiss" class="nabd-notif-btn nabd-notif-btn--ghost" aria-label="إغلاق">✕</button>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var banner = document.getElementById('nabdNotifBanner');
+        if (!banner) return;
+
+        var msg = document.getElementById('nabdNotifMsg');
+        var enableBtn = document.getElementById('nabdNotifEnable');
+        var testBtn = document.getElementById('nabdNotifTest');
+        var dismissBtn = document.getElementById('nabdNotifDismiss');
+        var DISMISS_KEY = 'nabd-notif-banner-dismissed';
+
+        function show() { banner.hidden = false; }
+        function hide() { banner.hidden = true; }
+
+        function render(state) {
+            if (state === 'unsupported') { hide(); return; }
+
+            if (state === 'insecure') {
+                // Served over HTTP — push is impossible until the site uses HTTPS.
+                if (localStorage.getItem(DISMISS_KEY) === 'insecure') { hide(); return; }
+                msg.textContent = 'الإشعارات تتطلب فتح الموقع عبر HTTPS. افتح الموقع بـ https:// لتفعيلها.';
+                enableBtn.hidden = true;
+                testBtn.hidden = true;
+                show();
+                return;
+            }
+
+            if (state === 'granted') {
+                // Subscribed: hide the prompt, keep only a quiet test affordance available
+                // by showing the banner briefly only if the user opens it. We just hide it.
+                hide();
+                return;
+            }
+
+            if (state === 'denied') {
+                if (localStorage.getItem(DISMISS_KEY) === 'denied') { hide(); return; }
+                msg.textContent = 'الإشعارات محظورة. فعّلها من إعدادات الموقع في المتصفح لتصلك التنبيهات.';
+                enableBtn.hidden = true;
+                testBtn.hidden = true;
+                show();
+                return;
+            }
+
+            // default
+            if (localStorage.getItem(DISMISS_KEY) === 'default') { hide(); return; }
+            msg.textContent = 'فعّل الإشعارات لتصلك التنبيهات على هاتفك مباشرة';
+            enableBtn.hidden = false;
+            testBtn.hidden = true;
+            show();
+        }
+
+        document.addEventListener('nabd:push-state', function (e) {
+            render((e.detail && e.detail.state) || (window.NabdPush ? window.NabdPush.state() : 'unsupported'));
+        });
+
+        enableBtn.addEventListener('click', async function () {
+            if (!window.NabdPush) return;
+            enableBtn.disabled = true;
+            var prev = enableBtn.textContent;
+            enableBtn.textContent = '...جارٍ التفعيل';
+            var result = await window.NabdPush.enable();
+            enableBtn.disabled = false;
+            enableBtn.textContent = prev;
+
+            if (result === 'granted') {
+                msg.textContent = 'تم تفعيل الإشعارات ✓';
+                enableBtn.hidden = true;
+                testBtn.hidden = false;
+            } else if (result === 'denied') {
+                render('denied');
+            } else if (result === 'unsupported') {
+                hide();
+            } else {
+                msg.textContent = 'تعذّر التفعيل، حاول مرة أخرى';
+            }
+        });
+
+        testBtn.addEventListener('click', async function () {
+            if (!window.NabdPush) return;
+            testBtn.disabled = true;
+            var res = await window.NabdPush.test();
+            testBtn.disabled = false;
+            if (res.ok && res.count > 0) {
+                msg.textContent = 'تم إرسال إشعار تجريبي إلى ' + res.count + ' جهاز ✓';
+            } else if (res.ok && res.count === 0) {
+                msg.textContent = 'لا يوجد اشتراك مسجَّل لهذا الحساب. فعّل الإشعارات أولًا.';
+            } else {
+                msg.textContent = 'تعذّر إرسال الاختبار';
+            }
+        });
+
+        dismissBtn.addEventListener('click', function () {
+            var state = window.NabdPush ? window.NabdPush.state() : 'default';
+            if (state === 'denied') localStorage.setItem(DISMISS_KEY, 'denied');
+            else if (state === 'insecure') localStorage.setItem(DISMISS_KEY, 'insecure');
+            else localStorage.setItem(DISMISS_KEY, 'default');
+            hide();
+        });
+
+        // Initial render in case the push-state event already fired before this ran.
+        if (window.NabdPush) render(window.NabdPush.state());
+    })();
+</script>

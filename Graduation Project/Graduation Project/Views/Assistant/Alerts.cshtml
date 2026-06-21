@@ -11,9 +11,8 @@
 
     var totalAlerts   = Model.Alerts.Count;
     var unreadCount   = Model.UnreadCount;
-    var urgentCount   = Model.Alerts.Count(a => a.AlertType?.ToLower() == "danger");
-    var pendingCount  = Model.Alerts.Count(a => a.AlertType?.ToLower() == "warning");
-    var resolvedCount = Model.Alerts.Count(a => a.AlertType?.ToLower() is "success" or "info");
+    var pendingCount  = Model.Alerts.Count(a => a.Severity?.ToLower() == "warning");
+    var resolvedCount = Model.Alerts.Count(a => a.Severity?.ToLower() is "success" or "info");
 
     // Helper to map alert type → icon / accent class
     Func<string?, string> getIcon = type => type?.ToLower() switch {
@@ -45,7 +44,6 @@
     };
 
     Func<string?, string> getBadgeLabel = type => type?.ToLower() switch {
-        "danger"  => "Urgent",
         "warning" => "Changed",
         "success" => "Confirmed",
         _         => "Activity"
@@ -102,13 +100,6 @@
                 <div class="kpi-label">Unread</div>
             </div>
         </div>
-        <div class="kpi-card kpi-card--danger">
-            <div class="kpi-icon"><i class="fas fa-exclamation-circle"></i></div>
-            <div class="kpi-body">
-                <div class="kpi-value">@urgentCount</div>
-                <div class="kpi-label">Urgent</div>
-            </div>
-        </div>
         <div class="kpi-card kpi-card--success">
             <div class="kpi-icon"><i class="fas fa-check-circle"></i></div>
             <div class="kpi-body">
@@ -151,10 +142,6 @@
                 Unread
                 <span class="notif-tab-count notif-tab-count--red" id="filterCount-unread">@unreadCount</span>
             </button>
-            <button class="notif-tab" data-filter="danger" onclick="filterAlerts('danger')">
-                Urgent
-                <span class="notif-tab-count notif-tab-count--red" id="filterCount-danger">@urgentCount</span>
-            </button>
             <button class="notif-tab" data-filter="warning" onclick="filterAlerts('warning')">
                 Changes
                 <span class="notif-tab-count notif-tab-count--amber" id="filterCount-warning">@pendingCount</span>
@@ -184,7 +171,7 @@
                 <div class="notif-list" id="alertsList">
                     @foreach (var alert in Model.Alerts.OrderByDescending(a => !a.IsRead).ThenByDescending(a => a.DateCreated))
                     {
-                        var alertType    = alert.AlertType?.ToLower() ?? "info";
+                        var alertType    = alert.Severity?.ToLower() ?? "info";
                         var patientName  = alert.Patient?.User != null
                             ? $"{alert.Patient.User.FirstName} {alert.Patient.User.LastName}".Trim()
                             : "Patient";
@@ -192,18 +179,18 @@
                         var filterType   = isResolved ? "resolved" : alertType;
 
                         <div class="notif-item @(alert.IsRead ? "notif-item--read" : "notif-item--unread")"
-                             data-alert-id="@alert.AlertID"
+                             data-alert-id="@alert.Id"
                              data-alert-type="@alertType"
                              data-filter-type="@filterType"
                              data-is-read="@(alert.IsRead ? "true" : "false")"
                              data-search-text="@(alert.Title + " " + patientName + " " + alert.Message)">
 
                             @* Accent strip *@
-                            <div class="notif-accent @getAccent(alert.AlertType)"></div>
+                            <div class="notif-accent @getAccent(alert.Severity)"></div>
 
                             @* Icon *@
-                            <div class="notif-icon-wrap @getIconBg(alert.AlertType)">
-                                <i class="fas @getIcon(alert.AlertType)"></i>
+                            <div class="notif-icon-wrap @getIconBg(alert.Severity)">
+                                <i class="fas @getIcon(alert.Severity)"></i>
                             </div>
 
                             @* Content *@
@@ -217,8 +204,8 @@
                                         }
                                     </div>
                                     <div class="notif-meta-right">
-                                        <span class="notif-badge @getBadgeClass(alert.AlertType)">
-                                            @getBadgeLabel(alert.AlertType)
+                                        <span class="notif-badge @getBadgeClass(alert.Severity)">
+                                            @getBadgeLabel(alert.Severity)
                                         </span>
                                         <span class="notif-time" title="@alert.DateCreated.ToString("ddd MMM dd, yyyy hh:mm tt", CultureInfo.InvariantCulture)">
                                             <i class="fas fa-clock"></i>
@@ -242,7 +229,7 @@
                                 {
                                     <div class="notif-actions">
                                         <button class="notif-mark-btn"
-                                                onclick="markAlertRead(@alert.AlertID, this)"
+                                                onclick="markAlertRead(@alert.Id, this)"
                                                 title="Mark as read">
                                             <i class="fas fa-check"></i> Mark as Read
                                         </button>

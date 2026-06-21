@@ -35,9 +35,12 @@
     </button>
     <button type="button" class="cl-tab @(openTeamTab ? "is-active" : "")" data-tab="tab-team" role="tab">
         <i class="fas fa-user-nurse"></i> Clinic Team
-        @if ((Model.PendingInvitations?.Count ?? 0) > 0)
+        @{
+            var teamBadgeCount = (Model.PendingInvitations?.Count ?? 0) + (Model.LeaveRequests?.Count ?? 0);
+        }
+        @if (teamBadgeCount > 0)
         {
-            <span class="cl-tab-badge">@Model.PendingInvitations!.Count</span>
+            <span class="cl-tab-badge">@teamBadgeCount</span>
         }
     </button>
 </div>
@@ -290,6 +293,64 @@
             <div class="privacy-notice" style="margin-top:1rem;border-left-color:var(--dr-danger);background:#fef2f2;">
                 <i class="fas fa-exclamation-circle" style="color:var(--dr-danger);"></i>
                 <p style="color:#b91c1c;">@TempData["InviteError"]</p>
+            </div>
+        }
+    </section>
+
+    <section class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-person-walking-arrow-right"></i> Leave Requests</h3>
+            <span style="font-size:.8rem;color:var(--dr-muted);">@(Model.LeaveRequests?.Count ?? 0) awaiting your approval</span>
+        </div>
+
+        @if (Model.LeaveRequests != null && Model.LeaveRequests.Any())
+        {
+            <div style="display:flex;flex-direction:column;gap:.6rem;">
+                @foreach (var lr in Model.LeaveRequests)
+                {
+                    <div class="schedule-item" style="border-left-color:var(--dr-danger);">
+                        <div class="schedule-content">
+                            <h4>@lr.AssistantName</h4>
+                            <p>
+                                Wants to leave <strong>@lr.OldClinicName</strong> to join <strong>@lr.NewClinicName</strong>.
+                                &nbsp;&middot;&nbsp;
+                                <strong>Requested:</strong> @lr.CreatedAt.ToString("MMM dd, yyyy hh:mm tt")
+                            </p>
+                            <p style="font-size:.8rem;color:var(--dr-muted);">
+                                <i class="fas fa-users"></i> @lr.ApprovedCount of @lr.TotalApprovers doctor(s) approved &mdash; every doctor must approve before the switch happens.
+                            </p>
+                        </div>
+                        <div class="schedule-status" style="display:flex;align-items:center;gap:.5rem;">
+                            @using (Html.BeginForm("ApproveLeaveRequest", "Doctor", FormMethod.Post))
+                            {
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="leaveRequestId" value="@lr.LeaveRequestID" />
+                                <input type="hidden" name="id" value="@Model.Doctor.DoctorID" />
+                                <button type="submit" class="action-btn" title="Approve leave" style="color:#2e7d32;">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            }
+                            @using (Html.BeginForm("DenyLeaveRequest", "Doctor", FormMethod.Post))
+                            {
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="leaveRequestId" value="@lr.LeaveRequestID" />
+                                <input type="hidden" name="id" value="@Model.Doctor.DoctorID" />
+                                <button type="submit" class="action-btn" title="Deny leave"
+                                        style="color:#c62828;"
+                                        onclick="return confirm('Deny this leave request? A single denial cancels the assistant\'s clinic switch.');">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="privacy-notice">
+                <i class="fas fa-info-circle"></i>
+                <p>No leave requests awaiting your approval.</p>
             </div>
         }
     </section>

@@ -614,10 +614,14 @@ function escapeHtml(value) {
 
 function getParticipantTypeLabel(type) {
   const normalized = String(type || "Doctor").toLowerCase();
-  return normalized === "assistant" ? "Assistant" : "Doctor";
+  if (normalized === "assistant") return "Assistant";
+  if (normalized === "patient") return "Community";
+  return "Doctor";
 }
 
 function getParticipantTypeClass(type) {
   const normalized = String(type || "Doctor").toLowerCase();
-  return normalized === "assistant" ? "assistant" : "doctor";
+  if (normalized === "assistant") return "assistant";
+  if (normalized === "patient") return "patient";
+  return "doctor";
 }

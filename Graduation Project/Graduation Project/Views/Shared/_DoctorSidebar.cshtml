@@ -73,6 +73,13 @@
         <span>Messages</span>
         <span class="nav-msg-badge" id="sidebarMsgBadge" style="display:none;"></span>
       </a>
+
+      <a href="@Url.Action("Index", "Community")"
+         class="nav-item @(activePage == "Community" ? "active" : "")"
+         data-tooltip="Community">
+        <div class="nav-icon"><i class="fas fa-users"></i></div>
+        <span>Community</span>
+      </a>
     </div>
 
     <div class="nav-section">

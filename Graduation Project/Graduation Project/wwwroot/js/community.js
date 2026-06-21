@@ -13,6 +13,7 @@
     let antiforgeryToken = '';
     let totalPostCount = 0;
     let totalCommentCount = 0;
+    const MESSAGES_URL = (window.__communityConfig && window.__communityConfig.messagesUrl) || '';
 
     // ── DOM Refs ───────────────────────────────────────────────────────
     const feed = document.getElementById('cmFeed');
@@ -185,7 +186,8 @@
 
     function postCardHtml(p) {
         const timeAgo = formatTimeAgo(p.createdAt);
-        const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(p.authorName || 'U')}&background=1baebe&color=fff&size=80`;
+        const avatarBg = p.authorIsDoctor ? '14967f' : '1baebe';
+        const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(p.authorName || 'U')}&background=${avatarBg}&color=fff&size=80`;
         const deleteBtn = p.isMyPost
             ? `<button class="cm-post-delete-btn" data-post-id="${p.communityPostId}" title="Delete post">
                 <i class="fas fa-trash"></i>
@@ -193,6 +195,15 @@
             : '';
         const likeClass = p.isLikedByMe ? 'liked' : '';
         const likeIcon = p.isLikedByMe ? 'fas' : 'far';
+        const authorBadge = p.authorIsDoctor
+            ? `<span class="cm-doctor-badge"><i class="fas fa-user-md"></i> Doctor</span>`
+            : '';
+        const messageBtn = (!p.isMyPost && !p.authorIsDoctor && p.authorUserId && MESSAGES_URL)
+            ? `<button class="cm-action-btn cm-message-btn" data-user-id="${escHtml(p.authorUserId)}" title="Message ${escHtml(p.authorName)}">
+                <i class="far fa-paper-plane"></i>
+                <span>Message</span>
+               </button>`
+            : '';
 
         return `
 <div class="cm-post-card" id="post-${p.communityPostId}">
@@ -200,7 +211,7 @@
         <div class="cm-post-author-row">
             <img class="cm-post-avatar" src="${avatarUrl}" alt="${escHtml(p.authorName)}" />
             <div>
-                <div class="cm-post-author-name">${escHtml(p.authorName)}</div>
+                <div class="cm-post-author-name">${escHtml(p.authorName)} ${authorBadge}</div>
                 <div class="cm-post-meta">
                     <i class="far fa-clock"></i>
                     <span>${timeAgo}</span>
@@ -229,6 +240,7 @@
             <span class="cm-action-count" id="cc-${p.communityPostId}">${p.commentCount}</span>
             <span>${p.commentCount === 1 ? 'Comment' : 'Comments'}</span>
         </button>
+        ${messageBtn}
     </div>
     <div class="cm-comments-section" id="comments-${p.communityPostId}">
         <div class="cm-comments-list" id="comments-list-${p.communityPostId}"></div>
@@ -260,6 +272,11 @@
         // Delete post buttons
         document.querySelectorAll('.cm-post-delete-btn').forEach(btn => {
             btn.addEventListener('click', () => deletePost(btn.dataset.postId));
+        });
+
+        // Message author (private 1-on-1 chat)
+        document.querySelectorAll('.cm-message-btn').forEach(btn => {
+            btn.addEventListener('click', () => messageAuthor(btn.dataset.userId));
         });
 
         // Comment send buttons
@@ -337,6 +354,13 @@
             .catch(() => showToast('Error deleting post.', 'error'));
     }
 
+    // ── Message Author ─────────────────────────────────────────────────
+    function messageAuthor(userId) {
+        if (!userId || !MESSAGES_URL) return;
+        const sep = MESSAGES_URL.indexOf('?') === -1 ? '?' : '&';
+        window.location.href = MESSAGES_URL + sep + 'user=' + encodeURIComponent(userId);
+    }
+
     // ── Comments ───────────────────────────────────────────────────────
     function toggleComments(postId) {
         const section = document.getElementById('comments-' + postId);
@@ -377,20 +401,35 @@
         listEl.querySelectorAll('.cm-comment-delete').forEach(btn => {
             btn.addEventListener('click', () => deleteComment(btn.dataset.commentId, postId));
         });
+        listEl.querySelectorAll('.cm-comment-message-btn').forEach(btn => {
+            btn.addEventListener('click', () => messageAuthor(btn.dataset.userId));
+        });
     }
 
     function commentItemHtml(c) {
-        const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(c.authorName || 'U')}&background=1baebe&color=fff&size=60`;
+        const avatarBg = c.authorIsDoctor ? '14967f' : '1baebe';
+        const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(c.authorName || 'U')}&background=${avatarBg}&color=fff&size=60`;
         const deleteBtn = c.isMyComment
             ? `<button class="cm-comment-delete" data-comment-id="${c.communityCommentId}" title="Delete"><i class="fas fa-times"></i></button>`
+            : '';
+        const authorBadge = c.authorIsDoctor
+            ? `<span class="cm-doctor-badge"><i class="fas fa-user-md"></i> Doctor</span>`
+            : '';
+        const messageBtn = (!c.isMyComment && !c.authorIsDoctor && c.authorUserId && MESSAGES_URL)
+            ? `<button class="cm-comment-message-btn" data-user-id="${escHtml(c.authorUserId)}" title="Message ${escHtml(c.authorName)}">
+                <i class="far fa-paper-plane"></i> Message
+               </button>`
             : '';
         return `
 <div class="cm-comment-item" id="comment-${c.communityCommentId}">
     <img class="cm-comment-avatar" src="${avatarUrl}" alt="${escHtml(c.authorName)}" />
     <div class="cm-comment-bubble">
-        <div class="cm-comment-author">${escHtml(c.authorName)} ${deleteBtn}</div>
+        <div class="cm-comment-author">${escHtml(c.authorName)} ${authorBadge} ${deleteBtn}</div>
         <div class="cm-comment-text">${escHtml(c.content)}</div>
-        <div class="cm-comment-time">${formatTimeAgo(c.createdAt)}</div>
+        <div class="cm-comment-footer">
+            <span class="cm-comment-time">${formatTimeAgo(c.createdAt)}</span>
+            ${messageBtn}
+        </div>
     </div>
 </div>`;
     }

@@ -10,7 +10,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"]</title>
     <meta name="description" content="NABD is an AI-powered healthcare companion for pregnant women — early risk detection, gestational diabetes monitoring, and continuous pregnancy follow-up." />
-    <link rel="icon" type="image/png" href="~/images/logo.png" />
+    <link rel="icon" type="image/png" href="~/images/logo.png" />
+    <partial name="_PwaHead" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -25,13 +26,15 @@
         <div class="container">
             <div class="navbar-inner">
                 <a href="@Url.Action("Index", "Home")" class="navbar-logo">
-                    <img src="~/images/blue logo.png" alt="NABD" class="logo-icon" />
+                    <img src="~/images/logo name.png" alt="NABD" class="logo-icon" />
                 </a>
                 <ul class="navbar-links">
-                    <li><a href="#problems">Problems</a></li>
+                    <li><a href="#problems">Problem</a></li>
+                    <li><a href="#related">Compare</a></li>
+                    <li><a href="#intro">About</a></li>
                     <li><a href="#solution">Solution</a></li>
-                    <li><a href="#features">AI Features</a></li>
-                    <li><a href="#workflow">Workflow</a></li>
+                    <li><a href="#features">AI</a></li>
+                    <li><a href="#future">Roadmap</a></li>
                     <li><a href="#team">Team</a></li>
                 </ul>
                 <div class="navbar-cta">
@@ -46,122 +49,169 @@
     </nav>
 
     <div class="mobile-menu">
-        <a href="#problems">Problems</a>
+        <a href="#problems">Problem</a>
+        <a href="#related">Comparison</a>
+        <a href="#intro">About</a>
         <a href="#solution">Solution</a>
+        <a href="#patient">For Patients</a>
+        <a href="#doctor">For Doctors</a>
         <a href="#features">AI Features</a>
-        <a href="#workflow">Workflow</a>
+        <a href="#future">Roadmap</a>
         <a href="#team">Team</a>
-        <a href="@Url.Action("RegisterPatient", "Account")" style="color: #0ea5e9; font-weight: 700; border: none;">Get Started →</a>
+        <a href="@Url.Action("RegisterPatient", "Account")" style="color: #1baebe; font-weight: 700; border: none;">Get Started →</a>
     </div>
 
     <!-- ══════════════════════════════════════════════════════
      HERO
 ════════════════════════════════════════════════════════ -->
     <section class="hero" id="home">
+        <div class="hero-bg" aria-hidden="true">
+            <span class="hero-blob blob-1"></span>
+            <span class="hero-blob blob-2"></span>
+            <span class="hero-blob blob-3"></span>
+            <span class="hero-mesh"></span>
+        </div>
         <div class="container">
             <div class="hero-inner">
+
+                <!-- ── LEFT: STORY ───────────────────────────── -->
                 <div class="hero-content">
-                    <div class="hero-badge reveal">
-                        <span class="badge">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
-                            AI-Powered Healthcare Platform
-                        </span>
-                    </div>
-                    <p class="hero-slogan reveal delay-1">Securing the pulse of the next generation.</p>
-                    <h1 class="hero-title reveal delay-2">
-                        AI-Powered<br>
-                        <span class="accent">Pregnancy Care</span>
+                    <h1 class="hero-title reveal delay-1">
+                        Two heartbeats.<br>
+                        <span class="accent">One intelligent guardian.</span>
                     </h1>
-                    <p class="hero-desc reveal delay-3">
-                        Smarter monitoring &amp; early risk detection. NABD is your intelligent, quiet guardian — providing precise analysis and warm reassurance for expectant mothers 24/7.
+                    <p class="hero-desc reveal delay-2">
+                        NABD listens to you and your baby — reading every scan, lab result, and symptom to catch what matters, early. Calm, continuous, AI-powered care.
                     </p>
-                    <div class="hero-buttons reveal delay-4">
-                        <a href="#features" class="btn btn-primary">
-                            Get Started
+                    <div class="hero-buttons reveal delay-3">
+                        <a href="@Url.Action("RegisterPatient", "Account")" class="btn btn-primary">
+                            Start Your Journey
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
                         </a>
-                        <a href="#solution" class="btn btn-outline">Learn More</a>
+                        <a href="#workflow" class="btn btn-outline">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" /><polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none" /></svg>
+                            How It Works
+                        </a>
                     </div>
-                    <div class="hero-trust reveal delay-5">
-                        <div class="trust-avatars">
-                            <span style="background: linear-gradient(135deg, #0ea5e9, #8b5cf6);">A</span>
-                            <span style="background: linear-gradient(135deg, #06b6d4, #0ea5e9);">S</span>
-                            <span style="background: linear-gradient(135deg, #8b5cf6, #ec4899);">M</span>
+                    <div class="hero-proof reveal delay-4">
+                        <div class="hero-metric">
+                            <strong>99.2%</strong>
+                            <span>AI Accuracy</span>
                         </div>
-                        <div class="trust-text">
-                            <strong>Trusted by 1,000+ mothers &amp; clinics</strong>
-                            Continuous AI-powered monitoring
+                        <div class="hero-metric">
+                            <strong>24/7</strong>
+                            <span>Monitoring</span>
+                        </div>
+                        <div class="hero-metric">
+                            <strong>1,000+</strong>
+                            <span>Mothers Trust Us</span>
                         </div>
                     </div>
                 </div>
 
+                <!-- ── RIGHT: PRODUCT COMPOSITION ────────────── -->
                 <div class="hero-visual reveal-right delay-2">
-                    <div class="hero-dashboard">
-                        <div class="dash-header">
-                            <span class="dash-title">Pregnancy Dashboard</span>
-                            <span class="dash-badge">Week 28</span>
-                        </div>
-                        <div class="dash-stats">
-                            <div class="dash-stat">
-                                <div class="dash-stat-val" data-count="98" data-suffix="%">0%</div>
-                                <div class="dash-stat-lab">Risk Score</div>
+
+                    <!-- pregnancy progress ring behind the cards -->
+                    <svg class="hero-ring" viewBox="0 0 440 440" aria-hidden="true">
+                        <defs>
+                            <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+                                <stop offset="0" stop-color="#22c9db" />
+                                <stop offset="1" stop-color="#1baebe" />
+                            </linearGradient>
+                        </defs>
+                        <circle class="hr-track" cx="220" cy="220" r="180" />
+                        <circle class="hr-prog" cx="220" cy="220" r="180" />
+                    </svg>
+                    <span class="hero-ring-dashed" aria-hidden="true"></span>
+
+                    <div class="hero-collage">
+
+                        <!-- 1 · Pregnancy week tracking -->
+                        <article class="hc hc-week">
+                            <div class="week-ring">
+                                <svg viewBox="0 0 120 120" aria-hidden="true">
+                                    <defs>
+                                        <linearGradient id="wkGrad" x1="0" y1="0" x2="1" y2="1">
+                                            <stop offset="0" stop-color="#22c9db" />
+                                            <stop offset="1" stop-color="#138fa0" />
+                                        </linearGradient>
+                                    </defs>
+                                    <circle class="wk-track" cx="60" cy="60" r="52" />
+                                    <circle class="wk-prog" cx="60" cy="60" r="52" />
+                                </svg>
+                                <div class="week-center">
+                                    <strong>28</strong>
+                                    <span>weeks</span>
+                                </div>
                             </div>
-                            <div class="dash-stat">
-                                <div class="dash-stat-val" data-count="87" data-suffix="">0</div>
-                                <div class="dash-stat-lab">BPM</div>
+                            <div class="week-meta">
+                                <span class="hc-badge tri">Third Trimester</span>
+                                <p class="week-title">Pregnancy Progress</p>
+                                <p class="week-sub">12 weeks to go · Due Sep 12</p>
+                                <div class="week-line"><span></span></div>
                             </div>
-                            <div class="dash-stat">
-                                <div class="dash-stat-val" data-count="84" data-suffix="mg">0mg</div>
-                                <div class="dash-stat-lab">Glucose</div>
+                        </article>
+
+                        <!-- 2 · Baby development -->
+                        <article class="hc hc-baby">
+                            <div class="hc-ico ico-baby">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="9" r="5" /><path d="M12 14c-3.5 0-6 2.2-6 5v1h12v-1c0-2.8-2.5-5-6-5z" /><circle cx="10" cy="8.5" r="0.6" fill="currentColor" stroke="none" /><circle cx="14" cy="8.5" r="0.6" fill="currentColor" stroke="none" /></svg>
                             </div>
-                        </div>
-                        <div class="dash-chart">
-                            <div class="chart-label">Health Trend — Last 7 Days</div>
-                            <div class="chart-bars">
-                                <div class="chart-bar" style="height: 55%;"></div>
-                                <div class="chart-bar" style="height: 70%;"></div>
-                                <div class="chart-bar" style="height: 60%;"></div>
-                                <div class="chart-bar" style="height: 85%;"></div>
-                                <div class="chart-bar" style="height: 75%;"></div>
-                                <div class="chart-bar" style="height: 90%;"></div>
-                                <div class="chart-bar" style="height: 80%;"></div>
+                            <p class="hc-eyebrow">Baby Development</p>
+                            <p class="hc-strong">Size of an eggplant</p>
+                            <div class="hc-mini">
+                                <span>37.6 cm</span><i></i><span>1.0 kg</span>
                             </div>
-                        </div>
-                        <div class="dash-alerts">
-                            <div class="dash-alert">
-                                <span class="alert-dot green"></span>
-                                <span class="alert-text">All vitals within normal range</span>
+                        </article>
+
+                        <!-- 3 · Lab test analysis -->
+                        <article class="hc hc-lab">
+                            <div class="hc-ico ico-lab">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6M10 3v6.5L5.5 17a2 2 0 0 0 1.8 3h9.4a2 2 0 0 0 1.8-3L14 9.5V3" /><line x1="8" y1="15" x2="16" y2="15" /></svg>
                             </div>
-                            <div class="dash-alert">
-                                <span class="alert-dot blue"></span>
-                                <span class="alert-text">Next appointment: Tomorrow, 10:00 AM</span>
+                            <p class="hc-eyebrow">Lab Test Analysis</p>
+                            <p class="hc-strong">Glucose 84 <small>mg/dL</small></p>
+                            <span class="hc-pill ok">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12" /></svg>
+                                Normal · 14 markers read
+                            </span>
+                        </article>
+
+                        <!-- 4 · Product safety scan -->
+                        <article class="hc hc-safety">
+                            <div class="hc-ico ico-safe">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><line x1="9" y1="11" x2="15" y2="11" /></svg>
                             </div>
-                            <div class="dash-alert">
-                                <span class="alert-dot purple"></span>
-                                <span class="alert-text">AI analysis complete — Low risk detected</span>
+                            <div class="safe-body">
+                                <p class="hc-eyebrow">Product Safety Scan</p>
+                                <p class="hc-strong">Retinol Night Cream</p>
                             </div>
-                        </div>
+                            <span class="hc-pill warn">Avoid in pregnancy</span>
+                        </article>
+
+                        <!-- 5 · AI recommendation -->
+                        <article class="hc hc-ai">
+                            <div class="ai-spark">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z" /></svg>
+                            </div>
+                            <div class="ai-body">
+                                <p class="ai-label">NABD AI Insight</p>
+                                <p class="ai-text">Your glucose trend looks excellent — keep up the morning walks. <span>Low risk this week.</span></p>
+                            </div>
+                        </article>
+
                     </div>
 
-                    <div class="dash-float-card top-right">
-                        <div class="float-icon" style="background: #dcfce7;">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
-                        </div>
-                        <div class="float-info">
-                            <span class="float-val" style="color: #16a34a;">Low Risk</span>
-                            <span class="float-lab">AI Assessment</span>
-                        </div>
-                    </div>
-
-                    <div class="dash-float-card bottom-left">
-                        <div class="float-icon" style="background: #ede9fe;">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
-                        </div>
-                        <div class="float-info">
-                            <span class="float-val">99.2%</span>
-                            <span class="float-lab">Accuracy Rate</span>
-                        </div>
-                    </div>
+                    <!-- floating vitals chips -->
+                    <span class="hero-chip chip-bpm">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M3 12h4l2-6 4 12 2-6h4" /></svg>
+                        147 <small>bpm</small>
+                    </span>
+                    <span class="hero-chip chip-risk">
+                        <span class="chip-dot"></span>
+                        Low Risk
+                    </span>
                 </div>
             </div>
         </div>
@@ -179,49 +229,55 @@
             </div>
             <div class="problems-grid">
 
-                <div class="problem-card reveal delay-1">
-                    <div class="problem-icon" style="background: #fee2e2;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+                <div class="problem-card reveal delay-1" style="--c:#ef4444; --c-soft:#fef2f2; --c-glow:rgba(239,68,68,0.22);">
+                    <span class="problem-num">01</span>
+                    <div class="problem-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
                     </div>
                     <h3 class="problem-title">Late Risk Detection</h3>
                     <p class="problem-desc">Many complications are discovered too late due to lack of continuous monitoring. Early intervention is impossible without real-time data.</p>
                 </div>
 
-                <div class="problem-card reveal delay-2">
-                    <div class="problem-icon" style="background: #fef3c7;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18" /></svg>
+                <div class="problem-card reveal delay-2" style="--c:#f59e0b; --c-soft:#fffbeb; --c-glow:rgba(245,158,11,0.22);">
+                    <span class="problem-num">02</span>
+                    <div class="problem-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18" /></svg>
                     </div>
                     <h3 class="problem-title">Missed Gestational Diabetes</h3>
                     <p class="problem-desc">Gestational diabetes may go unnoticed without regular AI-powered analysis and predictive monitoring throughout the pregnancy.</p>
                 </div>
 
-                <div class="problem-card reveal delay-3">
-                    <div class="problem-icon" style="background: #dbeafe;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                <div class="problem-card reveal delay-3" style="--c:#1baebe; --c-soft:#eefcfd; --c-glow:rgba(27,174,190,0.22);">
+                    <span class="problem-num">03</span>
+                    <div class="problem-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                     </div>
                     <h3 class="problem-title">Poor Doctor-Patient Communication</h3>
                     <p class="problem-desc">Patients often struggle to contact doctors quickly during critical situations, leading to delays in critical healthcare decisions.</p>
                 </div>
 
-                <div class="problem-card reveal delay-4">
-                    <div class="problem-icon" style="background: #ede9fe;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14,2 14,8 20,8" /></svg>
+                <div class="problem-card reveal delay-4" style="--c:#22c9db; --c-soft:#effdfe; --c-glow:rgba(34,201,219,0.22);">
+                    <span class="problem-num">04</span>
+                    <div class="problem-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14,2 14,8 20,8" /></svg>
                     </div>
                     <h3 class="problem-title">Fragmented Medical Records</h3>
                     <p class="problem-desc">Medical history, test results, and reports are scattered across different systems, making comprehensive care nearly impossible.</p>
                 </div>
 
-                <div class="problem-card reveal delay-5">
-                    <div class="problem-icon" style="background: #fce7f3;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
+                <div class="problem-card reveal delay-5" style="--c:#ec4899; --c-soft:#fdf2f8; --c-glow:rgba(236,72,153,0.22);">
+                    <span class="problem-num">05</span>
+                    <div class="problem-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
                     </div>
                     <h3 class="problem-title">Unsafe Product Usage</h3>
                     <p class="problem-desc">Pregnant women may unknowingly use harmful products or ingredients that pose risks to themselves or their baby's development.</p>
                 </div>
 
-                <div class="problem-card reveal delay-6">
-                    <div class="problem-icon" style="background: #d1fae5;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+                <div class="problem-card reveal delay-6" style="--c:#10b981; --c-soft:#ecfdf5; --c-glow:rgba(16,185,129,0.22);">
+                    <span class="problem-num">06</span>
+                    <div class="problem-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
                     </div>
                     <h3 class="problem-title">Lack of Continuous Monitoring</h3>
                     <p class="problem-desc">Traditional healthcare provides only periodic check-ups. Without proactive follow-up, silent risks can develop between visits.</p>
@@ -232,321 +288,231 @@
     </section>
 
     <!-- ══════════════════════════════════════════════════════
-     SOLUTION
+     RELATED WORK  ·  COMPARISON
 ════════════════════════════════════════════════════════ -->
-    <section class="solution section" id="solution">
-        <div class="container">
-            <div class="solution-inner">
-                <div>
-                    <p class="section-label reveal">The NABD Solution</p>
-                    <h2 class="section-title reveal delay-1">One Platform.<br><span>Complete Care.</span></h2>
-                    <p class="section-desc reveal delay-2">NABD is an all-in-one AI healthcare companion that unifies pregnancy monitoring, intelligent analysis, and seamless doctor-patient communication.</p>
-                    <div class="solution-flow reveal delay-3">
-                        <div class="flow-step">
-                            <div class="flow-num">1</div>
-                            <div class="flow-content">
-                                <h4 class="flow-title">Patient Shares Data</h4>
-                                <p class="flow-desc">Upload lab results, ultrasound images, or product ingredients directly from your phone or device.</p>
-                            </div>
-                        </div>
-                        <div class="flow-step">
-                            <div class="flow-num">2</div>
-                            <div class="flow-content">
-                                <h4 class="flow-title">AI Analyzes Instantly</h4>
-                                <p class="flow-desc">NABD's AI engine processes your data against pregnancy-specific models to detect patterns and risks in seconds.</p>
-                            </div>
-                        </div>
-                        <div class="flow-step">
-                            <div class="flow-num">3</div>
-                            <div class="flow-content">
-                                <h4 class="flow-title">Doctor Reviews Insights</h4>
-                                <p class="flow-desc">Your physician receives structured AI-generated reports and can communicate with you directly via the platform.</p>
-                            </div>
-                        </div>
-                        <div class="flow-step">
-                            <div class="flow-num">4</div>
-                            <div class="flow-content">
-                                <h4 class="flow-title">Better Healthcare Decisions</h4>
-                                <p class="flow-desc">Personalized recommendations, medication reminders, and continuous monitoring ensure the safest pregnancy journey.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="solution-visual reveal-right delay-2">
-                    <div class="sol-card">
-                        <div class="sol-card-head">
-                            <div class="sol-card-icon" style="background: #dbeafe;">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
-                            </div>
-                            <span class="sol-card-title">AI Risk Assessment</span>
-                        </div>
-                        <div class="sol-progress"><div class="sol-progress-fill" data-width="88%"></div></div>
-                        <p style="font-size: 12px; color: #94a3b8; margin-top: 6px;">Confidence: 88% — Low Risk Profile</p>
-                    </div>
-                    <div class="sol-card">
-                        <div class="sol-card-head">
-                            <div class="sol-card-icon" style="background: #dcfce7;">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                            </div>
-                            <span class="sol-card-title">Gestational Diabetes Score</span>
-                        </div>
-                        <div class="sol-progress"><div class="sol-progress-fill" data-width="25%" style="background: linear-gradient(90deg, #22c55e, #16a34a);"></div></div>
-                        <p style="font-size: 12px; color: #94a3b8; margin-top: 6px;">Score: 25 / 100 — Normal Range</p>
-                    </div>
-                    <div class="sol-card">
-                        <div class="sol-card-head">
-                            <div class="sol-card-icon" style="background: #ede9fe;">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
-                            </div>
-                            <span class="sol-card-title">Overall Pregnancy Health</span>
-                        </div>
-                        <div class="sol-progress"><div class="sol-progress-fill" data-width="92%" style="background: linear-gradient(90deg, #8b5cf6, #06b6d4);"></div></div>
-                        <p style="font-size: 12px; color: #94a3b8; margin-top: 6px;">Score: 92 / 100 — Excellent</p>
-                    </div>
-                    <div style="background: rgba(14,165,233,0.08); border: 1px dashed rgba(14,165,233,0.3); border-radius: 12px; padding: 16px; text-align: center; margin-top: 4px;">
-                        <p style="font-size: 13px; color: #0284c7; font-weight: 600;">Next AI Report ready in 5 min.</p>
-                        <p style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Continuous monitoring active</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- ══════════════════════════════════════════════════════
-     AI FEATURES
-════════════════════════════════════════════════════════ -->
-    <section class="ai-features section" id="features">
+    <section class="related section" id="related">
         <div class="container">
             <div class="text-center reveal">
-                <p class="section-label">AI Capabilities</p>
-                <h2 class="section-title">Powered by <span style="-webkit-text-fill-color: transparent; background: linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip: text; background-clip: text;">Intelligent AI</span></h2>
-                <p class="section-desc" style="color: rgba(255,255,255,0.6); margin: 0 auto;">The most advanced AI features in pregnancy healthcare, designed to detect, predict, and protect at every stage.</p>
+                <p class="section-label">Related Work</p>
+                <h2 class="section-title">How NABD <span>Compares</span></h2>
+                <p class="section-desc">Popular health and pregnancy apps each cover only a slice of the journey. NABD is the only platform that brings AI risk prediction, medical analysis, and care communication together.</p>
             </div>
-            <div class="ai-grid">
 
-                <div class="ai-card reveal delay-1">
-                    <div class="ai-card-glow" style="background: rgba(14,165,233,0.15);">
-                        <div style="position:absolute;inset:-4px;border-radius:20px;background:rgba(14,165,233,0.1);filter:blur(8px);"></div>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2">
-                            <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18" />
-                        </svg>
-                    </div>
-                    <h3 class="ai-card-title">AI Medical Test Analysis</h3>
-                    <p class="ai-card-desc">Upload blood tests, urine reports, and lab results. Our AI interprets every value against pregnancy-specific reference ranges and flags anomalies instantly.</p>
-                    <span class="ai-tag" style="background: rgba(14,165,233,0.15); color: #38bdf8;">Lab Reports</span>
-                </div>
+            <div class="compare-wrap reveal delay-1">
+                <table class="compare-table">
+                    <thead>
+                        <tr>
+                            <th class="cmp-feature">Feature</th>
+                            <th>Vezeeta</th>
+                            <th>Flo</th>
+                            <th>Yuka</th>
+                            <th>BabyCenter</th>
+                            <th class="col-nabd">NABD <span class="cmp-best">Ours</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="cmp-feature">Appointment Booking</td>
+                            <td><span class="cmp cmp-yes" title="Yes">✓</span></td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td class="col-nabd"><span class="cmp cmp-yes" title="Yes">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td class="cmp-feature">Pregnancy Tracking</td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td><span class="cmp cmp-yes" title="Yes">✓</span></td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td><span class="cmp cmp-yes" title="Yes">✓</span></td>
+                            <td class="col-nabd"><span class="cmp cmp-yes" title="Yes">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td class="cmp-feature">AI Risk Prediction</td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td class="col-nabd"><span class="cmp cmp-yes" title="Yes">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td class="cmp-feature">OCR Medical Report Analysis</td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td class="col-nabd"><span class="cmp cmp-yes" title="Yes">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td class="cmp-feature">Product Ingredient Analysis</td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td><span class="cmp cmp-yes" title="Yes">✓</span></td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td class="col-nabd"><span class="cmp cmp-yes" title="Yes">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td class="cmp-feature">Real-Time Alerts</td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td class="col-nabd"><span class="cmp cmp-yes" title="Yes">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td class="cmp-feature">Doctor-Patient Communication</td>
+                            <td><span class="cmp cmp-yes" title="Yes">✓</span></td>
+                            <td><span class="cmp cmp-part" title="Limited">~</span></td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td class="col-nabd"><span class="cmp cmp-yes" title="Yes">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td class="cmp-feature">GDM Prediction</td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td class="col-nabd"><span class="cmp cmp-yes" title="Yes">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td class="cmp-feature">Maternal Risk Detection</td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td class="col-nabd"><span class="cmp cmp-yes" title="Yes">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td class="cmp-feature">Community Support</td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td><span class="cmp cmp-part" title="Limited">~</span></td>
+                            <td><span class="cmp cmp-no" title="No">—</span></td>
+                            <td><span class="cmp cmp-yes" title="Yes">✓</span></td>
+                            <td class="col-nabd"><span class="cmp cmp-yes" title="Yes">✓</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
 
-                <div class="ai-card reveal delay-2">
-                    <div class="ai-card-glow" style="background: rgba(139,92,246,0.15);">
-                        <div style="position:absolute;inset:-4px;border-radius:20px;background:rgba(139,92,246,0.1);filter:blur(8px);"></div>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2">
-                            <rect x="3" y="3" width="18" height="18" rx="2" />
-                            <circle cx="8.5" cy="8.5" r="1.5" />
-                            <polyline points="21 15 16 10 5 21" />
-                        </svg>
-                    </div>
-                    <h3 class="ai-card-title">AI Ultrasound Analysis</h3>
-                    <p class="ai-card-desc">Advanced computer vision analyzes ultrasound images to assess fetal development, detect abnormalities, and provide detailed growth tracking reports.</p>
-                    <span class="ai-tag" style="background: rgba(139,92,246,0.15); color: #a78bfa;">Imaging AI</span>
-                </div>
-
-                <div class="ai-card reveal delay-3">
-                    <div class="ai-card-glow" style="background: rgba(236,72,153,0.15);">
-                        <div style="position:absolute;inset:-4px;border-radius:20px;background:rgba(236,72,153,0.1);filter:blur(8px);"></div>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#f472b6" stroke-width="2">
-                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                        </svg>
-                    </div>
-                    <h3 class="ai-card-title">Product Safety Checker</h3>
-                    <p class="ai-card-desc">Scan any product's ingredient list. NABD's AI cross-references thousands of substances against pregnancy safety databases and alerts you to harmful ingredients.</p>
-                    <span class="ai-tag" style="background: rgba(236,72,153,0.15); color: #f472b6;">Safety AI</span>
-                </div>
-
-                <div class="ai-card reveal delay-4">
-                    <div class="ai-card-glow" style="background: rgba(16,185,129,0.15);">
-                        <div style="position:absolute;inset:-4px;border-radius:20px;background:rgba(16,185,129,0.1);filter:blur(8px);"></div>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2">
-                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                        </svg>
-                    </div>
-                    <h3 class="ai-card-title">Predictive Risk Detection</h3>
-                    <p class="ai-card-desc">Machine learning models trained on thousands of pregnancies identify early signs of gestational diabetes, preeclampsia, and other complications before they escalate.</p>
-                    <span class="ai-tag" style="background: rgba(16,185,129,0.15); color: #34d399;">Prediction AI</span>
-                </div>
-
+            <div class="compare-legend reveal delay-2">
+                <span><i class="cmp cmp-yes">✓</i> Full support</span>
+                <span><i class="cmp cmp-part">~</i> Partial / limited</span>
+                <span><i class="cmp cmp-no">—</i> Not available</span>
             </div>
         </div>
     </section>
 
     <!-- ══════════════════════════════════════════════════════
-     PATIENT EXPERIENCE
+     INTRODUCTION  ·  WHAT IS NABD
 ════════════════════════════════════════════════════════ -->
-    <section class="patient section" id="patient">
+    <section class="intro section" id="intro">
+        <span class="intro-glow" aria-hidden="true"></span>
+        <div class="container">
+            <div class="intro-inner">
+                <div class="intro-lead">
+                    <span class="intro-eyebrow reveal">
+                        <span class="pulse-dot"></span>
+                        Project Overview
+                    </span>
+                    <h2 class="section-title reveal delay-1">What is <span>NABD</span>?</h2>
+                    <p class="intro-text reveal delay-2">
+                        <strong>NABD</strong> is an AI-powered pregnancy health management platform that unifies monitoring, communication, and early risk detection for mothers and their care teams in one intelligent system.
+                    </p>
+                    <p class="intro-text reveal delay-2">
+                        Built on ASP.NET Core, NABD connects everyone involved in the pregnancy journey — turning scattered scans, lab results, and symptoms into clear, actionable insight, available around the clock.
+                    </p>
+                    <div class="intro-highlights reveal delay-3">
+                        <div class="intro-stat">
+                            <strong>1</strong>
+                            <span>Unified Platform</span>
+                        </div>
+                        <div class="intro-stat">
+                            <strong>4</strong>
+                            <span>User Roles</span>
+                        </div>
+                        <div class="intro-stat">
+                            <strong>5+</strong>
+                            <span>AI Capabilities</span>
+                        </div>
+                    </div>
+                    <div class="intro-tags reveal delay-4">
+                        <span class="intro-tag">Maternal Health</span>
+                        <span class="intro-tag">Early Detection</span>
+                        <span class="intro-tag">Continuous Care</span>
+                    </div>
+                </div>
+
+                <div class="intro-panel reveal-right delay-2">
+                    <div class="intro-panel-head">
+                        <span class="intro-panel-ico">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>
+                        </span>
+                        <p class="intro-panel-title">One Platform · Four Roles</p>
+                    </div>
+
+                    <div class="intro-roles">
+                        <div class="intro-role">
+                            <span class="intro-role-ico" style="background: linear-gradient(135deg,#1baebe,#22c9db);">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
+                            </span>
+                            <div>
+                                <h4>Patient</h4>
+                                <p>Tracks pregnancy, uploads tests, and chats with doctors & AI.</p>
+                            </div>
+                        </div>
+
+                        <div class="intro-role">
+                            <span class="intro-role-ico" style="background: linear-gradient(135deg,#22c55e,#34d399);">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v6a4 4 0 0 0 8 0V2M6 8a4 4 0 0 1-4 4 6 6 0 0 0 6 6" /><circle cx="20" cy="10" r="2" /><path d="M18 12a6 6 0 0 1-6 6" /></svg>
+                            </span>
+                            <div>
+                                <h4>Doctor</h4>
+                                <p>Reviews AI reports, manages patients, and prescribes care.</p>
+                            </div>
+                        </div>
+
+                        <div class="intro-role">
+                            <span class="intro-role-ico" style="background: linear-gradient(135deg,#f59e0b,#fbbf24);">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+                            </span>
+                            <div>
+                                <h4>Assistant</h4>
+                                <p>Coordinates appointments, availability, and clinic schedules.</p>
+                            </div>
+                        </div>
+
+                        <div class="intro-role">
+                            <span class="intro-role-ico" style="background: linear-gradient(135deg,#0b1f35,#138fa0);">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+                            </span>
+                            <div>
+                                <h4>Admin</h4>
+                                <p>Oversees clinics, users, and the platform's overall operation.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════
+     SOLUTION  ·  WHY NABD
+════════════════════════════════════════════════════════ -->
+    <section class="why section" id="solution">
         <div class="container">
             <div class="text-center reveal">
-                <p class="section-label">Patient Experience</p>
-                <h2 class="section-title">Your <span>Complete Pregnancy</span> Companion</h2>
-                <p class="section-desc">Everything an expectant mother needs — in one supportive, intelligent platform.</p>
-            </div>
-            <div class="patient-grid">
-
-                <div class="patient-card reveal delay-1" style="background: linear-gradient(135deg, #eff6ff, #f5f3ff);">
-                    <div class="patient-icon" style="background: #dbeafe;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-                    </div>
-                    <h3 class="patient-title">Real-Time Doctor Chat</h3>
-                    <p class="patient-desc">Connect with your healthcare provider instantly. No more waiting rooms or delayed callbacks when you need answers most.</p>
-                    <ul class="patient-feature-list">
-                        <li>Instant messaging with your OB/GYN</li>
-                        <li>Multimedia support — send images, reports</li>
-                        <li>Message history and read receipts</li>
-                    </ul>
-                </div>
-
-                <div class="patient-card reveal delay-2" style="background: linear-gradient(135deg, #f0fdf4, #ecfdf5);">
-                    <div class="patient-icon" style="background: #dcfce7;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1" /><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" /><line x1="6" y1="1" x2="6" y2="4" /><line x1="10" y1="1" x2="10" y2="4" /><line x1="14" y1="1" x2="14" y2="4" /></svg>
-                    </div>
-                    <h3 class="patient-title">Smart Medication Reminders</h3>
-                    <p class="patient-desc">Never miss a prenatal vitamin, supplement, or medication. AI-personalized schedules adapted to your trimester and health profile.</p>
-                    <ul class="patient-feature-list">
-                        <li>Customized medication schedules</li>
-                        <li>Dosage and timing reminders</li>
-                        <li>Trimester-aware adjustments</li>
-                    </ul>
-                </div>
-
-                <div class="patient-card reveal delay-3" style="background: linear-gradient(135deg, #faf5ff, #fdf4ff);">
-                    <div class="patient-icon" style="background: #ede9fe;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14,2 14,8 20,8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
-                    </div>
-                    <h3 class="patient-title">Complete Medical History</h3>
-                    <p class="patient-desc">Your entire pregnancy journey — every test, appointment, AI report, and doctor note — organized in one secure, searchable timeline.</p>
-                    <ul class="patient-feature-list">
-                        <li>Full pregnancy timeline view</li>
-                        <li>Shareable with any doctor</li>
-                        <li>Secure cloud storage</li>
-                    </ul>
-                </div>
-
-                <div class="patient-card reveal delay-4" style="background: linear-gradient(135deg, #fff7ed, #fef3c7);">
-                    <div class="patient-icon" style="background: #fef3c7;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-                    </div>
-                    <h3 class="patient-title">Mothers Community</h3>
-                    <p class="patient-desc">Connect with other expectant mothers, share experiences, ask questions, and find emotional support from a moderated, expert-guided community.</p>
-                    <ul class="patient-feature-list">
-                        <li>Peer support from expectant mothers</li>
-                        <li>Expert-moderated discussions</li>
-                        <li>Trimester-based groups</li>
-                    </ul>
-                </div>
-
-            </div>
-        </div>
-    </section>
-
-    <!-- ══════════════════════════════════════════════════════
-     CLINIC MANAGEMENT
-════════════════════════════════════════════════════════ -->
-    <section class="clinic section" id="clinic">
-        <div class="container">
-            <div class="clinic-inner">
-                <div>
-                    <p class="section-label reveal">For Healthcare Providers</p>
-                    <h2 class="section-title reveal delay-1">Clinic Management<br><span>Made Effortless</span></h2>
-                    <p class="section-desc reveal delay-2">NABD equips doctors and clinics with intelligent tools to manage patients, appointments, and medical records — all in one organized dashboard.</p>
-                    <div class="clinic-features reveal delay-3">
-                        <div class="clinic-feature">
-                            <div class="clinic-feat-icon" style="background: #dbeafe;">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
-                            </div>
-                            <h4 class="clinic-feat-title">Appointment Management</h4>
-                            <p class="clinic-feat-desc">Smart scheduling, reminders, and conflict-free booking.</p>
-                        </div>
-                        <div class="clinic-feature">
-                            <div class="clinic-feat-icon" style="background: #dcfce7;">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>
-                            </div>
-                            <h4 class="clinic-feat-title">Patient Tracking</h4>
-                            <p class="clinic-feat-desc">Real-time view of every patient's health and pregnancy status.</p>
-                        </div>
-                        <div class="clinic-feature">
-                            <div class="clinic-feat-icon" style="background: #ede9fe;">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14,2 14,8 20,8" /></svg>
-                            </div>
-                            <h4 class="clinic-feat-title">Medical Reports</h4>
-                            <p class="clinic-feat-desc">Auto-generated AI reports, summaries, and clinical notes.</p>
-                        </div>
-                        <div class="clinic-feature">
-                            <div class="clinic-feat-icon" style="background: #fef3c7;">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
-                            </div>
-                            <h4 class="clinic-feat-title">Clinic Dashboard</h4>
-                            <p class="clinic-feat-desc">Full operational overview — capacity, stats, and analytics.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="clinic-dashboard reveal-right delay-2">
-                    <p class="clinic-dash-title">Clinic Overview</p>
-                    <div class="clinic-stat-row">
-                        <div class="clinic-stat-box">
-                            <div class="clinic-stat-val" data-count="124" data-suffix="">0</div>
-                            <div class="clinic-stat-lab">Patients</div>
-                        </div>
-                        <div class="clinic-stat-box">
-                            <div class="clinic-stat-val" data-count="18" data-suffix="">0</div>
-                            <div class="clinic-stat-lab">Today's Appts</div>
-                        </div>
-                        <div class="clinic-stat-box">
-                            <div class="clinic-stat-val" data-count="97" data-suffix="%">0%</div>
-                            <div class="clinic-stat-lab">Satisfaction</div>
-                        </div>
-                    </div>
-                    <p style="font-size: 12px; color: rgba(255,255,255,0.45); margin-bottom: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;">Today's Appointments</p>
-                    <div class="clinic-list">
-                        <div class="clinic-list-item">
-                            <span class="cli-dot" style="background: #22c55e;"></span>
-                            <span class="cli-name">Sarah Al-Ahmad — Week 32</span>
-                            <span class="cli-status" style="background: rgba(34,197,94,0.15); color: #22c55e;">Confirmed</span>
-                        </div>
-                        <div class="clinic-list-item">
-                            <span class="cli-dot" style="background: #0ea5e9;"></span>
-                            <span class="cli-name">Mariam Hassan — Week 20</span>
-                            <span class="cli-status" style="background: rgba(14,165,233,0.15); color: #38bdf8;">In Progress</span>
-                        </div>
-                        <div class="clinic-list-item">
-                            <span class="cli-dot" style="background: #f59e0b;"></span>
-                            <span class="cli-name">Nour Ibrahim — Week 28</span>
-                            <span class="cli-status" style="background: rgba(245,158,11,0.15); color: #fbbf24;">Pending</span>
-                        </div>
-                        <div class="clinic-list-item">
-                            <span class="cli-dot" style="background: #8b5cf6;"></span>
-                            <span class="cli-name">Layla Khaled — Week 16</span>
-                            <span class="cli-status" style="background: rgba(139,92,246,0.15); color: #a78bfa;">Scheduled</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- ══════════════════════════════════════════════════════
-     WHY NABD
-════════════════════════════════════════════════════════ -->
-    <section class="why section" id="why">
-        <div class="container">
-            <div class="text-center reveal">
-                <p class="section-label">Why Choose NABD</p>
+                <p class="section-label">The NABD Solution</p>
                 <h2 class="section-title">What Makes <span>NABD Different</span></h2>
                 <p class="section-desc">Traditional pregnancy care is reactive. NABD is proactive — intelligent, unified, and always one step ahead.</p>
             </div>
             <div class="why-grid">
 
                 <div class="why-card reveal delay-1" style="background: linear-gradient(135deg, #eff6ff, #f5f3ff);">
-                    <div class="why-num" style="color: #0ea5e9;">01</div>
+                    <div class="why-num" style="color: #1baebe;">01</div>
                     <div class="why-icon" style="background: #dbeafe;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#1baebe" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
                     </div>
                     <h3 class="why-title">All-in-One Platform</h3>
                     <p class="why-desc">Every pregnancy tool, record, and communication channel unified in a single platform. No more juggling apps and clinics.</p>
@@ -571,9 +537,9 @@
                 </div>
 
                 <div class="why-card reveal delay-4" style="background: linear-gradient(135deg, #faf5ff, #fdf4ff);">
-                    <div class="why-num" style="color: #8b5cf6;">04</div>
-                    <div class="why-icon" style="background: #ede9fe;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
+                    <div class="why-num" style="color: #22c9db;">04</div>
+                    <div class="why-icon" style="background: #f0fdfe;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#22c9db" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
                     </div>
                     <h3 class="why-title">Continuous Follow-Up</h3>
                     <p class="why-desc">Unlike traditional care that waits for appointments, NABD continuously monitors your health and proactively alerts you and your doctor.</p>
@@ -602,6 +568,350 @@
     </section>
 
     <!-- ══════════════════════════════════════════════════════
+     FOR PATIENT  ·  PATIENT EXPERIENCE
+════════════════════════════════════════════════════════ -->
+    <section class="patient section" id="patient">
+        <div class="container">
+            <div class="text-center reveal">
+                <p class="section-label">For Patients</p>
+                <h2 class="section-title">Your <span>Complete Pregnancy</span> Companion</h2>
+                <p class="section-desc">Everything an expectant mother needs — in one supportive, intelligent platform.</p>
+            </div>
+            <div class="patient-grid">
+
+                <div class="patient-card reveal delay-1" style="background: linear-gradient(135deg, #eff6ff, #f5f3ff);">
+                    <div class="patient-icon" style="background: #dbeafe;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#1baebe" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                    </div>
+                    <h3 class="patient-title">Real-Time Doctor Chat</h3>
+                    <p class="patient-desc">Connect with your healthcare provider instantly. No more waiting rooms or delayed callbacks when you need answers most.</p>
+                    <ul class="patient-feature-list">
+                        <li>Instant messaging with your OB/GYN</li>
+                        <li>Multimedia support — send images, reports</li>
+                        <li>Encrypted, private conversations</li>
+                    </ul>
+                </div>
+
+                <div class="patient-card reveal delay-2" style="background: linear-gradient(135deg, #f0fdf4, #ecfdf5);">
+                    <div class="patient-icon" style="background: #dcfce7;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1" /><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" /><line x1="6" y1="1" x2="6" y2="4" /><line x1="10" y1="1" x2="10" y2="4" /><line x1="14" y1="1" x2="14" y2="4" /></svg>
+                    </div>
+                    <h3 class="patient-title">Smart Medication Reminders</h3>
+                    <p class="patient-desc">Never miss a prenatal vitamin, supplement, or medication. AI-personalized schedules adapted to your trimester and health profile.</p>
+                    <ul class="patient-feature-list">
+                        <li>Customized medication schedules</li>
+                        <li>Dosage and timing reminders</li>
+                        <li>Adherence tracking & logs</li>
+                    </ul>
+                </div>
+
+                <div class="patient-card reveal delay-3" style="background: linear-gradient(135deg, #faf5ff, #fdf4ff);">
+                    <div class="patient-icon" style="background: #f0fdfe;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#22c9db" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14,2 14,8 20,8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
+                    </div>
+                    <h3 class="patient-title">Complete Medical History</h3>
+                    <p class="patient-desc">Your entire pregnancy journey — every test, appointment, AI report, and doctor note — organized in one secure, searchable timeline.</p>
+                    <ul class="patient-feature-list">
+                        <li>Full pregnancy timeline view</li>
+                        <li>Ultrasound & lab report archive</li>
+                        <li>Secure cloud storage</li>
+                    </ul>
+                </div>
+
+                <div class="patient-card reveal delay-4" style="background: linear-gradient(135deg, #fff7ed, #fef3c7);">
+                    <div class="patient-icon" style="background: #fef3c7;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
+                    </div>
+                    <h3 class="patient-title">Smart Alerts & Notifications</h3>
+                    <p class="patient-desc">Stay ahead of every risk. NABD pushes timely alerts for abnormal results, upcoming appointments, and important health changes.</p>
+                    <ul class="patient-feature-list">
+                        <li>AI-triggered health risk alerts</li>
+                        <li>Appointment & medication reminders</li>
+                        <li>Real-time push notifications</li>
+                    </ul>
+                </div>
+
+                <div class="patient-card reveal delay-5" style="background: linear-gradient(135deg, #eef9fb, #f0fdfe);">
+                    <div class="patient-icon" style="background: #d7f6fa;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#1baebe" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /><path d="M9 16l2 2 4-4" /></svg>
+                    </div>
+                    <h3 class="patient-title">Easy Appointment Booking</h3>
+                    <p class="patient-desc">Find nearby clinics, book appointments with the right doctor, and manage your visits — all without a single phone call.</p>
+                    <ul class="patient-feature-list">
+                        <li>Browse clinics & doctor availability</li>
+                        <li>One-tap booking & rescheduling</li>
+                        <li>Nearby places & maps</li>
+                    </ul>
+                </div>
+
+                <div class="patient-card reveal delay-6" style="background: linear-gradient(135deg, #fdf2f8, #faf5ff);">
+                    <div class="patient-icon" style="background: #fce7f3;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                    </div>
+                    <h3 class="patient-title">Mothers Community</h3>
+                    <p class="patient-desc">Connect with other expectant mothers, share experiences, ask questions, and find emotional support from a moderated community.</p>
+                    <ul class="patient-feature-list">
+                        <li>Peer support from expectant mothers</li>
+                        <li>Share posts, comments & experiences</li>
+                        <li>Expert-moderated discussions</li>
+                    </ul>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════
+     FOR DOCTOR  ·  CLINIC MANAGEMENT
+════════════════════════════════════════════════════════ -->
+    <section class="clinic section" id="doctor">
+        <div class="container">
+            <div class="clinic-inner">
+                <div>
+                    <p class="section-label reveal">For Doctors & Clinics</p>
+                    <h2 class="section-title reveal delay-1">Empowering Doctors with<br><span>Intelligent Tools</span></h2>
+                    <p class="section-desc reveal delay-2">NABD equips doctors and clinics with intelligent tools to review AI insights, manage patients, and handle records — all from one organized dashboard.</p>
+                    <div class="clinic-features reveal delay-3">
+                        <div class="clinic-feature">
+                            <div class="clinic-feat-icon" style="background: #dbeafe;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="#1baebe" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+                            </div>
+                            <h4 class="clinic-feat-title">Schedule & Appointments</h4>
+                            <p class="clinic-feat-desc">Smart scheduling, availability, and conflict-free booking.</p>
+                        </div>
+                        <div class="clinic-feature">
+                            <div class="clinic-feat-icon" style="background: #dcfce7;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>
+                            </div>
+                            <h4 class="clinic-feat-title">Patient Profiles & Tracking</h4>
+                            <p class="clinic-feat-desc">Full health timeline and pregnancy status for every patient.</p>
+                        </div>
+                        <div class="clinic-feature">
+                            <div class="clinic-feat-icon" style="background: #f0fdfe;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="#22c9db" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14,2 14,8 20,8" /><path d="M9 15l2 2 4-4" /></svg>
+                            </div>
+                            <h4 class="clinic-feat-title">AI Report Review</h4>
+                            <p class="clinic-feat-desc">Review, annotate, and approve AI lab & ultrasound reports.</p>
+                        </div>
+                        <div class="clinic-feature">
+                            <div class="clinic-feat-icon" style="background: #fef3c7;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14,2 14,8 20,8" /><line x1="9" y1="13" x2="15" y2="13" /><line x1="9" y1="17" x2="13" y2="17" /></svg>
+                            </div>
+                            <h4 class="clinic-feat-title">Digital Prescriptions</h4>
+                            <p class="clinic-feat-desc">Create, print, and share prescriptions in seconds.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="clinic-dashboard reveal-right delay-2">
+                    <p class="clinic-dash-title">Clinic Overview</p>
+                    <div class="clinic-stat-row">
+                        <div class="clinic-stat-box">
+                            <div class="clinic-stat-val" data-count="124" data-suffix="">0</div>
+                            <div class="clinic-stat-lab">Patients</div>
+                        </div>
+                        <div class="clinic-stat-box">
+                            <div class="clinic-stat-val" data-count="18" data-suffix="">0</div>
+                            <div class="clinic-stat-lab">Today's Appts</div>
+                        </div>
+                        <div class="clinic-stat-box">
+                            <div class="clinic-stat-val" data-count="97" data-suffix="%">0%</div>
+                            <div class="clinic-stat-lab">Satisfaction</div>
+                        </div>
+                    </div>
+                    <p style="font-size: 12px; color: rgba(255,255,255,0.45); margin-bottom: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;">Today's Appointments</p>
+                    <div class="clinic-list">
+                        <div class="clinic-list-item">
+                            <span class="cli-dot" style="background: #22c55e;"></span>
+                            <span class="cli-name">Sarah Al-Ahmad — Week 32</span>
+                            <span class="cli-status" style="background: rgba(34,197,94,0.15); color: #22c55e;">Confirmed</span>
+                        </div>
+                        <div class="clinic-list-item">
+                            <span class="cli-dot" style="background: #1baebe;"></span>
+                            <span class="cli-name">Mariam Hassan — Week 20</span>
+                            <span class="cli-status" style="background: rgba(27, 174, 190,0.15); color: #22c9db;">In Progress</span>
+                        </div>
+                        <div class="clinic-list-item">
+                            <span class="cli-dot" style="background: #f59e0b;"></span>
+                            <span class="cli-name">Nour Ibrahim — Week 28</span>
+                            <span class="cli-status" style="background: rgba(245,158,11,0.15); color: #fbbf24;">Pending</span>
+                        </div>
+                        <div class="clinic-list-item">
+                            <span class="cli-dot" style="background: #22c9db;"></span>
+                            <span class="cli-name">Layla Khaled — Week 16</span>
+                            <span class="cli-status" style="background: rgba(34, 201, 219,0.15); color: #a78bfa;">Scheduled</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════
+     AI FEATURES  (incl. Chatbot)
+════════════════════════════════════════════════════════ -->
+    <section class="ai-features section" id="features">
+        <div class="container">
+            <div class="text-center reveal">
+                <p class="section-label">AI Capabilities</p>
+                <h2 class="section-title">Powered by <span style="-webkit-text-fill-color: transparent; background: linear-gradient(135deg, #22c9db, #22c9db); -webkit-background-clip: text; background-clip: text;">Intelligent AI</span></h2>
+                <p class="section-desc" style="color: rgba(255,255,255,0.6); margin: 0 auto;">The most advanced AI features in pregnancy healthcare, designed to detect, predict, and protect at every stage.</p>
+            </div>
+
+            <!-- ── FEATURED: AI CHATBOT ── -->
+            <div class="ai-feature-hero reveal delay-1">
+                <div class="afh-text">
+                    <span class="afh-badge">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z" /></svg>
+                        New · Conversational AI
+                    </span>
+                    <h3 class="afh-title">NABD AI Chatbot</h3>
+                    <p class="afh-desc">A pregnancy-aware assistant available 24/7. Ask about symptoms, medications, or nutrition — NABD answers in plain language, assesses the risk level, and tells you exactly what to do next.</p>
+                    <ul class="afh-list">
+                        <li>Understands pregnancy-specific context</li>
+                        <li>Returns a clear risk level for every concern</li>
+                        <li>Gives an actionable recommendation, not just an answer</li>
+                    </ul>
+                </div>
+                <div class="afh-chat" aria-hidden="true">
+                    <div class="afh-chat-head">
+                        <span class="afh-avatar">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z" /></svg>
+                        </span>
+                        <div class="afh-id">
+                            <strong>NABD Assistant</strong>
+                            <span><i class="afh-online"></i> Online · replies in seconds</span>
+                        </div>
+                    </div>
+                    <div class="afh-msgs">
+                        <div class="afh-msg user">I've had a headache and some swelling in my feet this week. I'm 31 weeks.</div>
+                        <div class="afh-msg bot">
+                            <p>Mild swelling is common late in pregnancy, but a headache together with new swelling can sometimes point to rising blood pressure — it's worth watching closely.</p>
+                            <span class="afh-risk mod">Risk Level · Moderate</span>
+                            <p class="afh-reco"><strong>Recommendation:</strong> Check your blood pressure today and contact your doctor if the headache worsens or your vision blurs.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── AI CAPABILITY GRID ── -->
+            <div class="ai-grid ai-grid--compact">
+
+                <div class="ai-card reveal delay-1">
+                    <div class="ai-card-glow" style="background: rgba(27, 174, 190,0.15);">
+                        <div style="position:absolute;inset:-4px;border-radius:20px;background:rgba(27, 174, 190,0.1);filter:blur(8px);"></div>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#22c9db" stroke-width="2">
+                            <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18" />
+                        </svg>
+                    </div>
+                    <h3 class="ai-card-title">AI Medical Test Analysis</h3>
+                    <p class="ai-card-desc">Upload blood tests, urine reports, and lab results. Our AI uses OCR to read every value against pregnancy-specific reference ranges and flags anomalies instantly.</p>
+                    <span class="ai-tag" style="background: rgba(27, 174, 190,0.15); color: #22c9db;">Lab Reports</span>
+                </div>
+
+                <div class="ai-card reveal delay-2">
+                    <div class="ai-card-glow" style="background: rgba(34, 201, 219,0.15);">
+                        <div style="position:absolute;inset:-4px;border-radius:20px;background:rgba(34, 201, 219,0.1);filter:blur(8px);"></div>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" />
+                            <circle cx="8.5" cy="8.5" r="1.5" />
+                            <polyline points="21 15 16 10 5 21" />
+                        </svg>
+                    </div>
+                    <h3 class="ai-card-title">AI Ultrasound Analysis</h3>
+                    <p class="ai-card-desc">Advanced computer vision analyzes ultrasound images to assess fetal development, detect abnormalities, and provide detailed growth tracking reports.</p>
+                    <span class="ai-tag" style="background: rgba(34, 201, 219,0.15); color: #a78bfa;">Imaging AI</span>
+                </div>
+
+                <div class="ai-card reveal delay-3">
+                    <div class="ai-card-glow" style="background: rgba(27, 174, 190,0.15);">
+                        <div style="position:absolute;inset:-4px;border-radius:20px;background:rgba(27, 174, 190,0.1);filter:blur(8px);"></div>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#1baebe" stroke-width="2">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                        </svg>
+                    </div>
+                    <h3 class="ai-card-title">Product Safety Checker</h3>
+                    <p class="ai-card-desc">Scan any product's ingredient list. NABD's AI cross-references thousands of substances against pregnancy safety databases and alerts you to harmful ingredients.</p>
+                    <span class="ai-tag" style="background: rgba(27, 174, 190,0.15); color: #1baebe;">Safety AI</span>
+                </div>
+
+                <div class="ai-card reveal delay-4">
+                    <div class="ai-card-glow" style="background: rgba(16,185,129,0.15);">
+                        <div style="position:absolute;inset:-4px;border-radius:20px;background:rgba(16,185,129,0.1);filter:blur(8px);"></div>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                        </svg>
+                    </div>
+                    <h3 class="ai-card-title">Predictive Risk Detection</h3>
+                    <p class="ai-card-desc">Machine learning models trained on thousands of pregnancies identify early signs of gestational diabetes, preeclampsia, and other complications before they escalate.</p>
+                    <span class="ai-tag" style="background: rgba(16,185,129,0.15); color: #34d399;">Prediction AI</span>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════
+     FUTURE WORK  ·  ROADMAP
+════════════════════════════════════════════════════════ -->
+    <section class="future section" id="future">
+        <div class="container">
+            <div class="text-center reveal">
+                <p class="section-label">What's Next</p>
+                <h2 class="section-title">The <span>Future</span> of NABD</h2>
+                <p class="section-desc">NABD is built to grow. Here's where we're taking maternal care next — from wider reach to even smarter AI.</p>
+            </div>
+            <div class="roadmap">
+
+                <article class="future-card reveal delay-1">
+                    <span class="future-tag">Planned</span>
+                    <div class="future-ico" style="background: linear-gradient(135deg,#1baebe,#22c9db);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="7" width="12" height="10" rx="2" /><path d="M9 7V4h6v3M9 17v3h6v-3" /><path d="M12 11v2l1.5 1" /></svg>
+                    </div>
+                    <h3 class="future-title">Wearable & IoT Medical Devices</h3>
+                    <p class="future-desc">Connect smartwatches, glucose monitors, and blood-pressure sensors to stream vital signs into NABD in real time for continuous monitoring.</p>
+                </article>
+
+                <article class="future-card reveal delay-2">
+                    <span class="future-tag">Planned</span>
+                    <div class="future-ico" style="background: linear-gradient(135deg,#22c9db,#a78bfa);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" /><path d="M5 10v1a7 7 0 0 0 14 0v-1" /><line x1="12" y1="19" x2="12" y2="22" /></svg>
+                    </div>
+                    <h3 class="future-title">Multilingual Voice-Enabled AI Assistant</h3>
+                    <p class="future-desc">Talk to NABD hands-free in multiple languages — ask questions and get spoken, pregnancy-aware guidance whenever you need it.</p>
+                </article>
+
+                <article class="future-card reveal delay-3">
+                    <span class="future-tag">Planned</span>
+                    <div class="future-ico" style="background: linear-gradient(135deg,#10b981,#34d399);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
+                    </div>
+                    <h3 class="future-title">Full Arabic Language Support</h3>
+                    <p class="future-desc">A fully localized, right-to-left Arabic interface across the entire platform — built for the region's mothers and care teams.</p>
+                </article>
+
+                <article class="future-card reveal delay-4">
+                    <span class="future-tag">Planned</span>
+                    <div class="future-ico" style="background: linear-gradient(135deg,#f59e0b,#fbbf24);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                    </div>
+                    <h3 class="future-title">Location-Based Healthcare Recommendations</h3>
+                    <p class="future-desc">Smart suggestions for the nearest clinics, labs, pharmacies, and emergency care — tailored to your location and current needs.</p>
+                </article>
+
+                <article class="future-card reveal delay-5">
+                    <span class="future-tag">Planned</span>
+                    <div class="future-ico" style="background: linear-gradient(135deg,#0b1f35,#138fa0);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5v14a9 3 0 0 0 18 0V5" /><path d="M3 12a9 3 0 0 0 18 0" /></svg>
+                    </div>
+                    <h3 class="future-title">EHR System Integration</h3>
+                    <p class="future-desc">Seamless, standards-based (FHIR/HL7) integration with hospital Electronic Health Record (EHR) systems for unified patient data.</p>
+                </article>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════
      WORKFLOW
 ════════════════════════════════════════════════════════ -->
     <section class="workflow-section section" id="workflow">
@@ -615,7 +925,7 @@
 
                 <div class="wf-step reveal delay-1">
                     <div style="position: relative; margin-bottom: 20px; display: flex; justify-content: center;">
-                        <div class="wf-circle" style="background: linear-gradient(135deg, #0ea5e9, #38bdf8);">
+                        <div class="wf-circle" style="background: linear-gradient(135deg, #1baebe, #22c9db);">
                             <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" width="30" height="30"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
                         </div>
                         <span class="wf-num">1</span>
@@ -626,7 +936,7 @@
 
                 <div class="wf-step reveal delay-2">
                     <div style="position: relative; margin-bottom: 20px; display: flex; justify-content: center;">
-                        <div class="wf-circle" style="background: linear-gradient(135deg, #8b5cf6, #a78bfa);">
+                        <div class="wf-circle" style="background: linear-gradient(135deg, #22c9db, #a78bfa);">
                             <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" width="30" height="30"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
                         </div>
                         <span class="wf-num">2</span>
@@ -637,7 +947,7 @@
 
                 <div class="wf-step reveal delay-3">
                     <div style="position: relative; margin-bottom: 20px; display: flex; justify-content: center;">
-                        <div class="wf-circle" style="background: linear-gradient(135deg, #06b6d4, #22d3ee);">
+                        <div class="wf-circle" style="background: linear-gradient(135deg, #22c9db, #22c9db);">
                             <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" width="30" height="30"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>
                         </div>
                         <span class="wf-num">3</span>
@@ -674,25 +984,25 @@
             <div class="team-grid">
 
                 <div class="team-card reveal delay-1">
-                    <div class="team-avatar" style="background: linear-gradient(135deg, #0ea5e9, #8b5cf6);">K</div>
+                    <div class="team-avatar" style="background: linear-gradient(135deg, #1baebe, #22c9db);">K</div>
                     <h4 class="team-name">Karim Helal</h4>
                     <p class="team-role">Full Stack Development</p>
                 </div>
 
                 <div class="team-card reveal delay-2">
-                    <div class="team-avatar" style="background: linear-gradient(135deg, #8b5cf6, #ec4899);">K</div>
+                    <div class="team-avatar" style="background: linear-gradient(135deg, #22c9db, #1baebe);">K</div>
                     <h4 class="team-name">Kareem Shakl</h4>
                     <p class="team-role">Full Stack Development</p>
                 </div>
 
                 <div class="team-card reveal delay-3">
-                    <div class="team-avatar" style="background: linear-gradient(135deg, #06b6d4, #0ea5e9);">E</div>
+                    <div class="team-avatar" style="background: linear-gradient(135deg, #22c9db, #1baebe);">E</div>
                     <h4 class="team-name">Eman Elnagar</h4>
                     <p class="team-role">AI Development</p>
                 </div>
 
                 <div class="team-card reveal delay-4">
-                    <div class="team-avatar" style="background: linear-gradient(135deg, #10b981, #06b6d4);">M</div>
+                    <div class="team-avatar" style="background: linear-gradient(135deg, #10b981, #22c9db);">M</div>
                     <h4 class="team-name">Menna Taha</h4>
                     <p class="team-role">AI Development</p>
                 </div>
@@ -704,13 +1014,13 @@
                 </div>
 
                 <div class="team-card reveal delay-2">
-                    <div class="team-avatar" style="background: linear-gradient(135deg, #ec4899, #8b5cf6);">H</div>
+                    <div class="team-avatar" style="background: linear-gradient(135deg, #1baebe, #22c9db);">H</div>
                     <h4 class="team-name">Haneen Elagamy</h4>
                     <p class="team-role">Full Stack Development</p>
                 </div>
 
                 <div class="team-card reveal delay-3">
-                    <div class="team-avatar" style="background: linear-gradient(135deg, #0f172a, #1e40af);">Y</div>
+                    <div class="team-avatar" style="background: linear-gradient(135deg, #0b1f35, #138fa0);">Y</div>
                     <h4 class="team-name">Youssef Khedr</h4>
                     <p class="team-role">Data Analyst</p>
                 </div>
@@ -736,7 +1046,7 @@
                         Get Started Today
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
                     </a>
-                    <a href="#solution" class="btn btn-ghost-white">Learn How It Works</a>
+                    <a href="#workflow" class="btn btn-ghost-white">Learn How It Works</a>
                 </div>
             </div>
         </div>
@@ -750,27 +1060,25 @@
             <div class="footer-inner">
                 <div class="footer-brand">
                     <a href="@Url.Action("Index", "Home")" class="navbar-logo">
-                        <img src="~/images/logo.png" alt="NABD" class="logo-icon" />
-                        NABD - نبض
-                    </a>
+                        <img src="~/images/logo name.png" alt="NABD" class="logo-icon" /></a>
                     <p>Securing the pulse of the next generation. An AI-powered companion transforming pregnancy monitoring and early risk detection.</p>
                 </div>
                 <div class="footer-col">
                     <h4>Platform</h4>
                     <ul>
                         <li><a href="#features">AI Features</a></li>
-                        <li><a href="#patient">Patient App</a></li>
-                        <li><a href="#clinic">Clinic Dashboard</a></li>
-                        <li><a href="#solution">How It Works</a></li>
+                        <li><a href="#patient">For Patients</a></li>
+                        <li><a href="#doctor">For Doctors</a></li>
+                        <li><a href="#future">Roadmap</a></li>
                     </ul>
                 </div>
                 <div class="footer-col">
                     <h4>Company</h4>
                     <ul>
-                        <li><a href="#team">Our Team</a></li>
-                        <li><a href="#why">Why NABD</a></li>
+                        <li><a href="#intro">Introduction</a></li>
+                        <li><a href="#solution">Why NABD</a></li>
                         <li><a href="#problems">The Problem</a></li>
-                        <li><a href="@Url.Action("Contact", "Home")">Contact Us</a></li>
+                        <li><a href="#related">Comparison</a></li>
                     </ul>
                 </div>
                 <div class="footer-col">

@@ -22,6 +22,8 @@ namespace Graduation_Project.Controllers
         private readonly MedicationAdherenceService _medicationAdherenceService;
         private readonly IWebHostEnvironment _env;
         private readonly IDoctorNotificationService _doctorNotificationService;
+        private readonly IPatientNotificationService _patientNotificationService;
+        private readonly IPushNotificationService _push;
 
         public DoctorController(
             IAppointment appointmentRepository,
@@ -32,7 +34,9 @@ namespace Graduation_Project.Controllers
             MedicationService medicationService,
             MedicationAdherenceService medicationAdherenceService,
             IWebHostEnvironment env,
-            IDoctorNotificationService doctorNotificationService)
+            IDoctorNotificationService doctorNotificationService,
+            IPatientNotificationService patientNotificationService,
+            IPushNotificationService push)
         {
             _appointmentRepository = appointmentRepository;
             _patientDoctorRepository = patientDoctorRepository;
@@ -43,6 +47,8 @@ namespace Graduation_Project.Controllers
             _medicationAdherenceService = medicationAdherenceService;
             _env = env;
             _doctorNotificationService = doctorNotificationService;
+            _patientNotificationService = patientNotificationService;
+            _push = push;
         }
 
         [HttpGet]
@@ -890,6 +896,29 @@ namespace Graduation_Project.Controllers
                 })
                 .ToList();
 
+            // Leave requests where THIS doctor still owes a Pending approval.
+            var leaveRequests = _context.AssistantLeaveApprovals
+                .Include(ap => ap.LeaveRequest).ThenInclude(r => r.Assistant).ThenInclude(a => a.User)
+                .Include(ap => ap.LeaveRequest).ThenInclude(r => r.OldClinic)
+                .Include(ap => ap.LeaveRequest).ThenInclude(r => r.NewClinic)
+                .Where(ap => ap.DoctorID == doctor.DoctorID
+                          && ap.Status == "Pending"
+                          && ap.LeaveRequest.Status == "Pending")
+                .OrderByDescending(ap => ap.LeaveRequest.CreatedAtUtc)
+                .Select(ap => new DoctorLeaveRequestViewModel
+                {
+                    LeaveRequestID = ap.AssistantLeaveRequestID,
+                    AssistantName = ((ap.LeaveRequest.Assistant.User.FirstName ?? string.Empty)
+                                     + " " + (ap.LeaveRequest.Assistant.User.LastName ?? string.Empty)).Trim(),
+                    OldClinicName = ap.LeaveRequest.OldClinic.Name,
+                    NewClinicName = ap.LeaveRequest.NewClinic.Name,
+                    CreatedAt = ap.LeaveRequest.CreatedAtUtc.ToLocalTime(),
+                    ApprovedCount = ap.LeaveRequest.Approvals.Count(x => x.Status == "Approved"),
+                    TotalApprovers = ap.LeaveRequest.Approvals.Count(),
+                    ThisDoctorResponded = false
+                })
+                .ToList();
+
             var vm = new DoctorClinicsViewModel
             {
                 Doctor = doctor!,
@@ -898,10 +927,182 @@ namespace Graduation_Project.Controllers
                 LinkedClinicIds = linkedClinicIds,
                 Assistants = assistants,
                 PendingInvitations = pendingInvitations,
-                LinkedClinics = linkedClinics
+                LinkedClinics = linkedClinics,
+                LeaveRequests = leaveRequests
             };
 
             return View(vm);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ApproveLeaveRequest(int id, int leaveRequestId)
+        {
+            var accessResult = TryResolveDoctor(id, out var doctor);
+            if (accessResult != null)
+                return accessResult;
+
+            var approval = _context.AssistantLeaveApprovals
+                .Include(ap => ap.LeaveRequest).ThenInclude(r => r.Approvals)
+                .FirstOrDefault(ap => ap.AssistantLeaveRequestID == leaveRequestId
+                                   && ap.DoctorID == doctor!.DoctorID);
+
+            if (approval == null)
+            {
+                TempData["InviteError"] = "Leave request not found.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor!.DoctorID });
+            }
+
+            var request = approval.LeaveRequest;
+            if (!string.Equals(request.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+            {
+                TempData["InviteError"] = "This leave request has already been resolved.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor!.DoctorID });
+            }
+
+            if (!string.Equals(approval.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+            {
+                TempData["InviteError"] = "You have already responded to this leave request.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor!.DoctorID });
+            }
+
+            approval.Status = "Approved";
+            approval.RespondedAtUtc = DateTime.UtcNow;
+
+            bool allApproved = request.Approvals.All(a => a.Status == "Approved");
+            bool switchExecuted = false;
+
+            if (allApproved)
+            {
+                var trackedAssistant = _context.Assistants.FirstOrDefault(a => a.AssistantID == request.AssistantID);
+                var invitation = _context.ClinicInvitations.FirstOrDefault(ci => ci.ClinicInvitationID == request.ClinicInvitationID);
+
+                if (trackedAssistant == null || invitation == null
+                    || !string.Equals(invitation.Status, "PendingLeaveApproval", StringComparison.OrdinalIgnoreCase))
+                {
+                    // The invitation was cancelled/superseded out from under the request.
+                    request.Status = "Cancelled";
+                    request.ResolvedAtUtc = DateTime.UtcNow;
+                    request.ResolutionMessage = "Invitation no longer valid when final approval was given.";
+                }
+                else
+                {
+                    ClinicSwitchHelper.ExecuteSwitch(_context, trackedAssistant, invitation, removeOldLinks: true);
+                    request.Status = "Approved";
+                    request.ResolvedAtUtc = DateTime.UtcNow;
+                    request.ResolutionMessage = "Approved by all required doctors.";
+                    switchExecuted = true;
+                }
+            }
+
+            try
+            {
+                _context.SaveChanges();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // Another doctor resolved this request at the same instant.
+                TempData["InviteError"] = "This leave request was just updated by another doctor. Please refresh.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor!.DoctorID });
+            }
+
+            await NotifyLeaveOutcomeAsync(request, switchExecuted, allApproved);
+
+            TempData["InviteSuccess"] = switchExecuted
+                ? "Approved. All doctors have approved — the assistant has now moved to the new clinic."
+                : "Your approval was recorded. The switch executes once every required doctor approves.";
+            return RedirectToAction(nameof(Clinics), new { id = doctor!.DoctorID });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DenyLeaveRequest(int id, int leaveRequestId)
+        {
+            var accessResult = TryResolveDoctor(id, out var doctor);
+            if (accessResult != null)
+                return accessResult;
+
+            var approval = _context.AssistantLeaveApprovals
+                .Include(ap => ap.LeaveRequest)
+                .FirstOrDefault(ap => ap.AssistantLeaveRequestID == leaveRequestId
+                                   && ap.DoctorID == doctor!.DoctorID);
+
+            if (approval == null)
+            {
+                TempData["InviteError"] = "Leave request not found.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor!.DoctorID });
+            }
+
+            var request = approval.LeaveRequest;
+            if (!string.Equals(request.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+            {
+                TempData["InviteError"] = "This leave request has already been resolved.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor!.DoctorID });
+            }
+
+            // A single denial rejects the whole request.
+            approval.Status = "Denied";
+            approval.RespondedAtUtc = DateTime.UtcNow;
+            request.Status = "Denied";
+            request.ResolvedAtUtc = DateTime.UtcNow;
+            request.ResolutionMessage = "Denied by a doctor in the current clinic.";
+
+            // Release the invitation back to Pending so the assistant may retry later.
+            var invitation = _context.ClinicInvitations.FirstOrDefault(ci => ci.ClinicInvitationID == request.ClinicInvitationID);
+            if (invitation != null && string.Equals(invitation.Status, "PendingLeaveApproval", StringComparison.OrdinalIgnoreCase))
+            {
+                invitation.Status = "Pending";
+                invitation.ResponseMessage = null;
+            }
+
+            try
+            {
+                _context.SaveChanges();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                TempData["InviteError"] = "This leave request was just updated by another doctor. Please refresh.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor!.DoctorID });
+            }
+
+            await NotifyLeaveOutcomeAsync(request, switchExecuted: false, allApproved: false);
+
+            TempData["InviteSuccess"] = "Leave request denied. The assistant remains in your clinic.";
+            return RedirectToAction(nameof(Clinics), new { id = doctor!.DoctorID });
+        }
+
+        // Notifies the assistant of a leave-request outcome, and the new-clinic
+        // doctor when the switch actually completes.
+        private async Task NotifyLeaveOutcomeAsync(AssistantLeaveRequest request, bool switchExecuted, bool allApproved)
+        {
+            var assistantUserId = _context.Assistants
+                .Where(a => a.AssistantID == request.AssistantID)
+                .Select(a => a.UserID)
+                .FirstOrDefault();
+
+            if (string.Equals(request.Status, "Denied", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!string.IsNullOrEmpty(assistantUserId))
+                    await _push.SendToUserAsync(assistantUserId, "Clinic Change Denied",
+                        "A doctor in your current clinic denied your request to switch clinics.",
+                        $"/Assistant/ClinicInvitations/{request.AssistantID}");
+                return;
+            }
+
+            if (switchExecuted)
+            {
+                if (!string.IsNullOrEmpty(assistantUserId))
+                    await _push.SendToUserAsync(assistantUserId, "Clinic Change Approved",
+                        "All required doctors approved. You have moved to your new clinic.",
+                        $"/Assistant/ClinicInvitations/{request.AssistantID}");
+
+                await _doctorNotificationService.NotifyAsync(
+                    request.NewDoctorID,
+                    "Assistant Joined Your Team",
+                    "An assistant has accepted your clinic invitation and joined your team.",
+                    "invitation_accepted",
+                    "/Doctor/ClinicTeam");
+            }
         }
 
         [HttpPost]
@@ -1295,40 +1496,6 @@ namespace Graduation_Project.Controllers
                 });
             }
 
-            foreach (var appt in appointmentHistory)
-            {
-                timelineEntries.Add(new MedicalHistoryEntry
-                {
-                    DateTime = appt.Date.Date.Add(appt.Time),
-                    EventType = "appointment",
-                    Status = "normal",
-                    Title = string.IsNullOrWhiteSpace(appt.Booking?.Reason) ? "Consultation" : appt.Booking.Reason,
-                    SubTitle = $"Appointment {((appt.Date.Date.Add(appt.Time) < DateTime.Now) ? "completed" : "upcoming")}",
-                    Appointment = appt
-                });
-            }
-
-            foreach (var alert in alerts)
-            {
-                var status = (alert.AlertType ?? "").ToLowerInvariant() switch
-                {
-                    "danger" => "critical",
-                    "critical" => "critical",
-                    "warning" => "attention",
-                    _ => "normal"
-                };
-
-                timelineEntries.Add(new MedicalHistoryEntry
-                {
-                    DateTime = alert.DateCreated,
-                    EventType = "alert",
-                    Status = status,
-                    Title = alert.Title,
-                    SubTitle = alert.Message,
-                    Alert = alert
-                });
-            }
-
             foreach (var note in notes)
             {
                 timelineEntries.Add(new MedicalHistoryEntry
@@ -1590,6 +1757,13 @@ namespace Graduation_Project.Controllers
                 _medicationService.CreateFromPrescription(item, prescription.PrescriptionDate);
             }
 
+            var medCount = prescription.Items.Count;
+            _patientNotificationService.Notify(patientId,
+                "New Prescription",
+                $"Your doctor issued a new prescription with {medCount} medication{(medCount != 1 ? "s" : "")}. Check your medications.",
+                PatientNotificationTypes.Prescription,
+                "/Patient/Medications");
+
             return Json(new { success = true, message = "Prescription saved successfully.", prescriptionId = prescription.PrescriptionID });
         }
 
@@ -1645,6 +1819,12 @@ namespace Graduation_Project.Controllers
             }
 
             _context.SaveChanges();
+
+            _patientNotificationService.Notify(patientId,
+                "New Doctor Note",
+                "Your doctor added a new note to your record. Open Messages to read it.",
+                PatientNotificationTypes.Note,
+                "/Patient/Messages");
 
             return RedirectToAction(nameof(PatientDetails), new { id = doctor.DoctorID, patientId });
         }

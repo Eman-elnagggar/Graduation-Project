@@ -8,6 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - NABD - نبض</title>
     <link rel="icon" type="image/png" href="~/images/logo.png" asp-append-version="true" />
+    <partial name="_PwaHead" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -114,6 +115,7 @@
 @Html.AntiForgeryToken()
 <script src="~/js/shared.js" asp-append-version="true"></script>
 <script src="~/js/push-notifications.js" asp-append-version="true"></script>
+<partial name="_NotificationPrompt" />
 @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

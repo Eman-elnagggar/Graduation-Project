@@ -1,7 +1,7 @@
 @model Graduation_Project.ViewModels.AlertsViewModel
 @{
     Layout = "~/Views/Shared/_PatientLayout.cshtml";
-    ViewData["Title"] = "Alerts & Notifications";
+    ViewData["Title"] = "Health Alerts";
     ViewData["PatientId"]  = Model.Patient.PatientID;
     ViewData["ActivePage"] = "Alerts";
     ViewData["HidePageHeader"] = true;
@@ -29,29 +29,11 @@
             }
         </div>
         <div>
-            <h1 class="al-hero-title">Alerts &amp; Notifications</h1>
-            <p class="al-hero-sub">Stay informed about your health and appointments</p>
+            <h1 class="al-hero-title">Health Alerts</h1>
+            <p class="al-hero-sub">Clinical alerts that may need your attention</p>
         </div>
     </div>
 </header>
-
-<!-- ══════════════════ APPOINTMENTS FEATURE CARD ══════════════════ -->
-<section style="margin-bottom:1.25rem">
-    <div style="display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:14px;padding:1rem 1.25rem;box-shadow:0 6px 20px rgba(15,23,42,.06);border:1px solid rgba(2,6,23,.04)">
-        <div style="display:flex;align-items:center;gap:1rem">
-            <div style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff;font-size:20px;box-shadow:0 6px 18px rgba(124,58,237,.15)">
-                <i class="fas fa-calendar-alt"></i>
-            </div>
-            <div>
-                <h3 style="margin:0;font-size:1.05rem;color:var(--al-text)">Appointments</h3>
-                <p style="margin:2px 0 0;color:var(--al-muted);font-size:.95rem">Manage patient appointments for MamaCare Central</p>
-            </div>
-        </div>
-        <div>
-            <a href="/Patient/Appointments" class="al-btn al-btn-outline" style="text-decoration:none">View Appointments</a>
-        </div>
-    </div>
-</section>
 
 <!-- ══════════════════ STAT CARDS ══════════════════ -->
 <section class="al-stats-grid">
@@ -70,14 +52,6 @@
             <span class="al-stat-lbl">Warnings</span>
         </div>
         <div class="al-stat-bg-icon"><i class="fas fa-exclamation-triangle"></i></div>
-    </div>
-    <div class="al-stat-card al-stat-info">
-        <div class="al-stat-icon"><i class="fas fa-info-circle"></i></div>
-        <div class="al-stat-body">
-            <span class="al-stat-num" id="statInfo">@Model.InfoCount</span>
-            <span class="al-stat-lbl">Info</span>
-        </div>
-        <div class="al-stat-bg-icon"><i class="fas fa-info-circle"></i></div>
     </div>
     <div class="al-stat-card al-stat-unread">
         <div class="al-stat-icon"><i class="fas fa-envelope"></i></div>
@@ -108,10 +82,6 @@
             <button class="al-tab al-tab-warning" data-filter="warning">
                 <i class="fas fa-exclamation-triangle"></i> Warnings
                 <span class="al-tab-count">@Model.WarningCount</span>
-            </button>
-            <button class="al-tab al-tab-info" data-filter="info">
-                <i class="fas fa-info-circle"></i> Info
-                <span class="al-tab-count">@Model.InfoCount</span>
             </button>
         </div>
         <button class="al-btn al-btn-ghost" id="markAllRead">

@@ -272,6 +272,95 @@ namespace Graduation_Project.Migrations
                     b.ToTable("AssistantDoctors");
                 });
 
+            modelBuilder.Entity("Graduation_Project.Models.AssistantLeaveApproval", b =>
+                {
+                    b.Property<int>("AssistantLeaveApprovalID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AssistantLeaveApprovalID"));
+
+                    b.Property<int>("AssistantLeaveRequestID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DoctorID")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("RespondedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.HasKey("AssistantLeaveApprovalID");
+
+                    b.HasIndex("AssistantLeaveRequestID");
+
+                    b.HasIndex("DoctorID", "Status");
+
+                    b.ToTable("AssistantLeaveApprovals");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.AssistantLeaveRequest", b =>
+                {
+                    b.Property<int>("AssistantLeaveRequestID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AssistantLeaveRequestID"));
+
+                    b.Property<int>("AssistantID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ClinicInvitationID")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("NewClinicID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("NewDoctorID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("OldClinicID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ResolutionMessage")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("ResolvedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.HasKey("AssistantLeaveRequestID");
+
+                    b.HasIndex("ClinicInvitationID");
+
+                    b.HasIndex("NewClinicID");
+
+                    b.HasIndex("NewDoctorID");
+
+                    b.HasIndex("OldClinicID");
+
+                    b.HasIndex("AssistantID", "Status");
+
+                    b.ToTable("AssistantLeaveRequests");
+                });
+
             modelBuilder.Entity("Graduation_Project.Models.BloodGroup_Test", b =>
                 {
                     b.Property<int>("LabTestID")
@@ -357,9 +446,6 @@ namespace Graduation_Project.Migrations
                         .HasColumnType("real");
 
                     b.Property<float>("MCH")
-                        .HasColumnType("real");
-
-                    b.Property<float>("MCHC")
                         .HasColumnType("real");
 
                     b.Property<float>("MCV")
@@ -579,12 +665,17 @@ namespace Graduation_Project.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("PatientID")
+                    b.Property<int?>("DoctorID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PatientID")
                         .HasColumnType("int");
 
                     b.HasKey("CommunityCommentId");
 
                     b.HasIndex("CommunityPostId");
+
+                    b.HasIndex("DoctorID");
 
                     b.HasIndex("PatientID");
 
@@ -605,15 +696,25 @@ namespace Graduation_Project.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("PatientID")
+                    b.Property<int?>("DoctorID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PatientID")
                         .HasColumnType("int");
 
                     b.HasKey("CommunityLikeId");
 
+                    b.HasIndex("DoctorID");
+
                     b.HasIndex("PatientID");
 
+                    b.HasIndex("CommunityPostId", "DoctorID")
+                        .IsUnique()
+                        .HasFilter("[DoctorID] IS NOT NULL");
+
                     b.HasIndex("CommunityPostId", "PatientID")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[PatientID] IS NOT NULL");
 
                     b.ToTable("CommunityLikes");
                 });
@@ -639,11 +740,14 @@ namespace Graduation_Project.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("DoctorID")
+                        .HasColumnType("int");
+
                     b.Property<string>("ImageUrl")
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
 
-                    b.Property<int>("PatientID")
+                    b.Property<int?>("PatientID")
                         .HasColumnType("int");
 
                     b.Property<string>("Title")
@@ -655,6 +759,8 @@ namespace Graduation_Project.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("CommunityPostId");
+
+                    b.HasIndex("DoctorID");
 
                     b.HasIndex("PatientID");
 
@@ -1289,6 +1395,49 @@ namespace Graduation_Project.Migrations
                     b.ToTable("PatientDrugs");
                 });
 
+            modelBuilder.Entity("Graduation_Project.Models.PatientNotification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ActionUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NotificationType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("PatientID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PatientID");
+
+                    b.ToTable("PatientNotifications");
+                });
+
             modelBuilder.Entity("Graduation_Project.Models.Place", b =>
                 {
                     b.Property<int>("PlaceID")
@@ -1897,6 +2046,68 @@ namespace Graduation_Project.Migrations
                     b.Navigation("Doctor");
                 });
 
+            modelBuilder.Entity("Graduation_Project.Models.AssistantLeaveApproval", b =>
+                {
+                    b.HasOne("Graduation_Project.Models.AssistantLeaveRequest", "LeaveRequest")
+                        .WithMany("Approvals")
+                        .HasForeignKey("AssistantLeaveRequestID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Graduation_Project.Models.Doctor", "Doctor")
+                        .WithMany()
+                        .HasForeignKey("DoctorID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Doctor");
+
+                    b.Navigation("LeaveRequest");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.AssistantLeaveRequest", b =>
+                {
+                    b.HasOne("Graduation_Project.Models.Assistant", "Assistant")
+                        .WithMany()
+                        .HasForeignKey("AssistantID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Graduation_Project.Models.ClinicInvitation", "Invitation")
+                        .WithMany()
+                        .HasForeignKey("ClinicInvitationID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Graduation_Project.Models.Clinic", "NewClinic")
+                        .WithMany()
+                        .HasForeignKey("NewClinicID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Graduation_Project.Models.Doctor", "NewDoctor")
+                        .WithMany()
+                        .HasForeignKey("NewDoctorID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Graduation_Project.Models.Clinic", "OldClinic")
+                        .WithMany()
+                        .HasForeignKey("OldClinicID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Assistant");
+
+                    b.Navigation("Invitation");
+
+                    b.Navigation("NewClinic");
+
+                    b.Navigation("NewDoctor");
+
+                    b.Navigation("OldClinic");
+                });
+
             modelBuilder.Entity("Graduation_Project.Models.BloodGroup_Test", b =>
                 {
                     b.HasOne("Graduation_Project.Models.LabTest", "LabTest")
@@ -2032,11 +2243,17 @@ namespace Graduation_Project.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Graduation_Project.Models.Doctor", "Doctor")
+                        .WithMany()
+                        .HasForeignKey("DoctorID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Graduation_Project.Models.Patient", "Patient")
                         .WithMany()
                         .HasForeignKey("PatientID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Doctor");
 
                     b.Navigation("Patient");
 
@@ -2051,11 +2268,17 @@ namespace Graduation_Project.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Graduation_Project.Models.Doctor", "Doctor")
+                        .WithMany()
+                        .HasForeignKey("DoctorID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Graduation_Project.Models.Patient", "Patient")
                         .WithMany()
                         .HasForeignKey("PatientID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Doctor");
 
                     b.Navigation("Patient");
 
@@ -2064,11 +2287,17 @@ namespace Graduation_Project.Migrations
 
             modelBuilder.Entity("Graduation_Project.Models.CommunityPost", b =>
                 {
+                    b.HasOne("Graduation_Project.Models.Doctor", "Doctor")
+                        .WithMany()
+                        .HasForeignKey("DoctorID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Graduation_Project.Models.Patient", "Patient")
                         .WithMany()
                         .HasForeignKey("PatientID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Doctor");
 
                     b.Navigation("Patient");
                 });
@@ -2344,6 +2573,17 @@ namespace Graduation_Project.Migrations
                     b.Navigation("Patient");
                 });
 
+            modelBuilder.Entity("Graduation_Project.Models.PatientNotification", b =>
+                {
+                    b.HasOne("Graduation_Project.Models.Patient", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Patient");
+                });
+
             modelBuilder.Entity("Graduation_Project.Models.Place", b =>
                 {
                     b.HasOne("Graduation_Project.Models.Patient", "Patient")
@@ -2542,6 +2782,11 @@ namespace Graduation_Project.Migrations
             modelBuilder.Entity("Graduation_Project.Models.Assistant", b =>
                 {
                     b.Navigation("AssistantDoctors");
+                });
+
+            modelBuilder.Entity("Graduation_Project.Models.AssistantLeaveRequest", b =>
+                {
+                    b.Navigation("Approvals");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.Clinic", b =>

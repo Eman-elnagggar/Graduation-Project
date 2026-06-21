@@ -1,4 +1,4 @@
-﻿using Graduation_Project.Data;
+using Graduation_Project.Data;
 using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
 using Microsoft.EntityFrameworkCore;
@@ -118,18 +118,45 @@ namespace Graduation_Project.Repository
                 .Where(s => !string.IsNullOrWhiteSpace(s))
                 .ToList();
 
-            var counts = _context.Appointments
-                .AsNoTracking()
-                .Where(a => a.ClinicID == clinicId
-                         && doctorIds.Contains(a.DoctorID)
-                         && a.Bookings.Any(b => b.IsActive)
-                         && a.Date.Date == date.Date
-                         && a.Bookings.Any(b => b.IsActive && normalizedStatuses.Contains(b.Status)))
-                .Select(a => a.Bookings.Where(b => b.IsActive).OrderByDescending(b => b.BookingID).FirstOrDefault())
-                .Where(b => b != null)
-                .GroupBy(b => b!.Status)
-                .Select(g => new { Status = g.Key, Count = g.Count() })
-                .ToDictionary(x => x.Status, x => x.Count);
+            // "Missed" is a virtual status: past-date, active booking (Confirmed/Modified), not checked in
+            var missedCount = 0;
+            var regularStatuses = normalizedStatuses.Where(s => !string.Equals(s, "Missed", StringComparison.OrdinalIgnoreCase)).ToList();
+
+            if (normalizedStatuses.Any(s => string.Equals(s, "Missed", StringComparison.OrdinalIgnoreCase)))
+            {
+                var missedStatuses = new[] { "Confirmed", "Modified" };
+                missedCount = _context.Appointments
+                    .AsNoTracking()
+                    .Where(a => a.ClinicID == clinicId
+                             && doctorIds.Contains(a.DoctorID)
+                             && a.Date.Date < DateTime.Today
+                             && a.Bookings.Any(b => b.IsActive && missedStatuses.Contains(b.Status) && !b.IsCheckedIn))
+                    .Count();
+            }
+
+            var counts = new Dictionary<string, int>();
+
+            if (regularStatuses.Any())
+            {
+                var dbCounts = _context.Appointments
+                    .AsNoTracking()
+                    .Where(a => a.ClinicID == clinicId
+                             && doctorIds.Contains(a.DoctorID)
+                             && a.Bookings.Any(b => b.IsActive)
+                             && a.Date.Date == date.Date
+                             && a.Bookings.Any(b => b.IsActive && regularStatuses.Contains(b.Status)))
+                    .Select(a => a.Bookings.Where(b => b.IsActive).OrderByDescending(b => b.BookingID).FirstOrDefault())
+                    .Where(b => b != null)
+                    .GroupBy(b => b!.Status)
+                    .Select(g => new { Status = g.Key, Count = g.Count() })
+                    .ToDictionary(x => x.Status, x => x.Count);
+
+                foreach (var kv in dbCounts)
+                    counts[kv.Key] = kv.Value;
+            }
+
+            if (normalizedStatuses.Any(s => string.Equals(s, "Missed", StringComparison.OrdinalIgnoreCase)))
+                counts["Missed"] = missedCount;
 
             foreach (var status in normalizedStatuses)
             {
@@ -142,6 +169,48 @@ namespace Graduation_Project.Repository
 
         public IEnumerable<Appointment> GetPagedByClinicDoctorsStatusAndDate(int clinicId, IEnumerable<int> doctorIds, string status, DateTime date, string? search, int page, int pageSize)
         {
+            var safePage = Math.Max(1, page);
+            var safePageSize = Math.Clamp(pageSize, 5, 100);
+
+            // "Missed" is a virtual status: past-date booked appointments (Confirmed/Modified) where patient never checked in
+            if (string.Equals(status, "Missed", StringComparison.OrdinalIgnoreCase))
+            {
+                var missedStatuses = new[] { "Confirmed", "Modified" };
+                var missedQuery = _context.Appointments
+                    .AsNoTracking()
+                    .Include(a => a.Patient).ThenInclude(p => p.User)
+                    .Include(a => a.Doctor).ThenInclude(d => d.User)
+                    .Include(a => a.Bookings)
+                    .Where(a => a.ClinicID == clinicId
+                             && doctorIds.Contains(a.DoctorID)
+                             && a.Date.Date < DateTime.Today
+                             && a.Bookings.Any(b => b.IsActive && missedStatuses.Contains(b.Status) && !b.IsCheckedIn));
+
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    var term = search.Trim();
+                    missedQuery = missedQuery.Where(a =>
+                        ((a.Patient != null && a.Patient.User != null) &&
+                            (((a.Patient.User.FirstName ?? "") + " " + (a.Patient.User.LastName ?? "")).Contains(term)
+                             || (a.Patient.User.PhoneNumber ?? "").Contains(term)))
+                        || ((a.Doctor != null && a.Doctor.User != null) &&
+                            (((a.Doctor.User.FirstName ?? "") + " " + (a.Doctor.User.LastName ?? "")).Contains(term))));
+                }
+
+                var missedItems = missedQuery
+                    .OrderByDescending(a => a.Date)
+                    .ThenBy(a => a.Time)
+                    .Skip((safePage - 1) * safePageSize)
+                    .Take(safePageSize)
+                    .AsSplitQuery()
+                    .ToList();
+
+                return HydrateMissingPatientsFromBooking(missedItems);
+            }
+
+            // "All" returns every appointment on the date regardless of booking status
+            var isAll = string.Equals(status, "All", StringComparison.OrdinalIgnoreCase);
+
             var query = _context.Appointments
                 .AsNoTracking()
                 .Include(a => a.Patient).ThenInclude(p => p.User)
@@ -149,7 +218,7 @@ namespace Graduation_Project.Repository
                 .Include(a => a.Bookings)
                 .Where(a => a.ClinicID == clinicId
                          && doctorIds.Contains(a.DoctorID)
-                         && a.Bookings.Any(b => b.IsActive && b.Status == status)
+                         && a.Bookings.Any(b => b.IsActive && (isAll || b.Status == status))
                          && a.Date.Date == date.Date);
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -163,9 +232,6 @@ namespace Graduation_Project.Repository
                         (((a.Doctor.User.FirstName ?? "") + " " + (a.Doctor.User.LastName ?? "")).Contains(term))));
             }
 
-            var safePage = Math.Max(1, page);
-            var safePageSize = Math.Clamp(pageSize, 5, 100);
-
             var items = query
                 .OrderBy(a => a.Time)
                 .Skip((safePage - 1) * safePageSize)
@@ -178,11 +244,39 @@ namespace Graduation_Project.Repository
 
         public int CountByClinicDoctorsStatusAndDate(int clinicId, IEnumerable<int> doctorIds, string status, DateTime date, string? search)
         {
+            // "Missed" is a virtual status: past-date booked appointments (Confirmed/Modified) where patient never checked in
+            if (string.Equals(status, "Missed", StringComparison.OrdinalIgnoreCase))
+            {
+                var missedStatuses = new[] { "Confirmed", "Modified" };
+                var missedQuery = _context.Appointments
+                    .AsNoTracking()
+                    .Where(a => a.ClinicID == clinicId
+                             && doctorIds.Contains(a.DoctorID)
+                             && a.Date.Date < DateTime.Today
+                             && a.Bookings.Any(b => b.IsActive && missedStatuses.Contains(b.Status) && !b.IsCheckedIn));
+
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    var term = search.Trim();
+                    missedQuery = missedQuery.Where(a =>
+                        ((a.Patient != null && a.Patient.User != null) &&
+                            (((a.Patient.User.FirstName ?? "") + " " + (a.Patient.User.LastName ?? "")).Contains(term)
+                             || (a.Patient.User.PhoneNumber ?? "").Contains(term)))
+                        || ((a.Doctor != null && a.Doctor.User != null) &&
+                            (((a.Doctor.User.FirstName ?? "") + " " + (a.Doctor.User.LastName ?? "")).Contains(term))));
+                }
+
+                return missedQuery.Count();
+            }
+
+            // "All" counts every appointment on the date regardless of booking status
+            var isAll = string.Equals(status, "All", StringComparison.OrdinalIgnoreCase);
+
             var query = _context.Appointments
                 .AsNoTracking()
                 .Where(a => a.ClinicID == clinicId
                          && doctorIds.Contains(a.DoctorID)
-                         && a.Bookings.Any(b => b.IsActive && b.Status == status)
+                         && a.Bookings.Any(b => b.IsActive && (isAll || b.Status == status))
                          && a.Date.Date == date.Date);
 
             if (!string.IsNullOrWhiteSpace(search))

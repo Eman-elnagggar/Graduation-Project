@@ -26,6 +26,7 @@ namespace Graduation_Project.Controllers
         private readonly IAlert _alertRepository;
         private readonly AlertService _alertService;
         private readonly IDoctorNotificationService _doctorNotificationService;
+        private readonly IPatientNotificationService _patientNotificationService;
         private readonly MedicationReminderService _medicationReminderService;
         private readonly AppDbContext _context;
         private readonly IChatMessageCrypto _chatMessageCrypto;
@@ -43,6 +44,7 @@ namespace Graduation_Project.Controllers
             IAlert alertRepository,
             AlertService alertService,
             IDoctorNotificationService doctorNotificationService,
+            IPatientNotificationService patientNotificationService,
             MedicationReminderService medicationReminderService,
             AppDbContext context,
             IChatMessageCrypto chatMessageCrypto,
@@ -59,6 +61,7 @@ namespace Graduation_Project.Controllers
             _alertRepository = alertRepository;
             _alertService = alertService;
             _doctorNotificationService = doctorNotificationService;
+            _patientNotificationService = patientNotificationService;
             _medicationReminderService = medicationReminderService;
             _context = context;
             _chatMessageCrypto = chatMessageCrypto;
@@ -114,6 +117,27 @@ namespace Graduation_Project.Controllers
             else if (patient.GestationalWeeks > 0)
             {
                 currentWeek = Math.Clamp(patient.GestationalWeeks, 0, 40);
+            }
+
+            // Pregnancy milestone notification — fires once per gestational week
+            // (the title is unique per week, so it is never duplicated).
+            if (hasActivePregnancy && currentWeek >= 1)
+            {
+                var milestoneTitle = $"You're in week {currentWeek}";
+                bool alreadySent = _context.PatientNotifications
+                    .Any(n => n.PatientID == id && n.Title == milestoneTitle);
+
+                if (!alreadySent)
+                {
+                    var trimester = currentWeek <= 13 ? "first"
+                                  : currentWeek <= 27 ? "second"
+                                  : "third";
+                    _patientNotificationService.Notify(id,
+                        milestoneTitle,
+                        $"You've reached week {currentWeek} of your pregnancy — your {trimester} trimester. Keep up with your care plan!",
+                        PatientNotificationTypes.Pregnancy,
+                        "/Patient/Index");
+                }
             }
 
             // Calculate due date (280 days = 40 weeks from start)
@@ -319,7 +343,7 @@ namespace Graduation_Project.Controllers
             return RedirectToLocalOrDashboard(id, returnUrl);
         }
 
-        public IActionResult Messages(int id)
+        public IActionResult Messages(int id, string? user = null)
         {
             var (patient, failure) = AuthorizePatientAccess(id);
             if (failure != null)
@@ -423,6 +447,72 @@ namespace Graduation_Project.Controllers
                 .ThenBy(c => c.ParticipantName)
                 .ToList();
 
+            // ── Patient-to-patient (community) conversations ──────────────
+            // Any other patient this user has exchanged messages with, plus an
+            // optionally requested peer (?user=) opened from the community.
+            var peerUserIds = _context.ChatMessages
+                .Where(m => m.SenderUserId == patientUserId || m.ReceiverUserId == patientUserId)
+                .Select(m => m.SenderUserId == patientUserId ? m.ReceiverUserId : m.SenderUserId)
+                .Distinct()
+                .ToList();
+
+            var peerPatients = _context.Patients
+                .Include(p => p.User)
+                .Where(p => p.UserID != null && p.UserID != patientUserId && peerUserIds.Contains(p.UserID))
+                .ToList();
+
+            if (!string.IsNullOrWhiteSpace(user)
+                && user != patientUserId
+                && peerPatients.All(p => p.UserID != user))
+            {
+                var requestedPeer = _context.Patients
+                    .Include(p => p.User)
+                    .FirstOrDefault(p => p.UserID == user);
+                if (requestedPeer != null)
+                    peerPatients.Add(requestedPeer);
+            }
+
+            if (peerPatients.Count > 0)
+            {
+                var peerUserIdList = peerPatients
+                    .Select(p => p.UserID!)
+                    .Where(uid => !string.IsNullOrWhiteSpace(uid))
+                    .Distinct()
+                    .ToList();
+
+                var peerMessages = _context.ChatMessages
+                    .Where(m => (m.SenderUserId == patientUserId && peerUserIdList.Contains(m.ReceiverUserId))
+                             || (m.ReceiverUserId == patientUserId && peerUserIdList.Contains(m.SenderUserId)))
+                    .OrderByDescending(m => m.SentAtUtc)
+                    .ToList();
+
+                var peerConversations = peerPatients
+                    .Where(p => !string.IsNullOrWhiteSpace(p.UserID))
+                    .GroupBy(p => p.UserID)
+                    .Select(g => g.First())
+                    .Select(p => new PatientConversationSummary
+                    {
+                        ParticipantId = p.PatientID,
+                        ParticipantType = "Patient",
+                        ReceiverUserId = p.UserID!,
+                        ParticipantName = p.User != null
+                            ? $"{p.User.FirstName} {p.User.LastName}".Trim()
+                            : "Community Member",
+                        UnreadCount = peerMessages.Count(m => m.SenderUserId == p.UserID && m.ReceiverUserId == patientUserId && !m.IsRead),
+                        LastMessageTime = peerMessages
+                            .Where(m => m.SenderUserId == p.UserID || m.ReceiverUserId == p.UserID)
+                            .Select(m => (DateTime?)m.SentAtUtc)
+                            .FirstOrDefault(),
+                        LastMessagePreview = peerMessages
+                            .Where(m => m.SenderUserId == p.UserID || m.ReceiverUserId == p.UserID)
+                            .Select(m => _chatMessageCrypto.Decrypt(m.Message))
+                            .FirstOrDefault() ?? "Start a conversation"
+                    })
+                    .ToList();
+
+                conversations.AddRange(peerConversations);
+            }
+
             var vm = new PatientMessagesViewModel
             {
                 Patient = patient,
@@ -506,7 +596,12 @@ namespace Graduation_Project.Controllers
                 .Distinct()
                 .ToList();
 
-            if (string.IsNullOrWhiteSpace(userId) || !linkedUserIds.Contains(userId))
+            // Allow conversations with linked care team OR any other patient (community DMs).
+            var isPeerPatient = !string.IsNullOrWhiteSpace(userId)
+                && userId != patient.UserID
+                && _context.Patients.Any(p => p.UserID == userId);
+
+            if (string.IsNullOrWhiteSpace(userId) || (!linkedUserIds.Contains(userId) && !isPeerPatient))
                 return Forbid();
 
             if (string.IsNullOrWhiteSpace(patient.UserID))

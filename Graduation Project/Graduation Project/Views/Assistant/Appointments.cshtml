@@ -18,6 +18,7 @@
 <span id="heroConfirmedCount" class="is-hidden"></span>
 <span id="heroModifiedCount"  class="is-hidden"></span>
 <span id="heroCancelledCount" class="is-hidden"></span>
+<span id="heroMissedCount"    class="is-hidden"></span>
 <span id="appointmentsHeroDate" class="is-hidden"></span>
 
 <div class="dash-v2">
@@ -77,6 +78,13 @@
             <div class="kpi-body">
                 <div class="kpi-value" id="statCancelled">--</div>
                 <div class="kpi-label">Cancelled</div>
+            </div>
+        </div>
+        <div class="kpi-card kpi-card--missed">
+            <div class="kpi-icon"><i class="fas fa-user-clock"></i></div>
+            <div class="kpi-body">
+                <div class="kpi-value" id="statMissed">--</div>
+                <div class="kpi-label">Missed</div>
             </div>
         </div>
     </div>
@@ -150,19 +158,14 @@
             </div>
         </div>
 
-        <!-- Column headers (matches .appt-row grid) -->
-        <div class="appt-list-header">
-            <div></div>
-            <div>Patient</div>
-            <div>Time</div>
-            <div class="appt-col-phone">Phone</div>
-            <div>Status</div>
-            <div></div>
-        </div>
-
         <!-- Segmented tab controls -->
         <div class="appt-tabs">
-            <button class="appt-tab tab-btn active" data-tab="Confirmed" onclick="switchTab('Confirmed')">
+            <button class="appt-tab tab-btn active" data-tab="All" onclick="switchTab('All')">
+                <i class="fas fa-layer-group"></i>
+                All
+                <span class="appt-tab-badge appt-tab-badge--all" id="allTabCount">–</span>
+            </button>
+            <button class="appt-tab tab-btn" data-tab="Confirmed" onclick="switchTab('Confirmed')">
                 <i class="fas fa-calendar-check"></i>
                 Confirmed
                 <span class="appt-tab-badge appt-tab-badge--success" id="confirmedTabCount">–</span>
@@ -177,23 +180,44 @@
                 Cancelled
                 <span class="appt-tab-badge appt-tab-badge--danger" id="cancelledTabCount">–</span>
             </button>
+            <button class="appt-tab tab-btn" data-tab="Missed" onclick="switchTab('Missed')">
+                <i class="fas fa-user-clock"></i>
+                Missed
+                <span class="appt-tab-badge appt-tab-badge--missed" id="missedTabCount">–</span>
+            </button>
+        </div>
+
+        <!-- Column headers (matches .appt-row grid) -->
+        <div class="appt-list-header">
+            <div></div>
+            <div>Patient</div>
+            <div>Time</div>
+            <div class="appt-col-phone">Phone</div>
+            <div>Status</div>
+            <div class="appt-col-actions">Actions</div>
         </div>
 
         <!-- Tab content panes -->
         <div class="appt-tab-body">
-            <div class="tab-content active" id="Confirmed-tab">
-                <div class="appt-list" id="ConfirmedAppointmentsList">
+            <div class="tab-content active" id="All-tab">
+                <div class="appt-list" id="AllAppointmentsList">
                     <div class="empty-state">
                         <i class="fas fa-spinner fa-spin"></i>
                         <p>Loading appointments…</p>
                     </div>
                 </div>
             </div>
+            <div class="tab-content is-hidden" id="Confirmed-tab">
+                <div class="appt-list" id="ConfirmedAppointmentsList"></div>
+            </div>
             <div class="tab-content is-hidden" id="Modified-tab">
                 <div class="appt-list" id="ModifiedAppointmentsList"></div>
             </div>
             <div class="tab-content is-hidden" id="Cancelled-tab">
                 <div class="appt-list" id="CancelledAppointmentsList"></div>
+            </div>
+            <div class="tab-content is-hidden" id="Missed-tab">
+                <div class="appt-list" id="MissedAppointmentsList"></div>
             </div>
             <div id="appointmentsPager" class="appointments-pager"></div>
         </div>

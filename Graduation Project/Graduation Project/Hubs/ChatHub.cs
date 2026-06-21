@@ -14,12 +14,20 @@ namespace Graduation_Project.Hubs
         private readonly AppDbContext _db;
         private readonly IChatMessageCrypto _chatMessageCrypto;
         private readonly IPushNotificationService _push;
+        private readonly IPatientNotificationService _patientNotifications;
+        private readonly IDoctorNotificationService _doctorNotifications;
+        private readonly ILogger<ChatHub> _logger;
 
-        public ChatHub(AppDbContext db, IChatMessageCrypto chatMessageCrypto, IPushNotificationService push)
+        public ChatHub(AppDbContext db, IChatMessageCrypto chatMessageCrypto,
+            IPushNotificationService push, IPatientNotificationService patientNotifications,
+            IDoctorNotificationService doctorNotifications, ILogger<ChatHub> logger)
         {
             _db = db;
             _chatMessageCrypto = chatMessageCrypto;
             _push = push;
+            _patientNotifications = patientNotifications;
+            _doctorNotifications = doctorNotifications;
+            _logger = logger;
         }
 
         public async Task SendMessage(string receiverId, string message)
@@ -50,7 +58,9 @@ namespace Graduation_Project.Hubs
             await Clients.User(receiverId).SendAsync("ReceiveMessage", senderId, text, chatMessage.SentAtUtc, (string?)null, (string?)null, (string?)null);
             await Clients.Caller.SendAsync("ReceiveMessage", senderId, text, chatMessage.SentAtUtc, (string?)null, (string?)null, (string?)null);
 
-            _ = SendMessagePushAsync(senderId, receiverId, text);
+            // Awaited (not fire-and-forget): the Hub's scoped DbContext is disposed
+            // when this method returns, so a detached task would persist nothing.
+            await SendMessagePushAsync(senderId, receiverId, text);
         }
 
         public async Task SendFileMessage(string receiverId, string text, string attachmentUrl, string attachmentType, string attachmentName)
@@ -83,7 +93,7 @@ namespace Graduation_Project.Hubs
             await Clients.Caller.SendAsync("ReceiveMessage", senderId, safeText, chatMessage.SentAtUtc, attachmentUrl, attachmentType, attachmentName);
 
             var notifBody = string.IsNullOrEmpty(safeText) ? "sent you a file" : safeText;
-            _ = SendMessagePushAsync(senderId, receiverId, notifBody);
+            await SendMessagePushAsync(senderId, receiverId, notifBody);
         }
 
         private async Task SendMessagePushAsync(string senderId, string receiverId, string text)
@@ -93,13 +103,43 @@ namespace Graduation_Project.Hubs
                 var sender = await _db.Users.FindAsync(senderId);
                 var senderName = BuildDisplayName(sender);
 
-                var isPatient = await _db.Patients.AnyAsync(p => p.UserID == receiverId);
+                var receiverPatient = await _db.Patients.FirstOrDefaultAsync(p => p.UserID == receiverId);
+                var isPatient = receiverPatient != null;
                 var url = isPatient ? "/Patient/Messages" : "/Doctor/Messages";
 
                 var preview = text.Length > 80 ? text[..80] + "…" : text;
-                await _push.SendToUserAsync(receiverId, $"New message from {senderName}", preview, url);
+                var title = $"New message from {senderName}";
+
+                // Persist a bell notification for the recipient (push is sent below, so these
+                // pass sendPush:false to avoid a duplicate push).
+                if (receiverPatient != null)
+                {
+                    _patientNotifications.Notify(receiverPatient.PatientID,
+                        title, preview, PatientNotificationTypes.Message, url, sendPush: false);
+                }
+                else
+                {
+                    var receiverDoctor = await _db.Doctors.FirstOrDefaultAsync(d => d.UserID == receiverId);
+                    if (receiverDoctor != null)
+                    {
+                        await _doctorNotifications.NotifyAsync(receiverDoctor.DoctorID,
+                            title, preview, PatientNotificationTypes.Message, url, sendPush: false);
+                    }
+                }
+
+                var subscriptionCount = await _db.UserPushSubscriptions.CountAsync(s => s.UserId == receiverId);
+                if (subscriptionCount == 0)
+                {
+                    _logger.LogWarning("Message push skipped: recipient {ReceiverId} has no push subscription " +
+                        "(they have not enabled notifications on a device).", receiverId);
+                }
+
+                await _push.SendToUserAsync(receiverId, title, preview, url);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to persist/send message notification to {ReceiverId}.", receiverId);
+            }
         }
 
         private static string BuildDisplayName(ApplicationUser? user)

@@ -95,6 +95,7 @@ namespace Graduation_Project
             builder.Services.AddScoped<UltrasoundImageStorage>();
             builder.Services.AddSingleton<IPushNotificationService, PushNotificationService>();
             builder.Services.AddScoped<IDoctorNotificationService, DoctorNotificationService>();
+            builder.Services.AddScoped<IPatientNotificationService, PatientNotificationService>();
 
 
 
@@ -215,6 +216,7 @@ END");
                 pattern: "{controller=Home}/{action=Index}/{id?}");
 
             app.MapHub<ChatHub>("/chatHub");
+            app.MapHub<MedicationHub>("/medicationHub");
 
             app.Run();
         }

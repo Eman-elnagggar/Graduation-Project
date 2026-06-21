@@ -78,8 +78,8 @@
                 <svg viewBox="0 0 36 36" aria-hidden="true">
                     <defs>
                         <linearGradient id="ppHeroGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="#fb7185" />
-                            <stop offset="100%" stop-color="#c084fc" />
+                            <stop offset="0%" stop-color="#1baebe" />
+                            <stop offset="100%" stop-color="#22c9db" />
                         </linearGradient>
                     </defs>
                     <circle class="pp-ring-bg" cx="18" cy="18" r="15.9155" />
@@ -1418,23 +1418,23 @@
            PATIENT PROFILE — Premium Healthcare SaaS (2026 redesign)
         ══════════════════════════════════════════════════════════ */
         :root {
-            --pp-primary: #fb7185;
-            --pp-primary-dk: #e11d48;
-            --pp-primary-lt: #fff1f3;
-            --pp-violet: #a78bfa;
-            --pp-ink: #3f3550;
+            --pp-primary: #1baebe;
+            --pp-primary-dk: #138fa0;
+            --pp-primary-lt: #f0fdfe;
+            --pp-violet: #22c9db;
+            --pp-ink: #1e293b;
             --pp-text: #4a4458;
-            --pp-muted: #6b6478;
-            --pp-faint: #9a93a8;
-            --pp-line: #f0e9ef;
+            --pp-muted: #4a5568;
+            --pp-faint: #8896ab;
+            --pp-line: #e4eaf2;
             --pp-bg: #fdf6f4;
             --pp-card: #ffffff;
             --pp-r-lg: 24px;
             --pp-r-md: 18px;
             --pp-r-sm: 12px;
-            --pp-sh-sm: 0 4px 16px rgba(120,80,110,.06);
-            --pp-sh-md: 0 10px 30px rgba(120,80,110,.1);
-            --pp-sh-hero: 0 12px 30px rgba(120,80,110,.12);
+            --pp-sh-sm: 0 4px 16px rgba(15, 23, 42,.06);
+            --pp-sh-md: 0 10px 30px rgba(15, 23, 42,.1);
+            --pp-sh-hero: 0 12px 30px rgba(15, 23, 42,.12);
         }
 
         .page-content { background: var(--pp-bg); }
@@ -1462,17 +1462,17 @@
             margin-bottom: 1.5rem;
             overflow: hidden;
             background:
-                radial-gradient(125% 150% at 0% 0%, #ffe4ea 0%, transparent 55%),
-                radial-gradient(130% 150% at 100% 100%, #f0e6ff 0%, transparent 55%),
-                linear-gradient(120deg, #ffeef1 0%, #fbe9f3 50%, #f3ebff 100%);
+                radial-gradient(125% 150% at 0% 0%, #e0f7fa 0%, transparent 55%),
+                radial-gradient(130% 150% at 100% 100%, #e0f7fa 0%, transparent 55%),
+                linear-gradient(120deg, #f0fdfe 0%, #f0fdfe 50%, #f0fdfe 100%);
             border: 1px solid rgba(255,255,255,.7);
             box-shadow: var(--pp-sh-hero);
         }
         .pp-hero-orbs { position: absolute; inset: 0; pointer-events: none; }
         .pp-orb { position: absolute; border-radius: 50%; filter: blur(10px); opacity: .55; }
-        .pp-orb-1 { width: 260px; height: 260px; top: -90px; right: -60px; background: radial-gradient(circle, rgba(192,132,252,.28), transparent 70%); }
-        .pp-orb-2 { width: 200px; height: 200px; bottom: -110px; left: 20%; background: radial-gradient(circle, rgba(251,113,133,.26), transparent 70%); }
-        .pp-orb-3 { width: 140px; height: 140px; top: 20%; left: -50px; background: radial-gradient(circle, rgba(244,114,182,.24), transparent 70%); }
+        .pp-orb-1 { width: 260px; height: 260px; top: -90px; right: -60px; background: radial-gradient(circle, rgba(34, 201, 219,.28), transparent 70%); }
+        .pp-orb-2 { width: 200px; height: 200px; bottom: -110px; left: 20%; background: radial-gradient(circle, rgba(27, 174, 190,.26), transparent 70%); }
+        .pp-orb-3 { width: 140px; height: 140px; top: 20%; left: -50px; background: radial-gradient(circle, rgba(34, 201, 219,.24), transparent 70%); }
 
         .pp-hero-glass {
             position: relative;
@@ -1491,7 +1491,7 @@
             width: 92px; height: 92px; border-radius: 24px;
             object-fit: cover;
             border: 3px solid rgba(255,255,255,.85);
-            box-shadow: 0 14px 30px rgba(120,80,110,.25);
+            box-shadow: 0 14px 30px rgba(15, 23, 42,.25);
         }
         .pp-avatar-verify {
             position: absolute; right: -6px; bottom: -6px;
@@ -1522,19 +1522,19 @@
             padding: .38rem .85rem; border-radius: 30px;
             font-size: .76rem; font-weight: 700;
             border: 1px solid rgba(255,255,255,.9); color: var(--pp-muted); background: rgba(255,255,255,.7);
-            box-shadow: 0 3px 10px rgba(120,80,110,.05);
+            box-shadow: 0 3px 10px rgba(15, 23, 42,.05);
         }
         .pp-badge-active { background: #ecfdf5; color: #059669; border-color: #b8efd4; }
         .pp-badge-idle   { background: rgba(255,255,255,.7); color: var(--pp-muted); }
         .pp-badge-week   { background: #eff6ff; color: #2563eb; border-color: #bcd8ff; }
-        .pp-badge-trim   { background: #f4f0ff; color: #7c3aed; border-color: #e6dcff; }
+        .pp-badge-trim   { background: #f0fdfe; color: #138fa0; border-color: #e0f7fa; }
         .pp-badge-due    { background: #fffaf0; color: #d97706; border-color: #fde68a; }
 
         /* hero ring */
         .pp-hero-progress { flex-shrink: 0; }
         .pp-hero-ring { position: relative; width: 128px; height: 128px; }
         .pp-hero-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-        .pp-hero-ring .pp-ring-bg { fill: none; stroke: rgba(120,80,110,.14); stroke-width: 2.6; }
+        .pp-hero-ring .pp-ring-bg { fill: none; stroke: rgba(15, 23, 42,.14); stroke-width: 2.6; }
         .pp-hero-ring .pp-ring-fg { fill: none; stroke-width: 2.6; stroke-linecap: round; transition: stroke-dasharray .8s cubic-bezier(.4,0,.2,1); }
         .pp-hero-ring-center {
             position: absolute; inset: 0; display: flex; flex-direction: column;
@@ -1581,7 +1581,7 @@
         .pp-stat {
             display: flex; align-items: center; gap: .9rem;
             padding: .7rem; border-radius: var(--pp-r-sm);
-            background: #fffaf7; border: 1px solid var(--pp-line);
+            background: #f3f6fb; border: 1px solid var(--pp-line);
             transition: transform .18s, box-shadow .18s;
         }
         .pp-stat:hover { transform: translateY(-2px); box-shadow: var(--pp-sh-sm); }
@@ -1594,16 +1594,16 @@
             position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
             width: 1.15rem; height: 1.15rem; color: var(--pp-muted);
         }
-        .pp-ring-teal   .pp-ring-fg { stroke: #fb7185; } .pp-ring-teal svg.lucide { color: #fb7185; }
+        .pp-ring-teal   .pp-ring-fg { stroke: #1baebe; } .pp-ring-teal svg.lucide { color: #1baebe; }
         .pp-ring-amber  .pp-ring-fg { stroke: #f59e0b; } .pp-ring-amber svg.lucide { color: #d97706; }
-        .pp-ring-purple .pp-ring-fg { stroke: #a78bfa; } .pp-ring-purple svg.lucide { color: #7c3aed; }
+        .pp-ring-purple .pp-ring-fg { stroke: #22c9db; } .pp-ring-purple svg.lucide { color: #138fa0; }
 
         .pp-stat-icon {
             width: 50px; height: 50px; border-radius: 14px; flex-shrink: 0;
             display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: #fff;
         }
         .pp-ic-green { background: linear-gradient(135deg, #34d399, #059669); }
-        .pp-ic-pink  { background: linear-gradient(135deg, #f472b6, #db2777); }
+        .pp-ic-pink  { background: linear-gradient(135deg, #22c9db, #138fa0); }
 
         .pp-stat-meta { display: flex; flex-direction: column; }
         .pp-stat-num { font-size: 1.5rem; font-weight: 800; color: var(--pp-ink); line-height: 1; }
@@ -1659,11 +1659,11 @@
             width: 44px; height: 44px; border-radius: 13px; flex-shrink: 0;
             display: flex; align-items: center; justify-content: center; font-size: 1.05rem; color: #fff;
         }
-        .pp-grad-teal   { background: linear-gradient(135deg, #fb7185, #c084fc); }
+        .pp-grad-teal   { background: linear-gradient(135deg, #1baebe, #22c9db); }
         .pp-grad-indigo { background: linear-gradient(135deg, #818cf8, #4f46e5); }
-        .pp-grad-purple { background: linear-gradient(135deg, #c084fc, #7c3aed); }
-        .pp-grad-pink   { background: linear-gradient(135deg, #f472b6, #db2777); }
-        .pp-grad-red    { background: linear-gradient(135deg, #fb7185, #e11d48); }
+        .pp-grad-purple { background: linear-gradient(135deg, #22c9db, #138fa0); }
+        .pp-grad-pink   { background: linear-gradient(135deg, #22c9db, #138fa0); }
+        .pp-grad-red    { background: linear-gradient(135deg, #1baebe, #138fa0); }
         .pp-grad-orange { background: linear-gradient(135deg, #fbbf24, #d97706); }
         .pp-grad-green  { background: linear-gradient(135deg, #34d399, #059669); }
         .pp-grad-danger { background: linear-gradient(135deg, #f87171, #b91c1c); }
@@ -1689,11 +1689,11 @@
         .pp-btn-primary {
             display: inline-flex; align-items: center; gap: .45rem;
             padding: .65rem 1.35rem; border-radius: 12px; border: none;
-            background: linear-gradient(120deg, var(--pp-primary), #c084fc);
+            background: linear-gradient(120deg, var(--pp-primary), #22c9db);
             color: #fff; font-size: .88rem; font-weight: 700; cursor: pointer; font-family: inherit;
-            box-shadow: 0 8px 18px rgba(192,132,252,.35); transition: all .18s;
+            box-shadow: 0 8px 18px rgba(34, 201, 219,.35); transition: all .18s;
         }
-        .pp-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 12px 26px rgba(192,132,252,.45); }
+        .pp-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 12px 26px rgba(34, 201, 219,.45); }
         .pp-btn-primary:disabled { opacity: .7; cursor: progress; transform: none; }
 
         .pp-btn-ghost {
@@ -1741,8 +1741,8 @@
             color: var(--pp-text); background: #fff; outline: none;
             transition: border-color .18s, box-shadow .18s, background .18s;
         }
-        .pf-input:focus { border-color: var(--pp-primary); box-shadow: 0 0 0 4px rgba(167,139,250,.18); }
-        .pf-input:disabled { background: #fffaf7; color: var(--pp-text); opacity: 1; cursor: default; }
+        .pf-input:focus { border-color: var(--pp-primary); box-shadow: 0 0 0 4px rgba(34, 201, 219,.18); }
+        .pf-input:disabled { background: #f3f6fb; color: var(--pp-text); opacity: 1; cursor: default; }
         .pp-calc-input { font-weight: 700; }
 
         .pp-input-icon { position: relative; display: flex; align-items: center; }
@@ -1761,7 +1761,7 @@
         .pp-readout-row { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.25rem; }
         .pp-readout {
             flex: 1; min-width: 150px; display: flex; align-items: center; gap: .7rem;
-            padding: .8rem .9rem; border-radius: var(--pp-r-sm); background: #fffaf7; border: 1px solid var(--pp-line);
+            padding: .8rem .9rem; border-radius: var(--pp-r-sm); background: #f3f6fb; border: 1px solid var(--pp-line);
         }
         .pp-readout > i { color: var(--pp-primary); font-size: 1.05rem; }
         .pp-readout span { display: block; font-size: .72rem; color: var(--pp-muted); }
@@ -1774,7 +1774,7 @@
             display: flex; border: 1.5px solid var(--pp-line); border-radius: var(--pp-r-sm);
             overflow: hidden; background: #fff; transition: border-color .18s, box-shadow .18s;
         }
-        .pf-input-unit:focus-within { border-color: var(--pp-primary); box-shadow: 0 0 0 4px rgba(167,139,250,.18); }
+        .pf-input-unit:focus-within { border-color: var(--pp-primary); box-shadow: 0 0 0 4px rgba(34, 201, 219,.18); }
         .pf-input-unit .pf-input { border: none; box-shadow: none; }
         .pf-unit-badge {
             padding: .5rem .85rem; font-size: .74rem; font-weight: 700; background: #f1f5f9;
@@ -1977,11 +1977,11 @@
 
         .pp-habit-row {
             display: flex; align-items: flex-start; gap: 1rem; padding: 1.1rem;
-            border: 1px solid var(--pp-line); border-radius: var(--pp-r-sm); background: #fffaf7;
+            border: 1px solid var(--pp-line); border-radius: var(--pp-r-sm); background: #f3f6fb;
         }
         .pp-habit-icon { width: 46px; height: 46px; border-radius: 13px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: #fff; }
         .pp-habit-smoke { background: linear-gradient(135deg, #fbbf24, #d97706); }
-        .pp-habit-alcohol { background: linear-gradient(135deg, #a78bfa, #6d28d9); }
+        .pp-habit-alcohol { background: linear-gradient(135deg, #22c9db, #138fa0); }
         .pp-habit-body { flex: 1; }
         .pp-habit-body h4 { margin: 0 0 .2rem; font-size: .92rem; font-weight: 800; color: var(--pp-ink); }
         .pp-habit-body p { margin: 0 0 .7rem; font-size: .82rem; color: var(--pp-muted); }
@@ -1997,12 +1997,12 @@
         .pp-med-list { display: flex; flex-direction: column; gap: .75rem; }
         .pf-med-row {
             display: flex; align-items: flex-start; gap: 1rem; padding: 1rem 1.1rem;
-            background: #fffaf7; border: 1px solid var(--pp-line); border-radius: var(--pp-r-sm); transition: box-shadow .18s, transform .18s;
+            background: #f3f6fb; border: 1px solid var(--pp-line); border-radius: var(--pp-r-sm); transition: box-shadow .18s, transform .18s;
         }
         .pf-med-row:hover { box-shadow: var(--pp-sh-sm); transform: translateY(-1px); }
         .pf-med-pill-icon {
             width: 44px; height: 44px; border-radius: 13px; flex-shrink: 0;
-            background: linear-gradient(135deg, #fb7185, #c084fc);
+            background: linear-gradient(135deg, #1baebe, #22c9db);
             display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.05rem;
         }
         .pf-med-details { flex: 1; }
@@ -2011,7 +2011,7 @@
         .pf-med-chip { display: inline-flex; align-items: center; gap: .3rem; padding: .25rem .7rem; border-radius: 30px; font-size: .74rem; font-weight: 600; }
         .pf-med-chip i { width: .85rem; height: .85rem; }
         .pf-chip-reason { background: #eff6ff; color: #1d4ed8; }
-        .pf-chip-dose   { background: #fdf2f8; color: #be185d; }
+        .pf-chip-dose   { background: #f0fdfe; color: #138fa0; }
         .pf-chip-dur    { background: #f0fdf4; color: #15803d; }
         .pf-med-remove {
             background: #fff; border: 1.5px solid #fecaca; color: #ef4444; border-radius: 10px;
@@ -2024,7 +2024,7 @@
             border-radius: 12px; border: 1.5px dashed var(--pp-primary); background: var(--pp-primary-lt);
             color: var(--pp-primary-dk); font-size: .85rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: all .18s; width: 100%; justify-content: center;
         }
-        .pp-add-btn:hover { background: #ffe0e6; }
+        .pp-add-btn:hover { background: #e0f7fa; }
 
         /* ── EMPTY STATE ───────────────────────────────────── */
         .pp-empty { text-align: center; padding: 2.5rem 1rem; }
@@ -2040,7 +2040,7 @@
         .pp-tips { display: flex; flex-direction: column; gap: .75rem; }
         .pp-note {
             display: flex; gap: .9rem; align-items: flex-start; padding: 1rem 1.1rem;
-            border-radius: var(--pp-r-sm); background: #fffaf7; border: 1px solid var(--pp-line);
+            border-radius: var(--pp-r-sm); background: #f3f6fb; border: 1px solid var(--pp-line);
         }
         .pp-note > svg.lucide { width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; padding: .55rem; color: #fff; box-sizing: border-box; }
         .pp-note h4 { margin: 0 0 .2rem; font-size: .88rem; font-weight: 800; color: var(--pp-ink); }
@@ -2055,7 +2055,7 @@
             display: flex; border: 1.5px solid var(--pp-line); border-radius: var(--pp-r-sm);
             overflow: hidden; background: #fff; transition: border-color .18s, box-shadow .18s;
         }
-        .pf-pw-wrap:focus-within { border-color: var(--pp-primary); box-shadow: 0 0 0 4px rgba(167,139,250,.18); }
+        .pf-pw-wrap:focus-within { border-color: var(--pp-primary); box-shadow: 0 0 0 4px rgba(34, 201, 219,.18); }
         .pf-pw-wrap .pf-input { border: none; }
         .pf-pw-eye { background: transparent; border: none; cursor: pointer; padding: 0 .9rem; color: var(--pp-faint); transition: color .18s; }
         .pf-pw-eye:hover { color: var(--pp-primary); }
@@ -2063,7 +2063,7 @@
         .pf-pw-track { height: 6px; background: #e9eef4; border-radius: 4px; overflow: hidden; margin-bottom: .35rem; }
         .pf-pw-fill { height: 100%; border-radius: 4px; transition: width .3s, background .3s; }
         .pf-pw-label { font-size: .72rem; color: var(--pp-muted); }
-        .pf-pw-reqs { background: #fffaf7; border: 1px solid var(--pp-line); border-radius: var(--pp-r-sm); padding: .9rem 1.1rem; }
+        .pf-pw-reqs { background: #f3f6fb; border: 1px solid var(--pp-line); border-radius: var(--pp-r-sm); padding: .9rem 1.1rem; }
         .pf-pw-reqs h4 { margin: 0 0 .55rem; font-size: .82rem; font-weight: 800; color: var(--pp-ink); }
         .pf-pw-reqs ul { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: .35rem; }
         @@media (max-width: 640px) { .pf-pw-reqs ul { grid-template-columns: 1fr; } }
@@ -2075,7 +2075,7 @@
         .pp-settings { display: flex; flex-direction: column; gap: .6rem; }
         .pp-setting {
             display: flex; justify-content: space-between; align-items: center; gap: 1rem;
-            padding: .95rem 1.1rem; border-radius: var(--pp-r-sm); background: #fffaf7; border: 1px solid var(--pp-line);
+            padding: .95rem 1.1rem; border-radius: var(--pp-r-sm); background: #f3f6fb; border: 1px solid var(--pp-line);
         }
         .pp-setting h4 { margin: 0 0 .2rem; font-size: .88rem; font-weight: 800; color: var(--pp-ink); }
         .pp-setting p { margin: 0; font-size: .78rem; color: var(--pp-muted); }
@@ -2117,7 +2117,7 @@
         .pp-modal-body { padding: 1.6rem 1.7rem; }
         .pp-modal-foot {
             display: flex; gap: .75rem; justify-content: flex-end;
-            padding: 1.1rem 1.7rem; border-top: 1px solid var(--pp-line); background: #fffaf7;
+            padding: 1.1rem 1.7rem; border-top: 1px solid var(--pp-line); background: #f3f6fb;
         }
 
         /* ── TOAST (keep pf- hooks) ────────────────────────── */

@@ -8,20 +8,17 @@ namespace Graduation_Project.Services
     public class MedicationReminderService
     {
         private readonly AppDbContext _context;
-        private readonly IAlert _alertRepository;
         private readonly IMedicationLog _logRepository;
-        private readonly IPushNotificationService _push;
+        private readonly IPatientNotificationService _notifications;
 
         public MedicationReminderService(
             AppDbContext context,
-            IAlert alertRepository,
             IMedicationLog logRepository,
-            IPushNotificationService push)
+            IPatientNotificationService notifications)
         {
             _context = context;
-            _alertRepository = alertRepository;
             _logRepository = logRepository;
-            _push = push;
+            _notifications = notifications;
         }
 
         public List<MedicationDueSlot> GetDueSlots(int patientId, DateTime date)
@@ -97,35 +94,10 @@ namespace Graduation_Project.Services
                     var message = $"It's time to take {slot.MedicationName} ({slot.Dosage}).";
                     var title = "Medication Reminder";
 
-                    var existingToday = _alertRepository
-                        .GetByPatientId(patientId)
-                        .Any(a => a.DateCreated.Date == day
-                                  && a.Title == title
-                                  && a.Message == message);
-
-                    if (existingToday)
-                        continue;
-
-                    _alertRepository.Add(new Alert
-                    {
-                        PatientID = patientId,
-                        Title = title,
-                        Message = message,
-                        AlertType = AlertTypes.Info,
-                        DateCreated = DateTime.Now,
-                        IsRead = false
-                    });
-
-                    var patientUserId = _context.Patients
-                        .Where(p => p.PatientID == patientId)
-                        .Select(p => p.UserID)
-                        .FirstOrDefault();
-
-                    if (!string.IsNullOrEmpty(patientUserId))
-                        _ = _push.SendToUserAsync(patientUserId, title, message, "/Patient/Medications");
+                    // Persists (with same-day dedupe) and fires web-push.
+                    _notifications.Notify(patientId, title, message,
+                        PatientNotificationTypes.Medication, "/Patient/Medications", dedupePerDay: true);
                 }
-
-                _alertRepository.Save();
             }
         }
     }
