@@ -12,6 +12,7 @@ def run_ocr(image_path,test_name):
     print("Loading...")
     ocr_object=ocr.OCR_test(image_path)
     text, confidence=ocr_object.robust_ocr()
+    print(text)
     dict_1={"test_name":test_name,"confidence":confidence}
     parameter_object=ocr.test_parameters(test_name)
     parameters=parameter_object.get_test_parameters()

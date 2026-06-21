@@ -3,10 +3,16 @@ import os
 from doctr.models import ocr_predictor
 from doctr.io import DocumentFile
 
+ocr_model = ocr_predictor(
+    det_arch='db_resnet50',
+    reco_arch='crnn_vgg16_bn',
+    pretrained=True
+)
+
 class product_ocr:
     def __init__(self,image_path):
         self.__image_path=image_path
-        self.__model=ocr_predictor(det_arch='db_resnet50', reco_arch='crnn_vgg16_bn', pretrained=True)
+        self.__model=ocr_model
 
     def __preprocess_image(self):
         gray=cv2.imread(self.__image_path, cv2.IMREAD_GRAYSCALE)

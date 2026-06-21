@@ -13,7 +13,7 @@ def run_ocr(request_state,request_data):
 
       ocr_object=model.product_ocr(request_data)
       text=ocr_object.robust_ocr()
-      # print(text)
+    #   print(text)
     elif request_state=='text':
         text=request_data
 
