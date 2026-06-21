@@ -99,6 +99,7 @@ class diagnose:
             urinalysis = next((item for item in self.__data["results"] if item["test_name"] == "Urinalysis"), None)
             protien_value= urinalysis.get("Protein", 0) if urinalysis else 0
             protien_value=self.__preprocess_object.map_protein_to_ordinal(protien_value)
+            print("protein value",protien_value)
             GDM_data["proteinuria"] =protien_value
             Risk_data["proteinuria"] = protien_value
         else:
@@ -153,6 +154,7 @@ class diagnose:
             cbc_result,cbc_alert=self.__preprocess_object.cbc_preprocessing_after(cbc_model_result,result)
             # result.update(cbc_result)
             # self.__alerts_results.append(cbc_alert)
+            print("CBC Model", cbc_model_result)
             return cbc_result,cbc_alert
         
         elif result['test_name']=='HbA1c (Sugar Test)':
@@ -197,8 +199,10 @@ class diagnose:
 
         Models_diagnose=self.__data_to_send(test_names)
         if Models_diagnose[0]:
+            print("="*50)
+            print("GDM Data to send:", Models_diagnose[0])
             GDM_result=self.__call_GDM_model(Models_diagnose[0])
-            print(GDM_result)
+            print("GDM", GDM_result)
             self.__alerts_results.append("GDM "+GDM_result['recommendation'])
             Final_GDM_Result={
                 "prediction_result": GDM_result['prediction_result'],

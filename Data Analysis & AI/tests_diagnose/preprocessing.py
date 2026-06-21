@@ -52,6 +52,7 @@ class Preprocessing:
         
     def cbc_preprocessing_after(self,cbc_result,cbc_data):
         diagnoses=cbc_result["detailed_analysis"]
+        
         # if not diagnoses:
         #     return []
         

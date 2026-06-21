@@ -11,7 +11,7 @@
         "rbs_avg": 145,
         "avg_systolic": 125,
         "avg_diastolic": 80,
-        "parity": 1,
+        "parity":1,
         "dg_state": "Stable",
         "risk_state": "Low"
     },
@@ -79,4 +79,4 @@
             "HCV": "non-reactive"
             }
     ]
-}
+} 
