@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+python-multipart
+joblib
+requests
+pandas
+scikit-learn
+numpy
+flask
+python-dotenv
+langchain-groq
+langchain-core
