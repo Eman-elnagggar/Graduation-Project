@@ -7,6 +7,14 @@
     ViewData["PageSubtitle"] = "Create, edit and delete clinics";
 }
 
+@section Styles {
+<style>
+.clinic-link { text-decoration:none; display:block; }
+.clinic-link .user-full-name { color:var(--text-primary); transition:color 0.15s; }
+.clinic-link:hover .user-full-name { color:var(--admin-primary); }
+</style>
+}
+
 <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
   <a href="/Admin/AddClinic"
      style="display:inline-flex;align-items:center;gap:6px;padding:9px 18px;background:var(--admin-primary);color:white;border-radius:8px;font-size:0.85rem;font-weight:600;text-decoration:none;">
@@ -67,14 +75,16 @@
           <tr>
             <td style="color:var(--text-muted);font-size:0.82rem;">@idx</td>
             <td>
-              <div class="user-name-cell">
-                <div class="user-avatar" style="background:rgba(124,58,237,0.12);color:#7c3aed;font-size:1rem;">
-                  <i class="fas fa-hospital"></i>
+              <a href="/Admin/ClinicDetail/@clinic.ClinicID" class="clinic-link">
+                <div class="user-name-cell">
+                  <div class="user-avatar" style="background:rgba(124,58,237,0.12);color:#7c3aed;font-size:1rem;">
+                    <i class="fas fa-hospital"></i>
+                  </div>
+                  <div>
+                    <div class="user-full-name">@clinic.Name</div>
+                  </div>
                 </div>
-                <div>
-                  <div class="user-full-name">@clinic.Name</div>
-                </div>
-              </div>
+              </a>
             </td>
             <td style="color:var(--text-secondary);font-size:0.83rem;">
               <i class="fas fa-map-marker-alt" style="color:#7c3aed;margin-right:4px;"></i>@clinic.Location
@@ -84,6 +94,9 @@
             <td style="text-align:center;font-weight:600;color:var(--text-primary);">@clinic.AppointmentCount</td>
             <td>
               <div class="action-btns" style="justify-content:center;">
+                <a href="/Admin/ClinicDetail/@clinic.ClinicID" class="btn-action view" title="Manage clinic" style="text-decoration:none;">
+                  <i class="fas fa-eye"></i>
+                </a>
                 <a href="/Admin/EditClinic/@clinic.ClinicID" class="btn-action activate" title="Edit" style="text-decoration:none;">
                   <i class="fas fa-edit"></i>
                 </a>

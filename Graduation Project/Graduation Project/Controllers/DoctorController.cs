@@ -25,6 +25,7 @@ namespace Graduation_Project.Controllers
         private readonly IDoctorNotificationService _doctorNotificationService;
         private readonly IPatientNotificationService _patientNotificationService;
         private readonly IPushNotificationService _push;
+        private readonly IAdminNotificationService _adminNotificationService;
 
         public DoctorController(
             IAppointment appointmentRepository,
@@ -37,7 +38,8 @@ namespace Graduation_Project.Controllers
             IWebHostEnvironment env,
             IDoctorNotificationService doctorNotificationService,
             IPatientNotificationService patientNotificationService,
-            IPushNotificationService push)
+            IPushNotificationService push,
+            IAdminNotificationService adminNotificationService)
         {
             _appointmentRepository = appointmentRepository;
             _patientDoctorRepository = patientDoctorRepository;
@@ -50,6 +52,7 @@ namespace Graduation_Project.Controllers
             _doctorNotificationService = doctorNotificationService;
             _patientNotificationService = patientNotificationService;
             _push = push;
+            _adminNotificationService = adminNotificationService;
         }
 
         [HttpGet]
@@ -1570,7 +1573,7 @@ namespace Graduation_Project.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult CreateClinic(int doctorId, string clinicName, string clinicLocation)
+        public async Task<IActionResult> CreateClinic(int doctorId, string clinicName, string clinicLocation)
         {
             var accessResult = TryResolveDoctor(doctorId, out var doctor);
             if (accessResult != null)
@@ -1600,6 +1603,14 @@ namespace Graduation_Project.Controllers
 
                 _context.Clinics.Add(clinic);
                 _context.SaveChanges();
+
+                var ownerName = $"Dr. {doctor!.User?.FirstName} {doctor.User?.LastName}".Trim();
+                await _adminNotificationService.NotifyAsync(
+                    "New clinic created",
+                    $"{clinic.Name} ({clinic.Location}) was created by {ownerName}.",
+                    "clinic_created",
+                    $"/Admin/ClinicDetail/{clinic.ClinicID}",
+                    severity: "info");
             }
 
             var alreadyLinked = _context.ClinicDoctors.Any(cd =>

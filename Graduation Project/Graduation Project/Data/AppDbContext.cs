@@ -61,6 +61,7 @@ namespace Graduation_Project.Data
         public DbSet<UserPushSubscription> UserPushSubscriptions { get; set; }
         public DbSet<DoctorNotification> DoctorNotifications { get; set; }
         public DbSet<PatientNotification> PatientNotifications { get; set; }
+        public DbSet<AdminNotification> AdminNotifications { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

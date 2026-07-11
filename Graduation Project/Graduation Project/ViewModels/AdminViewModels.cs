@@ -19,17 +19,9 @@ namespace Graduation_Project.ViewModels
         public List<int> MonthlyUserGrowth { get; set; } = new();
         public List<string> MonthLabels { get; set; } = new();
 
-        public List<AdminAlertItem> RecentAlerts { get; set; } = new();
+        public List<AdminNotification> RecentNotifications { get; set; } = new();
+        public int UnreadNotifications { get; set; }
         public List<AdminActivityLog> RecentActivity { get; set; } = new();
-    }
-
-    public class AdminAlertItem
-    {
-        public string Title { get; set; } = "";
-        public string Message { get; set; } = "";
-        public string AlertType { get; set; } = "";
-        public DateTime DateCreated { get; set; }
-        public string PatientName { get; set; } = "";
     }
 
     public class AdminActivityLog
@@ -133,6 +125,81 @@ namespace Graduation_Project.ViewModels
         public string Location { get; set; } = "";
 
         public bool IsEdit => ClinicID > 0;
+    }
+
+    public class AdminClinicDetailViewModel
+    {
+        public int ClinicID { get; set; }
+        public string Name { get; set; } = "";
+        public string Location { get; set; } = "";
+        public int? OwnerDoctorID { get; set; }
+        public string OwnerName { get; set; } = "";
+
+        public int TotalDoctors { get; set; }
+        public int TotalAssistants { get; set; }
+        public int TotalPatients { get; set; }
+        public int TotalAppointments { get; set; }
+        public int BookedAppointments { get; set; }
+        public int UpcomingAppointments { get; set; }
+
+        public List<AdminClinicDoctorRow> Doctors { get; set; } = new();
+        public List<AdminClinicAssistantRow> Assistants { get; set; } = new();
+        public List<AdminClinicPatientRow> Patients { get; set; } = new();
+        public List<AdminClinicAppointmentRow> RecentAppointments { get; set; } = new();
+
+        // Options for the "assign" pickers
+        public List<AdminClinicPickerOption> AvailableDoctors { get; set; } = new();
+        public List<AdminClinicPickerOption> AvailableAssistants { get; set; } = new();
+    }
+
+    public class AdminClinicDoctorRow
+    {
+        public int DoctorId { get; set; }
+        public string FullName { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Specialization { get; set; } = "";
+        public string VerificationStatus { get; set; } = "";
+        public bool IsBanned { get; set; }
+        public bool IsOwner { get; set; }
+        public int AppointmentCount { get; set; }
+        public int PatientCount { get; set; }
+    }
+
+    public class AdminClinicAssistantRow
+    {
+        public int AssistantId { get; set; }
+        public string FullName { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string PhoneNumber { get; set; } = "";
+        public bool IsBanned { get; set; }
+        public List<string> DoctorNames { get; set; } = new();
+    }
+
+    public class AdminClinicPatientRow
+    {
+        public int PatientId { get; set; }
+        public string FullName { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string DoctorName { get; set; } = "";
+        public int VisitCount { get; set; }
+        public DateTime LastVisit { get; set; }
+    }
+
+    public class AdminClinicAppointmentRow
+    {
+        public int AppointmentId { get; set; }
+        public string DoctorName { get; set; } = "";
+        public string PatientName { get; set; } = "";
+        public DateTime Date { get; set; }
+        public TimeSpan Time { get; set; }
+        public bool IsBooked { get; set; }
+    }
+
+    public class AdminClinicPickerOption
+    {
+        public int Id { get; set; }
+        public string Label { get; set; } = "";
+        public string SubLabel { get; set; } = "";
     }
 
     // ─── Analytics ────────────────────────────────────────────────────────────

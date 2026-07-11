@@ -136,31 +136,45 @@
                 <div class="card-header-left">
                     <div class="card-ico amber"><i class="fas fa-bell"></i></div>
                     <div>
-                        <div class="card-title">Recent System Alerts</div>
-                        <div class="card-sub">Latest alerts across all patients</div>
+                        <div class="card-title">
+                            Notifications
+                            @if (Model.UnreadNotifications > 0)
+                            {
+                                <span class="notif-badge">@Model.UnreadNotifications new</span>
+                            }
+                        </div>
+                        <div class="card-sub">Platform events that need your attention</div>
                     </div>
                 </div>
+                <a href="/Admin/Notifications" class="card-link">View all</a>
             </div>
-            @if (Model.RecentAlerts.Any())
+            @if (Model.RecentNotifications.Any())
             {
-                @foreach (var alert in Model.RecentAlerts)
+                @foreach (var n in Model.RecentNotifications)
                 {
-                    var t = (alert.AlertType ?? "info").ToLowerInvariant();
+                    var t = (n.Severity ?? "info").ToLowerInvariant();
                     var iconClass = t == "danger" ? "fa-exclamation-circle" : t == "warning" ? "fa-exclamation-triangle" : t == "success" ? "fa-check-circle" : "fa-info-circle";
                     var colorClass = t == "danger" ? "danger" : t == "warning" ? "warning" : t == "success" ? "success" : "info";
-                    <div class="admin-alert-item">
+                    <div class="admin-alert-item @(n.IsRead ? "" : "unread")">
                         <div class="alert-ico-wrap @colorClass"><i class="fas @iconClass"></i></div>
                         <div class="alert-body">
-                            <div class="alert-body-title">@alert.Title</div>
-                            <div class="alert-body-meta">@alert.Message</div>
-                            <div class="alert-patient"><i class="fas fa-user"></i> @alert.PatientName &nbsp;·&nbsp; <i class="fas fa-clock"></i> @alert.DateCreated.ToString("g")</div>
+                            <div class="alert-body-title">@n.Title</div>
+                            <div class="alert-body-meta">@n.Message</div>
+                            <div class="alert-patient">
+                                <i class="fas fa-clock"></i> @n.DateCreated.ToString("g")
+                                @if (!string.IsNullOrWhiteSpace(n.ActionUrl))
+                                {
+                                    <text>&nbsp;·&nbsp;</text>
+                                    <a href="@n.ActionUrl" class="alert-action">Review <i class="fas fa-arrow-right"></i></a>
+                                }
+                            </div>
                         </div>
                     </div>
                 }
             }
             else
             {
-                <div class="empty-state"><i class="fas fa-check-circle"></i>No alerts today</div>
+                <div class="empty-state"><i class="fas fa-check-circle"></i>Nothing needs your attention</div>
             }
         </div>
 

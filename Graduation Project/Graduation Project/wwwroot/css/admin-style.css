@@ -376,6 +376,24 @@ body {
 .alert-body-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
 .alert-patient { font-size: 0.72rem; color: var(--admin-primary); margin-top: 2px; }
 
+/* Admin notification feed */
+.admin-alert-item.unread { background: rgba(79,142,247,0.05); }
+.admin-alert-item.unread .alert-body-title::after {
+  content: ""; display: inline-block;
+  width: 6px; height: 6px; margin-left: 7px;
+  border-radius: 50%; background: var(--admin-primary);
+  vertical-align: middle;
+}
+.alert-action { color: var(--admin-primary); text-decoration: none; font-weight: 600; }
+.alert-action:hover { text-decoration: underline; }
+.alert-action i { font-size: 0.6rem; }
+.notif-badge {
+  display: inline-block; margin-left: 8px;
+  padding: 1px 8px; border-radius: 10px;
+  background: rgba(79,142,247,0.15); color: var(--admin-primary);
+  font-size: 0.68rem; font-weight: 700; vertical-align: middle;
+}
+
 /* ================================
    Activity Log
 ================================ */
@@ -533,6 +551,7 @@ body {
 .btn-action.deactivate { background: rgba(251,191,36,0.15);  color: #fbbf24; }
 .btn-action.reset      { background: rgba(59,130,246,0.15);  color: #60a5fa; }
 .btn-action.delete     { background: rgba(248,113,113,0.15); color: #f87171; }
+.btn-action.view       { background: rgba(124,58,237,0.15);  color: #a78bfa; }
 .btn-action:hover { opacity: 0.75; transform: scale(1.05); }
 
 /* ================================

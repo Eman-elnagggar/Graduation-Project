@@ -1,0 +1,554 @@
+@model Graduation_Project.ViewModels.AdminClinicDetailViewModel
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Clinic Details";
+    ViewData["ActivePage"] = "Clinics";
+    ViewData["PageTitle"] = Model.Name;
+    ViewData["PageSubtitle"] = Model.Location;
+}
+
+@section Styles {
+<style>
+.cd-grid          { display:grid; grid-template-columns:340px 1fr; gap:24px; align-items:start; }
+.cd-sidebar       { display:flex; flex-direction:column; gap:16px; }
+.cd-card          { background:var(--bg-card); border:1px solid var(--border-color); border-radius:16px; padding:24px; }
+.cd-head          { display:flex; flex-direction:column; align-items:center; text-align:center; padding-bottom:8px; }
+.cd-icon          { width:88px; height:88px; border-radius:22px; background:rgba(124,58,237,0.12);
+                    color:#7c3aed; font-size:2rem; display:flex; align-items:center; justify-content:center;
+                    border:2px solid rgba(124,58,237,0.22); margin-bottom:14px; }
+.cd-name          { font-size:1.25rem; font-weight:700; color:var(--text-primary); margin-bottom:4px; }
+.cd-loc           { font-size:0.85rem; color:var(--text-muted); }
+.cd-info-row      { display:flex; align-items:flex-start; gap:10px; padding:7px 0;
+                    border-bottom:1px solid rgba(255,255,255,0.05); font-size:0.82rem; color:var(--text-secondary); }
+.cd-info-row:last-child { border-bottom:none; }
+.cd-info-row i    { color:var(--admin-primary); width:15px; flex-shrink:0; margin-top:2px; }
+.cd-info-val      { color:var(--text-primary); font-weight:500; }
+.cd-section-title { font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em;
+                    color:var(--text-muted); margin-bottom:14px; }
+.cd-stat-grid     { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.cd-stat          { background:rgba(79,142,247,0.06); border:1px solid rgba(79,142,247,0.12);
+                    border-radius:10px; padding:12px; text-align:center; }
+.cd-stat-val      { font-size:1.4rem; font-weight:700; color:var(--text-primary); }
+.cd-stat-lbl      { font-size:0.68rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; margin-top:2px; }
+.cd-btn           { display:flex; align-items:center; justify-content:center; gap:8px;
+                    padding:10px 16px; border-radius:10px; font-size:0.83rem; font-weight:600;
+                    cursor:pointer; border:none; width:100%; transition:all 0.15s; text-decoration:none; }
+.cd-btn.primary   { background:#4f8ef7; color:white; }
+.cd-btn.primary:hover { background:#2563eb; }
+.cd-btn.danger    { background:rgba(220,38,38,0.12); color:#ef4444; border:1px solid rgba(220,38,38,0.2); }
+.cd-btn.danger:hover { background:rgba(220,38,38,0.22); }
+.cd-actions       { display:flex; flex-direction:column; gap:8px; }
+.cd-back          { display:inline-flex; align-items:center; gap:6px; padding:7px 14px;
+                    background:rgba(255,255,255,0.06); border:1px solid var(--border-color);
+                    border-radius:8px; text-decoration:none; color:var(--text-secondary);
+                    font-size:0.8rem; font-weight:600; margin-bottom:20px; transition:all 0.15s; }
+.cd-back:hover    { background:rgba(255,255,255,0.1); color:var(--text-primary); }
+.cd-table         { width:100%; border-collapse:collapse; font-size:0.82rem; }
+.cd-table th      { text-align:left; padding:8px 12px; color:var(--text-muted); font-weight:600;
+                    font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em;
+                    border-bottom:1px solid var(--border-color); }
+.cd-table td      { padding:10px 12px; color:var(--text-secondary);
+                    border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:middle; }
+.cd-table tr:last-child td { border-bottom:none; }
+.cd-avatar-sm     { width:30px; height:30px; border-radius:50%; background:rgba(79,142,247,0.15);
+                    color:#4f8ef7; display:flex; align-items:center; justify-content:center;
+                    font-size:0.7rem; font-weight:700; flex-shrink:0; }
+.cd-pill          { display:inline-flex; align-items:center; gap:4px; padding:2px 8px;
+                    border-radius:10px; font-size:0.7rem; font-weight:700; }
+.cd-chip          { display:inline-flex; align-items:center; gap:5px; padding:3px 9px;
+                    background:rgba(79,142,247,0.1); border:1px solid rgba(79,142,247,0.18);
+                    border-radius:20px; font-size:0.72rem; color:#4f8ef7; margin:2px 2px 2px 0; }
+.cd-card-head     { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; gap:12px; }
+.cd-assign        { display:flex; gap:8px; align-items:center; }
+.cd-select        { padding:7px 12px; border:1px solid var(--border-color); border-radius:8px;
+                    background:var(--bg-secondary); color:var(--text-primary); font-size:0.8rem;
+                    outline:none; min-width:220px; }
+.cd-add-btn       { display:inline-flex; align-items:center; gap:6px; padding:7px 14px;
+                    background:var(--admin-primary); color:white; border:none; border-radius:8px;
+                    font-size:0.8rem; font-weight:600; cursor:pointer; white-space:nowrap; }
+.cd-add-btn:hover { filter:brightness(1.1); }
+.cd-icon-btn      { width:30px; height:30px; border-radius:7px; border:1px solid var(--border-color);
+                    background:rgba(255,255,255,0.04); color:var(--text-secondary); cursor:pointer;
+                    display:inline-flex; align-items:center; justify-content:center; font-size:0.75rem;
+                    transition:all 0.15s; text-decoration:none; }
+.cd-icon-btn:hover      { background:rgba(255,255,255,0.1); color:var(--text-primary); }
+.cd-icon-btn.remove:hover { background:rgba(239,68,68,0.15); color:#ef4444; border-color:rgba(239,68,68,0.3); }
+.cd-icon-btn.own:hover    { background:rgba(251,191,36,0.15); color:#fbbf24; border-color:rgba(251,191,36,0.3); }
+.cd-empty         { color:var(--text-muted); font-size:0.85rem; text-align:center; padding:20px 0; }
+.modal-overlay    { position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;
+                    align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(4px); }
+.modal-box        { background:#161b22;border:1px solid rgba(255,255,255,0.1);border-radius:16px;
+                    padding:28px 32px;max-width:440px;width:90%;box-shadow:0 24px 64px rgba(0,0,0,0.5); }
+.modal-title      { font-size:1.05rem;font-weight:700;color:var(--text-primary);margin-bottom:12px;
+                    display:flex;align-items:center;gap:8px; }
+.modal-actions    { display:flex;gap:10px;margin-top:16px;justify-content:flex-end; }
+.btn-modal-cancel { padding:9px 18px;background:rgba(255,255,255,0.06);color:var(--text-secondary);
+                    border:1px solid var(--border-color);border-radius:8px;cursor:pointer;font-size:0.85rem; }
+.btn-modal-confirm{ padding:9px 18px;border:none;border-radius:8px;cursor:pointer;
+                    font-size:0.85rem;font-weight:600;color:white; }
+@@media (max-width:1100px) {
+    .cd-grid { grid-template-columns:1fr; }
+    .cd-sidebar { flex-direction:row; flex-wrap:wrap; }
+    .cd-sidebar > * { flex:1; min-width:260px; }
+    .cd-card-head { flex-direction:column; align-items:stretch; }
+}
+</style>
+}
+
+@functions {
+    static string Initials(string name, string fallback)
+    {
+        var parts = (string.IsNullOrWhiteSpace(name) ? fallback : name)
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Where(p => p != "Dr.")
+            .Take(2);
+        var result = string.Concat(parts.Select(p => char.ToUpperInvariant(p[0])));
+        return string.IsNullOrEmpty(result) ? fallback : result;
+    }
+}
+
+<a href="/Admin/Clinics" class="cd-back"><i class="fas fa-arrow-left"></i> Back to Clinic Management</a>
+
+<div class="cd-grid">
+
+  <div class="cd-sidebar">
+
+    <div class="cd-card">
+      <div class="cd-head">
+        <div class="cd-icon"><i class="fas fa-hospital"></i></div>
+        <div class="cd-name">@Model.Name</div>
+        <div class="cd-loc"><i class="fas fa-map-marker-alt" style="margin-right:4px;"></i>@Model.Location</div>
+      </div>
+
+      <div style="margin-top:16px;">
+        <div class="cd-info-row">
+          <i class="fas fa-user-md"></i>
+          <div>
+            <div style="font-size:0.72rem;color:var(--text-muted);">Owner</div>
+            <div class="cd-info-val">@(string.IsNullOrWhiteSpace(Model.OwnerName) ? "No owner assigned" : Model.OwnerName)</div>
+          </div>
+        </div>
+        <div class="cd-info-row">
+          <i class="fas fa-calendar-check"></i>
+          <div>
+            <div style="font-size:0.72rem;color:var(--text-muted);">Booked Appointments</div>
+            <div class="cd-info-val">@Model.BookedAppointments of @Model.TotalAppointments slots</div>
+          </div>
+        </div>
+        <div class="cd-info-row">
+          <i class="fas fa-clock"></i>
+          <div>
+            <div style="font-size:0.72rem;color:var(--text-muted);">Upcoming</div>
+            <div class="cd-info-val">@Model.UpcomingAppointments appointment(s)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cd-card">
+      <div class="cd-section-title">Clinic Overview</div>
+      <div class="cd-stat-grid">
+        <div class="cd-stat">
+          <div class="cd-stat-val">@Model.TotalDoctors</div>
+          <div class="cd-stat-lbl">Doctors</div>
+        </div>
+        <div class="cd-stat">
+          <div class="cd-stat-val">@Model.TotalAssistants</div>
+          <div class="cd-stat-lbl">Assistants</div>
+        </div>
+        <div class="cd-stat">
+          <div class="cd-stat-val">@Model.TotalPatients</div>
+          <div class="cd-stat-lbl">Patients</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cd-card">
+      <div class="cd-section-title"><i class="fas fa-tools" style="margin-right:5px;"></i>Admin Actions</div>
+      <div class="cd-actions">
+        <a href="/Admin/EditClinic/@Model.ClinicID" class="cd-btn primary">
+          <i class="fas fa-edit"></i> Edit Clinic
+        </a>
+        <button type="button" class="cd-btn danger" onclick="document.getElementById('deleteClinicModal').style.display='flex'">
+          <i class="fas fa-trash"></i> Delete Clinic
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <div>
+
+    <div class="cd-card" style="margin-bottom:20px;">
+      <div class="cd-card-head">
+        <div class="cd-section-title" style="margin-bottom:0;">
+          <i class="fas fa-stethoscope" style="margin-right:5px;"></i>Doctors (@Model.TotalDoctors)
+        </div>
+        @if (Model.AvailableDoctors.Any())
+        {
+          <form method="post" action="/Admin/AddDoctorToClinic" class="cd-assign">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="clinicId" value="@Model.ClinicID" />
+            <select name="doctorId" class="cd-select" required>
+              <option value="">Select a doctor to add…</option>
+              @foreach (var d in Model.AvailableDoctors)
+              {
+                <option value="@d.Id">@d.Label@(string.IsNullOrWhiteSpace(d.SubLabel) ? "" : $" — {d.SubLabel}")</option>
+              }
+            </select>
+            <button type="submit" class="cd-add-btn"><i class="fas fa-plus"></i> Add</button>
+          </form>
+        }
+      </div>
+
+      @if (Model.Doctors.Any())
+      {
+        <table class="cd-table">
+          <thead>
+            <tr>
+              <th>Doctor</th>
+              <th>Specialization</th>
+              <th>Status</th>
+              <th style="text-align:center;">Patients</th>
+              <th style="text-align:center;">Appointments</th>
+              <th style="text-align:center;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach (var d in Model.Doctors)
+            {
+              @* Older records use "Verified" where the verification screen writes "Approved". *@
+              var (dstyle, dlabel) = d.IsBanned
+                ? ("background:rgba(239,68,68,0.1);color:#ef4444;", "Banned")
+                : d.VerificationStatus switch
+                {
+                    "Approved" or "Verified" => ("background:rgba(74,222,128,0.1);color:#4ade80;", "Approved"),
+                    "Rejected" => ("background:rgba(248,113,113,0.1);color:#f87171;", "Rejected"),
+                    _ => ("background:rgba(251,191,36,0.1);color:#fbbf24;", "Pending")
+                };
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div class="cd-avatar-sm">@Initials(d.FullName, "D")</div>
+                    <div>
+                      <div style="color:var(--text-primary);font-weight:600;font-size:0.82rem;">
+                        Dr. @d.FullName
+                        @if (d.IsOwner)
+                        {
+                          <span class="cd-pill" style="background:rgba(251,191,36,0.12);color:#fbbf24;margin-left:4px;">
+                            <i class="fas fa-crown" style="font-size:0.6rem;"></i> Owner
+                          </span>
+                        }
+                      </div>
+                      <div style="font-size:0.72rem;color:var(--text-muted);">@d.Email</div>
+                    </div>
+                  </div>
+                </td>
+                <td style="font-size:0.78rem;">@(string.IsNullOrWhiteSpace(d.Specialization) ? "—" : d.Specialization)</td>
+                <td><span class="cd-pill" style="@dstyle">@dlabel</span></td>
+                <td style="text-align:center;font-weight:600;color:var(--text-primary);">@d.PatientCount</td>
+                <td style="text-align:center;font-weight:600;color:var(--text-primary);">@d.AppointmentCount</td>
+                <td>
+                  <div style="display:flex;gap:6px;justify-content:center;">
+                    <a href="/Admin/DoctorDetail/@d.DoctorId" class="cd-icon-btn" title="View profile">
+                      <i class="fas fa-eye"></i>
+                    </a>
+                    @if (!d.IsOwner)
+                    {
+                      <form method="post" action="/Admin/SetClinicOwner" style="display:inline;"
+                            onsubmit="return confirm('Make Dr. @d.FullName the owner of this clinic?')">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="clinicId" value="@Model.ClinicID" />
+                        <input type="hidden" name="doctorId" value="@d.DoctorId" />
+                        <button type="submit" class="cd-icon-btn own" title="Make owner">
+                          <i class="fas fa-crown"></i>
+                        </button>
+                      </form>
+                      <button type="button" class="cd-icon-btn remove" title="Remove from clinic"
+                              onclick="confirmRemoveDoctor(@d.DoctorId, '@Html.Raw(d.FullName.Replace("'", "\\'"))')">
+                        <i class="fas fa-user-minus"></i>
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+      else
+      {
+        <p class="cd-empty">No doctors assigned to this clinic yet.</p>
+      }
+    </div>
+
+    <div class="cd-card" style="margin-bottom:20px;">
+      <div class="cd-card-head">
+        <div class="cd-section-title" style="margin-bottom:0;">
+          <i class="fas fa-user-nurse" style="margin-right:5px;"></i>Assistants (@Model.TotalAssistants)
+        </div>
+        @if (Model.AvailableAssistants.Any())
+        {
+          <form method="post" action="/Admin/AddAssistantToClinic" class="cd-assign">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="clinicId" value="@Model.ClinicID" />
+            <select name="assistantId" class="cd-select" required>
+              <option value="">Select an assistant to add…</option>
+              @foreach (var a in Model.AvailableAssistants)
+              {
+                <option value="@a.Id">@a.Label@(string.IsNullOrWhiteSpace(a.SubLabel) ? "" : $" — {a.SubLabel}")</option>
+              }
+            </select>
+            <button type="submit" class="cd-add-btn"><i class="fas fa-plus"></i> Add</button>
+          </form>
+        }
+      </div>
+
+      @if (Model.Assistants.Any())
+      {
+        <table class="cd-table">
+          <thead>
+            <tr>
+              <th>Assistant</th>
+              <th>Phone</th>
+              <th>Works With</th>
+              <th style="text-align:center;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach (var a in Model.Assistants)
+            {
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div class="cd-avatar-sm" style="background:rgba(167,139,250,0.15);color:#a78bfa;">@Initials(a.FullName, "A")</div>
+                    <div>
+                      <div style="color:var(--text-primary);font-weight:600;font-size:0.82rem;">
+                        @a.FullName
+                        @if (a.IsBanned)
+                        {
+                          <span class="cd-pill" style="background:rgba(239,68,68,0.1);color:#ef4444;margin-left:4px;">Banned</span>
+                        }
+                      </div>
+                      <div style="font-size:0.72rem;color:var(--text-muted);">@a.Email</div>
+                    </div>
+                  </div>
+                </td>
+                <td style="font-size:0.78rem;">@(string.IsNullOrWhiteSpace(a.PhoneNumber) ? "—" : a.PhoneNumber)</td>
+                <td>
+                  @if (a.DoctorNames.Any())
+                  {
+                    foreach (var dn in a.DoctorNames)
+                    {
+                      <span class="cd-chip"><i class="fas fa-stethoscope"></i>@dn</span>
+                    }
+                  }
+                  else
+                  {
+                    <span style="color:var(--text-muted);font-size:0.78rem;">Not linked to a doctor</span>
+                  }
+                </td>
+                <td>
+                  <div style="display:flex;gap:6px;justify-content:center;">
+                    <button type="button" class="cd-icon-btn remove" title="Remove from clinic"
+                            onclick="confirmRemoveAssistant(@a.AssistantId, '@Html.Raw(a.FullName.Replace("'", "\\'"))')">
+                      <i class="fas fa-user-minus"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+      else
+      {
+        <p class="cd-empty">No assistants assigned to this clinic yet.</p>
+      }
+    </div>
+
+    <div class="cd-card" style="margin-bottom:20px;">
+      <div class="cd-section-title">
+        <i class="fas fa-users" style="margin-right:5px;"></i>Patients Seen Here (@Model.TotalPatients)
+      </div>
+      @if (Model.Patients.Any())
+      {
+        <table class="cd-table">
+          <thead>
+            <tr>
+              <th>Patient</th>
+              <th>Last Seen By</th>
+              <th style="text-align:center;">Visits</th>
+              <th>Last Visit</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach (var p in Model.Patients.Take(20))
+            {
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div class="cd-avatar-sm">@Initials(p.FullName, "P")</div>
+                    <div>
+                      <div style="color:var(--text-primary);font-weight:600;font-size:0.82rem;">@p.FullName</div>
+                      <div style="font-size:0.72rem;color:var(--text-muted);">@p.Email</div>
+                    </div>
+                  </div>
+                </td>
+                <td style="font-size:0.78rem;">@(string.IsNullOrWhiteSpace(p.DoctorName) ? "—" : p.DoctorName)</td>
+                <td style="text-align:center;font-weight:600;color:var(--text-primary);">@p.VisitCount</td>
+                <td style="font-size:0.78rem;">@p.LastVisit.ToString("MMM d, yyyy")</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (Model.Patients.Count > 20)
+        {
+          <p style="font-size:0.75rem;color:var(--text-muted);margin-top:10px;text-align:center;">
+            Showing 20 of @Model.Patients.Count patients
+          </p>
+        }
+      }
+      else
+      {
+        <p class="cd-empty">No patients have been seen at this clinic yet.</p>
+      }
+    </div>
+
+    <div class="cd-card">
+      <div class="cd-section-title">
+        <i class="fas fa-calendar-check" style="margin-right:5px;"></i>Recent Appointments
+      </div>
+      @if (Model.RecentAppointments.Any())
+      {
+        <table class="cd-table">
+          <thead>
+            <tr>
+              <th>Date &amp; Time</th>
+              <th>Doctor</th>
+              <th>Patient</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach (var a in Model.RecentAppointments)
+            {
+              var (astyle, alabel) = a.IsBooked
+                ? ("background:rgba(74,222,128,0.1);color:#4ade80;", "Booked")
+                : ("background:rgba(107,114,128,0.1);color:#6b7280;", "Open");
+              <tr>
+                <td>
+                  <div style="font-weight:600;color:var(--text-primary);font-size:0.82rem;">@a.Date.ToString("MMM d, yyyy")</div>
+                  <div style="font-size:0.72rem;color:var(--text-muted);">@a.Time.ToString(@"hh\:mm")</div>
+                </td>
+                <td style="color:var(--text-primary);font-size:0.82rem;">@(string.IsNullOrWhiteSpace(a.DoctorName) ? "—" : a.DoctorName)</td>
+                <td style="font-size:0.82rem;">@(string.IsNullOrWhiteSpace(a.PatientName) ? "—" : a.PatientName)</td>
+                <td><span class="cd-pill" style="@astyle">@alabel</span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+      else
+      {
+        <p class="cd-empty">No appointments at this clinic yet.</p>
+      }
+    </div>
+
+  </div>
+</div>
+
+<div class="modal-overlay" id="removeDoctorModal" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-title" style="color:#ef4444;"><i class="fas fa-user-minus"></i> Remove Doctor</div>
+    <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:6px;">
+      Remove <strong id="removeDoctorName" style="color:var(--text-primary);"></strong> from <strong style="color:var(--text-primary);">@Model.Name</strong>?
+    </p>
+    <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:14px;">
+      Their past appointments at this clinic stay on record. Any assistant links to them at this clinic are dropped.
+      Doctors with upcoming booked appointments here cannot be removed.
+    </p>
+    <form method="post" action="/Admin/RemoveDoctorFromClinic">
+      @Html.AntiForgeryToken()
+      <input type="hidden" name="clinicId" value="@Model.ClinicID" />
+      <input type="hidden" name="doctorId" id="removeDoctorId" />
+      <div class="modal-actions">
+        <button type="button" class="btn-modal-cancel" onclick="closeModals()">Cancel</button>
+        <button type="submit" class="btn-modal-confirm" style="background:#dc2626;">
+          <i class="fas fa-user-minus"></i> Remove
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="removeAssistantModal" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-title" style="color:#ef4444;"><i class="fas fa-user-minus"></i> Remove Assistant</div>
+    <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:6px;">
+      Remove <strong id="removeAssistantName" style="color:var(--text-primary);"></strong> from <strong style="color:var(--text-primary);">@Model.Name</strong>?
+    </p>
+    <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:14px;">
+      Their account stays active, but they will no longer be attached to this clinic or its doctors.
+    </p>
+    <form method="post" action="/Admin/RemoveAssistantFromClinic">
+      @Html.AntiForgeryToken()
+      <input type="hidden" name="clinicId" value="@Model.ClinicID" />
+      <input type="hidden" name="assistantId" id="removeAssistantId" />
+      <div class="modal-actions">
+        <button type="button" class="btn-modal-cancel" onclick="closeModals()">Cancel</button>
+        <button type="submit" class="btn-modal-confirm" style="background:#dc2626;">
+          <i class="fas fa-user-minus"></i> Remove
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="deleteClinicModal" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-title" style="color:#ef4444;"><i class="fas fa-exclamation-triangle"></i> Delete Clinic</div>
+    <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:6px;">
+      Are you sure you want to delete <strong style="color:var(--text-primary);">@Model.Name</strong>?
+    </p>
+    <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:14px;">
+      This will also remove all clinic-doctor and clinic-assistant associations.
+    </p>
+    <form method="post" action="/Admin/DeleteClinic">
+      @Html.AntiForgeryToken()
+      <input type="hidden" name="clinicId" value="@Model.ClinicID" />
+      <div class="modal-actions">
+        <button type="button" class="btn-modal-cancel" onclick="closeModals()">Cancel</button>
+        <button type="submit" class="btn-modal-confirm" style="background:#dc2626;">
+          <i class="fas fa-trash"></i> Delete
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+@section Scripts {
+<script>
+  function confirmRemoveDoctor(id, name) {
+    document.getElementById('removeDoctorId').value = id;
+    document.getElementById('removeDoctorName').textContent = 'Dr. ' + name;
+    document.getElementById('removeDoctorModal').style.display = 'flex';
+  }
+
+  function confirmRemoveAssistant(id, name) {
+    document.getElementById('removeAssistantId').value = id;
+    document.getElementById('removeAssistantName').textContent = name;
+    document.getElementById('removeAssistantModal').style.display = 'flex';
+  }
+
+  function closeModals() {
+    document.querySelectorAll('.modal-overlay').forEach(function (m) { m.style.display = 'none'; });
+  }
+
+  document.querySelectorAll('.modal-overlay').forEach(function (overlay) {
+    overlay.addEventListener('click', function (e) {
+      if (e.target === this) this.style.display = 'none';
+    });
+  });
+</script>
+}

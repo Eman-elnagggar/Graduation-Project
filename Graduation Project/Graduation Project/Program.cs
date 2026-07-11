@@ -96,6 +96,7 @@ namespace Graduation_Project
             builder.Services.AddSingleton<IPushNotificationService, PushNotificationService>();
             builder.Services.AddScoped<IDoctorNotificationService, DoctorNotificationService>();
             builder.Services.AddScoped<IPatientNotificationService, PatientNotificationService>();
+            builder.Services.AddScoped<IAdminNotificationService, AdminNotificationService>();
 
 
 
