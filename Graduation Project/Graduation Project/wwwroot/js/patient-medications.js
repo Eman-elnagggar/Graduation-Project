@@ -12,17 +12,50 @@ document.addEventListener("DOMContentLoaded", () => {
     const token     = () => document.querySelector("input[name='__RequestVerificationToken']")?.value;
     const patientId = () => document.getElementById("patientId")?.value;
 
+    // Always resolves to a { success, message } shape — a non-JSON body or an error
+    // status never throws, so callers can show a real message instead of "network error".
     const postJson = async (url, body) => {
-        const res = await fetch(url, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "RequestVerificationToken": token()
-            },
-            body: JSON.stringify(body)
-        });
-        return res.json();
+        let res;
+        try {
+            res = await fetch(url, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "RequestVerificationToken": token()
+                },
+                body: JSON.stringify(body)
+            });
+        } catch {
+            return { success: false, message: "Could not reach the server. Check your connection and try again." };
+        }
+
+        let data = null;
+        try {
+            const text = await res.text();
+            if (text) data = JSON.parse(text);
+        } catch {
+            /* non-JSON response — fall through to the status-based message */
+        }
+
+        if (!res.ok) {
+            return {
+                success: false,
+                message: data?.message || `The server rejected the request (${res.status}). Please try again.`
+            };
+        }
+        return data ?? { success: false, message: "The server returned an empty response." };
     };
+
+    // Blank optional numbers must go to the server as null, never as "" — an empty
+    // string cannot be deserialized into int? and fails the whole request body.
+    const numberOrNull = (id) => {
+        const raw = document.getElementById(id)?.value?.trim();
+        if (!raw) return null;
+        const n = Number(raw);
+        return Number.isFinite(n) ? n : null;
+    };
+
+    const textOrEmpty = (id) => document.getElementById(id)?.value?.trim() || "";
 
     /* ── Shared dose status rendering (Daily + Index) ────── */
     const setText = (id, val) => {
@@ -182,15 +215,76 @@ document.addEventListener("DOMContentLoaded", () => {
             if (n === 3) updateCalc();
         };
 
+        /* ── Field-level validation ───────────────────────── */
+        const setFieldError = (id, message) => {
+            const box   = document.querySelector(`.pm-ferror[data-error-for="${id}"]`);
+            const input = document.getElementById(id);
+            if (box) {
+                box.textContent = message || "";
+                box.classList.toggle("show", !!message);
+            }
+            input?.classList.toggle("has-error", !!message);
+        };
+
+        const clearErrors = () =>
+            document.querySelectorAll(".pm-ferror").forEach(b => {
+                b.textContent = "";
+                b.classList.remove("show");
+                document.getElementById(b.dataset.errorFor)?.classList.remove("has-error");
+            });
+
+        // A positive whole number, or blank. Blank is always allowed — these fields
+        // are optional and must not block the save.
+        const validateOptionalCount = (id, label) => {
+            const raw = document.getElementById(id)?.value?.trim();
+            if (!raw) { setFieldError(id, ""); return true; }
+
+            const n = Number(raw);
+            if (!Number.isInteger(n) || n < 1) {
+                setFieldError(id, `${label} must be a whole number of 1 or more, or left blank.`);
+                return false;
+            }
+            setFieldError(id, "");
+            return true;
+        };
+
+        const validateStep = (step) => {
+            if (step === 1) {
+                const name = textOrEmpty("medName");
+                if (!name) {
+                    setFieldError("medName", "Please enter the medication name.");
+                    document.getElementById("medName")?.focus();
+                    return false;
+                }
+                setFieldError("medName", "");
+                return true;
+            }
+
+            if (step === 2) {
+                const okPills = validateOptionalCount("medPillsPerDose", "Pills per dose");
+                const freq = readFrequency();
+                if (freq.timesPerDay > 0 && freq.times.some(t => !t)) {
+                    setFieldError("medFrequency", "Please fill in every dose time.");
+                    return false;
+                }
+                setFieldError("medFrequency", "");
+                return okPills;
+            }
+
+            if (step === 3) {
+                const okDuration = validateOptionalCount("medDuration", "Duration");
+                const okTotal    = validateOptionalCount("medTotalPills", "Total pills");
+                return okDuration && okTotal;
+            }
+
+            return true;
+        };
+
         // Next / Back buttons
         document.querySelectorAll(".pm-wbtn.next").forEach(btn => {
             btn.addEventListener("click", () => {
-                const target = parseInt(btn.dataset.next);
-                if (currentStep === 1) {
-                    const name = document.getElementById("medName")?.value.trim();
-                    if (!name) { notify("Please enter the medication name.", "error"); return; }
-                }
-                showStep(target);
+                if (!validateStep(currentStep)) return;
+                showStep(parseInt(btn.dataset.next));
                 window.scrollTo({ top: 0, behavior: "smooth" });
             });
         });
@@ -202,21 +296,165 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
 
-        /* ── Frequency chips ──────────────────────────────── */
-        document.querySelectorAll("#freqChips .pm-fchip").forEach(chip => {
-            chip.addEventListener("click", () => {
-                const freq = chip.dataset.freq;
-                if (freq === "custom") {
-                    document.getElementById("medFrequency").focus();
-                    return;
-                }
-                // Toggle active
-                document.querySelectorAll("#freqChips .pm-fchip").forEach(c => c.classList.remove("active"));
-                chip.classList.add("active");
-                const input = document.getElementById("medFrequency");
-                if (input) input.value = freq;
-            });
+        /* ── Frequency ────────────────────────────────────────
+           The <option>s carry the schedule from the server-side catalogue
+           (MedicationFrequencies), so the two never drift apart. Picking one
+           renders an editable time input per dose. */
+        const freqSelect   = document.querySelector("[data-frequency-select]");
+        const freqCustom   = document.getElementById("freqCustom");
+        const freqTimes    = document.getElementById("freqTimes");
+        const freqSummary  = document.getElementById("freqSummary");
+        const freqPerDay   = document.getElementById("freqTimesPerDay");
+        const freqInterval = document.getElementById("freqIntervalDays");
+
+        const selectedOption = () => freqSelect?.selectedOptions?.[0] ?? null;
+        const isCustom = () => selectedOption()?.value === "custom";
+
+        const clampInt = (value, min, max, fallback) => {
+            const n = parseInt(value, 10);
+            if (!Number.isFinite(n)) return fallback;
+            return Math.min(Math.max(n, min), max);
+        };
+
+        // Reads the chosen frequency plus whatever times are currently in the inputs.
+        const readFrequency = () => {
+            const opt = selectedOption();
+            if (!opt) return { code: "once-daily", label: "Once daily", timesPerDay: 1, intervalDays: 1, times: ["09:00"] };
+
+            const custom      = opt.value === "custom";
+            const timesPerDay = custom
+                ? clampInt(freqPerDay?.value, 1, 8, 1)
+                : parseInt(opt.dataset.timesPerDay, 10) || 0;
+            const intervalDays = custom
+                ? clampInt(freqInterval?.value, 1, 90, 1)
+                : parseInt(opt.dataset.intervalDays, 10) || 1;
+
+            const times = Array.from(freqTimes?.querySelectorAll(".pm-time-input") || [])
+                .map(i => i.value)
+                .slice(0, timesPerDay);
+
+            return { code: opt.value, label: opt.dataset.label || opt.textContent.trim(), timesPerDay, intervalDays, times };
+        };
+
+        // Spreads N doses across a waking day — mirrors MedicationFrequencies.SpreadEvenly.
+        const spreadEvenly = (count) => {
+            if (count <= 1) return ["09:00"];
+            const first = 8, last = 22;
+            const step  = (last - first) / (count - 1);
+            return Array.from({ length: count }, (_, i) =>
+                `${String(Math.round(first + step * i) % 24).padStart(2, "0")}:00`);
+        };
+
+        const describe = (freq, times) => {
+            if (freq.timesPerDay === 0)
+                return "No doses are scheduled — log a dose whenever you take it.";
+
+            const doses  = `${freq.timesPerDay} dose${freq.timesPerDay === 1 ? "" : "s"}`;
+            const repeat = freq.intervalDays === 1
+                ? "every day"
+                : freq.intervalDays === 7
+                    ? "once a week"
+                    : `every ${freq.intervalDays} days`;
+            const at = times.filter(Boolean).length ? ` at ${times.filter(Boolean).join(", ")}` : "";
+            return `${doses} ${repeat}${at}.`;
+        };
+
+        // Re-renders the time inputs for the current selection, keeping any times the
+        // user already typed (and, on the Edit page, the medication's saved times).
+        const renderFrequency = ({ preserve = true } = {}) => {
+            if (!freqSelect || !freqTimes) return;
+
+            const opt    = selectedOption();
+            const custom = isCustom();
+            if (freqCustom) freqCustom.hidden = !custom;
+
+            const freq = readFrequency();
+
+            let previous = preserve
+                ? Array.from(freqTimes.querySelectorAll(".pm-time-input")).map(i => i.value).filter(Boolean)
+                : [];
+
+            // First render on the Edit page: seed from the medication's saved schedule.
+            const initial = freqTimes.dataset.initialTimes;
+            if (previous.length === 0 && initial) {
+                previous = initial.split(",").map(t => t.trim()).filter(Boolean);
+                freqTimes.dataset.initialTimes = "";
+            }
+
+            let defaults = custom
+                ? spreadEvenly(freq.timesPerDay)
+                : (opt?.dataset.times || "").split(",").map(t => t.trim()).filter(Boolean);
+
+            if (defaults.length !== freq.timesPerDay)
+                defaults = spreadEvenly(freq.timesPerDay);
+
+            // Keep the user's own times only while the dose count is unchanged;
+            // switching to a different frequency should adopt that frequency's times.
+            const useDefaults = previous.length !== freq.timesPerDay;
+            const times = Array.from({ length: freq.timesPerDay }, (_, i) =>
+                (useDefaults ? defaults[i] : previous[i]) || defaults[i] || "09:00");
+
+            freqTimes.innerHTML = times.length === 0
+                ? ""
+                : `<div class="pm-time-list-lbl">Dose times</div>` +
+                  times.map((t, i) => `
+                    <label class="pm-time-slot">
+                        <span>Dose ${i + 1}</span>
+                        <input type="time" class="pm-finput pm-time-input" value="${t}" required />
+                    </label>`).join("");
+
+            if (freqSummary) freqSummary.textContent = describe(freq, times);
+            setFieldError("medFrequency", "");
+        };
+
+        freqSelect?.addEventListener("change", () => renderFrequency({ preserve: false }));
+        freqPerDay?.addEventListener("input", () => renderFrequency({ preserve: true }));
+        freqInterval?.addEventListener("input", () => renderFrequency({ preserve: true }));
+        freqTimes?.addEventListener("change", () => {
+            const freq = readFrequency();
+            const times = Array.from(freqTimes.querySelectorAll(".pm-time-input")).map(i => i.value);
+            if (freqSummary) freqSummary.textContent = describe(freq, times);
         });
+        renderFrequency({ preserve: true });
+
+        ["medPillsPerDose", "medDuration", "medTotalPills"].forEach(id => {
+            document.getElementById(id)?.addEventListener("input", () => setFieldError(id, ""));
+        });
+        document.getElementById("medName")?.addEventListener("input", () => setFieldError("medName", ""));
+
+        // Everything the Add/Edit endpoints need, with blanks sent as null.
+        window.pmCollectMedicationPayload = () => {
+            const freq = readFrequency();
+            return {
+                patientId:      Number(patientId()),
+                name:           textOrEmpty("medName"),
+                dosage:         textOrEmpty("medDosage"),
+                form:           textOrEmpty("medType") || null,
+                frequencyCode:  freq.code,
+                frequencyLabel: freq.label,
+                timesPerDay:    freq.timesPerDay,
+                intervalDays:   freq.intervalDays,
+                times:          freq.times.filter(Boolean),
+                instructions:   textOrEmpty("medInstructions"),
+                startDate:      textOrEmpty("medStart") || null,
+                durationDays:   numberOrNull("medDuration"),
+                totalPills:     numberOrNull("medTotalPills"),
+                pillsPerDose:   numberOrNull("medPillsPerDose")
+            };
+        };
+
+        // Run every step's rules before saving, and jump back to the first bad one.
+        window.pmValidateAllSteps = () => {
+            clearErrors();
+            for (const step of [1, 2, 3]) {
+                if (!validateStep(step)) {
+                    showStep(step);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                    return false;
+                }
+            }
+            return true;
+        };
 
         /* ── Example instruction chips ────────────────────── */
         document.querySelectorAll("#exampleChips .pm-echip").forEach(chip => {
@@ -267,11 +505,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const populateReview = () => {
             const get = id => document.getElementById(id)?.value?.trim() || "—";
 
+            const freq     = readFrequency();
             const name     = get("medName");
             const type     = document.getElementById("medType")?.value || "—";
             const dosage   = get("medDosage");
             const pills    = get("medPillsPerDose");
-            const freq     = get("medFrequency");
             const start    = get("medStart");
             const duration = get("medDuration");
             const total    = get("medTotalPills");
@@ -282,11 +520,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (el) el.textContent = val || "—";
             };
 
+            const repeat = freq.intervalDays === 1 ? "" : ` · every ${freq.intervalDays} days`;
+
             set("rv-name", name);
-            set("rv-type", type !== "—" ? type : "—");
+            set("rv-type", type || "—");
             set("rv-dosage", dosage);
             set("rv-pills", pills !== "—" ? pills + " pill(s)" : "—");
-            set("rv-freq", freq);
+            set("rv-freq", freq.label + repeat);
+            set("rv-times", freq.times.filter(Boolean).join(", ") || "No scheduled doses");
             set("rv-start", start);
             set("rv-duration", duration !== "—" ? duration + " days" : "Ongoing");
             set("rv-total-pills", total !== "—" ? total + " pills" : "—");
@@ -294,74 +535,47 @@ document.addEventListener("DOMContentLoaded", () => {
         };
     }
 
-    /* ── Add Medication Form (step5 submit) ──────────────── */
-    document.getElementById("submitAddMed")?.addEventListener("click", async () => {
-        const pid = patientId();
-        const btn = document.getElementById("submitAddMed");
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+    /* ── Add / Edit submit (step 5) ──────────────────────── */
+    const wireMedicationSubmit = (buttonId, url, { savingLabel, idleLabel, successMessage, extra = () => ({}) }) => {
+        const btn = document.getElementById(buttonId);
+        if (!btn) return;
 
-        try {
-            const data = await postJson("/PatientMedication/AddMedication", {
-                patientId:    pid,
-                name:         document.getElementById("medName")?.value || "",
-                dosage:       document.getElementById("medDosage")?.value || "",
-                frequency:    document.getElementById("medFrequency")?.value || "",
-                instructions: document.getElementById("medInstructions")?.value || "",
-                startDate:    document.getElementById("medStart")?.value || "",
-                durationDays: document.getElementById("medDuration")?.value || "",
-                totalPills:   document.getElementById("medTotalPills")?.value || null,
-                pillsPerDose: document.getElementById("medPillsPerDose")?.value || null
-            });
-            if (data?.success) {
-                notify("Medication saved!", "success");
-                window.location.href = `/PatientMedication/Index/${pid}`;
-            } else {
-                notify(data?.message || "Unable to save medication.", "error");
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-save"></i> Save Medication';
+        btn.addEventListener("click", async () => {
+            if (typeof window.pmValidateAllSteps === "function" && !window.pmValidateAllSteps()) {
+                notify("Please fix the highlighted fields.", "error");
+                return;
             }
-        } catch {
-            notify("Network error. Please try again.", "error");
+
+            const pid = patientId();
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${savingLabel}`;
+
+            const payload = { ...window.pmCollectMedicationPayload(), ...extra() };
+            const data = await postJson(url, payload);
+
+            if (data?.success) {
+                notify(successMessage, "success");
+                window.location.href = `/PatientMedication/Index/${pid}`;
+                return;
+            }
+
+            notify(data?.message || "Unable to save medication.", "error");
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-save"></i> Save Medication';
-        }
+            btn.innerHTML = idleLabel;
+        });
+    };
+
+    wireMedicationSubmit("submitAddMed", "/PatientMedication/AddMedication", {
+        savingLabel: "Saving…",
+        idleLabel: '<i class="fas fa-save"></i> Save Medication',
+        successMessage: "Medication saved!"
     });
 
-    /* ── Edit Medication Form (step5 submit) ─────────────── */
-    document.getElementById("submitEditMed")?.addEventListener("click", async () => {
-        const pid = patientId();
-        const mid = document.getElementById("medicationId")?.value;
-        const btn = document.getElementById("submitEditMed");
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
-
-        try {
-            const data = await postJson("/PatientMedication/UpdateMedication", {
-                patientId:    pid,
-                medicationId: mid,
-                name:         document.getElementById("medName")?.value || "",
-                dosage:       document.getElementById("medDosage")?.value || "",
-                frequency:    document.getElementById("medFrequency")?.value || "",
-                instructions: document.getElementById("medInstructions")?.value || "",
-                startDate:    document.getElementById("medStart")?.value || "",
-                durationDays: document.getElementById("medDuration")?.value || "",
-                totalPills:   document.getElementById("medTotalPills")?.value || null,
-                pillsPerDose: document.getElementById("medPillsPerDose")?.value || null
-            });
-            if (data?.success) {
-                notify("Medication updated!", "success");
-                window.location.href = `/PatientMedication/Index/${pid}`;
-            } else {
-                notify(data?.message || "Unable to update medication.", "error");
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
-            }
-        } catch {
-            notify("Network error. Please try again.", "error");
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
-        }
+    wireMedicationSubmit("submitEditMed", "/PatientMedication/UpdateMedication", {
+        savingLabel: "Saving…",
+        idleLabel: '<i class="fas fa-save"></i> Save Changes',
+        successMessage: "Medication updated!",
+        extra: () => ({ medicationId: Number(document.getElementById("medicationId")?.value) })
     });
 
     /* ── Global lead time reminder chips + save ──────────── */
@@ -375,9 +589,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     document.getElementById("saveGlobalLeadTime")?.addEventListener("click", async () => {
-        const leadTime = document.getElementById("globalLeadTime")?.value || "0";
+        const leadTime = numberOrNull("globalLeadTime");
+        if (leadTime === null || leadTime < 0) {
+            notify("Enter a reminder lead time in minutes (0 or more).", "error");
+            return;
+        }
         const data = await postJson("/PatientMedication/SaveGlobalLeadTime", {
-            patientId: patientId(),
+            patientId: Number(patientId()),
             leadTimeMinutes: leadTime
         });
         if (data?.success) {
@@ -392,11 +610,18 @@ document.addEventListener("DOMContentLoaded", () => {
         button.addEventListener("click", async () => {
             const medicationId = button.getAttribute("data-medication-id");
             const input = document.querySelector(`.pm-lead-input[data-medication-id='${medicationId}']`);
-            const leadTime = input?.value || "";
+            const raw = input?.value?.trim() || "";
+            const leadTime = raw === "" ? null : Number(raw);
+
+            if (leadTime !== null && (!Number.isFinite(leadTime) || leadTime < 0)) {
+                notify("Enter a lead time in minutes (0 or more), or leave it blank.", "error");
+                return;
+            }
+
             const data = await postJson("/PatientMedication/SaveMedicationLeadTime", {
-                patientId: patientId(),
-                medicationId,
-                leadTimeMinutes: leadTime === "" ? null : leadTime
+                patientId: Number(patientId()),
+                medicationId: Number(medicationId),
+                leadTimeMinutes: leadTime
             });
             notify(data?.success ? "Reminder saved." : (data?.message || "Unable to save."), data?.success ? "success" : "error");
         });
@@ -458,8 +683,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const notes        = notesInput?.value?.trim() || null;
 
             const data = await postJson("/PatientMedication/LogDose", {
-                patientId: patientId(),
-                medicationId,
+                patientId: Number(patientId()),
+                medicationId: Number(medicationId),
                 scheduledAt,
                 status,
                 notes
@@ -491,8 +716,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const status       = button.getAttribute("data-action");
 
             const data = await postJson("/PatientMedication/LogDose", {
-                patientId: patientId(),
-                medicationId,
+                patientId: Number(patientId()),
+                medicationId: Number(medicationId),
                 scheduledAt,
                 status,
                 notes: null

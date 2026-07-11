@@ -103,6 +103,7 @@ namespace Graduation_Project.Controllers
                 return failure;
 
             var medication = _context.Medications
+                .Include(m => m.Schedules)
                 .FirstOrDefault(m => m.MedicationId == medicationId && m.PatientID == id);
 
             if (medication == null)
@@ -201,12 +202,17 @@ namespace Graduation_Project.Controllers
 
         // ── DTOs ──────────────────────────────────────────────────────────────
 
-        public class AddMedicationRequest
+        public class MedicationFormRequest
         {
             public int PatientId { get; set; }
-            public string Name { get; set; } = string.Empty;
+            public string? Name { get; set; }
             public string? Dosage { get; set; }
-            public string? Frequency { get; set; }
+            public string? Form { get; set; }
+            public string? FrequencyCode { get; set; }
+            public string? FrequencyLabel { get; set; }
+            public int? TimesPerDay { get; set; }
+            public int? IntervalDays { get; set; }
+            public List<string>? Times { get; set; }
             public string? Instructions { get; set; }
             public DateTime? StartDate { get; set; }
             public int? DurationDays { get; set; }
@@ -214,18 +220,13 @@ namespace Graduation_Project.Controllers
             public int? PillsPerDose { get; set; }
         }
 
-        public class UpdateMedicationRequest
+        public class AddMedicationRequest : MedicationFormRequest
         {
-            public int PatientId { get; set; }
+        }
+
+        public class UpdateMedicationRequest : MedicationFormRequest
+        {
             public int MedicationId { get; set; }
-            public string Name { get; set; } = string.Empty;
-            public string? Dosage { get; set; }
-            public string? Frequency { get; set; }
-            public string? Instructions { get; set; }
-            public DateTime? StartDate { get; set; }
-            public int? DurationDays { get; set; }
-            public int? TotalPills { get; set; }
-            public int? PillsPerDose { get; set; }
         }
 
         public class LogDoseRequest
@@ -260,58 +261,59 @@ namespace Graduation_Project.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult AddMedication([FromBody] AddMedicationRequest request)
+        public IActionResult AddMedication([FromBody] AddMedicationRequest? request)
         {
+            if (request == null)
+                return Json(new { success = false, message = "Could not read the medication details. Please try again." });
+
             var (_, failure) = AuthorizePatientAccess(request.PatientId, true);
             if (failure != null)
                 return failure;
 
-            if (string.IsNullOrWhiteSpace(request.Name))
-                return Json(new { success = false, message = "Medication name is required." });
+            if (!TryBuildMedicationInput(request, out var input, out var error))
+                return Json(new { success = false, message = error });
 
-            var start = request.StartDate?.Date ?? DateTime.Today;
-            var med = _medicationService.AddSelfMedication(
+            _medicationService.AddSelfMedication(
                 request.PatientId,
-                request.Name,
-                request.Dosage ?? string.Empty,
-                request.Frequency ?? string.Empty,
-                request.Instructions ?? string.Empty,
-                start,
-                request.DurationDays);
-
-            if (request.TotalPills.HasValue || request.PillsPerDose.HasValue)
-            {
-                med.TotalPills = request.TotalPills;
-                med.PillsPerDose = request.PillsPerDose;
-                _context.SaveChanges();
-            }
+                input.Name,
+                input.Dosage,
+                input.Form,
+                input.Frequency,
+                input.Instructions,
+                input.StartDate,
+                input.DurationDays,
+                input.TotalPills,
+                input.PillsPerDose);
 
             return Json(new { success = true });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult UpdateMedication([FromBody] UpdateMedicationRequest request)
+        public IActionResult UpdateMedication([FromBody] UpdateMedicationRequest? request)
         {
+            if (request == null)
+                return Json(new { success = false, message = "Could not read the medication details. Please try again." });
+
             var (_, failure) = AuthorizePatientAccess(request.PatientId, true);
             if (failure != null)
                 return failure;
 
-            if (string.IsNullOrWhiteSpace(request.Name))
-                return Json(new { success = false, message = "Medication name is required." });
+            if (!TryBuildMedicationInput(request, out var input, out var error))
+                return Json(new { success = false, message = error });
 
-            var start = request.StartDate?.Date ?? DateTime.Today;
             var ok = _medicationService.UpdateSelfMedication(
                 request.MedicationId,
                 request.PatientId,
-                request.Name,
-                request.Dosage ?? string.Empty,
-                request.Frequency ?? string.Empty,
-                request.Instructions ?? string.Empty,
-                start,
-                request.DurationDays,
-                request.TotalPills,
-                request.PillsPerDose);
+                input.Name,
+                input.Dosage,
+                input.Form,
+                input.Frequency,
+                input.Instructions,
+                input.StartDate,
+                input.DurationDays,
+                input.TotalPills,
+                input.PillsPerDose);
 
             if (!ok)
                 return Json(new { success = false, message = "Medication not found or access denied." });
@@ -321,8 +323,11 @@ namespace Graduation_Project.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> LogDose([FromBody] LogDoseRequest request)
+        public async Task<IActionResult> LogDose([FromBody] LogDoseRequest? request)
         {
+            if (request == null)
+                return Json(new { success = false, message = "Could not read the dose details. Please try again." });
+
             var (patient, failure) = AuthorizePatientAccess(request.PatientId, true);
             if (failure != null)
                 return failure;
@@ -349,8 +354,11 @@ namespace Graduation_Project.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult SaveGlobalLeadTime([FromBody] ReminderSettingRequest request)
+        public IActionResult SaveGlobalLeadTime([FromBody] ReminderSettingRequest? request)
         {
+            if (request == null)
+                return Json(new { success = false, message = "Enter a reminder lead time in minutes." });
+
             var (_, failure) = AuthorizePatientAccess(request.PatientId, true);
             if (failure != null)
                 return failure;
@@ -366,8 +374,11 @@ namespace Graduation_Project.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult SaveMedicationLeadTime([FromBody] MedicationReminderRequest request)
+        public IActionResult SaveMedicationLeadTime([FromBody] MedicationReminderRequest? request)
         {
+            if (request == null)
+                return Json(new { success = false, message = "Enter a reminder lead time in minutes, or leave it blank to use the global setting." });
+
             var (_, failure) = AuthorizePatientAccess(request.PatientId, true);
             if (failure != null)
                 return failure;
@@ -382,8 +393,11 @@ namespace Graduation_Project.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult DeleteMedication([FromBody] DeleteMedicationRequest request)
+        public IActionResult DeleteMedication([FromBody] DeleteMedicationRequest? request)
         {
+            if (request == null)
+                return Json(new { success = false, message = "Could not read the request. Please try again." });
+
             var (_, failure) = AuthorizePatientAccess(request.PatientId, true);
             if (failure != null)
                 return failure;
@@ -396,6 +410,101 @@ namespace Graduation_Project.Controllers
         }
 
         // ── helpers ───────────────────────────────────────────────────────────
+
+        private record MedicationInput(
+            string Name,
+            string Dosage,
+            string? Form,
+            MedicationFrequencySpec Frequency,
+            string Instructions,
+            DateTime StartDate,
+            int? DurationDays,
+            int? TotalPills,
+            int? PillsPerDose);
+
+        /// <summary>
+        /// Validates the Add/Edit wizard payload. Only the name and a schedulable
+        /// frequency are required — every other field may legitimately be left blank
+        /// and is normalised to null rather than rejected.
+        /// </summary>
+        private static bool TryBuildMedicationInput(
+            MedicationFormRequest request,
+            out MedicationInput input,
+            out string error)
+        {
+            input = null!;
+            error = string.Empty;
+
+            var name = (request.Name ?? string.Empty).Trim();
+            if (name.Length == 0)
+            {
+                error = "Medication name is required.";
+                return false;
+            }
+            if (name.Length > 120)
+            {
+                error = "Medication name is too long (120 characters max).";
+                return false;
+            }
+
+            if (request.DurationDays is < 0)
+            {
+                error = "Duration cannot be negative.";
+                return false;
+            }
+            if (request.DurationDays is > 3650)
+            {
+                error = "Duration must be 3650 days or fewer.";
+                return false;
+            }
+            if (request.TotalPills is < 0)
+            {
+                error = "Total pills cannot be negative.";
+                return false;
+            }
+            if (request.PillsPerDose is < 1)
+            {
+                error = "Pills per dose must be at least 1.";
+                return false;
+            }
+
+            var times = new List<TimeSpan>();
+            foreach (var raw in request.Times ?? Enumerable.Empty<string>())
+            {
+                if (string.IsNullOrWhiteSpace(raw))
+                    continue;
+
+                if (!TimeSpan.TryParse(raw.Trim(), out var parsed) || parsed < TimeSpan.Zero || parsed >= TimeSpan.FromDays(1))
+                {
+                    error = $"\"{raw}\" is not a valid dose time.";
+                    return false;
+                }
+
+                times.Add(parsed);
+            }
+
+            var spec = MedicationFrequencies.Build(
+                request.FrequencyCode,
+                request.TimesPerDay,
+                request.IntervalDays,
+                times);
+
+            if (!string.IsNullOrWhiteSpace(request.FrequencyLabel))
+                spec.Label = request.FrequencyLabel.Trim();
+
+            input = new MedicationInput(
+                name,
+                (request.Dosage ?? string.Empty).Trim(),
+                string.IsNullOrWhiteSpace(request.Form) ? null : request.Form.Trim(),
+                spec,
+                (request.Instructions ?? string.Empty).Trim(),
+                request.StartDate?.Date ?? DateTime.Today,
+                request.DurationDays > 0 ? request.DurationDays : null,
+                request.TotalPills > 0 ? request.TotalPills : null,
+                request.PillsPerDose);
+
+            return true;
+        }
 
         private (Patient? patient, IActionResult? failure) AuthorizePatientAccess(int patientId, bool returnJsonOnFailure = false)
         {

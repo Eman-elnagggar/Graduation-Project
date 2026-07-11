@@ -1,3 +1,4 @@
+@using Graduation_Project.Models
 @model Graduation_Project.ViewModels.PatientMedicationAddViewModel
 @{
     Layout = "~/Views/Shared/_PatientLayout.cshtml";
@@ -102,22 +103,46 @@
             </div>
             <div class="pm-fg">
                 <label for="medPillsPerDose">Pills / Units Per Dose</label>
-                <input type="number" id="medPillsPerDose" class="pm-finput" min="1" placeholder="e.g. 1" />
+                <input type="number" id="medPillsPerDose" class="pm-finput" min="1" step="1" placeholder="e.g. 1" />
+                <div class="pm-fhint">Optional — leave blank if it doesn't apply.</div>
+                <div class="pm-ferror" data-error-for="medPillsPerDose"></div>
             </div>
             <div class="pm-fg pm-full">
-                <label>Frequency</label>
-                <div class="pm-freq-chips" id="freqChips">
-                    <button type="button" class="pm-fchip" data-freq="Once daily">Once daily</button>
-                    <button type="button" class="pm-fchip" data-freq="Twice daily">Twice daily</button>
-                    <button type="button" class="pm-fchip" data-freq="Three times daily">3× daily</button>
-                    <button type="button" class="pm-fchip" data-freq="Every 8 hours">Every 8 hrs</button>
-                    <button type="button" class="pm-fchip" data-freq="Every 12 hours">Every 12 hrs</button>
-                    <button type="button" class="pm-fchip" data-freq="Weekly">Weekly</button>
-                    <button type="button" class="pm-fchip" data-freq="Monthly">Monthly</button>
-                    <button type="button" class="pm-fchip" data-freq="custom">Custom…</button>
+                <label for="medFrequency">Frequency <span style="color:#ef4444;">*</span></label>
+                <select id="medFrequency" class="pm-fselect" data-frequency-select>
+                    @foreach (var group in MedicationFrequencies.All.GroupBy(o => o.Group))
+                    {
+                        <optgroup label="@group.Key">
+                            @foreach (var option in group)
+                            {
+                                <option value="@option.Code"
+                                        data-times-per-day="@option.TimesPerDay"
+                                        data-interval-days="@option.IntervalDays"
+                                        data-times="@string.Join(",", option.DefaultTimes.Select(t => t.ToString(@"hh\:mm")))"
+                                        data-label="@option.Label">
+                                    @option.Label
+                                </option>
+                            }
+                        </optgroup>
+                    }
+                </select>
+
+                @* Only shown for "Custom schedule…" *@
+                <div class="pm-freq-custom" id="freqCustom" hidden>
+                    <div class="pm-fg">
+                        <label for="freqTimesPerDay">Doses per day</label>
+                        <input type="number" id="freqTimesPerDay" class="pm-finput" min="1" max="@MedicationFrequencies.MaxTimesPerDay" step="1" value="1" />
+                    </div>
+                    <div class="pm-fg">
+                        <label for="freqIntervalDays">Repeat every (days)</label>
+                        <input type="number" id="freqIntervalDays" class="pm-finput" min="1" max="@MedicationFrequencies.MaxIntervalDays" step="1" value="1" />
+                        <div class="pm-fhint">1 = every day, 7 = once a week.</div>
+                    </div>
                 </div>
-                <input type="text" id="medFrequency" class="pm-finput" style="margin-top:10px;"
-                       placeholder="Selected frequency or type custom…" />
+
+                <div class="pm-freq-times" id="freqTimes" data-initial-times=""></div>
+                <div class="pm-freq-summary" id="freqSummary"></div>
+                <div class="pm-ferror" data-error-for="medFrequency"></div>
             </div>
         </div>
         <div class="pm-wiz-nav">
@@ -137,11 +162,15 @@
             </div>
             <div class="pm-fg">
                 <label for="medDuration">Duration (days)</label>
-                <input type="number" id="medDuration" class="pm-finput" min="0" placeholder="Leave blank for ongoing" />
+                <input type="number" id="medDuration" class="pm-finput" min="1" step="1" placeholder="Leave blank for ongoing" />
+                <div class="pm-fhint">Optional — blank means ongoing.</div>
+                <div class="pm-ferror" data-error-for="medDuration"></div>
             </div>
             <div class="pm-fg">
                 <label for="medTotalPills">Total Pills in Pack</label>
-                <input type="number" id="medTotalPills" class="pm-finput" min="0" placeholder="e.g. 30" />
+                <input type="number" id="medTotalPills" class="pm-finput" min="1" step="1" placeholder="e.g. 30" />
+                <div class="pm-fhint">Optional — used for refill warnings.</div>
+                <div class="pm-ferror" data-error-for="medTotalPills"></div>
             </div>
         </div>
         @* Auto-calculation display *@
@@ -196,6 +225,7 @@
                 <div class="pm-review-row"><span>Dosage</span>       <strong id="rv-dosage">—</strong></div>
                 <div class="pm-review-row"><span>Pills / Dose</span> <strong id="rv-pills">—</strong></div>
                 <div class="pm-review-row"><span>Frequency</span>    <strong id="rv-freq">—</strong></div>
+                <div class="pm-review-row"><span>Dose times</span>   <strong id="rv-times">—</strong></div>
                 <div class="pm-review-row"><span>Start Date</span>   <strong id="rv-start">—</strong></div>
                 <div class="pm-review-row"><span>Duration</span>     <strong id="rv-duration">—</strong></div>
                 <div class="pm-review-row"><span>Total Pills</span>  <strong id="rv-total-pills">—</strong></div>

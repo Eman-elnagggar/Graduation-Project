@@ -23,12 +23,16 @@ namespace Graduation_Project.Services
 
         public Medication CreateFromPrescription(PrescriptionItem item, DateTime prescriptionDate)
         {
+            // A prescription only carries free text, so infer a schedulable spec from it.
+            var spec = MedicationFrequencies.Parse(item.Frequency);
+            if (!string.IsNullOrWhiteSpace(item.Frequency))
+                spec.Label = item.Frequency.Trim();
+
             var medication = new Medication
             {
                 PatientID = item.Prescription.PatientID,
                 Name = item.MedicineName ?? string.Empty,
                 Dosage = item.Dosage ?? string.Empty,
-                Frequency = item.Frequency ?? string.Empty,
                 Instructions = item.Instructions ?? string.Empty,
                 StartDate = prescriptionDate.Date,
                 EndDate = item.DurationDays > 0 ? prescriptionDate.Date.AddDays(item.DurationDays) : null,
@@ -40,7 +44,7 @@ namespace Graduation_Project.Services
             _medicationRepository.Add(medication);
             _medicationRepository.Save();
 
-            EnsureDefaultSchedule(medication, item.Frequency);
+            ApplyFrequency(medication, spec);
             return medication;
         }
 
@@ -48,22 +52,27 @@ namespace Graduation_Project.Services
             int patientId,
             string name,
             string dosage,
-            string frequency,
+            string? form,
+            MedicationFrequencySpec frequency,
             string instructions,
             DateTime startDate,
-            int? durationDays)
+            int? durationDays,
+            int? totalPills,
+            int? pillsPerDose)
         {
             var medication = new Medication
             {
                 PatientID = patientId,
                 Name = name.Trim(),
                 Dosage = dosage.Trim(),
-                Frequency = frequency.Trim(),
+                Form = string.IsNullOrWhiteSpace(form) ? null : form.Trim(),
                 Instructions = instructions.Trim(),
                 StartDate = startDate.Date,
                 EndDate = durationDays.HasValue && durationDays.Value > 0
                     ? startDate.Date.AddDays(durationDays.Value)
                     : null,
+                TotalPills = totalPills,
+                PillsPerDose = pillsPerDose,
                 Source = MedicationSource.Self,
                 IsActive = true
             };
@@ -71,7 +80,7 @@ namespace Graduation_Project.Services
             _medicationRepository.Add(medication);
             _medicationRepository.Save();
 
-            EnsureDefaultSchedule(medication, frequency);
+            ApplyFrequency(medication, frequency);
             return medication;
         }
 
@@ -141,7 +150,8 @@ namespace Graduation_Project.Services
             int patientId,
             string name,
             string dosage,
-            string frequency,
+            string? form,
+            MedicationFrequencySpec frequency,
             string instructions,
             DateTime startDate,
             int? durationDays,
@@ -154,7 +164,7 @@ namespace Graduation_Project.Services
 
             medication.Name = name.Trim();
             medication.Dosage = dosage.Trim();
-            medication.Frequency = frequency.Trim();
+            medication.Form = string.IsNullOrWhiteSpace(form) ? null : form.Trim();
             medication.Instructions = instructions.Trim();
             medication.StartDate = startDate.Date;
             medication.EndDate = durationDays.HasValue && durationDays.Value > 0
@@ -163,15 +173,10 @@ namespace Graduation_Project.Services
             medication.TotalPills = totalPills;
             medication.PillsPerDose = pillsPerDose;
 
-            var existingSchedules = _scheduleRepository.GetByMedicationId(medicationId).ToList();
-            foreach (var s in existingSchedules)
-                _scheduleRepository.Delete(s.MedicationScheduleId);
-            _scheduleRepository.Save();
-
             _medicationRepository.Update(medication);
             _medicationRepository.Save();
 
-            EnsureDefaultSchedule(medication, frequency);
+            ApplyFrequency(medication, frequency);
             return true;
         }
 
@@ -187,39 +192,39 @@ namespace Graduation_Project.Services
             return true;
         }
 
-        private void EnsureDefaultSchedule(Medication medication, string? frequencyText)
+        /// <summary>
+        /// Writes the frequency onto the medication and rebuilds its dose schedule so
+        /// the stored times always match the chosen frequency exactly.
+        /// </summary>
+        public void ApplyFrequency(Medication medication, MedicationFrequencySpec spec)
         {
-            var normalized = (frequencyText ?? string.Empty).ToLowerInvariant();
-            var times = new List<TimeSpan>();
+            var times = spec.Times.OrderBy(t => t).ToList();
 
-            if (normalized.Contains("three") || normalized.Contains("3"))
-            {
-                times.Add(new TimeSpan(8, 0, 0));
-                times.Add(new TimeSpan(14, 0, 0));
-                times.Add(new TimeSpan(20, 0, 0));
-            }
-            else if (normalized.Contains("twice") || normalized.Contains("2"))
-            {
-                times.Add(new TimeSpan(9, 0, 0));
-                times.Add(new TimeSpan(21, 0, 0));
-            }
-            else
-            {
-                times.Add(new TimeSpan(9, 0, 0));
-            }
+            medication.FrequencyCode = spec.Code;
+            medication.Frequency = string.IsNullOrWhiteSpace(spec.Label)
+                ? MedicationFrequencies.Find(spec.Code)?.Label ?? "Custom schedule"
+                : spec.Label.Trim();
+            medication.TimesPerDay = times.Count;
+            medication.IntervalDays = Math.Max(spec.IntervalDays, 1);
 
-            var frequencyPerDay = Math.Max(times.Count, 1);
+            foreach (var existing in _scheduleRepository.GetByMedicationId(medication.MedicationId).ToList())
+                _scheduleRepository.Delete(existing.MedicationScheduleId);
+            _scheduleRepository.Save();
+
             foreach (var time in times)
             {
                 _scheduleRepository.Add(new MedicationSchedule
                 {
                     MedicationId = medication.MedicationId,
                     TimeOfDay = time,
-                    FrequencyPerDay = frequencyPerDay
+                    FrequencyPerDay = times.Count
                 });
             }
 
             _scheduleRepository.Save();
+
+            _medicationRepository.Update(medication);
+            _medicationRepository.Save();
         }
     }
 }
