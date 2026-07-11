@@ -1,0 +1,121 @@
+@model List<Graduation_Project.Models.AdminNotification>
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Notifications";
+    ViewData["ActivePage"] = "Notifications";
+    ViewData["PageTitle"] = "Notifications";
+    ViewData["PageSubtitle"] = "Platform events that need your attention";
+
+    var unread = Model.Count(n => !n.IsRead);
+}
+
+@section Styles {
+<style>
+.nf-head    { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; gap:12px; flex-wrap:wrap; }
+.nf-count   { font-size:0.85rem; color:var(--text-muted); }
+.nf-count strong { color:var(--text-primary); }
+.nf-markall { display:inline-flex; align-items:center; gap:6px; padding:8px 16px;
+              background:rgba(255,255,255,0.06); border:1px solid var(--border-color);
+              border-radius:8px; color:var(--text-secondary); font-size:0.82rem;
+              font-weight:600; cursor:pointer; transition:all 0.15s; }
+.nf-markall:hover:enabled { background:rgba(255,255,255,0.1); color:var(--text-primary); }
+.nf-markall:disabled      { opacity:0.45; cursor:not-allowed; }
+.nf-list    { background:var(--bg-card); border:1px solid var(--border-color); border-radius:16px; overflow:hidden; }
+.nf-row     { display:flex; align-items:flex-start; gap:14px; padding:16px 22px;
+              border-bottom:1px solid var(--border-color); transition:background 0.15s; }
+.nf-row:last-child { border-bottom:none; }
+.nf-row:hover      { background:rgba(255,255,255,0.03); }
+.nf-row.unread     { background:rgba(79,142,247,0.05); }
+.nf-title   { font-size:0.9rem; font-weight:600; color:var(--text-primary); }
+.nf-msg     { font-size:0.8rem; color:var(--text-muted); margin-top:3px; line-height:1.5; }
+.nf-meta    { font-size:0.72rem; color:var(--text-muted); margin-top:6px;
+              display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.nf-dot     { display:inline-block; width:6px; height:6px; border-radius:50%;
+              background:var(--admin-primary); margin-left:7px; vertical-align:middle; }
+.nf-actions { margin-left:auto; display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.nf-btn     { display:inline-flex; align-items:center; gap:6px; padding:6px 12px;
+              border-radius:8px; font-size:0.75rem; font-weight:600; cursor:pointer;
+              text-decoration:none; border:1px solid transparent; transition:all 0.15s; }
+.nf-btn.review { background:var(--admin-primary); color:#fff; border:none; }
+.nf-btn.review:hover { filter:brightness(1.1); }
+.nf-btn.read   { background:rgba(255,255,255,0.05); color:var(--text-secondary); border-color:var(--border-color); }
+.nf-btn.read:hover { background:rgba(255,255,255,0.1); color:var(--text-primary); }
+</style>
+}
+
+<div class="nf-head">
+    <div class="nf-count">
+        <strong>@Model.Count</strong> notification@(Model.Count == 1 ? "" : "s")
+        @if (unread > 0)
+        {
+            <text>· <strong>@unread</strong> unread</text>
+        }
+    </div>
+    <form method="post" action="/Admin/MarkAllNotificationsRead">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="returnUrl" value="/Admin/Notifications" />
+        <button type="submit" class="nf-markall" @(unread == 0 ? "disabled" : "")>
+            <i class="fas fa-check-double"></i> Mark all as read
+        </button>
+    </form>
+</div>
+
+@if (Model.Any())
+{
+    <div class="nf-list">
+        @foreach (var n in Model)
+        {
+            var t = (n.Severity ?? "info").ToLowerInvariant();
+            var iconClass = t == "danger" ? "fa-exclamation-circle" : t == "warning" ? "fa-exclamation-triangle" : t == "success" ? "fa-check-circle" : "fa-info-circle";
+            var colorClass = t == "danger" ? "danger" : t == "warning" ? "warning" : t == "success" ? "success" : "info";
+            <div class="nf-row @(n.IsRead ? "" : "unread")">
+                <div class="alert-ico-wrap @colorClass"><i class="fas @iconClass"></i></div>
+                <div style="min-width:0;">
+                    <div class="nf-title">
+                        @n.Title
+                        @if (!n.IsRead)
+                        {
+                            <span class="nf-dot"></span>
+                        }
+                    </div>
+                    <div class="nf-msg">@n.Message</div>
+                    <div class="nf-meta">
+                        <span><i class="fas fa-clock"></i> @n.DateCreated.ToString("MMM d, yyyy · h:mm tt")</span>
+                    </div>
+                </div>
+                <div class="nf-actions">
+                    @if (!string.IsNullOrWhiteSpace(n.ActionUrl))
+                    {
+                        <form method="post" action="/Admin/MarkNotificationRead">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@n.Id" />
+                            <button type="submit" class="nf-btn review">
+                                Review <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </form>
+                    }
+                    @if (!n.IsRead)
+                    {
+                        <form method="post" action="/Admin/MarkNotificationRead">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@n.Id" />
+                            <input type="hidden" name="returnUrl" value="/Admin/Notifications" />
+                            <button type="submit" class="nf-btn read" title="Mark as read">
+                                <i class="fas fa-check"></i>
+                            </button>
+                        </form>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="nf-list">
+        <div class="empty-state">
+            <i class="fas fa-check-circle"></i>
+            Nothing needs your attention right now.
+        </div>
+    </div>
+}

@@ -23,6 +23,7 @@ namespace Graduation_Project.Controllers
         private readonly IWebHostEnvironment _environment;
         private readonly IEmailService _emailService;
         private readonly IPatientNotificationService _patientNotifications;
+        private readonly IAdminNotificationService _adminNotifications;
 
         public AccountController(
             UserManager<ApplicationUser> userManager,
@@ -31,7 +32,8 @@ namespace Graduation_Project.Controllers
             AppDbContext context,
             IWebHostEnvironment environment,
             IEmailService emailService,
-            IPatientNotificationService patientNotifications)
+            IPatientNotificationService patientNotifications,
+            IAdminNotificationService adminNotifications)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -40,6 +42,7 @@ namespace Graduation_Project.Controllers
             _environment = environment;
             _emailService = emailService;
             _patientNotifications = patientNotifications;
+            _adminNotifications = adminNotifications;
         }
 
         private static string? NormalizeBabyGender(string? value)
@@ -433,6 +436,13 @@ namespace Graduation_Project.Controllers
             _context.Doctors.Add(doctor);
             await _context.SaveChangesAsync();
 
+            await _adminNotifications.NotifyAsync(
+                "New doctor awaiting verification",
+                $"Dr. {firstName} {lastName} registered as a {doctor.Specialization} and is waiting for their license to be reviewed.",
+                "doctor_registered",
+                $"/Admin/DoctorDetail/{doctor.DoctorID}",
+                severity: "warning");
+
             TempData["AuthSuccess"] = "Doctor account created. Please sign in.";
             await SendEmailConfirmationAsync(user);
             TempData["AuthSuccess"] = "Doctor account created. Please confirm your email to sign in.";
@@ -513,6 +523,13 @@ namespace Graduation_Project.Controllers
 
             _context.Assistants.Add(assistant);
             await _context.SaveChangesAsync();
+
+            await _adminNotifications.NotifyAsync(
+                "New assistant registered",
+                $"{firstName} {lastName} signed up as an assistant and is not attached to a clinic yet.",
+                "assistant_registered",
+                "/Admin/Clinics",
+                severity: "info");
 
             await _signInManager.SignInAsync(user, isPersistent: false);
             return await RedirectToRoleLandingAsync(user);

@@ -96,6 +96,7 @@ namespace Graduation_Project
             builder.Services.AddSingleton<IPushNotificationService, PushNotificationService>();
             builder.Services.AddScoped<IDoctorNotificationService, DoctorNotificationService>();
             builder.Services.AddScoped<IPatientNotificationService, PatientNotificationService>();
+            builder.Services.AddScoped<IAdminNotificationService, AdminNotificationService>();
 
 
 
@@ -150,6 +151,10 @@ var app = builder.Build();
             {
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
+                // Create/upgrade the database first — the raw DDL below and the seeder both
+                // need it to exist (on a brand-new machine it does not).
+                await db.Database.MigrateAsync();
+
                 // Ensure chat persistence table exists for real-time messaging.
                 await db.Database.ExecuteSqlRawAsync(@"
 IF OBJECT_ID(N'dbo.ChatMessages', N'U') IS NULL
@@ -193,7 +198,8 @@ BEGIN
         ON [dbo].[UserPushSubscriptions]([UserId]);
 END");
 
-                await DataSeeder.SeedAsync(db);
+                var chatCrypto = scope.ServiceProvider.GetRequiredService<IChatMessageCrypto>();
+                await DataSeeder.SeedAsync(db, chatCrypto);
             }
 
             // Configure the HTTP request pipeline.

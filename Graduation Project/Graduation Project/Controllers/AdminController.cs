@@ -79,19 +79,15 @@ namespace Graduation_Project.Controllers
                 monthLabels.Add(monthStart.ToString("MMM"));
             }
 
-            var recentAlerts = await _context.Alerts
-                .Include(a => a.Patient).ThenInclude(p => p.User)
-                .OrderByDescending(a => a.DateCreated)
+            // Admin-facing platform events only. Patient clinical alerts belong to the
+            // patient's own care team, not to the system administrator.
+            var recentNotifications = await _context.AdminNotifications
+                .OrderByDescending(n => n.DateCreated)
                 .Take(6)
-                .Select(a => new AdminAlertItem
-                {
-                    Title = a.Title,
-                    Message = a.Message,
-                    AlertType = a.AlertType,
-                    DateCreated = a.DateCreated,
-                    PatientName = a.Patient.User.FirstName + " " + a.Patient.User.LastName
-                })
                 .ToListAsync();
+
+            var unreadNotifications = await _context.AdminNotifications
+                .CountAsync(n => !n.IsRead);
 
             var recentActivity = BuildRecentActivity();
 
@@ -109,11 +105,71 @@ namespace Graduation_Project.Controllers
                 WeeklyAppointments = weeklyAppts,
                 MonthlyUserGrowth = monthlyGrowth,
                 MonthLabels = monthLabels,
-                RecentAlerts = recentAlerts,
+                RecentNotifications = recentNotifications,
+                UnreadNotifications = unreadNotifications,
                 RecentActivity = recentActivity
             };
 
             return View(vm);
+        }
+
+        // ─── Admin Notifications ──────────────────────────────────────────────
+
+        [HttpGet]
+        public async Task<IActionResult> Notifications()
+        {
+            ViewData["Title"] = "Notifications";
+            ViewData["ActivePage"] = "Notifications";
+            ViewData["AdminName"] = User.Identity?.Name ?? "Admin";
+
+            var notifications = await _context.AdminNotifications
+                .OrderByDescending(n => n.DateCreated)
+                .Take(100)
+                .ToListAsync();
+
+            return View(notifications);
+        }
+
+        // LocalRedirect throws on a non-local URL, so fall back instead of 500-ing on a crafted value.
+        private IActionResult RedirectLocalOr(string? url, string fallback = "/Admin/Notifications")
+            => LocalRedirect(!string.IsNullOrWhiteSpace(url) && Url.IsLocalUrl(url) ? url : fallback);
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MarkNotificationRead(int id, string? returnUrl)
+        {
+            var notification = await _context.AdminNotifications.FindAsync(id);
+            if (notification != null && !notification.IsRead)
+            {
+                notification.IsRead = true;
+                await _context.SaveChangesAsync();
+            }
+
+            // No explicit return target means the admin clicked "Review": take them to the event.
+            if (string.IsNullOrWhiteSpace(returnUrl))
+                return RedirectLocalOr(notification?.ActionUrl);
+
+            return RedirectLocalOr(returnUrl);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MarkAllNotificationsRead(string? returnUrl)
+        {
+            var unread = await _context.AdminNotifications
+                .Where(n => !n.IsRead)
+                .ToListAsync();
+
+            foreach (var n in unread)
+                n.IsRead = true;
+
+            await _context.SaveChangesAsync();
+
+            TempData["AdminSuccess"] = unread.Count == 0
+                ? "No unread notifications."
+                : $"{unread.Count} notification(s) marked as read.";
+
+            return RedirectLocalOr(returnUrl);
         }
 
         // ─── User Management ──────────────────────────────────────────────────
@@ -923,6 +979,347 @@ namespace Graduation_Project.Controllers
 
             TempData["AdminSuccess"] = $"Clinic \"{clinic.Name}\" has been deleted.";
             return RedirectToAction(nameof(Clinics));
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ClinicDetail(int id)
+        {
+            ViewData["Title"] = "Clinic Details";
+            ViewData["ActivePage"] = "Clinics";
+            ViewData["AdminName"] = User.Identity?.Name ?? "Admin";
+
+            var clinic = await _context.Clinics
+                .Include(c => c.Owner).ThenInclude(o => o.User)
+                .Include(c => c.ClinicDoctors).ThenInclude(cd => cd.Doctor).ThenInclude(d => d.User)
+                .Include(c => c.Assistants).ThenInclude(a => a.User)
+                .Include(c => c.Assistants).ThenInclude(a => a.AssistantDoctors).ThenInclude(ad => ad.Doctor).ThenInclude(d => d.User)
+                .FirstOrDefaultAsync(c => c.ClinicID == id);
+
+            if (clinic == null)
+            {
+                TempData["AdminError"] = "Clinic not found.";
+                return RedirectToAction(nameof(Clinics));
+            }
+
+            var appointments = await _context.Appointments
+                .Where(a => a.ClinicID == id)
+                .Include(a => a.Doctor).ThenInclude(d => d.User)
+                .Include(a => a.Patient).ThenInclude(p => p.User)
+                .ToListAsync();
+
+            var memberDoctorIds = clinic.ClinicDoctors?.Select(cd => cd.DoctorID).ToList() ?? new List<int>();
+
+            // Patients are derived from booked appointments held at this clinic.
+            var patientRows = appointments
+                .Where(a => a.isBooked && a.Patient != null)
+                .GroupBy(a => a.Patient!.PatientID)
+                .Select(g =>
+                {
+                    var latest = g.OrderByDescending(a => a.Date).ThenByDescending(a => a.Time).First();
+                    return new AdminClinicPatientRow
+                    {
+                        PatientId = g.Key,
+                        FullName = $"{latest.Patient?.User?.FirstName} {latest.Patient?.User?.LastName}".Trim(),
+                        Email = latest.Patient?.User?.Email ?? "",
+                        DoctorName = latest.Doctor?.User != null
+                            ? $"Dr. {latest.Doctor.User.FirstName} {latest.Doctor.User.LastName}".Trim()
+                            : "",
+                        VisitCount = g.Count(),
+                        LastVisit = latest.Date
+                    };
+                })
+                .OrderByDescending(p => p.LastVisit)
+                .ToList();
+
+            var doctorRows = (clinic.ClinicDoctors ?? new List<ClinicDoctor>())
+                .Where(cd => cd.Doctor != null)
+                .Select(cd => new AdminClinicDoctorRow
+                {
+                    DoctorId = cd.DoctorID,
+                    FullName = $"{cd.Doctor.User?.FirstName} {cd.Doctor.User?.LastName}".Trim(),
+                    Email = cd.Doctor.User?.Email ?? "",
+                    Specialization = cd.Doctor.Specialization ?? "",
+                    VerificationStatus = cd.Doctor.VerificationStatus ?? "Pending",
+                    IsBanned = cd.Doctor.User?.IsBanned ?? false,
+                    IsOwner = clinic.OwnerDoctorID == cd.DoctorID,
+                    AppointmentCount = appointments.Count(a => a.DoctorID == cd.DoctorID),
+                    PatientCount = appointments
+                        .Where(a => a.DoctorID == cd.DoctorID && a.isBooked && a.PatientID != null)
+                        .Select(a => a.PatientID)
+                        .Distinct()
+                        .Count()
+                })
+                .OrderByDescending(d => d.IsOwner)
+                .ThenBy(d => d.FullName)
+                .ToList();
+
+            var assistantRows = (clinic.Assistants ?? new List<Assistant>())
+                .Select(a => new AdminClinicAssistantRow
+                {
+                    AssistantId = a.AssistantID,
+                    FullName = $"{a.User?.FirstName} {a.User?.LastName}".Trim(),
+                    Email = a.User?.Email ?? "",
+                    PhoneNumber = a.User?.PhoneNumber ?? "",
+                    IsBanned = a.User?.IsBanned ?? false,
+                    DoctorNames = a.AssistantDoctors?
+                        .Select(ad => $"Dr. {ad.Doctor?.User?.FirstName} {ad.Doctor?.User?.LastName}".Trim())
+                        .Where(n => n != "Dr.")
+                        .ToList() ?? new()
+                })
+                .OrderBy(a => a.FullName)
+                .ToList();
+
+            // Verified doctors not already in this clinic. Seeded doctors carry "Verified" while
+            // the verification screen writes "Approved" — both mean the same thing here.
+            var availableDoctors = await _context.Doctors
+                .Include(d => d.User)
+                .Where(d => !memberDoctorIds.Contains(d.DoctorID)
+                            && (d.VerificationStatus == "Approved" || d.VerificationStatus == "Verified"))
+                .ToListAsync();
+
+            // Assistants who are unassigned, plus those at another clinic so they can be transferred.
+            var availableAssistants = await _context.Assistants
+                .Include(a => a.User)
+                .Include(a => a.Clinic)
+                .Where(a => a.ClinicID != id)
+                .ToListAsync();
+
+            var today = DateTime.Today;
+
+            var vm = new AdminClinicDetailViewModel
+            {
+                ClinicID = clinic.ClinicID,
+                Name = clinic.Name ?? "",
+                Location = clinic.Location ?? "",
+                OwnerDoctorID = clinic.OwnerDoctorID,
+                OwnerName = clinic.Owner?.User != null
+                    ? $"Dr. {clinic.Owner.User.FirstName} {clinic.Owner.User.LastName}".Trim()
+                    : "",
+                TotalDoctors = doctorRows.Count,
+                TotalAssistants = assistantRows.Count,
+                TotalPatients = patientRows.Count,
+                TotalAppointments = appointments.Count,
+                BookedAppointments = appointments.Count(a => a.isBooked),
+                UpcomingAppointments = appointments.Count(a => a.isBooked && a.Date.Date >= today),
+                Doctors = doctorRows,
+                Assistants = assistantRows,
+                Patients = patientRows,
+                RecentAppointments = appointments
+                    .OrderByDescending(a => a.Date).ThenByDescending(a => a.Time)
+                    .Take(15)
+                    .Select(a => new AdminClinicAppointmentRow
+                    {
+                        AppointmentId = a.AppointmentID,
+                        DoctorName = a.Doctor?.User != null
+                            ? $"Dr. {a.Doctor.User.FirstName} {a.Doctor.User.LastName}".Trim()
+                            : "",
+                        PatientName = a.Patient?.User != null
+                            ? $"{a.Patient.User.FirstName} {a.Patient.User.LastName}".Trim()
+                            : "",
+                        Date = a.Date,
+                        Time = a.Time,
+                        IsBooked = a.isBooked
+                    }).ToList(),
+                AvailableDoctors = availableDoctors
+                    .Select(d => new AdminClinicPickerOption
+                    {
+                        Id = d.DoctorID,
+                        Label = $"Dr. {d.User?.FirstName} {d.User?.LastName}".Trim(),
+                        SubLabel = d.Specialization ?? ""
+                    })
+                    .OrderBy(d => d.Label)
+                    .ToList(),
+                AvailableAssistants = availableAssistants
+                    .Select(a => new AdminClinicPickerOption
+                    {
+                        Id = a.AssistantID,
+                        Label = $"{a.User?.FirstName} {a.User?.LastName}".Trim(),
+                        SubLabel = a.Clinic != null
+                            ? $"currently at {a.Clinic.Name}"
+                            : "unassigned"
+                    })
+                    .OrderBy(a => a.Label)
+                    .ToList()
+            };
+
+            return View(vm);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddDoctorToClinic(int clinicId, int doctorId)
+        {
+            var clinic = await _context.Clinics.FindAsync(clinicId);
+            var doctor = await _context.Doctors.Include(d => d.User).FirstOrDefaultAsync(d => d.DoctorID == doctorId);
+
+            if (clinic == null || doctor == null)
+            {
+                TempData["AdminError"] = "Doctor or clinic not found.";
+                return RedirectToAction(nameof(ClinicDetail), new { id = clinicId });
+            }
+
+            var exists = await _context.ClinicDoctors
+                .AnyAsync(cd => cd.ClinicID == clinicId && cd.DoctorID == doctorId);
+
+            if (exists)
+            {
+                TempData["AdminError"] = "That doctor is already assigned to this clinic.";
+                return RedirectToAction(nameof(ClinicDetail), new { id = clinicId });
+            }
+
+            _context.ClinicDoctors.Add(new ClinicDoctor { ClinicID = clinicId, DoctorID = doctorId });
+            await _context.SaveChangesAsync();
+
+            var name = $"Dr. {doctor.User?.FirstName} {doctor.User?.LastName}".Trim();
+            TempData["AdminSuccess"] = $"{name} has been added to {clinic.Name}.";
+            return RedirectToAction(nameof(ClinicDetail), new { id = clinicId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RemoveDoctorFromClinic(int clinicId, int doctorId)
+        {
+            var clinic = await _context.Clinics.FindAsync(clinicId);
+            if (clinic == null)
+            {
+                TempData["AdminError"] = "Clinic not found.";
+                return RedirectToAction(nameof(Clinics));
+            }
+
+            if (clinic.OwnerDoctorID == doctorId)
+            {
+                TempData["AdminError"] = "This doctor owns the clinic. Transfer ownership to another doctor before removing them.";
+                return RedirectToAction(nameof(ClinicDetail), new { id = clinicId });
+            }
+
+            var link = await _context.ClinicDoctors
+                .Include(cd => cd.Doctor).ThenInclude(d => d.User)
+                .FirstOrDefaultAsync(cd => cd.ClinicID == clinicId && cd.DoctorID == doctorId);
+
+            if (link == null)
+            {
+                TempData["AdminError"] = "That doctor is not assigned to this clinic.";
+                return RedirectToAction(nameof(ClinicDetail), new { id = clinicId });
+            }
+
+            var upcoming = await _context.Appointments
+                .CountAsync(a => a.ClinicID == clinicId && a.DoctorID == doctorId
+                                 && a.isBooked && a.Date >= DateTime.Today);
+
+            if (upcoming > 0)
+            {
+                TempData["AdminError"] = $"Cannot remove this doctor — they still have {upcoming} upcoming booked appointment(s) at this clinic. Cancel or reassign them first.";
+                return RedirectToAction(nameof(ClinicDetail), new { id = clinicId });
+            }
+
+            var name = $"Dr. {link.Doctor?.User?.FirstName} {link.Doctor?.User?.LastName}".Trim();
+
+            // Assistants at this clinic should no longer be linked to a doctor who left it.
+            var clinicAssistantIds = await _context.Assistants
+                .Where(a => a.ClinicID == clinicId)
+                .Select(a => a.AssistantID)
+                .ToListAsync();
+
+            var staleLinks = _context.AssistantDoctors
+                .Where(ad => ad.DoctorID == doctorId && clinicAssistantIds.Contains(ad.AssistantID));
+            _context.AssistantDoctors.RemoveRange(staleLinks);
+
+            _context.ClinicDoctors.Remove(link);
+            await _context.SaveChangesAsync();
+
+            TempData["AdminSuccess"] = $"{name} has been removed from {clinic.Name}.";
+            return RedirectToAction(nameof(ClinicDetail), new { id = clinicId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddAssistantToClinic(int clinicId, int assistantId)
+        {
+            var clinic = await _context.Clinics.FindAsync(clinicId);
+            var assistant = await _context.Assistants
+                .Include(a => a.User)
+                .FirstOrDefaultAsync(a => a.AssistantID == assistantId);
+
+            if (clinic == null || assistant == null)
+            {
+                TempData["AdminError"] = "Assistant or clinic not found.";
+                return RedirectToAction(nameof(ClinicDetail), new { id = clinicId });
+            }
+
+            if (assistant.ClinicID == clinicId)
+            {
+                TempData["AdminError"] = "That assistant already works at this clinic.";
+                return RedirectToAction(nameof(ClinicDetail), new { id = clinicId });
+            }
+
+            // Moving clinics: their doctor links belong to the clinic they are leaving.
+            if (assistant.ClinicID != null)
+            {
+                var oldLinks = _context.AssistantDoctors.Where(ad => ad.AssistantID == assistantId);
+                _context.AssistantDoctors.RemoveRange(oldLinks);
+            }
+
+            assistant.ClinicID = clinicId;
+            await _context.SaveChangesAsync();
+
+            var name = $"{assistant.User?.FirstName} {assistant.User?.LastName}".Trim();
+            TempData["AdminSuccess"] = $"{name} has been added to {clinic.Name}.";
+            return RedirectToAction(nameof(ClinicDetail), new { id = clinicId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RemoveAssistantFromClinic(int clinicId, int assistantId)
+        {
+            var assistant = await _context.Assistants
+                .Include(a => a.User)
+                .FirstOrDefaultAsync(a => a.AssistantID == assistantId && a.ClinicID == clinicId);
+
+            if (assistant == null)
+            {
+                TempData["AdminError"] = "That assistant is not assigned to this clinic.";
+                return RedirectToAction(nameof(ClinicDetail), new { id = clinicId });
+            }
+
+            // Their doctor links belong to this clinic, so they go with the assignment.
+            var doctorLinks = _context.AssistantDoctors.Where(ad => ad.AssistantID == assistantId);
+            _context.AssistantDoctors.RemoveRange(doctorLinks);
+
+            assistant.ClinicID = null;
+            await _context.SaveChangesAsync();
+
+            var name = $"{assistant.User?.FirstName} {assistant.User?.LastName}".Trim();
+            TempData["AdminSuccess"] = $"{name} has been removed from the clinic.";
+            return RedirectToAction(nameof(ClinicDetail), new { id = clinicId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SetClinicOwner(int clinicId, int doctorId)
+        {
+            var clinic = await _context.Clinics.FindAsync(clinicId);
+            if (clinic == null)
+            {
+                TempData["AdminError"] = "Clinic not found.";
+                return RedirectToAction(nameof(Clinics));
+            }
+
+            var link = await _context.ClinicDoctors
+                .Include(cd => cd.Doctor).ThenInclude(d => d.User)
+                .FirstOrDefaultAsync(cd => cd.ClinicID == clinicId && cd.DoctorID == doctorId);
+
+            if (link == null)
+            {
+                TempData["AdminError"] = "Only a doctor assigned to this clinic can own it.";
+                return RedirectToAction(nameof(ClinicDetail), new { id = clinicId });
+            }
+
+            clinic.OwnerDoctorID = doctorId;
+            await _context.SaveChangesAsync();
+
+            var name = $"Dr. {link.Doctor?.User?.FirstName} {link.Doctor?.User?.LastName}".Trim();
+            TempData["AdminSuccess"] = $"{name} is now the owner of {clinic.Name}.";
+            return RedirectToAction(nameof(ClinicDetail), new { id = clinicId });
         }
 
         // ─── Analytics ────────────────────────────────────────────────────────

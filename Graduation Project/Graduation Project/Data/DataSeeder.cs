@@ -1,874 +1,2015 @@
 using Graduation_Project.Models;
+using Graduation_Project.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Graduation_Project.Data
 {
+    /// <summary>
+    /// Seeds a complete, demo-ready NABD database covering every role and feature.
+    ///
+    /// Two kinds of data are seeded:
+    ///
+    ///  • One-time data (users, clinics, patients, labs, prescriptions, community, …)
+    ///    is written only when its table is empty, so restarting the app never duplicates it.
+    ///
+    ///  • Rolling data (appointments + bookings, medication logs) is regenerated around
+    ///    <see cref="DateTime.Today"/> whenever the existing window has gone stale. This is
+    ///    what makes the app testable on any day without hand-creating appointments: there
+    ///    are always past, today and upcoming appointments, plus free slots to book into.
+    ///
+    /// All seeded accounts use the password <c>Nabd@123</c>.
+    /// </summary>
     public static class DataSeeder
     {
-        public static async Task SeedAsync(AppDbContext context)
+        private const string SeedPassword = "Nabd@123";
+
+        /// <summary>Every slot a doctor offers on a given day. Unbooked ones are bookable by patients.</summary>
+        private static readonly TimeSpan[] SlotTimes =
         {
-            // Apply any pending migrations automatically
+            new(9, 0, 0),  new(9, 30, 0),  new(10, 0, 0), new(10, 30, 0),
+            new(11, 0, 0), new(11, 30, 0), new(12, 0, 0),
+            new(14, 0, 0), new(14, 30, 0), new(15, 0, 0), new(15, 30, 0), new(16, 0, 0)
+        };
+
+        private const int PastWindowDays = 14;
+        private const int FutureWindowDays = 14;
+
+        public static async Task SeedAsync(AppDbContext context, IChatMessageCrypto? chatCrypto = null)
+        {
             await context.Database.MigrateAsync();
 
-            // One-time cleanup: rows that used to be stored as Alerts but are now
-            // PatientNotifications (reminders / status / operational). These linger in
-            // the Alerts table on databases created before the alert/notification split,
-            // so they would otherwise still show on the clinical Alerts page.
-            // (Appointment reminders intentionally remain on the Alerts page.)
-            await context.Alerts
-                .Where(a => a.Title == "Medication Reminder"
-                            || a.Title == "Ultrasound Analysis Ready"
-                            || a.Category == "Operational")
-                .ExecuteDeleteAsync();
+            var cast = new Cast();
 
-            // ============================================================
-            // 1. ROLES (Identity)
-            // ============================================================
-            if (!context.Roles.Any())
+            await SeedRolesAsync(context);
+            await SeedUsersAsync(context, cast);
+            await SeedUserRolesAsync(context, cast);
+            await SeedDoctorsAsync(context, cast);
+            await SeedClinicsAsync(context, cast);
+            await SeedAssistantsAsync(context, cast);
+            await SeedPatientsAsync(context, cast);
+            await SeedPregnancyRecordsAsync(context, cast);
+            await SeedPatientDoctorsAsync(context, cast);
+            await SeedAIModelsAsync(context, cast);
+            await SeedTestReportsAndLabTestsAsync(context, cast);
+            await SeedUltrasoundImagesAsync(context, cast);
+            await SeedPrescriptionsAsync(context, cast);
+            await SeedMedicationsAsync(context, cast);
+            await SeedPatientDrugsAsync(context, cast);
+            await SeedVitalsAsync(context, cast);
+            await SeedMedicalHistoryAsync(context, cast);
+            await SeedNotesAsync(context, cast);
+            await SeedAlertsAsync(context, cast);
+            await SeedNotificationsAsync(context, cast);
+            await SeedPlacesAsync(context, cast);
+            await SeedCommunityAsync(context, cast);
+            await SeedChatMessagesAsync(context, cast, chatCrypto);
+            await SeedChatbotMessagesAsync(context, cast);
+            await SeedInvitationsAsync(context, cast);
+
+            // Rolling — always kept around today.
+            await SeedAppointmentWindowAsync(context, cast);
+            await SeedMedicationLogsAsync(context);
+        }
+
+        // ============================================================
+        // 1. ROLES
+        // ============================================================
+        private static async Task SeedRolesAsync(AppDbContext context)
+        {
+            if (context.Roles.Any())
+                return;
+
+            context.Roles.AddRange(
+                new IdentityRole { Name = "Admin", NormalizedName = "ADMIN" },
+                new IdentityRole { Name = "Doctor", NormalizedName = "DOCTOR" },
+                new IdentityRole { Name = "Patient", NormalizedName = "PATIENT" },
+                new IdentityRole { Name = "Assistant", NormalizedName = "ASSISTANT" },
+                new IdentityRole { Name = "Lab", NormalizedName = "LAB" }
+            );
+            await context.SaveChangesAsync();
+        }
+
+        // ============================================================
+        // 2. USERS
+        // ============================================================
+        // Seeded row-by-row rather than all-or-nothing, so a database that was seeded by an
+        // older version of this file still gains any accounts it is missing (and the lookups
+        // below can never come up empty).
+        private static async Task SeedUsersAsync(AppDbContext context, Cast cast)
+        {
+            var hasher = new PasswordHasher<ApplicationUser>();
+            var hash = hasher.HashPassword(new ApplicationUser(), SeedPassword);
+
+            foreach (var (_, first, last, email, phone, dob) in UserDefinitions)
             {
-                context.Roles.AddRange(
-                    new IdentityRole { Name = "Admin",     NormalizedName = "ADMIN" },
-                    new IdentityRole { Name = "Doctor",    NormalizedName = "DOCTOR" },
-                    new IdentityRole { Name = "Patient",   NormalizedName = "PATIENT" },
-                    new IdentityRole { Name = "Assistant", NormalizedName = "ASSISTANT" },
-                    new IdentityRole { Name = "Lab",       NormalizedName = "LAB" }
-                );
-                await context.SaveChangesAsync();
+                if (context.Users.Any(u => u.Email == email))
+                    continue;
+
+                context.Users.Add(new ApplicationUser
+                {
+                    FirstName = first,
+                    LastName = last,
+                    UserName = email,
+                    NormalizedUserName = email.ToUpperInvariant(),
+                    Email = email,
+                    NormalizedEmail = email.ToUpperInvariant(),
+                    EmailConfirmed = true,
+                    PasswordHash = hash,
+                    SecurityStamp = Guid.NewGuid().ToString("N"),
+                    ConcurrencyStamp = Guid.NewGuid().ToString(),
+                    PhoneNumber = phone,
+                    DateOfBirth = dob,
+                    IsActive = true,
+                    IsBanned = false,
+                    CreatedDate = DateTime.Today.AddDays(-240),
+                    LockoutEnabled = true
+                });
             }
 
-            var roleDoctor = context.Roles.First(r => r.Name == "Doctor");
-            var rolePatient = context.Roles.First(r => r.Name == "Patient");
-            var roleAssistant = context.Roles.First(r => r.Name == "Assistant");
+            await context.SaveChangesAsync();
 
-            // ============================================================
-            // 2. USERS (Identity)
-            // ============================================================
-            if (!context.Users.Any())
+            foreach (var (key, _, _, email, _, _) in UserDefinitions)
             {
-                const string seedPassword = "Nabd@123";
-                var passwordHasher = new PasswordHasher<ApplicationUser>();
-                var passwordHash = passwordHasher.HashPassword(new ApplicationUser(), seedPassword);
+                var user = context.Users.FirstOrDefault(u => u.Email == email);
+                if (user != null)
+                    cast.Users[key] = user;
+            }
+        }
 
-                context.Users.AddRange(
-                    // Doctors
-                    new ApplicationUser { FirstName = "Ahmed",   LastName = "Hassan",  UserName = "ahmed.hassan@nabd.com",  NormalizedUserName = "AHMED.HASSAN@NABD.COM",  Email = "ahmed.hassan@nabd.com",  NormalizedEmail = "AHMED.HASSAN@NABD.COM",  EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01001234567", DateOfBirth = new DateTime(1975, 3, 12),  IsActive = true, CreatedDate = new DateTime(2024, 1, 1) },
-                    new ApplicationUser { FirstName = "Mona",    LastName = "Ibrahim", UserName = "mona.ibrahim@nabd.com",   NormalizedUserName = "MONA.IBRAHIM@NABD.COM",   Email = "mona.ibrahim@nabd.com",   NormalizedEmail = "MONA.IBRAHIM@NABD.COM",   EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01009876543", DateOfBirth = new DateTime(1980, 7, 22),  IsActive = true, CreatedDate = new DateTime(2024, 1, 2) },
-                    new ApplicationUser { FirstName = "Karim",   LastName = "Mostafa", UserName = "karim.mostafa@nabd.com",  NormalizedUserName = "KARIM.MOSTAFA@NABD.COM",  Email = "karim.mostafa@nabd.com",  NormalizedEmail = "KARIM.MOSTAFA@NABD.COM",  EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01112233445", DateOfBirth = new DateTime(1978, 11, 5),  IsActive = true, CreatedDate = new DateTime(2024, 1, 3) },
-                    new ApplicationUser { FirstName = "Nadia",   LastName = "Salem",   UserName = "nadia.salem@nabd.com",    NormalizedUserName = "NADIA.SALEM@NABD.COM",    Email = "nadia.salem@nabd.com",    NormalizedEmail = "NADIA.SALEM@NABD.COM",    EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01223344556", DateOfBirth = new DateTime(1982, 4, 18),  IsActive = true, CreatedDate = new DateTime(2024, 1, 4) },
-                    new ApplicationUser { FirstName = "Omar",    LastName = "Fathy",   UserName = "omar.fathy@nabd.com",     NormalizedUserName = "OMAR.FATHY@NABD.COM",     Email = "omar.fathy@nabd.com",     NormalizedEmail = "OMAR.FATHY@NABD.COM",     EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01334455667", DateOfBirth = new DateTime(1976, 9, 30),  IsActive = true, CreatedDate = new DateTime(2024, 1, 5) },
-                    // Patients
-                    new ApplicationUser { FirstName = "Sarah",   LastName = "Ahmed",   UserName = "sarah.ahmed@nabd.com",       NormalizedUserName = "SARAH.AHMED@NABD.COM",       Email = "sarah.ahmed@nabd.com",       NormalizedEmail = "SARAH.AHMED@NABD.COM",       EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01501234567", DateOfBirth = new DateTime(1995, 6, 14),  IsActive = true, CreatedDate = new DateTime(2024, 2, 1) },
-                    new ApplicationUser { FirstName = "Fatima",  LastName = "Ali",     UserName = "fatima.ali@nabd.com",        NormalizedUserName = "FATIMA.ALI@NABD.COM",        Email = "fatima.ali@nabd.com",        NormalizedEmail = "FATIMA.ALI@NABD.COM",        EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01509876543", DateOfBirth = new DateTime(1993, 8, 25),  IsActive = true, CreatedDate = new DateTime(2024, 2, 5) },
-                    new ApplicationUser { FirstName = "Yasmine", LastName = "Mahmoud", UserName = "yasmine.mahmoud@nabd.com",   NormalizedUserName = "YASMINE.MAHMOUD@NABD.COM",   Email = "yasmine.mahmoud@nabd.com",   NormalizedEmail = "YASMINE.MAHMOUD@NABD.COM",   EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01512233445", DateOfBirth = new DateTime(1997, 2, 10),  IsActive = true, CreatedDate = new DateTime(2024, 2, 10) },
-                    new ApplicationUser { FirstName = "Hana",    LastName = "Khaled",  UserName = "hana.khaled@nabd.com",       NormalizedUserName = "HANA.KHALED@NABD.COM",       Email = "hana.khaled@nabd.com",       NormalizedEmail = "HANA.KHALED@NABD.COM",       EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01523344556", DateOfBirth = new DateTime(1991, 12, 3),  IsActive = true, CreatedDate = new DateTime(2024, 2, 15) },
-                    new ApplicationUser { FirstName = "Reem",    LastName = "Nasser",  UserName = "reem.nasser@nabd.com",       NormalizedUserName = "REEM.NASSER@NABD.COM",       Email = "reem.nasser@nabd.com",       NormalizedEmail = "REEM.NASSER@NABD.COM",       EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01534455667", DateOfBirth = new DateTime(1996, 5, 20),  IsActive = true, CreatedDate = new DateTime(2024, 2, 20) },
-                    // Assistants
-                    new ApplicationUser { FirstName = "Layla",   LastName = "Omar",    UserName = "layla.omar@nabd.com",     NormalizedUserName = "LAYLA.OMAR@NABD.COM",     Email = "layla.omar@nabd.com",     NormalizedEmail = "LAYLA.OMAR@NABD.COM",     EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01601234567", DateOfBirth = new DateTime(1990, 1, 8),   IsActive = true, CreatedDate = new DateTime(2024, 1, 10) },
-                    new ApplicationUser { FirstName = "Dina",    LastName = "Samir",   UserName = "dina.samir@nabd.com",     NormalizedUserName = "DINA.SAMIR@NABD.COM",     Email = "dina.samir@nabd.com",     NormalizedEmail = "DINA.SAMIR@NABD.COM",     EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01609876543", DateOfBirth = new DateTime(1992, 3, 17),  IsActive = true, CreatedDate = new DateTime(2024, 1, 11) },
-                    new ApplicationUser { FirstName = "Noura",   LastName = "Youssef", UserName = "noura.youssef@nabd.com",  NormalizedUserName = "NOURA.YOUSSEF@NABD.COM",  Email = "noura.youssef@nabd.com",  NormalizedEmail = "NOURA.YOUSSEF@NABD.COM",  EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01612233445", DateOfBirth = new DateTime(1988, 7, 29),  IsActive = true, CreatedDate = new DateTime(2024, 1, 12) },
-                    new ApplicationUser { FirstName = "Amira",   LastName = "Tarek",   UserName = "amira.tarek@nabd.com",    NormalizedUserName = "AMIRA.TAREK@NABD.COM",    Email = "amira.tarek@nabd.com",    NormalizedEmail = "AMIRA.TAREK@NABD.COM",    EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01622334456", DateOfBirth = new DateTime(1991, 5, 14),  IsActive = true, CreatedDate = new DateTime(2024, 1, 13) },
-                    new ApplicationUser { FirstName = "Heba",    LastName = "Adel",    UserName = "heba.adel@nabd.com",      NormalizedUserName = "HEBA.ADEL@NABD.COM",      Email = "heba.adel@nabd.com",      NormalizedEmail = "HEBA.ADEL@NABD.COM",      EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01632445567", DateOfBirth = new DateTime(1994, 10, 2),  IsActive = true, CreatedDate = new DateTime(2024, 1, 14) },
-                    // Admin
-                    new ApplicationUser { FirstName = "System",  LastName = "Admin",   UserName = "admin@nabd.com",           NormalizedUserName = "ADMIN@NABD.COM",           Email = "admin@nabd.com",           NormalizedEmail = "ADMIN@NABD.COM",           EmailConfirmed = true, PasswordHash = passwordHash, PhoneNumber = "01000000000", DateOfBirth = new DateTime(1990, 1, 1),   IsActive = true, CreatedDate = new DateTime(2024, 1, 1)  }
-                );
-                await context.SaveChangesAsync();
+        /// <summary>key, first, last, email, phone, date of birth.</summary>
+        private static readonly (string Key, string First, string Last, string Email, string Phone, DateTime Dob)[] UserDefinitions =
+        {
+            // Admin + Lab
+            ("admin", "System",  "Admin",   "admin@nabd.com",            "01000000000", new DateTime(1990, 1, 1)),
+            ("lab",   "Central", "Lab",     "lab@nabd.com",              "01000000001", new DateTime(1989, 5, 9)),
+            // Doctors
+            ("ahmed", "Ahmed",   "Hassan",  "ahmed.hassan@nabd.com",     "01001234567", new DateTime(1975, 3, 12)),
+            ("mona",  "Mona",    "Ibrahim", "mona.ibrahim@nabd.com",     "01009876543", new DateTime(1980, 7, 22)),
+            ("karim", "Karim",   "Mostafa", "karim.mostafa@nabd.com",    "01112233445", new DateTime(1978, 11, 5)),
+            ("nadia", "Nadia",   "Salem",   "nadia.salem@nabd.com",      "01223344556", new DateTime(1982, 4, 18)),
+            ("omar",  "Omar",    "Fathy",   "omar.fathy@nabd.com",       "01334455667", new DateTime(1976, 9, 30)),
+            ("sami",  "Sami",    "Gaber",   "sami.gaber@nabd.com",       "01445566778", new DateTime(1984, 2, 14)),
+            // Patients
+            ("sarah",   "Sarah",   "Ahmed",    "sarah.ahmed@nabd.com",     "01501234567", new DateTime(1995, 6, 14)),
+            ("fatima",  "Fatima",  "Ali",      "fatima.ali@nabd.com",      "01509876543", new DateTime(1993, 8, 25)),
+            ("yasmine", "Yasmine", "Mahmoud",  "yasmine.mahmoud@nabd.com", "01512233445", new DateTime(1997, 2, 10)),
+            ("hana",    "Hana",    "Khaled",   "hana.khaled@nabd.com",     "01523344556", new DateTime(1991, 12, 3)),
+            ("reem",    "Reem",    "Nasser",   "reem.nasser@nabd.com",     "01534455667", new DateTime(1996, 5, 20)),
+            ("nour",    "Nour",    "Adel",     "nour.adel@nabd.com",       "01545566778", new DateTime(1998, 9, 2)),
+            // Assistants
+            ("layla", "Layla", "Omar",    "layla.omar@nabd.com",    "01601234567", new DateTime(1990, 1, 8)),
+            ("dina",  "Dina",  "Samir",   "dina.samir@nabd.com",    "01609876543", new DateTime(1992, 3, 17)),
+            ("noura", "Noura", "Youssef", "noura.youssef@nabd.com", "01612233445", new DateTime(1988, 7, 29)),
+            ("amira", "Amira", "Tarek",   "amira.tarek@nabd.com",   "01622334456", new DateTime(1991, 5, 14)),
+            ("heba",  "Heba",  "Adel",    "heba.adel@nabd.com",     "01632445567", new DateTime(1994, 10, 2))
+        };
+
+        private static readonly string[] DoctorKeys = { "ahmed", "mona", "karim", "nadia", "omar", "sami" };
+        private static readonly string[] PatientKeys = { "sarah", "fatima", "yasmine", "hana", "reem", "nour" };
+        private static readonly string[] AssistantKeys = { "layla", "dina", "noura", "amira", "heba" };
+
+        private static async Task SeedUserRolesAsync(AppDbContext context, Cast cast)
+        {
+            var roles = context.Roles.ToDictionary(r => r.Name!, r => r.Id);
+
+            void Assign(string userKey, string role)
+            {
+                if (!cast.Users.TryGetValue(userKey, out var user) || !roles.TryGetValue(role, out var roleId))
+                    return;
+
+                if (context.UserRoles.Any(ur => ur.UserId == user.Id && ur.RoleId == roleId))
+                    return;
+
+                context.UserRoles.Add(new IdentityUserRole<string> { UserId = user.Id, RoleId = roleId });
             }
 
-            // Normalize any legacy mixed users (old domains) to @nabd.com and unify password
+            Assign("admin", "Admin");
+            Assign("lab", "Lab");
+            foreach (var key in DoctorKeys) Assign(key, "Doctor");
+            foreach (var key in PatientKeys) Assign(key, "Patient");
+            foreach (var key in AssistantKeys) Assign(key, "Assistant");
+
+            await context.SaveChangesAsync();
+        }
+
+        // ============================================================
+        // 3. DOCTORS
+        // ============================================================
+        /// <summary>key, specialization, licence number, verification status, address, rejection note.</summary>
+        private static readonly (string Key, string Specialization, string License, string Status, string Address, string? RejectionNote)[] DoctorDefinitions =
+        {
+            ("ahmed", "Obstetrics & Gynecology", "MD-OBG-001", "Approved", "15 Tahrir St, Cairo", null),
+            ("mona",  "Maternal-Fetal Medicine", "MD-MFM-002", "Approved", "22 Nasr City, Cairo", null),
+            ("karim", "Obstetrics & Gynecology", "MD-OBG-003", "Approved", "7 Corniche, Alexandria", null),
+            ("nadia", "Endocrinology",           "MD-END-004", "Approved", "30 Heliopolis, Cairo", null),
+            // Awaiting admin review — exercises the "Under Review" gate and the admin approval queue.
+            ("omar",  "Internal Medicine",       "MD-INT-005", "Pending",  "5 Dokki, Giza", null),
+            // Rejected — exercises the rejection-note UI.
+            ("sami",  "Obstetrics & Gynecology", "MD-OBG-006", "Rejected", "40 Smouha, Alexandria",
+                "Licence image is unreadable. Please re-upload a clear scan of a valid medical licence.")
+        };
+
+        private static async Task SeedDoctorsAsync(AppDbContext context, Cast cast)
+        {
+            var today = DateTime.Today;
+            var index = 0;
+
+            foreach (var d in DoctorDefinitions)
             {
-                const string seedPassword = "Nabd@123";
-                var passwordHasher = new PasswordHasher<ApplicationUser>();
+                index++;
 
-                var emailMap = new Dictionary<string, string>
+                if (!cast.Users.TryGetValue(d.Key, out var user))
+                    continue;
+
+                if (context.Doctors.Any(x => x.UserID == user.Id))
+                    continue;
+
+                context.Doctors.Add(new Doctor
                 {
-                    ["ahmed.hassan@mamacare.com"] = "ahmed.hassan@nabd.com",
-                    ["mona.ibrahim@mamacare.com"] = "mona.ibrahim@nabd.com",
-                    ["karim.mostafa@mamacare.com"] = "karim.mostafa@nabd.com",
-                    ["nadia.salem@mamacare.com"] = "nadia.salem@nabd.com",
-                    ["omar.fathy@mamacare.com"] = "omar.fathy@nabd.com",
-                    ["sarah.ahmed@gmail.com"] = "sarah.ahmed@nabd.com",
-                    ["fatima.ali@gmail.com"] = "fatima.ali@nabd.com",
-                    ["yasmine.mahmoud@gmail.com"] = "yasmine.mahmoud@nabd.com",
-                    ["hana.khaled@gmail.com"] = "hana.khaled@nabd.com",
-                    ["reem.nasser@gmail.com"] = "reem.nasser@nabd.com",
-                    ["layla.omar@mamacare.com"] = "layla.omar@nabd.com",
-                    ["dina.samir@mamacare.com"] = "dina.samir@nabd.com",
-                    ["noura.youssef@mamacare.com"] = "noura.youssef@nabd.com",
-                    ["amira.tarek@mamacare.com"] = "amira.tarek@nabd.com",
-                    ["heba.adel@mamacare.com"] = "heba.adel@nabd.com"
-                };
+                    UserID = user.Id,
+                    Specialization = d.Specialization,
+                    LicenseNumber = d.License,
+                    LicenseImagePath = $"/uploads/licenses/lic{index}.jpg",
+                    VerificationStatus = d.Status,
+                    VerificationDate = d.Status == "Pending" ? null : today.AddDays(-200 + index * 2),
+                    RejectionNote = d.RejectionNote,
+                    Address = d.Address
+                });
+            }
 
-                foreach (var pair in emailMap)
+            await context.SaveChangesAsync();
+
+            foreach (var key in DoctorKeys)
+            {
+                if (!cast.Users.TryGetValue(key, out var user))
+                    continue;
+
+                var doctor = context.Doctors.FirstOrDefault(d => d.UserID == user.Id);
+                if (doctor != null)
+                    cast.Doctors[key] = doctor;
+            }
+        }
+
+        // ============================================================
+        // 4. CLINICS (+ owner, + clinic/doctor membership)
+        // ============================================================
+        private static readonly (string Key, string Name, string Location, string OwnerKey)[] ClinicDefinitions =
+        {
+            ("central",   "MamaCare Central",      "15 Tahrir St, Cairo",    "ahmed"),
+            ("helio",     "MamaCare Heliopolis",   "30 Heliopolis, Cairo",   "ahmed"),
+            ("fetal",     "Fetal Health Clinic",   "22 Nasr City, Cairo",    "mona"),
+            ("alex",      "Alexandria OBG Center", "7 Corniche, Alexandria", "karim"),
+            ("endocrine", "Endocrine & Maternal",  "30 Heliopolis, Cairo",   "nadia"),
+            ("dokki",     "Dokki General Clinic",  "5 Dokki, Giza",          "omar")
+        };
+
+        /// <summary>Which doctors practise at which clinic (the owner is always a member).</summary>
+        private static readonly (string ClinicKey, string DoctorKey)[] ClinicMemberships =
+        {
+            ("central", "ahmed"), ("central", "mona"),
+            ("helio", "ahmed"),
+            ("fetal", "mona"), ("fetal", "karim"),
+            ("alex", "karim"), ("alex", "nadia"),
+            ("endocrine", "nadia"),
+            ("dokki", "omar")
+        };
+
+        private static async Task SeedClinicsAsync(AppDbContext context, Cast cast)
+        {
+            foreach (var (_, name, location, ownerKey) in ClinicDefinitions)
+            {
+                if (!cast.Doctors.TryGetValue(ownerKey, out var owner))
+                    continue;
+
+                if (context.Clinics.Any(c => c.Name == name))
+                    continue;
+
+                context.Clinics.Add(new Clinic
                 {
-                    var oldEmail = pair.Key;
-                    var newEmail = pair.Value;
+                    Name = name,
+                    Location = location,
+                    OwnerDoctorID = owner.DoctorID
+                });
+            }
 
-                    var legacyUser = context.Users.FirstOrDefault(u => u.Email == oldEmail);
-                    var nabdUser = context.Users.FirstOrDefault(u => u.Email == newEmail);
+            await context.SaveChangesAsync();
 
-                    if (legacyUser != null && nabdUser == null)
+            foreach (var (key, name, _, _) in ClinicDefinitions)
+            {
+                var clinic = context.Clinics.FirstOrDefault(c => c.Name == name);
+                if (clinic != null)
+                    cast.Clinics[key] = clinic;
+            }
+
+            foreach (var (clinicKey, doctorKey) in ClinicMemberships)
+            {
+                if (!cast.Clinics.TryGetValue(clinicKey, out var clinic) || !cast.Doctors.TryGetValue(doctorKey, out var doctor))
+                    continue;
+
+                if (context.ClinicDoctors.Any(cd => cd.ClinicID == clinic.ClinicID && cd.DoctorID == doctor.DoctorID))
+                    continue;
+
+                context.ClinicDoctors.Add(new ClinicDoctor
+                {
+                    ClinicID = clinic.ClinicID,
+                    DoctorID = doctor.DoctorID
+                });
+            }
+
+            await context.SaveChangesAsync();
+        }
+
+        // ============================================================
+        // 5. ASSISTANTS (+ the doctors each one is scoped to)
+        // ============================================================
+        /// <summary>Which clinic each assistant works at.</summary>
+        private static readonly (string AssistantKey, string ClinicKey)[] AssistantPostings =
+        {
+            ("layla", "central"),
+            ("dina", "fetal"),
+            ("noura", "alex"),
+            ("amira", "central"),
+            ("heba", "dokki")
+        };
+
+        /// <summary>Which doctors each assistant is scoped to. Amira is absent on purpose.</summary>
+        private static readonly (string AssistantKey, string DoctorKey)[] AssistantScopes =
+        {
+            // Layla covers both doctors at Central.
+            ("layla", "ahmed"), ("layla", "mona"),
+            // Dina covers both doctors at Fetal Health.
+            ("dina", "mona"), ("dina", "karim"),
+            // Noura covers only Karim at Alexandria — Nadia's schedule stays hidden from her.
+            ("noura", "karim"),
+            // Heba covers Omar, who is pending verification and has no approved patients (empty states).
+            ("heba", "omar")
+            // Amira has NO doctor links — her dashboard falls back to every doctor at Central.
+        };
+
+        private static async Task SeedAssistantsAsync(AppDbContext context, Cast cast)
+        {
+            foreach (var (assistantKey, clinicKey) in AssistantPostings)
+            {
+                if (!cast.Users.TryGetValue(assistantKey, out var user) || !cast.Clinics.TryGetValue(clinicKey, out var clinic))
+                    continue;
+
+                if (context.Assistants.Any(a => a.UserID == user.Id))
+                    continue;
+
+                context.Assistants.Add(new Assistant { UserID = user.Id, ClinicID = clinic.ClinicID });
+            }
+
+            await context.SaveChangesAsync();
+
+            foreach (var key in AssistantKeys)
+            {
+                if (!cast.Users.TryGetValue(key, out var user))
+                    continue;
+
+                var assistant = context.Assistants.FirstOrDefault(a => a.UserID == user.Id);
+                if (assistant != null)
+                    cast.Assistants[key] = assistant;
+            }
+
+            foreach (var (assistantKey, doctorKey) in AssistantScopes)
+            {
+                if (!cast.Assistants.TryGetValue(assistantKey, out var assistant) || !cast.Doctors.TryGetValue(doctorKey, out var doctor))
+                    continue;
+
+                if (context.AssistantDoctors.Any(ad => ad.AssistantID == assistant.AssistantID && ad.DoctorID == doctor.DoctorID))
+                    continue;
+
+                context.AssistantDoctors.Add(new AssistantDoctor
+                {
+                    AssistantID = assistant.AssistantID,
+                    DoctorID = doctor.DoctorID
+                });
+            }
+
+            await context.SaveChangesAsync();
+        }
+
+        // ============================================================
+        // 6. PATIENTS
+        // ============================================================
+        /// <summary>key, gestational week (relative to today), address, first pregnancy, previous, abortions, births, weight, height, BP issue, DgState, RiskState.</summary>
+        private static readonly (string Key, int Week, string Address, bool First, int Previous, int Abortions, int Births,
+            double Weight, double Height, bool BpIssue, string Dg, string Risk)[] PatientDefinitions =
+        {
+            ("sarah",   24, "12 Maadi, Cairo",       false, 1, 0, 1, 68.0, 162.0, false, "Stable",   "Low"),
+            ("fatima",  32, "5 Zamalek, Cairo",      true,  0, 0, 0, 72.0, 158.0, true,  "Unstable", "High"),
+            ("yasmine", 12, "18 New Cairo",          true,  0, 0, 0, 60.0, 165.0, false, "Stable",   "Low"),
+            ("hana",    36, "9 Shubra, Cairo",       false, 2, 1, 1, 80.0, 160.0, true,  "Unstable", "High"),
+            ("reem",    20, "3 Mohandessin, Giza",   false, 1, 0, 1, 65.0, 170.0, false, "Stable",   "Moderate"),
+            // Brand new patient: no doctor approved yet — exercises the "find a doctor" flow and empty dashboards.
+            ("nour",     8, "44 Sheikh Zayed, Giza", true,  0, 0, 0, 58.0, 168.0, false, "Stable",   "Low")
+        };
+
+        private static async Task SeedPatientsAsync(AppDbContext context, Cast cast)
+        {
+            var today = DateTime.Today;
+
+            foreach (var p in PatientDefinitions)
+            {
+                if (!cast.Users.TryGetValue(p.Key, out var user))
+                    continue;
+
+                if (context.Patients.Any(x => x.UserID == user.Id))
+                    continue;
+
+                var pregnancyStart = today.AddDays(-7 * p.Week);
+
+                context.Patients.Add(new Patient
+                {
+                    UserID = user.Id,
+                    Address = p.Address,
+                    DateOfPregnancy = pregnancyStart,
+                    LastPregnancyStartedAt = pregnancyStart,
+                    PregnancyCount = p.Previous + 1,
+                    GestationalWeeks = p.Week,
+                    IsFirstPregnancy = p.First,
+                    PreviousPregnancies = p.Previous,
+                    Abortions = p.Abortions,
+                    Births = p.Births,
+                    WeightKg = p.Weight,
+                    HeightCm = p.Height,
+                    BloodPressureIssue = p.BpIssue,
+                    Smoking = false,
+                    AlcoholUse = false,
+                    DgState = p.Dg,
+                    RiskState = p.Risk
+                });
+            }
+
+            await context.SaveChangesAsync();
+
+            foreach (var key in PatientKeys)
+            {
+                if (!cast.Users.TryGetValue(key, out var user))
+                    continue;
+
+                var patient = context.Patients.FirstOrDefault(p => p.UserID == user.Id);
+                if (patient != null)
+                    cast.Patients[key] = patient;
+            }
+        }
+
+        // Pregnancy weeks are derived from PregnancyRecord.StartDate, so anchoring the record
+        // to "today minus N weeks" keeps every patient at a sensible gestational age forever.
+        private static async Task SeedPregnancyRecordsAsync(AppDbContext context, Cast cast)
+        {
+            var today = DateTime.Today;
+            var genders = new Dictionary<string, string>
+            {
+                ["sarah"] = "Girl",
+                ["fatima"] = "Boy",
+                ["yasmine"] = "Unknown",
+                ["hana"] = "Girl",
+                ["reem"] = "Boy",
+                ["nour"] = "Unknown"
+            };
+
+            foreach (var p in PatientDefinitions)
+            {
+                if (!cast.Patients.TryGetValue(p.Key, out var patient))
+                    continue;
+
+                // Only give a patient a pregnancy record if they have none at all.
+                if (context.PregnancyRecords.Any(r => r.PatientID == patient.PatientID))
+                    continue;
+
+                context.PregnancyRecords.Add(new PregnancyRecord
+                {
+                    PatientID = patient.PatientID,
+                    StartDate = today.AddDays(-7 * p.Week),
+                    EndDate = null,
+                    BabyGender = genders[p.Key],
+                    CreatedAt = today.AddDays(-7 * p.Week)
+                });
+
+                // A completed earlier pregnancy, so the pregnancy-history view has something to show.
+                if (p.Key == "hana")
+                {
+                    var previousStart = today.AddYears(-3);
+                    context.PregnancyRecords.Add(new PregnancyRecord
                     {
-                        legacyUser.Email = newEmail;
-                        legacyUser.UserName = newEmail;
-                        legacyUser.NormalizedEmail = newEmail.ToUpperInvariant();
-                        legacyUser.NormalizedUserName = newEmail.ToUpperInvariant();
-                        legacyUser.PasswordHash = passwordHasher.HashPassword(legacyUser, seedPassword);
-                        continue;
-                    }
-
-                    if (legacyUser != null && nabdUser != null && legacyUser.Id != nabdUser.Id)
-                    {
-                        var doctor = context.Doctors.FirstOrDefault(d => d.UserID == legacyUser.Id);
-                        if (doctor != null) doctor.UserID = nabdUser.Id;
-
-                        var patient = context.Patients.FirstOrDefault(p => p.UserID == legacyUser.Id);
-                        if (patient != null) patient.UserID = nabdUser.Id;
-
-                        var assistant = context.Assistants.FirstOrDefault(a => a.UserID == legacyUser.Id);
-                        if (assistant != null) assistant.UserID = nabdUser.Id;
-
-                        var legacyRoles = context.UserRoles.Where(ur => ur.UserId == legacyUser.Id).ToList();
-                        if (legacyRoles.Count > 0)
-                            context.UserRoles.RemoveRange(legacyRoles);
-
-                        context.Users.Remove(legacyUser);
-                    }
-
-                    if (nabdUser != null)
-                    {
-                        nabdUser.PasswordHash = passwordHasher.HashPassword(nabdUser, seedPassword);
-                    }
+                        PatientID = patient.PatientID,
+                        StartDate = previousStart,
+                        EndDate = previousStart.AddDays(276),
+                        BabyGender = "Boy",
+                        CreatedAt = previousStart
+                    });
                 }
-
-                await context.SaveChangesAsync();
             }
 
-            if (!context.UserRoles.Any())
+            await context.SaveChangesAsync();
+        }
+
+        // ============================================================
+        // 7. PATIENT <-> DOCTOR
+        // ============================================================
+        /// <summary>The approved care team. First entry per patient is their primary doctor.</summary>
+        private static readonly (string DoctorKey, string PatientKey, bool IsPrimary)[] ApprovedCareTeam =
+        {
+            ("ahmed", "sarah", true),
+            ("ahmed", "fatima", true),
+            ("mona", "yasmine", true),
+            ("mona", "fatima", false),
+            ("karim", "hana", true),
+            ("karim", "reem", false),
+            ("nadia", "reem", true)
+        };
+
+        /// <summary>Requests that are not yet (or never were) approved: doctor, patient, status, days ago.</summary>
+        private static readonly (string DoctorKey, string PatientKey, string Status, int DaysAgo)[] PendingCareRequests =
+        {
+            // These land in each doctor's "patient requests" inbox.
+            ("mona", "sarah", "Pending", 2),
+            ("ahmed", "nour", "Pending", 1),
+            ("nadia", "hana", "Rejected", 120)
+        };
+
+        private static async Task SeedPatientDoctorsAsync(AppDbContext context, Cast cast)
+        {
+            var today = DateTime.Today;
+
+            // The composite key is {DoctorID, PatientID}, so a pair may only ever appear once.
+            void Link(string doctorKey, string patientKey, string status, bool isPrimary, int requestedDaysAgo, int? respondedDaysAgo)
             {
-                var appUsers = context.Users.ToList();
-                var identityUserRoles =
-                    appUsers.Where(u => (u.FirstName == "Ahmed" || u.FirstName == "Mona" || u.FirstName == "Karim" || u.FirstName == "Nadia" || u.FirstName == "Omar"))
-                        .Select(u => new IdentityUserRole<string> { UserId = u.Id, RoleId = roleDoctor.Id })
-                        .Concat(appUsers.Where(u => (u.FirstName == "Sarah" || u.FirstName == "Fatima" || u.FirstName == "Yasmine" || u.FirstName == "Hana" || u.FirstName == "Reem"))
-                            .Select(u => new IdentityUserRole<string> { UserId = u.Id, RoleId = rolePatient.Id }))
-                        .Concat(appUsers.Where(u => (u.FirstName == "Layla" || u.FirstName == "Dina" || u.FirstName == "Noura" || u.FirstName == "Amira" || u.FirstName == "Heba"))
-                            .Select(u => new IdentityUserRole<string> { UserId = u.Id, RoleId = roleAssistant.Id }))
-                        .Concat(appUsers.Where(u => u.Email == "admin@nabd.com")
-                            .Select(u => new IdentityUserRole<string> { UserId = u.Id, RoleId = context.Roles.First(r => r.Name == "Admin").Id }))
-                        .ToList();
+                if (!cast.Doctors.TryGetValue(doctorKey, out var doctor) || !cast.Patients.TryGetValue(patientKey, out var patient))
+                    return;
 
-                context.UserRoles.AddRange(identityUserRoles);
-                await context.SaveChangesAsync();
+                if (context.PatientDoctors.Any(pd => pd.DoctorID == doctor.DoctorID && pd.PatientID == patient.PatientID))
+                    return;
+
+                context.PatientDoctors.Add(new PatientDoctor
+                {
+                    DoctorID = doctor.DoctorID,
+                    PatientID = patient.PatientID,
+                    Status = status,
+                    RequestDate = today.AddDays(-requestedDaysAgo),
+                    ResponseDate = respondedDaysAgo.HasValue ? today.AddDays(-respondedDaysAgo.Value) : null,
+                    IsPrimary = isPrimary
+                });
             }
 
-            // Fetch users by email so we can wire up foreign keys
-            var uAhmed   = context.Users.First(u => u.Email == "ahmed.hassan@nabd.com");
-            var uMona    = context.Users.First(u => u.Email == "mona.ibrahim@nabd.com");
-            var uKarim   = context.Users.First(u => u.Email == "karim.mostafa@nabd.com");
-            var uNadia   = context.Users.First(u => u.Email == "nadia.salem@nabd.com");
-            var uOmar    = context.Users.First(u => u.Email == "omar.fathy@nabd.com");
-            var uSarah   = context.Users.First(u => u.Email == "sarah.ahmed@nabd.com");
-            var uFatima  = context.Users.First(u => u.Email == "fatima.ali@nabd.com");
-            var uYasmine = context.Users.First(u => u.Email == "yasmine.mahmoud@nabd.com");
-            var uHana    = context.Users.First(u => u.Email == "hana.khaled@nabd.com");
-            var uReem    = context.Users.First(u => u.Email == "reem.nasser@nabd.com");
-            var uLayla   = context.Users.First(u => u.Email == "layla.omar@nabd.com");
-            var uDina    = context.Users.First(u => u.Email == "dina.samir@nabd.com");
-            var uNoura   = context.Users.First(u => u.Email == "noura.youssef@nabd.com");
-            var uAmira   = context.Users.First(u => u.Email == "amira.tarek@nabd.com");
-            var uHeba    = context.Users.First(u => u.Email == "heba.adel@nabd.com");
+            foreach (var (doctorKey, patientKey, isPrimary) in ApprovedCareTeam)
+                Link(doctorKey, patientKey, "Approved", isPrimary, 60, 59);
 
-            // ============================================================
-            // 3. DOCTORS
-            // ============================================================
-            if (!context.Doctors.Any())
-            {
-                context.Doctors.AddRange(
-                    new Doctor { UserID = uAhmed.UserID,  Specialization = "Obstetrics & Gynecology", LicenseNumber = "MD-OBG-001", LicenseImagePath = "/uploads/licenses/lic1.jpg", VerificationStatus = "Verified", VerificationDate = new DateTime(2024, 1, 15), Address = "15 Tahrir St, Cairo"     },
-                    new Doctor { UserID = uMona.UserID,   Specialization = "Maternal-Fetal Medicine",  LicenseNumber = "MD-MFM-002", LicenseImagePath = "/uploads/licenses/lic2.jpg", VerificationStatus = "Verified", VerificationDate = new DateTime(2024, 1, 16), Address = "22 Nasr City, Cairo"     },
-                    new Doctor { UserID = uKarim.UserID,  Specialization = "Obstetrics & Gynecology", LicenseNumber = "MD-OBG-003", LicenseImagePath = "/uploads/licenses/lic3.jpg", VerificationStatus = "Verified", VerificationDate = new DateTime(2024, 1, 17), Address = "7 Corniche, Alexandria"  },
-                    new Doctor { UserID = uNadia.UserID,  Specialization = "Endocrinology",            LicenseNumber = "MD-END-004", LicenseImagePath = "/uploads/licenses/lic4.jpg", VerificationStatus = "Verified", VerificationDate = new DateTime(2024, 1, 18), Address = "30 Heliopolis, Cairo"    },
-                    new Doctor { UserID = uOmar.UserID,   Specialization = "Internal Medicine",        LicenseNumber = "MD-INT-005", LicenseImagePath = "/uploads/licenses/lic5.jpg", VerificationStatus = "Pending",  VerificationDate = null,                       Address = "5 Dokki, Giza"           }
-                );
-                await context.SaveChangesAsync();
-            }
+            foreach (var (doctorKey, patientKey, status, daysAgo) in PendingCareRequests)
+                Link(doctorKey, patientKey, status, false, daysAgo, status == "Pending" ? null : daysAgo - 1);
 
-            var dAhmed  = context.Doctors.First(d => d.UserID == uAhmed.UserID);
-            var dMona   = context.Doctors.First(d => d.UserID == uMona.UserID);
-            var dKarim  = context.Doctors.First(d => d.UserID == uKarim.UserID);
-            var dNadia  = context.Doctors.First(d => d.UserID == uNadia.UserID);
-            var dOmar   = context.Doctors.First(d => d.UserID == uOmar.UserID);
+            await context.SaveChangesAsync();
+        }
 
-            // ============================================================
-            // 4. CLINICS
-            // ============================================================
-            if (!context.Clinics.Any())
-            {
-                context.Clinics.AddRange(
-                    new Clinic { Name = "MamaCare Central",      Location = "15 Tahrir St, Cairo"     },
-                    new Clinic { Name = "MamaCare Heliopolis",   Location = "30 Heliopolis, Cairo"    },
-                    new Clinic { Name = "Fetal Health Clinic",   Location = "22 Nasr City, Cairo"    },
-                    new Clinic { Name = "Alexandria OBG Center", Location = "7 Corniche, Alexandria"  },
-                    new Clinic { Name = "Endocrine & Maternal",  Location = "30 Heliopolis, Cairo"    },
-                    new Clinic { Name = "Dokki General Clinic",  Location = "5 Dokki, Giza"           }
-                );
-                await context.SaveChangesAsync();
-            }
-
-            var cCentral   = context.Clinics.First(c => c.Name == "MamaCare Central");
-            var cHelio     = context.Clinics.First(c => c.Name == "MamaCare Heliopolis");
-            var cFetal     = context.Clinics.First(c => c.Name == "Fetal Health Clinic");
-            var cAlex      = context.Clinics.First(c => c.Name == "Alexandria OBG Center");
-            var cEndocrine = context.Clinics.First(c => c.Name == "Endocrine & Maternal");
-            var cDokki     = context.Clinics.First(c => c.Name == "Dokki General Clinic");
-
-            // ============================================================
-            // 4b. CLINIC-DOCTOR RELATIONSHIPS
-            // ============================================================
-            if (!context.ClinicDoctors.Any())
-            {
-                context.ClinicDoctors.AddRange(
-                    new ClinicDoctor { ClinicID = cCentral.ClinicID,   DoctorID = dAhmed.DoctorID },
-                    new ClinicDoctor { ClinicID = cHelio.ClinicID,     DoctorID = dAhmed.DoctorID },
-                    new ClinicDoctor { ClinicID = cFetal.ClinicID,     DoctorID = dMona.DoctorID  },
-                    new ClinicDoctor { ClinicID = cAlex.ClinicID,      DoctorID = dKarim.DoctorID },
-                    new ClinicDoctor { ClinicID = cEndocrine.ClinicID, DoctorID = dNadia.DoctorID },
-                    new ClinicDoctor { ClinicID = cDokki.ClinicID,     DoctorID = dOmar.DoctorID  },
-                    // Multi-doctor clinics
-                    new ClinicDoctor { ClinicID = cCentral.ClinicID,   DoctorID = dMona.DoctorID  },
-                    new ClinicDoctor { ClinicID = cFetal.ClinicID,     DoctorID = dKarim.DoctorID },
-                    new ClinicDoctor { ClinicID = cAlex.ClinicID,      DoctorID = dNadia.DoctorID }
-                );
-                await context.SaveChangesAsync();
-            }
-
-            // ============================================================
-            // 5. ASSISTANTS
-            // ============================================================
-            if (!context.Assistants.Any())
-            {
-                context.Assistants.AddRange(
-                    new Assistant { UserID = uLayla.UserID, ClinicID = cCentral.ClinicID },
-                    new Assistant { UserID = uDina.UserID,  ClinicID = cFetal.ClinicID   },
-                    new Assistant { UserID = uNoura.UserID, ClinicID = cAlex.ClinicID    },
-                    new Assistant { UserID = uAmira.UserID, ClinicID = cCentral.ClinicID },  // second assistant at Central � no AssistantDoctor records (fallback)
-                    new Assistant { UserID = uHeba.UserID,  ClinicID = cDokki.ClinicID   }   // clinic with pending-verification doctor, no approved patients
-                );
-                await context.SaveChangesAsync();
-            }
-
-            var aLayla = context.Assistants.First(a => a.UserID == uLayla.UserID);
-            var aDina  = context.Assistants.First(a => a.UserID == uDina.UserID);
-            var aNoura = context.Assistants.First(a => a.UserID == uNoura.UserID);
-            var aAmira = context.Assistants.First(a => a.UserID == uAmira.UserID);
-            var aHeba  = context.Assistants.First(a => a.UserID == uHeba.UserID);
-
-            // ============================================================
-            // 5b. ASSISTANT-DOCTOR RELATIONSHIPS
-            // ============================================================
-            if (!context.AssistantDoctors.Any())
-            {
-                context.AssistantDoctors.AddRange(
-                    // Layla: handles Ahmed + Mona (full overlap at Central which has Ahmed + Mona)
-                    new AssistantDoctor { AssistantID = aLayla.AssistantID, DoctorID = dAhmed.DoctorID },
-                    new AssistantDoctor { AssistantID = aLayla.AssistantID, DoctorID = dMona.DoctorID  },
-                    // Dina: handles Mona + Karim (full overlap at Fetal which has Mona + Karim)
-                    new AssistantDoctor { AssistantID = aDina.AssistantID,  DoctorID = dMona.DoctorID  },
-                    new AssistantDoctor { AssistantID = aDina.AssistantID,  DoctorID = dKarim.DoctorID },
-                    // Noura: handles only Karim (partial overlap � Alex has Karim + Nadia, Noura sees only Karim)
-                    new AssistantDoctor { AssistantID = aNoura.AssistantID, DoctorID = dKarim.DoctorID },
-                    // Heba: handles Omar (single doctor at Dokki, pending verification, no approved patients)
-                    new AssistantDoctor { AssistantID = aHeba.AssistantID,  DoctorID = dOmar.DoctorID  }
-                    // NOTE: Amira has NO AssistantDoctor entries ? dashboard falls back to all clinic doctors
-                );
-                await context.SaveChangesAsync();
-            }
-
-            // ============================================================
-            // 6. PATIENTS
-            // ============================================================
-            if (!context.Patients.Any())
-            {
-                context.Patients.AddRange(
-                    new Patient { UserID = uSarah.UserID,   Address = "12 Maadi, Cairo",       DateOfPregnancy = new DateTime(2024, 11, 1),  GestationalWeeks = 24, IsFirstPregnancy = false, PreviousPregnancies = 1, Abortions = 0, Births = 1, WeightKg = 68.0, HeightCm = 162.0, BloodPressureIssue = false, Smoking = false, AlcoholUse = false },
-                    new Patient { UserID = uFatima.UserID,  Address = "5 Zamalek, Cairo",       DateOfPregnancy = new DateTime(2024, 9, 15),  GestationalWeeks = 32, IsFirstPregnancy = true,  PreviousPregnancies = 0, Abortions = 0, Births = 0, WeightKg = 72.0, HeightCm = 158.0, BloodPressureIssue = true,  Smoking = false, AlcoholUse = false },
-                    new Patient { UserID = uYasmine.UserID, Address = "18 New Cairo",            DateOfPregnancy = new DateTime(2025, 1, 10),  GestationalWeeks = 12, IsFirstPregnancy = true,  PreviousPregnancies = 0, Abortions = 0, Births = 0, WeightKg = 60.0, HeightCm = 165.0, BloodPressureIssue = false, Smoking = false, AlcoholUse = false },
-                    new Patient { UserID = uHana.UserID,    Address = "9 Shubra, Cairo",         DateOfPregnancy = new DateTime(2024, 8, 20),  GestationalWeeks = 36, IsFirstPregnancy = false, PreviousPregnancies = 2, Abortions = 1, Births = 1, WeightKg = 80.0, HeightCm = 160.0, BloodPressureIssue = true,  Smoking = false, AlcoholUse = false },
-                    new Patient { UserID = uReem.UserID,    Address = "3 Mohandessin, Giza",     DateOfPregnancy = new DateTime(2024, 12, 5),  GestationalWeeks = 20, IsFirstPregnancy = false, PreviousPregnancies = 1, Abortions = 0, Births = 1, WeightKg = 65.0, HeightCm = 170.0, BloodPressureIssue = false, Smoking = false, AlcoholUse = false }
-                );
-                await context.SaveChangesAsync();
-            }
-
-            var pSarah   = context.Patients.First(p => p.UserID == uSarah.UserID);
-            var pFatima  = context.Patients.First(p => p.UserID == uFatima.UserID);
-            var pYasmine = context.Patients.First(p => p.UserID == uYasmine.UserID);
-            var pHana    = context.Patients.First(p => p.UserID == uHana.UserID);
-            var pReem    = context.Patients.First(p => p.UserID == uReem.UserID);
-
-            // ============================================================
-            // 7. AI MODELS
-            // ============================================================
+        // ============================================================
+        // 8. AI MODELS
+        // ============================================================
+        private static async Task SeedAIModelsAsync(AppDbContext context, Cast cast)
+        {
             if (!context.AIModels.Any())
             {
+                var today = DateTime.Today;
                 context.AIModels.AddRange(
-                    new AIModel { ModelName = "CBC Analyzer v2",        ModelType = "CBC",        ModelVersion = "2.1.0", ModelFilePath = "/models/cbc_v2.pkl",      Accuracy = 96.5, DateTrained = new DateTime(2024, 6, 1)  },
-                    new AIModel { ModelName = "Ultrasound Detector v3", ModelType = "Ultrasound", ModelVersion = "3.0.1", ModelFilePath = "/models/us_v3.h5",        Accuracy = 94.2, DateTrained = new DateTime(2024, 7, 15) },
-                    new AIModel { ModelName = "Blood Sugar Predictor",  ModelType = "BloodSugar", ModelVersion = "1.5.0", ModelFilePath = "/models/bsugar_v1.pkl",   Accuracy = 91.8, DateTrained = new DateTime(2024, 8, 10) },
-                    new AIModel { ModelName = "TSH Classifier",         ModelType = "TSH",        ModelVersion = "1.2.3", ModelFilePath = "/models/tsh_v1.pkl",      Accuracy = 93.0, DateTrained = new DateTime(2024, 9, 5)  },
-                    new AIModel { ModelName = "Ferritin Level AI",      ModelType = "Ferritin",   ModelVersion = "1.0.0", ModelFilePath = "/models/ferritin_v1.pkl", Accuracy = 89.7, DateTrained = new DateTime(2024, 10, 1) }
+                    new AIModel { ModelName = "CBC Analyzer v2", ModelType = "CBC", ModelVersion = "2.1.0", ModelFilePath = "/models/cbc_v2.pkl", Accuracy = 96.5, DateTrained = today.AddDays(-380) },
+                    new AIModel { ModelName = "Ultrasound Detector v3", ModelType = "Ultrasound", ModelVersion = "3.0.1", ModelFilePath = "/models/us_v3.h5", Accuracy = 94.2, DateTrained = today.AddDays(-340) },
+                    new AIModel { ModelName = "Blood Sugar Predictor", ModelType = "BloodSugar", ModelVersion = "1.5.0", ModelFilePath = "/models/bsugar_v1.pkl", Accuracy = 91.8, DateTrained = today.AddDays(-300) },
+                    new AIModel { ModelName = "TSH Classifier", ModelType = "TSH", ModelVersion = "1.2.3", ModelFilePath = "/models/tsh_v1.pkl", Accuracy = 93.0, DateTrained = today.AddDays(-260) },
+                    new AIModel { ModelName = "Ferritin Level AI", ModelType = "Ferritin", ModelVersion = "1.0.0", ModelFilePath = "/models/ferritin_v1.pkl", Accuracy = 89.7, DateTrained = today.AddDays(-220) }
                 );
                 await context.SaveChangesAsync();
             }
 
-            var aiCbc       = context.AIModels.First(a => a.ModelType == "CBC");
-            var aiUs        = context.AIModels.First(a => a.ModelType == "Ultrasound");
-            var aiTsh       = context.AIModels.First(a => a.ModelType == "TSH");
-            var aiFerritin  = context.AIModels.First(a => a.ModelType == "Ferritin");
+            foreach (var model in context.AIModels.ToList())
+                cast.Models[model.ModelType] = model;
+        }
 
-            // ============================================================
-            // 8. PATIENT <-> DOCTOR
-            // ============================================================
-            if (!context.PatientDoctors.Any())
+        // ============================================================
+        // 9. TEST REPORTS + LAB TESTS (all nine test types, one full panel per patient)
+        // ============================================================
+        /// <summary>patient, doctor, days ago, overall status, confidence, AI summary, doctor interpretation.</summary>
+        private static readonly (string PatientKey, string DoctorKey, int DaysAgo, string Status, double Confidence, string Summary, string Interpretation)[] ReportDefinitions =
+        {
+            ("sarah",   "ahmed", 6,  "Normal",             96.5, "All blood parameters within normal ranges for the second trimester. Haemoglobin is slightly low — monitor iron.", "Continue iron supplementation; repeat CBC in 4 weeks."),
+            ("fatima",  "ahmed", 9,  "Requires Attention", 91.2, "Elevated WBC count and mildly raised TSH. Blood-pressure trend is concerning for pre-eclampsia.",                 "Increase monitoring to bi-weekly; continue Labetalol."),
+            ("yasmine", "mona",  12, "Normal",             98.1, "First-trimester panel shows every value within the expected range.",                                              "Patient is progressing well. Routine follow-up."),
+            ("hana",    "karim", 4,  "Abnormal",           88.4, "Low haemoglobin and critically low ferritin — iron-deficiency anaemia. Urinalysis shows trace protein.",          "Start IV iron therapy and repeat CBC in 2 weeks."),
+            ("reem",    "nadia", 7,  "Requires Attention", 93.7, "HbA1c above the gestational-diabetes target and fasting glucose elevated.",                                       "Adjust dietary plan; monitor blood sugar four times daily.")
+        };
+
+        private static async Task SeedTestReportsAndLabTestsAsync(AppDbContext context, Cast cast)
+        {
+            var today = DateTime.Today;
+
+            if (!context.TestReports.Any())
             {
-                context.PatientDoctors.AddRange(
-                    new PatientDoctor { DoctorID = dAhmed.DoctorID, PatientID = pSarah.PatientID,   Status = "Approved", RequestDate = new DateTime(2024, 11, 5), ResponseDate = new DateTime(2024, 11, 6), IsPrimary = true  },
-                    new PatientDoctor { DoctorID = dAhmed.DoctorID, PatientID = pFatima.PatientID,  Status = "Approved", RequestDate = new DateTime(2024, 9, 20),  ResponseDate = new DateTime(2024, 9, 21),  IsPrimary = true  },
-                    new PatientDoctor { DoctorID = dMona.DoctorID,  PatientID = pYasmine.PatientID, Status = "Approved", RequestDate = new DateTime(2025, 1, 12),  ResponseDate = new DateTime(2025, 1, 13),  IsPrimary = true  },
-                    new PatientDoctor { DoctorID = dKarim.DoctorID, PatientID = pHana.PatientID,    Status = "Approved", RequestDate = new DateTime(2024, 8, 25),  ResponseDate = new DateTime(2024, 8, 26),  IsPrimary = true  },
-                    new PatientDoctor { DoctorID = dNadia.DoctorID, PatientID = pReem.PatientID,    Status = "Approved", RequestDate = new DateTime(2024, 12, 8),  ResponseDate = new DateTime(2024, 12, 9),  IsPrimary = true  },
-                    new PatientDoctor { DoctorID = dMona.DoctorID,  PatientID = pSarah.PatientID,   Status = "Pending",  RequestDate = new DateTime(2025, 1, 20),  ResponseDate = null,                        IsPrimary = false },
-                    // Shared patients across doctors at the same clinic
-                    new PatientDoctor { DoctorID = dMona.DoctorID,  PatientID = pFatima.PatientID,  Status = "Approved", RequestDate = new DateTime(2025, 2, 1),   ResponseDate = new DateTime(2025, 2, 2),    IsPrimary = false },
-                    new PatientDoctor { DoctorID = dKarim.DoctorID, PatientID = pReem.PatientID,    Status = "Approved", RequestDate = new DateTime(2025, 2, 10),  ResponseDate = new DateTime(2025, 2, 11),   IsPrimary = false },
-                    // Pending requests (doctor has no approved patients / cross-clinic referrals)
-                    new PatientDoctor { DoctorID = dOmar.DoctorID,  PatientID = pYasmine.PatientID, Status = "Pending",  RequestDate = new DateTime(2025, 3, 1),   ResponseDate = null,                        IsPrimary = false },
-                    new PatientDoctor { DoctorID = dAhmed.DoctorID, PatientID = pHana.PatientID,    Status = "Pending",  RequestDate = new DateTime(2025, 3, 5),   ResponseDate = null,                        IsPrimary = false }
-                );
-                await context.SaveChangesAsync();
-            }
-
-            // ============================================================
-            // 9. PATIENT DRUGS
-            // ============================================================
-            if (!context.PatientDrugs.Any())
-            {
-                context.PatientDrugs.AddRange(
-                    new PatientDrug { PatientID = pSarah.PatientID,   DrugName = "Folic Acid",       DurationMonths = 9, Reason = "Neural tube prevention",   DoseMgPerDay = 0.4    },
-                    new PatientDrug { PatientID = pSarah.PatientID,   DrugName = "Iron Supplement",  DurationMonths = 6, Reason = "Iron deficiency anemia",    DoseMgPerDay = 30.0   },
-                    new PatientDrug { PatientID = pFatima.PatientID,  DrugName = "Labetalol",        DurationMonths = 5, Reason = "Gestational hypertension",  DoseMgPerDay = 200.0  },
-                    new PatientDrug { PatientID = pFatima.PatientID,  DrugName = "Calcium Carbonate",DurationMonths = 7, Reason = "Calcium supplementation",   DoseMgPerDay = 1000.0 },
-                    new PatientDrug { PatientID = pYasmine.PatientID, DrugName = "Folic Acid",       DurationMonths = 9, Reason = "Neural tube prevention",    DoseMgPerDay = 0.4    },
-                    new PatientDrug { PatientID = pHana.PatientID,    DrugName = "Methyldopa",       DurationMonths = 4, Reason = "Chronic hypertension",      DoseMgPerDay = 500.0  },
-                    new PatientDrug { PatientID = pHana.PatientID,    DrugName = "Aspirin Low-Dose", DurationMonths = 6, Reason = "Preeclampsia prevention",   DoseMgPerDay = 81.0   },
-                    new PatientDrug { PatientID = pReem.PatientID,    DrugName = "Vitamin D3",       DurationMonths = 9, Reason = "Vitamin D deficiency",      DoseMgPerDay = 1000.0 },
-                    new PatientDrug { PatientID = pReem.PatientID,    DrugName = "Magnesium",        DurationMonths = 3, Reason = "Leg cramps in pregnancy",   DoseMgPerDay = 350.0  },
-                    new PatientDrug { PatientID = pYasmine.PatientID, DrugName = "Iron Supplement",  DurationMonths = 4, Reason = "Mild anemia",               DoseMgPerDay = 20.0   }
-                );
-                await context.SaveChangesAsync();
-            }
-
-            // ============================================================
-            // 10. APPOINTMENTS
-            // ============================================================
-            if (!context.Appointments.Any())
-            {
-                context.Appointments.AddRange(
-                    new Appointment { DoctorID = dAhmed.DoctorID, PatientID = pSarah.PatientID,   ClinicID = cCentral.ClinicID,   Date = new DateTime(2025, 3, 20), Time = new TimeSpan(10, 0, 0),  isBooked = true  },
-                    new Appointment { DoctorID = dAhmed.DoctorID, PatientID = pFatima.PatientID,  ClinicID = cCentral.ClinicID,   Date = new DateTime(2025, 3, 21), Time = new TimeSpan(11, 0, 0),  isBooked = true  },
-                    new Appointment { DoctorID = dMona.DoctorID,  PatientID = pYasmine.PatientID, ClinicID = cFetal.ClinicID,     Date = new DateTime(2025, 3, 22), Time = new TimeSpan(9, 30, 0),  isBooked = true  },
-                    new Appointment { DoctorID = dKarim.DoctorID, PatientID = pHana.PatientID,    ClinicID = cAlex.ClinicID,      Date = new DateTime(2025, 3, 25), Time = new TimeSpan(14, 0, 0),  isBooked = true  },
-                    new Appointment { DoctorID = dNadia.DoctorID, PatientID = pReem.PatientID,    ClinicID = cEndocrine.ClinicID, Date = new DateTime(2025, 3, 26), Time = new TimeSpan(10, 30, 0), isBooked = true  },
-                    new Appointment { DoctorID = dAhmed.DoctorID, PatientID = pSarah.PatientID,   ClinicID = cHelio.ClinicID,     Date = new DateTime(2025, 4, 5),  Time = new TimeSpan(9, 0, 0),   isBooked = false },
-                    new Appointment { DoctorID = dMona.DoctorID,  PatientID = pFatima.PatientID,  ClinicID = cFetal.ClinicID,     Date = new DateTime(2025, 4, 8),  Time = new TimeSpan(11, 30, 0), isBooked = false },
-                    new Appointment { DoctorID = dOmar.DoctorID,  PatientID = pYasmine.PatientID, ClinicID = cDokki.ClinicID,     Date = new DateTime(2025, 4, 10), Time = new TimeSpan(12, 0, 0),  isBooked = false },
-                    new Appointment { DoctorID = dKarim.DoctorID, PatientID = pReem.PatientID,    ClinicID = cAlex.ClinicID,      Date = new DateTime(2025, 4, 12), Time = new TimeSpan(15, 0, 0),  isBooked = false },
-                    new Appointment { DoctorID = dNadia.DoctorID, PatientID = pHana.PatientID,    ClinicID = cEndocrine.ClinicID, Date = new DateTime(2025, 4, 15), Time = new TimeSpan(10, 0, 0),  isBooked = false },
-                    // ?? Today's appointments: Central clinic (Layla handles Ahmed+Mona, Amira sees all via fallback) ??
-                    new Appointment { DoctorID = dAhmed.DoctorID, PatientID = pSarah.PatientID,   ClinicID = cCentral.ClinicID,   Date = DateTime.Today, Time = new TimeSpan(9,  0,  0), isBooked = true  },
-                    new Appointment { DoctorID = dAhmed.DoctorID, PatientID = pFatima.PatientID,  ClinicID = cCentral.ClinicID,   Date = DateTime.Today, Time = new TimeSpan(10, 30, 0), isBooked = true  },
-                    new Appointment { DoctorID = dMona.DoctorID,  PatientID = pYasmine.PatientID, ClinicID = cCentral.ClinicID,   Date = DateTime.Today, Time = new TimeSpan(11, 0,  0), isBooked = true  },
-                    new Appointment { DoctorID = dMona.DoctorID,  PatientID = pFatima.PatientID,  ClinicID = cCentral.ClinicID,   Date = DateTime.Today, Time = new TimeSpan(14, 0,  0), isBooked = true  },
-                    new Appointment { DoctorID = dAhmed.DoctorID, PatientID = pSarah.PatientID,   ClinicID = cCentral.ClinicID,   Date = DateTime.Today, Time = new TimeSpan(15, 30, 0), isBooked = false },
-                    // ?? Today's appointments: Fetal Health clinic (Dina handles Mona+Karim) ??
-                    new Appointment { DoctorID = dMona.DoctorID,  PatientID = pYasmine.PatientID, ClinicID = cFetal.ClinicID,     Date = DateTime.Today, Time = new TimeSpan(9,  30, 0), isBooked = true  },
-                    new Appointment { DoctorID = dKarim.DoctorID, PatientID = pHana.PatientID,    ClinicID = cFetal.ClinicID,     Date = DateTime.Today, Time = new TimeSpan(11, 0,  0), isBooked = true  },
-                    // ?? Today's appointments: Alexandria clinic (Noura handles only Karim � Nadia's appointment hidden) ??
-                    new Appointment { DoctorID = dKarim.DoctorID, PatientID = pHana.PatientID,    ClinicID = cAlex.ClinicID,      Date = DateTime.Today, Time = new TimeSpan(14, 0,  0), isBooked = true  },
-                    new Appointment { DoctorID = dNadia.DoctorID, PatientID = pReem.PatientID,    ClinicID = cAlex.ClinicID,      Date = DateTime.Today, Time = new TimeSpan(15, 30, 0), isBooked = true  },
-                    // ?? Today's appointments: Endocrine clinic (no assistant assigned) ??
-                    new Appointment { DoctorID = dNadia.DoctorID, PatientID = pReem.PatientID,    ClinicID = cEndocrine.ClinicID, Date = DateTime.Today, Time = new TimeSpan(10, 0,  0), isBooked = true  },
-                    // ?? Today's appointments: Dokki clinic (Heba � Omar has no approved patients, open slots) ??
-                    new Appointment { DoctorID = dOmar.DoctorID,  PatientID = pYasmine.PatientID, ClinicID = cDokki.ClinicID,     Date = DateTime.Today, Time = new TimeSpan(12, 0,  0), isBooked = false },
-                    new Appointment { DoctorID = dOmar.DoctorID,  PatientID = pHana.PatientID,    ClinicID = cDokki.ClinicID,     Date = DateTime.Today, Time = new TimeSpan(14, 0,  0), isBooked = false }
-                );
-                await context.SaveChangesAsync();
-            }
-
-            // ============================================================
-            // 11. BOOKINGS  (one per booked appointment)
-            // ============================================================
-            if (!context.Bookings.Any())
-            {
-                var bookedAppts = context.Appointments.Where(a => a.isBooked).OrderBy(a => a.Date).ThenBy(a => a.Time).ToList();
-                var reasons = new[] { "Routine prenatal check-up", "Blood pressure follow-up", "First trimester consultation", "Third trimester check-up", "Diabetes screening follow-up", "Pregnancy monitoring", "Ultrasound follow-up", "Lab results review", "General check-up", "Gestational diabetes follow-up", "Fetal monitoring", "Growth scan review", "Prenatal screening", "Pre-delivery assessment", "Weekly follow-up", "Medication review" };
-                var notesArr = new[] { "Patient should bring previous test results", "Monitor BP readings from last week", "Discuss first trimester screening results", "Review birth plan options", "Review GTT results", "Follow-up on previous visit", "Check ultrasound measurements", "Review lab test results", "Standard prenatal visit", "Monitor blood sugar levels", "Check fetal heart rate", "Compare growth measurements", "Discuss screening options", "Pre-delivery checklist", "Weekly progress check", "Review current medications" };
-                var statuses = new[] { "Confirmed", "Confirmed", "Confirmed", "Confirmed", "Confirmed", "Modified", "Confirmed", "Confirmed", "Confirmed", "Confirmed", "Confirmed", "Confirmed", "Cancelled", "Confirmed", "Confirmed", "Confirmed" };
-
-                for (int i = 0; i < bookedAppts.Count; i++)
+                foreach (var r in ReportDefinitions)
                 {
-                    context.Bookings.Add(new Booking
+                    context.TestReports.Add(new TestReport
                     {
-                        AppointmentID = bookedAppts[i].AppointmentID,
-                        PatientID     = bookedAppts[i].PatientID!.Value,
-                        DoctorID      = bookedAppts[i].DoctorID,
-                        ClinicID      = bookedAppts[i].ClinicID,
-                        Status        = statuses[i % statuses.Length],
-                        Reason        = reasons[i % reasons.Length],
-                        Notes         = notesArr[i % notesArr.Length]
+                        PatientID = cast.Patients[r.PatientKey].PatientID,
+                        DoctorID = cast.Doctors[r.DoctorKey].DoctorID,
+                        ReportDate = today.AddDays(-r.DaysAgo),
+                        AnalysisStatus = "Completed",
+                        OverallStatus = r.Status,
+                        ConfidenceScore = r.Confidence,
+                        AISummary = r.Summary,
+                        DoctorInterpretation = r.Interpretation,
+                        PersonalInfoJson = BuildPersonalInfoJson(cast.Patients[r.PatientKey]),
+                        AiResultJson = BuildAiResultJson(r.PatientKey),
+                        RiskJson = $"{{\"risk_level\":\"{RiskLevelFor(r.Status)}\",\"confidence\":{r.Confidence / 100:0.00}}}",
+                        AlertsJson = BuildAlertsJson(r.Status)
                     });
                 }
                 await context.SaveChangesAsync();
             }
 
-            // ============================================================
-            // 12. TEST REPORTS  (needed before LabTests)
-            // ============================================================
-            if (!context.TestReports.Any())
+            if (context.LabTests.Any())
+                return;
+
+            // One full nine-test panel per patient, attached to that patient's report.
+            foreach (var r in ReportDefinitions)
             {
-                context.TestReports.AddRange(
-                    new TestReport { PatientID = pSarah.PatientID,   DoctorID = dAhmed.DoctorID, ReportDate = new DateTime(2025, 3, 16), OverallStatus = "Normal",             ConfidenceScore = 96.5, AISummary = "All blood parameters within normal ranges for week 24. Hemoglobin slightly low; monitor iron.",          DoctorInterpretation = "Recommend continuing iron supplementation."    },
-                    new TestReport { PatientID = pFatima.PatientID,  DoctorID = dAhmed.DoctorID, ReportDate = new DateTime(2025, 3, 10), OverallStatus = "Requires Attention", ConfidenceScore = 91.2, AISummary = "Elevated WBC count. TSH mildly elevated. Blood pressure trend concerning.",                             DoctorInterpretation = "Increase monitoring frequency to bi-weekly."  },
-                    new TestReport { PatientID = pYasmine.PatientID, DoctorID = dMona.DoctorID,  ReportDate = new DateTime(2025, 2, 28), OverallStatus = "Normal",             ConfidenceScore = 98.1, AISummary = "First trimester panel shows all values within expected ranges.",                                         DoctorInterpretation = "Patient is progressing well."                  },
-                    new TestReport { PatientID = pHana.PatientID,    DoctorID = dKarim.DoctorID, ReportDate = new DateTime(2025, 3, 1),  OverallStatus = "Abnormal",           ConfidenceScore = 88.4, AISummary = "Low hemoglobin and ferritin. Iron deficiency anemia. Urinalysis shows trace protein.",                  DoctorInterpretation = "Start IV iron therapy and repeat CBC in 2 weeks." },
-                    new TestReport { PatientID = pReem.PatientID,    DoctorID = dNadia.DoctorID, ReportDate = new DateTime(2025, 3, 5),  OverallStatus = "Requires Attention", ConfidenceScore = 93.7, AISummary = "HbA1c slightly above target for gestational diabetes. Fasting blood glucose elevated.",                 DoctorInterpretation = "Adjust dietary plan and increase monitoring."  }
-                );
+                var patientId = cast.Patients[r.PatientKey].PatientID;
+                var doctorId = cast.Doctors[r.DoctorKey].DoctorID;
+                var report = context.TestReports.First(t => t.PatientID == patientId);
+                var uploadDate = today.AddDays(-r.DaysAgo);
+
+                foreach (var testType in TestTypes)
+                {
+                    int? modelId = cast.Models.TryGetValue(testType, out var model) ? model.ModelID : null;
+
+                    context.LabTests.Add(new LabTest
+                    {
+                        PatientID = patientId,
+                        DoctorID = doctorId,
+                        ModelID = modelId,
+                        ReportID = report.ReportID,
+                        UploadDate = uploadDate,
+                        ImagePath = $"/uploads/tests/{testType.ToLowerInvariant()}_{r.PatientKey}.jpg",
+                        TestName = testType,
+                        TestType = testType,
+                        AnalysisStatus = "Completed",
+                        AI_AnalysisJSON = $"{{\"testType\":\"{testType}\",\"status\":\"{r.Status}\"}}"
+                    });
+                }
+            }
+            await context.SaveChangesAsync();
+
+            // Child tables: one row per LabTest, keyed by the parent LabTestID.
+            foreach (var r in ReportDefinitions)
+            {
+                var patientId = cast.Patients[r.PatientKey].PatientID;
+                var panel = LabPanels[r.PatientKey];
+
+                int LabTestIdFor(string type) => context.LabTests
+                    .First(l => l.PatientID == patientId && l.TestType == type).LabTestID;
+
+                context.CBC_Tests.Add(new CBC_Test
+                {
+                    LabTestID = LabTestIdFor("CBC"),
+                    HB = panel.Hb,
+                    RBCs_Count = panel.Rbc,
+                    MCV = panel.Mcv,
+                    MCH = panel.Mch,
+                    WBC = panel.Wbc,
+                    lymphocytes = panel.Lymphocytes,
+                    platelet_count = panel.Platelets
+                });
+
+                context.BloodGroup_Tests.Add(new BloodGroup_Test
+                {
+                    LabTestID = LabTestIdFor("BloodGroup"),
+                    ABO_Group = panel.Abo,
+                    RH_Factor = panel.Rh
+                });
+
+                context.HbA1c_Tests.Add(new HbA1c_Test { LabTestID = LabTestIdFor("HbA1c"), HbA1c = panel.HbA1c });
+                context.FBG_Tests.Add(new FBG_Test { LabTestID = LabTestIdFor("FBG"), FBG = panel.Fbg });
+                context.TSH_Tests.Add(new TSH_Test { LabTestID = LabTestIdFor("TSH"), TSH = panel.Tsh, TSH_Unit = "mIU/L" });
+                context.Ferritin_Tests.Add(new Ferritin_Test { LabTestID = LabTestIdFor("Ferritin"), Ferritin_Value = panel.Ferritin });
+                context.HBsAg_Tests.Add(new HBsAg_Test { LabTestID = LabTestIdFor("HBsAg"), HBsAg = "Negative" });
+                context.HCV_Tests.Add(new HCV_Test { LabTestID = LabTestIdFor("HCV"), HCV = "Negative" });
+
+                context.Urinalysis_Tests.Add(new Urinalysis_Test
+                {
+                    LabTestID = LabTestIdFor("Urinalysis"),
+                    Color = panel.UrineColor,
+                    PH = panel.UrinePh,
+                    Specific_Gravity = panel.SpecificGravity,
+                    Protein = panel.Protein,
+                    Glucose = panel.Glucose,
+                    Nitrite = "Negative",
+                    Ketones = panel.Ketones,
+                    Blood = "Negative",
+                    RBCs = panel.UrineRbcs,
+                    Leukocytes = panel.Leukocytes
+                });
+            }
+
+            await context.SaveChangesAsync();
+
+            await SeedInFlightAnalysesAsync(context, cast);
+        }
+
+        /// <summary>
+        /// Uploads that have not finished the AI pipeline yet. The analysis history groups by
+        /// report, so each in-flight state needs its own report to be visible. These cover the
+        /// three non-completed states a real upload passes through (or dies in).
+        /// </summary>
+        private static async Task SeedInFlightAnalysesAsync(AppDbContext context, Cast cast)
+        {
+            var today = DateTime.Today;
+
+            async Task InFlight(string patientKey, string doctorKey, string testType, string status,
+                int daysAgo, string? ocrJson, string? confirmedJson, string? errorMessage)
+            {
+                var patient = cast.Patients[patientKey];
+                var report = new TestReport
+                {
+                    PatientID = patient.PatientID,
+                    DoctorID = cast.Doctors[doctorKey].DoctorID,
+                    ReportDate = today.AddDays(-daysAgo),
+                    AnalysisStatus = status,
+                    OverallStatus = null,          // no verdict yet — the pipeline has not produced one
+                    AISummary = errorMessage
+                };
+                context.TestReports.Add(report);
+                await context.SaveChangesAsync();
+
+                context.LabTests.Add(new LabTest
+                {
+                    PatientID = patient.PatientID,
+                    DoctorID = cast.Doctors[doctorKey].DoctorID,
+                    ReportID = report.ReportID,
+                    ModelID = cast.Models.TryGetValue(testType, out var model) ? model.ModelID : null,
+                    UploadDate = today.AddDays(-daysAgo),
+                    ImagePath = $"/uploads/lab-tests/{patient.PatientID}/{testType.ToLowerInvariant()}_pending.jpg",
+                    TestName = testType,
+                    TestType = testType,
+                    AnalysisStatus = status,
+                    OcrRawJson = ocrJson,
+                    OcrNormalizedJson = ocrJson,
+                    ConfirmedJson = confirmedJson
+                });
                 await context.SaveChangesAsync();
             }
 
-            var rSarah   = context.TestReports.First(r => r.PatientID == pSarah.PatientID);
-            var rFatima  = context.TestReports.First(r => r.PatientID == pFatima.PatientID);
-            var rYasmine = context.TestReports.First(r => r.PatientID == pYasmine.PatientID);
-            var rHana    = context.TestReports.First(r => r.PatientID == pHana.PatientID);
-            var rReem    = context.TestReports.First(r => r.PatientID == pReem.PatientID);
+            // OCR has read the image; the values are waiting for the user to confirm them.
+            await InFlight("sarah", "ahmed", "CBC", AnalysisStatus.WaitingForConfirmation, 0,
+                "{\"HB\":\"11.1\",\"RBCs_Count\":\"4.0\",\"MCV\":\"80\",\"MCH\":\"26\",\"WBC\":\"8700\",\"lymphocytes\":\"33\",\"platelet_count\":\"240000\"}",
+                null, null);
 
-            // ============================================================
-            // 13. LAB TESTS
-            // ============================================================
-            if (!context.LabTests.Any())
+            // Confirmed and handed to the model — still running.
+            await InFlight("reem", "nadia", "HbA1c", AnalysisStatus.Processing, 0,
+                "{\"HbA1c\":\"6.6\"}", "{\"HbA1c\":\"6.6\"}", null);
+
+            // The pipeline gave up — the failure message is what the UI shows.
+            await InFlight("fatima", "ahmed", "Urinalysis", AnalysisStatus.Failed, 1,
+                null, null, "The uploaded image could not be read. Please re-upload a clearer photo of the report.");
+        }
+
+        private static readonly string[] TestTypes =
+        {
+            "CBC", "BloodGroup", "HbA1c", "FBG", "Urinalysis", "HBsAg", "HCV", "TSH", "Ferritin"
+        };
+
+        private sealed record LabPanel(
+            float Hb, float Rbc, float Mcv, float Mch, float Wbc, float Lymphocytes, float Platelets,
+            string Abo, string Rh, float HbA1c, float Fbg, float Tsh, float Ferritin,
+            string UrineColor, float UrinePh, float SpecificGravity, string Protein, string Glucose,
+            string Ketones, string UrineRbcs, string Leukocytes);
+
+        private static readonly Dictionary<string, LabPanel> LabPanels = new()
+        {
+            ["sarah"] = new LabPanel(10.8f, 3.9f, 78f, 25f, 8500f, 32f, 230000f, "A", "Positive", 5.4f, 88f, 1.8f, 18f,
+                "Yellow", 6.0f, 1.015f, "Negative", "Negative", "Negative", "0-2", "Negative"),
+            ["fatima"] = new LabPanel(11.5f, 4.1f, 85f, 27f, 12000f, 28f, 210000f, "O", "Positive", 5.9f, 104f, 4.5f, 25f,
+                "Light Yellow", 6.5f, 1.018f, "Trace", "Negative", "Negative", "0-2", "Negative"),
+            ["yasmine"] = new LabPanel(12.2f, 4.3f, 88f, 29f, 7800f, 35f, 250000f, "B", "Positive", 5.1f, 84f, 2.1f, 30f,
+                "Yellow", 5.5f, 1.012f, "Negative", "Negative", "Negative", "0-2", "Negative"),
+            ["hana"] = new LabPanel(9.5f, 3.5f, 72f, 22f, 9200f, 30f, 180000f, "AB", "Negative", 6.2f, 112f, 1.5f, 8f,
+                "Dark Yellow", 7.0f, 1.022f, "Trace", "Trace", "Trace", "2-5", "Trace"),
+            ["reem"] = new LabPanel(11.8f, 4.0f, 86f, 28f, 8000f, 33f, 220000f, "O", "Negative", 6.8f, 126f, 3.2f, 22f,
+                "Yellow", 6.0f, 1.016f, "Negative", "Trace", "Negative", "0-2", "Negative")
+        };
+
+        private static string RiskLevelFor(string overallStatus) => overallStatus switch
+        {
+            "Abnormal" => "High",
+            "Requires Attention" => "Moderate",
+            _ => "Low"
+        };
+
+        private static string BuildPersonalInfoJson(Patient patient) =>
+            $"{{\"Weight\":{patient.WeightKg},\"Height\":{patient.HeightCm},\"GestationalWeeks\":{patient.GestationalWeeks}," +
+            $"\"DgState\":\"{patient.DgState}\",\"RiskState\":\"{patient.RiskState}\"}}";
+
+        private static string BuildAiResultJson(string patientKey)
+        {
+            var p = LabPanels[patientKey];
+            return "[" +
+                $"{{\"test_name\":\"Haemoglobin\",\"value\":\"{p.Hb}\",\"unit\":\"g/dL\",\"status\":\"{(p.Hb < 11f ? "Low" : "Normal")}\"}}," +
+                $"{{\"test_name\":\"WBC\",\"value\":\"{p.Wbc}\",\"unit\":\"/µL\",\"status\":\"{(p.Wbc > 11000f ? "High" : "Normal")}\"}}," +
+                $"{{\"test_name\":\"HbA1c\",\"value\":\"{p.HbA1c}\",\"unit\":\"%\",\"status\":\"{(p.HbA1c >= 6.0f ? "High" : "Normal")}\"}}," +
+                $"{{\"test_name\":\"Ferritin\",\"value\":\"{p.Ferritin}\",\"unit\":\"ng/mL\",\"status\":\"{(p.Ferritin < 15f ? "Low" : "Normal")}\"}}," +
+                $"{{\"test_name\":\"TSH\",\"value\":\"{p.Tsh}\",\"unit\":\"mIU/L\",\"status\":\"{(p.Tsh > 4.0f ? "High" : "Normal")}\"}}" +
+                "]";
+        }
+
+        private static string BuildAlertsJson(string overallStatus) => overallStatus switch
+        {
+            "Abnormal" => "[\"Critically low ferritin — iron-deficiency anaemia\",\"Trace protein in urine\"]",
+            "Requires Attention" => "[\"Result above the expected range — clinical review advised\"]",
+            _ => "[]"
+        };
+
+        // ============================================================
+        // 10. ULTRASOUND IMAGES
+        // ============================================================
+        private static async Task SeedUltrasoundImagesAsync(AppDbContext context, Cast cast)
+        {
+            if (context.UltrasoundImages.Any())
+                return;
+
+            var today = DateTime.Today;
+            var modelId = cast.Models["Ultrasound"].ModelID;
+
+            void Scan(string patientKey, string doctorKey, int daysAgo, string anomaly, string prediction,
+                double confidence, string comments, bool patientUploaded = false)
             {
-                context.LabTests.AddRange(
-                    // CBC
-                    new LabTest { PatientID = pSarah.PatientID,   DoctorID = dAhmed.DoctorID, ModelID = aiCbc.ModelID,      ReportID = rSarah.ReportID,   UploadDate = new DateTime(2025, 3, 16), ImagePath = "/uploads/tests/cbc_p1.jpg",      AI_AnalysisJSON = "{\"status\":\"normal\"}",   TestType = "CBC"        },
-                    new LabTest { PatientID = pFatima.PatientID,  DoctorID = dAhmed.DoctorID, ModelID = aiCbc.ModelID,      ReportID = rFatima.ReportID,  UploadDate = new DateTime(2025, 3, 10), ImagePath = "/uploads/tests/cbc_p2.jpg",      AI_AnalysisJSON = "{\"status\":\"abnormal\"}", TestType = "CBC"        },
-                    new LabTest { PatientID = pYasmine.PatientID, DoctorID = dMona.DoctorID,  ModelID = aiCbc.ModelID,      ReportID = rYasmine.ReportID, UploadDate = new DateTime(2025, 2, 28), ImagePath = "/uploads/tests/cbc_p3.jpg",      AI_AnalysisJSON = "{\"status\":\"normal\"}",   TestType = "CBC"        },
-                    new LabTest { PatientID = pHana.PatientID,    DoctorID = dKarim.DoctorID, ModelID = aiCbc.ModelID,      ReportID = rHana.ReportID,    UploadDate = new DateTime(2025, 3, 1),  ImagePath = "/uploads/tests/cbc_p4.jpg",      AI_AnalysisJSON = "{\"status\":\"abnormal\"}", TestType = "CBC"        },
-                    new LabTest { PatientID = pReem.PatientID,    DoctorID = dNadia.DoctorID, ModelID = aiCbc.ModelID,      ReportID = rReem.ReportID,    UploadDate = new DateTime(2025, 3, 5),  ImagePath = "/uploads/tests/cbc_p5.jpg",      AI_AnalysisJSON = "{\"status\":\"normal\"}",   TestType = "CBC"        },
-                    // BloodGroup
-                    new LabTest { PatientID = pSarah.PatientID,   DoctorID = dAhmed.DoctorID, ModelID = null,               ReportID = rSarah.ReportID,   UploadDate = new DateTime(2025, 3, 16), ImagePath = "/uploads/tests/bg_p1.jpg",       AI_AnalysisJSON = "{\"group\":\"A+\"}",        TestType = "BloodGroup" },
-                    new LabTest { PatientID = pFatima.PatientID,  DoctorID = dAhmed.DoctorID, ModelID = null,               ReportID = rFatima.ReportID,  UploadDate = new DateTime(2025, 3, 10), ImagePath = "/uploads/tests/bg_p2.jpg",       AI_AnalysisJSON = "{\"group\":\"O+\"}",        TestType = "BloodGroup" },
-                    new LabTest { PatientID = pYasmine.PatientID, DoctorID = dMona.DoctorID,  ModelID = null,               ReportID = rYasmine.ReportID, UploadDate = new DateTime(2025, 2, 28), ImagePath = "/uploads/tests/bg_p3.jpg",       AI_AnalysisJSON = "{\"group\":\"B+\"}",        TestType = "BloodGroup" },
-                    new LabTest { PatientID = pHana.PatientID,    DoctorID = dKarim.DoctorID, ModelID = null,               ReportID = rHana.ReportID,    UploadDate = new DateTime(2025, 3, 1),  ImagePath = "/uploads/tests/bg_p4.jpg",       AI_AnalysisJSON = "{\"group\":\"AB-\"}",       TestType = "BloodGroup" },
-                    new LabTest { PatientID = pReem.PatientID,    DoctorID = dNadia.DoctorID, ModelID = null,               ReportID = rReem.ReportID,    UploadDate = new DateTime(2025, 3, 5),  ImagePath = "/uploads/tests/bg_p5.jpg",       AI_AnalysisJSON = "{\"group\":\"O-\"}",        TestType = "BloodGroup" },
-                    // HbA1c
-                    new LabTest { PatientID = pSarah.PatientID,   DoctorID = dAhmed.DoctorID, ModelID = null,               ReportID = rSarah.ReportID,   UploadDate = new DateTime(2025, 3, 16), ImagePath = "/uploads/tests/hba1c_p1.jpg",    AI_AnalysisJSON = "{\"hba1c\":5.4}",           TestType = "HbA1c"      },
-                    new LabTest { PatientID = pFatima.PatientID,  DoctorID = dAhmed.DoctorID, ModelID = null,               ReportID = rFatima.ReportID,  UploadDate = new DateTime(2025, 3, 10), ImagePath = "/uploads/tests/hba1c_p2.jpg",    AI_AnalysisJSON = "{\"hba1c\":5.9}",           TestType = "HbA1c"      },
-                    new LabTest { PatientID = pYasmine.PatientID, DoctorID = dMona.DoctorID,  ModelID = null,               ReportID = rYasmine.ReportID, UploadDate = new DateTime(2025, 2, 28), ImagePath = "/uploads/tests/hba1c_p3.jpg",    AI_AnalysisJSON = "{\"hba1c\":5.1}",           TestType = "HbA1c"      },
-                    new LabTest { PatientID = pHana.PatientID,    DoctorID = dKarim.DoctorID, ModelID = null,               ReportID = rHana.ReportID,    UploadDate = new DateTime(2025, 3, 1),  ImagePath = "/uploads/tests/hba1c_p4.jpg",    AI_AnalysisJSON = "{\"hba1c\":6.2}",           TestType = "HbA1c"      },
-                    new LabTest { PatientID = pReem.PatientID,    DoctorID = dNadia.DoctorID, ModelID = null,               ReportID = rReem.ReportID,    UploadDate = new DateTime(2025, 3, 5),  ImagePath = "/uploads/tests/hba1c_p5.jpg",    AI_AnalysisJSON = "{\"hba1c\":6.8}",           TestType = "HbA1c"      },
-                    // Urinalysis
-                    new LabTest { PatientID = pSarah.PatientID,   DoctorID = dAhmed.DoctorID, ModelID = null,               ReportID = rSarah.ReportID,   UploadDate = new DateTime(2025, 3, 16), ImagePath = "/uploads/tests/uri_p1.jpg",      AI_AnalysisJSON = "{\"protein\":\"negative\"}",TestType = "Urinalysis" },
-                    new LabTest { PatientID = pFatima.PatientID,  DoctorID = dAhmed.DoctorID, ModelID = null,               ReportID = rFatima.ReportID,  UploadDate = new DateTime(2025, 3, 10), ImagePath = "/uploads/tests/uri_p2.jpg",      AI_AnalysisJSON = "{\"protein\":\"trace\"}",   TestType = "Urinalysis" },
-                    new LabTest { PatientID = pYasmine.PatientID, DoctorID = dMona.DoctorID,  ModelID = null,               ReportID = rYasmine.ReportID, UploadDate = new DateTime(2025, 2, 28), ImagePath = "/uploads/tests/uri_p3.jpg",      AI_AnalysisJSON = "{\"protein\":\"negative\"}",TestType = "Urinalysis" },
-                    new LabTest { PatientID = pHana.PatientID,    DoctorID = dKarim.DoctorID, ModelID = null,               ReportID = rHana.ReportID,    UploadDate = new DateTime(2025, 3, 1),  ImagePath = "/uploads/tests/uri_p4.jpg",      AI_AnalysisJSON = "{\"protein\":\"trace\"}",   TestType = "Urinalysis" },
-                    new LabTest { PatientID = pReem.PatientID,    DoctorID = dNadia.DoctorID, ModelID = null,               ReportID = rReem.ReportID,    UploadDate = new DateTime(2025, 3, 5),  ImagePath = "/uploads/tests/uri_p5.jpg",      AI_AnalysisJSON = "{\"protein\":\"negative\"}",TestType = "Urinalysis" },
-                    // HBsAg
-                    new LabTest { PatientID = pSarah.PatientID,   DoctorID = dAhmed.DoctorID, ModelID = null,               ReportID = rSarah.ReportID,   UploadDate = new DateTime(2025, 3, 16), ImagePath = "/uploads/tests/hbsag_p1.jpg",    AI_AnalysisJSON = "{\"hbsag\":\"negative\"}",  TestType = "HBsAg"      },
-                    new LabTest { PatientID = pFatima.PatientID,  DoctorID = dAhmed.DoctorID, ModelID = null,               ReportID = rFatima.ReportID,  UploadDate = new DateTime(2025, 3, 10), ImagePath = "/uploads/tests/hbsag_p2.jpg",    AI_AnalysisJSON = "{\"hbsag\":\"negative\"}",  TestType = "HBsAg"      },
-                    new LabTest { PatientID = pYasmine.PatientID, DoctorID = dMona.DoctorID,  ModelID = null,               ReportID = rYasmine.ReportID, UploadDate = new DateTime(2025, 2, 28), ImagePath = "/uploads/tests/hbsag_p3.jpg",    AI_AnalysisJSON = "{\"hbsag\":\"negative\"}",  TestType = "HBsAg"      },
-                    new LabTest { PatientID = pHana.PatientID,    DoctorID = dKarim.DoctorID, ModelID = null,               ReportID = rHana.ReportID,    UploadDate = new DateTime(2025, 3, 1),  ImagePath = "/uploads/tests/hbsag_p4.jpg",    AI_AnalysisJSON = "{\"hbsag\":\"negative\"}",  TestType = "HBsAg"      },
-                    new LabTest { PatientID = pReem.PatientID,    DoctorID = dNadia.DoctorID, ModelID = null,               ReportID = rReem.ReportID,    UploadDate = new DateTime(2025, 3, 5),  ImagePath = "/uploads/tests/hbsag_p5.jpg",    AI_AnalysisJSON = "{\"hbsag\":\"negative\"}",  TestType = "HBsAg"      },
-                    // HCV
-                    new LabTest { PatientID = pSarah.PatientID,   DoctorID = dAhmed.DoctorID, ModelID = null,               ReportID = rSarah.ReportID,   UploadDate = new DateTime(2025, 3, 16), ImagePath = "/uploads/tests/hcv_p1.jpg",      AI_AnalysisJSON = "{\"hcv\":\"negative\"}",    TestType = "HCV"        },
-                    new LabTest { PatientID = pFatima.PatientID,  DoctorID = dAhmed.DoctorID, ModelID = null,               ReportID = rFatima.ReportID,  UploadDate = new DateTime(2025, 3, 10), ImagePath = "/uploads/tests/hcv_p2.jpg",      AI_AnalysisJSON = "{\"hcv\":\"negative\"}",    TestType = "HCV"        },
-                    new LabTest { PatientID = pYasmine.PatientID, DoctorID = dMona.DoctorID,  ModelID = null,               ReportID = rYasmine.ReportID, UploadDate = new DateTime(2025, 2, 28), ImagePath = "/uploads/tests/hcv_p3.jpg",      AI_AnalysisJSON = "{\"hcv\":\"negative\"}",    TestType = "HCV"        },
-                    new LabTest { PatientID = pHana.PatientID,    DoctorID = dKarim.DoctorID, ModelID = null,               ReportID = rHana.ReportID,    UploadDate = new DateTime(2025, 3, 1),  ImagePath = "/uploads/tests/hcv_p4.jpg",      AI_AnalysisJSON = "{\"hcv\":\"negative\"}",    TestType = "HCV"        },
-                    new LabTest { PatientID = pReem.PatientID,    DoctorID = dNadia.DoctorID, ModelID = null,               ReportID = rReem.ReportID,    UploadDate = new DateTime(2025, 3, 5),  ImagePath = "/uploads/tests/hcv_p5.jpg",      AI_AnalysisJSON = "{\"hcv\":\"negative\"}",    TestType = "HCV"        },
-                    // TSH
-                    new LabTest { PatientID = pSarah.PatientID,   DoctorID = dAhmed.DoctorID, ModelID = aiTsh.ModelID,      ReportID = rSarah.ReportID,   UploadDate = new DateTime(2025, 3, 16), ImagePath = "/uploads/tests/tsh_p1.jpg",      AI_AnalysisJSON = "{\"tsh\":1.8}",             TestType = "TSH"        },
-                    new LabTest { PatientID = pFatima.PatientID,  DoctorID = dAhmed.DoctorID, ModelID = aiTsh.ModelID,      ReportID = rFatima.ReportID,  UploadDate = new DateTime(2025, 3, 10), ImagePath = "/uploads/tests/tsh_p2.jpg",      AI_AnalysisJSON = "{\"tsh\":4.5}",             TestType = "TSH"        },
-                    new LabTest { PatientID = pYasmine.PatientID, DoctorID = dMona.DoctorID,  ModelID = aiTsh.ModelID,      ReportID = rYasmine.ReportID, UploadDate = new DateTime(2025, 2, 28), ImagePath = "/uploads/tests/tsh_p3.jpg",      AI_AnalysisJSON = "{\"tsh\":2.1}",             TestType = "TSH"        },
-                    new LabTest { PatientID = pHana.PatientID,    DoctorID = dKarim.DoctorID, ModelID = aiTsh.ModelID,      ReportID = rHana.ReportID,    UploadDate = new DateTime(2025, 3, 1),  ImagePath = "/uploads/tests/tsh_p4.jpg",      AI_AnalysisJSON = "{\"tsh\":1.5}",             TestType = "TSH"        },
-                    new LabTest { PatientID = pReem.PatientID,    DoctorID = dNadia.DoctorID, ModelID = aiTsh.ModelID,      ReportID = rReem.ReportID,    UploadDate = new DateTime(2025, 3, 5),  ImagePath = "/uploads/tests/tsh_p5.jpg",      AI_AnalysisJSON = "{\"tsh\":3.2}",             TestType = "TSH"        },
-                    // Ferritin
-                    new LabTest { PatientID = pSarah.PatientID,   DoctorID = dAhmed.DoctorID, ModelID = aiFerritin.ModelID, ReportID = rSarah.ReportID,   UploadDate = new DateTime(2025, 3, 16), ImagePath = "/uploads/tests/ferritin_p1.jpg", AI_AnalysisJSON = "{\"ferritin\":18}",          TestType = "Ferritin"   },
-                    new LabTest { PatientID = pFatima.PatientID,  DoctorID = dAhmed.DoctorID, ModelID = aiFerritin.ModelID, ReportID = rFatima.ReportID,  UploadDate = new DateTime(2025, 3, 10), ImagePath = "/uploads/tests/ferritin_p2.jpg", AI_AnalysisJSON = "{\"ferritin\":25}",          TestType = "Ferritin"   },
-                    new LabTest { PatientID = pYasmine.PatientID, DoctorID = dMona.DoctorID,  ModelID = aiFerritin.ModelID, ReportID = rYasmine.ReportID, UploadDate = new DateTime(2025, 2, 28), ImagePath = "/uploads/tests/ferritin_p3.jpg", AI_AnalysisJSON = "{\"ferritin\":30}",          TestType = "Ferritin"   },
-                    new LabTest { PatientID = pHana.PatientID,    DoctorID = dKarim.DoctorID, ModelID = aiFerritin.ModelID, ReportID = rHana.ReportID,    UploadDate = new DateTime(2025, 3, 1),  ImagePath = "/uploads/tests/ferritin_p4.jpg", AI_AnalysisJSON = "{\"ferritin\":8}",           TestType = "Ferritin"   },
-                    new LabTest { PatientID = pReem.PatientID,    DoctorID = dNadia.DoctorID, ModelID = aiFerritin.ModelID, ReportID = rReem.ReportID,    UploadDate = new DateTime(2025, 3, 5),  ImagePath = "/uploads/tests/ferritin_p5.jpg", AI_AnalysisJSON = "{\"ferritin\":22}",          TestType = "Ferritin"   }
-                );
+                context.UltrasoundImages.Add(new UltrasoundImage
+                {
+                    PatientID = cast.Patients[patientKey].PatientID,
+                    DoctorID = patientUploaded ? null : cast.Doctors[doctorKey].DoctorID,
+                    ModelID = patientUploaded ? null : modelId,
+                    ImagePath = $"/uploads/ultrasound/us_{patientKey}_{daysAgo}.jpg",
+                    OriginalImagePath = $"/uploads/ultrasound/us_{patientKey}_{daysAgo}.jpg",
+                    ResultImagePath = patientUploaded ? string.Empty : $"/uploads/ultrasound/us_{patientKey}_{daysAgo}_result.jpg",
+                    UploadDate = today.AddDays(-daysAgo),
+                    Status = patientUploaded ? UltrasoundStatus.Pending : UltrasoundStatus.Completed,
+                    DetectedAnomaly = anomaly,
+                    Prediction = prediction,
+                    ConfidenceScore = patientUploaded ? null : confidence,
+                    DoctorComments = comments,
+                    AI_Result_JSON = patientUploaded
+                        ? string.Empty
+                        : $"{{\"anomaly\":\"{anomaly}\",\"prediction\":\"{prediction}\",\"confidence\":{confidence}}}",
+                    IsPatientUploaded = patientUploaded
+                });
+            }
+
+            Scan("sarah", "ahmed", 6, "None", "Normal", 97.2, "Normal fetal development. Measurements match gestational age.");
+            Scan("sarah", "ahmed", 40, "None", "Normal", 96.8, "Anatomy scan completed — no abnormalities.");
+            Scan("fatima", "ahmed", 9, "Mild Placenta Previa", "Abnormal", 88.5, "Mild placenta previa. Follow-up scan booked in 4 weeks.");
+            Scan("yasmine", "mona", 12, "None", "Normal", 98.1, "First-trimester dating scan looks normal.");
+            Scan("hana", "karim", 4, "None", "Normal", 96.0, "Third-trimester scan. Baby is in cephalic position.");
+            Scan("reem", "nadia", 7, "None", "Normal", 95.3, "Normal fetal growth. Estimated weight on the 55th centile.");
+            // Patient self-upload awaiting a doctor's AI analysis — exercises the pending queue.
+            Scan("sarah", "ahmed", 1, string.Empty, string.Empty, 0, string.Empty, patientUploaded: true);
+
+            await context.SaveChangesAsync();
+        }
+
+        // ============================================================
+        // 11. PRESCRIPTIONS + ITEMS
+        // ============================================================
+        /// <summary>patient, doctor, days ago, notes, items (name, dosage, frequency, duration days, instructions).</summary>
+        private static readonly (string PatientKey, string DoctorKey, int DaysAgo, string Notes,
+            (string Name, string Dosage, string Frequency, int Days, string Instructions)[] Items)[] PrescriptionDefinitions =
+        {
+            ("sarah", "ahmed", 6, "Continue prenatal vitamins; increase iron supplementation.", new[]
+            {
+                ("Ferrous Sulfate", "325mg", "Twice daily", 90, "Take with vitamin C for better absorption"),
+                ("Folic Acid", "5mg", "Once daily", 180, "Take in the morning with food"),
+                ("Vitamin D3", "1000 IU", "Once daily", 180, "Take with your main meal")
+            }),
+            ("fatima", "ahmed", 9, "Blood-pressure management plan. Monitor daily.", new[]
+            {
+                ("Labetalol", "100mg", "Twice daily", 60, "Do not stop abruptly; monitor BP twice daily"),
+                ("Calcium Carbonate", "500mg", "Twice daily", 90, "Take with food"),
+                ("Aspirin", "81mg", "Once daily", 90, "Take at bedtime")
+            }),
+            ("yasmine", "mona", 12, "Standard first-trimester prescription.", new[]
+            {
+                ("Prenatal Multivitamin", "1 tablet", "Once daily", 270, "Take with food"),
+                ("Folic Acid", "0.4mg", "Once daily", 270, "Take in the morning")
+            }),
+            ("hana", "karim", 4, "Iron-deficiency anaemia treatment plan.", new[]
+            {
+                ("Methyldopa", "250mg", "Three times daily", 60, "Monitor BP regularly"),
+                ("Iron Sucrose IV", "200mg", "Weekly infusion", 42, "Administered in clinic under supervision")
+            }),
+            ("reem", "nadia", 7, "Gestational diabetes management.", new[]
+            {
+                ("Metformin", "500mg", "Twice daily", 90, "Take with meals; monitor blood sugar 4x daily"),
+                ("Vitamin D3", "1000 IU", "Once daily", 180, "Take with your main meal")
+            })
+        };
+
+        private static async Task SeedPrescriptionsAsync(AppDbContext context, Cast cast)
+        {
+            if (context.Prescriptions.Any())
+                return;
+
+            var today = DateTime.Today;
+
+            foreach (var p in PrescriptionDefinitions)
+            {
+                var prescription = new Prescription
+                {
+                    DoctorID = cast.Doctors[p.DoctorKey].DoctorID,
+                    PatientID = cast.Patients[p.PatientKey].PatientID,
+                    PrescriptionDate = today.AddDays(-p.DaysAgo),
+                    Notes = p.Notes
+                };
+                context.Prescriptions.Add(prescription);
+                await context.SaveChangesAsync();
+
+                foreach (var (name, dosage, frequency, days, instructions) in p.Items)
+                {
+                    context.PrescriptionItems.Add(new PrescriptionItem
+                    {
+                        PrescriptionID = prescription.PrescriptionID,
+                        MedicineName = name,
+                        Dosage = dosage,
+                        Frequency = frequency,
+                        DurationDays = days,
+                        Instructions = instructions
+                    });
+                }
+                await context.SaveChangesAsync();
+            }
+        }
+
+        // ============================================================
+        // 12. MEDICATIONS (+ schedules + reminder settings)
+        // ============================================================
+        /// <summary>The prescription items that become tracked medications, and the times of day they are taken.</summary>
+        private static readonly (string PatientKey, string MedicineName, TimeSpan[] Times, MedicationSource Source)[] MedicationDefinitions =
+        {
+            ("sarah",   "Ferrous Sulfate",      new[] { new TimeSpan(8, 0, 0), new TimeSpan(20, 0, 0) },                     MedicationSource.Prescription),
+            ("sarah",   "Folic Acid",           new[] { new TimeSpan(9, 0, 0) },                                            MedicationSource.Prescription),
+            ("fatima",  "Labetalol",            new[] { new TimeSpan(8, 0, 0), new TimeSpan(20, 0, 0) },                     MedicationSource.Prescription),
+            ("fatima",  "Aspirin",              new[] { new TimeSpan(21, 0, 0) },                                           MedicationSource.Prescription),
+            ("yasmine", "Prenatal Multivitamin",new[] { new TimeSpan(9, 0, 0) },                                            MedicationSource.Prescription),
+            ("hana",    "Methyldopa",           new[] { new TimeSpan(8, 0, 0), new TimeSpan(14, 0, 0), new TimeSpan(20, 0, 0) }, MedicationSource.Prescription),
+            ("reem",    "Metformin",            new[] { new TimeSpan(8, 0, 0), new TimeSpan(20, 0, 0) },                     MedicationSource.Prescription),
+            ("reem",    "Vitamin D3",           new[] { new TimeSpan(9, 0, 0) },                                            MedicationSource.Prescription)
+        };
+
+        private static async Task SeedMedicationsAsync(AppDbContext context, Cast cast)
+        {
+            if (!context.Medications.Any())
+            {
+                var today = DateTime.Today;
+
+                foreach (var m in MedicationDefinitions)
+                {
+                    var patientId = cast.Patients[m.PatientKey].PatientID;
+
+                    // Link back to the prescription item this medication came from.
+                    var item = context.PrescriptionItems
+                        .Include(i => i.Prescription)
+                        .FirstOrDefault(i => i.Prescription.PatientID == patientId && i.MedicineName == m.MedicineName);
+
+                    var startDate = item?.Prescription.PrescriptionDate.Date ?? today.AddDays(-14);
+                    var durationDays = item?.DurationDays ?? 90;
+
+                    var medication = new Medication
+                    {
+                        PatientID = patientId,
+                        Name = m.MedicineName,
+                        Dosage = item?.Dosage ?? string.Empty,
+                        Frequency = item?.Frequency ?? "Once daily",
+                        Instructions = item?.Instructions ?? string.Empty,
+                        StartDate = startDate,
+                        EndDate = startDate.AddDays(durationDays),
+                        IsActive = true,
+                        Source = m.Source,
+                        PrescriptionItemId = item?.ItemID,
+                        ReminderLeadTimeMinutes = 30,
+                        TotalPills = durationDays * m.Times.Length,
+                        PillsPerDose = 1,
+                        CreatedAt = startDate
+                    };
+
+                    context.Medications.Add(medication);
+                    await context.SaveChangesAsync();
+
+                    foreach (var time in m.Times)
+                    {
+                        context.MedicationSchedules.Add(new MedicationSchedule
+                        {
+                            MedicationId = medication.MedicationId,
+                            TimeOfDay = time,
+                            FrequencyPerDay = m.Times.Length
+                        });
+                    }
+                    await context.SaveChangesAsync();
+                }
+
+                // A self-added medication (not from a prescription) for the newest patient.
+                var nour = cast.Patients["nour"];
+                var selfMed = new Medication
+                {
+                    PatientID = nour.PatientID,
+                    Name = "Folic Acid",
+                    Dosage = "0.4mg",
+                    Frequency = "Once daily",
+                    Instructions = "Take in the morning with water",
+                    StartDate = today.AddDays(-20),
+                    EndDate = today.AddDays(250),
+                    IsActive = true,
+                    Source = MedicationSource.Self,
+                    ReminderLeadTimeMinutes = 15,
+                    TotalPills = 270,
+                    PillsPerDose = 1,
+                    CreatedAt = today.AddDays(-20)
+                };
+                context.Medications.Add(selfMed);
+                await context.SaveChangesAsync();
+
+                context.MedicationSchedules.Add(new MedicationSchedule
+                {
+                    MedicationId = selfMed.MedicationId,
+                    TimeOfDay = new TimeSpan(9, 0, 0),
+                    FrequencyPerDay = 1
+                });
                 await context.SaveChangesAsync();
             }
 
-            // Fetch lab tests grouped by type for the child test tables
-            var cbcTests       = context.LabTests.Where(l => l.TestType == "CBC").OrderBy(l => l.LabTestID).ToList();
-            var bgTests        = context.LabTests.Where(l => l.TestType == "BloodGroup").OrderBy(l => l.LabTestID).ToList();
-            var hba1cTests     = context.LabTests.Where(l => l.TestType == "HbA1c").OrderBy(l => l.LabTestID).ToList();
-            var uriTests       = context.LabTests.Where(l => l.TestType == "Urinalysis").OrderBy(l => l.LabTestID).ToList();
-            var hbsagTests     = context.LabTests.Where(l => l.TestType == "HBsAg").OrderBy(l => l.LabTestID).ToList();
-            var hcvTests       = context.LabTests.Where(l => l.TestType == "HCV").OrderBy(l => l.LabTestID).ToList();
-            var tshTests       = context.LabTests.Where(l => l.TestType == "TSH").OrderBy(l => l.LabTestID).ToList();
-            var ferritinTests  = context.LabTests.Where(l => l.TestType == "Ferritin").OrderBy(l => l.LabTestID).ToList();
-
-            // ============================================================
-            // 14. CBC TESTS
-            // ============================================================
-            if (!context.CBC_Tests.Any())
+            if (!context.MedicationReminderSettings.Any())
             {
-                context.CBC_Tests.AddRange(
-                    new CBC_Test { LabTestID = cbcTests[0].LabTestID, HB = 10.8f, RBCs_Count = 3.9f, MCV = 78.0f, MCH = 25.0f, WBC = 8500f, lymphocytes = 32.0f, platelet_count = 230000f },
-                    new CBC_Test { LabTestID = cbcTests[1].LabTestID, HB = 11.5f, RBCs_Count = 4.1f, MCV = 85.0f, MCH = 27.0f, WBC = 12000f, lymphocytes = 28.0f, platelet_count = 210000f },
-                    new CBC_Test { LabTestID = cbcTests[2].LabTestID, HB = 12.2f, RBCs_Count = 4.3f, MCV = 88.0f, MCH = 29.0f, WBC = 7800f, lymphocytes = 35.0f, platelet_count = 250000f },
-                    new CBC_Test { LabTestID = cbcTests[3].LabTestID, HB = 9.5f, RBCs_Count = 3.5f, MCV = 72.0f, MCH = 22.0f, WBC = 9200f, lymphocytes = 30.0f, platelet_count = 180000f },
-                    new CBC_Test { LabTestID = cbcTests[4].LabTestID, HB = 11.8f, RBCs_Count = 4.0f, MCV = 86.0f, MCH = 28.0f, WBC = 8000f, lymphocytes = 33.0f, platelet_count = 220000f }
-                );
+                foreach (var patient in cast.Patients.Values)
+                {
+                    context.MedicationReminderSettings.Add(new MedicationReminderSettings
+                    {
+                        PatientID = patient.PatientID,
+                        LeadTimeMinutes = 30,
+                        UpdatedAt = DateTime.Now
+                    });
+                }
                 await context.SaveChangesAsync();
             }
+        }
 
-            // ============================================================
-            // 15. BLOOD GROUP TESTS
-            // ============================================================
-            if (!context.BloodGroup_Tests.Any())
+        /// <summary>
+        /// Rolling: rebuilds the last week of dose history (plus today's doses) whenever there is
+        /// nothing logged for today, so the adherence charts are never empty.
+        /// </summary>
+        private static async Task SeedMedicationLogsAsync(AppDbContext context)
+        {
+            var today = DateTime.Today;
+
+            if (context.MedicationLogs.Any(l => l.ScheduledAt >= today && l.ScheduledAt < today.AddDays(1)))
+                return;
+
+            var now = DateTime.Now;
+            var medications = context.Medications
+                .Include(m => m.Schedules)
+                .Where(m => m.IsActive)
+                .ToList();
+
+            foreach (var medication in medications)
             {
-                context.BloodGroup_Tests.AddRange(
-                    new BloodGroup_Test { LabTestID = bgTests[0].LabTestID, ABO_Group = "A",  RH_Factor = "Positive" },
-                    new BloodGroup_Test { LabTestID = bgTests[1].LabTestID, ABO_Group = "O",  RH_Factor = "Positive" },
-                    new BloodGroup_Test { LabTestID = bgTests[2].LabTestID, ABO_Group = "B",  RH_Factor = "Positive" },
-                    new BloodGroup_Test { LabTestID = bgTests[3].LabTestID, ABO_Group = "AB", RH_Factor = "Negative" },
-                    new BloodGroup_Test { LabTestID = bgTests[4].LabTestID, ABO_Group = "O",  RH_Factor = "Negative" }
-                );
-                await context.SaveChangesAsync();
+                foreach (var schedule in medication.Schedules)
+                {
+                    for (int dayOffset = 6; dayOffset >= 0; dayOffset--)
+                    {
+                        var scheduledAt = today.AddDays(-dayOffset).Add(schedule.TimeOfDay);
+
+                        if (scheduledAt < medication.StartDate)
+                            continue;
+
+                        if (context.MedicationLogs.Any(l => l.MedicationId == medication.MedicationId && l.ScheduledAt == scheduledAt))
+                            continue;
+
+                        MedicationLogStatus status;
+                        DateTime? takenAt = null;
+
+                        if (scheduledAt > now)
+                        {
+                            status = MedicationLogStatus.Scheduled;
+                        }
+                        else if (dayOffset == 2)
+                        {
+                            // One missed day, so the adherence rate is realistic rather than a perfect 100%.
+                            status = MedicationLogStatus.Missed;
+                        }
+                        else if (dayOffset == 4 && schedule.TimeOfDay.Hours >= 20)
+                        {
+                            status = MedicationLogStatus.Skipped;
+                        }
+                        else
+                        {
+                            status = MedicationLogStatus.Taken;
+                            takenAt = scheduledAt.AddMinutes(7);
+                        }
+
+                        context.MedicationLogs.Add(new MedicationLog
+                        {
+                            MedicationId = medication.MedicationId,
+                            ScheduledAt = scheduledAt,
+                            TakenAt = takenAt,
+                            Status = status,
+                            Notes = status == MedicationLogStatus.Skipped ? "Felt nauseous — skipped this dose." : null
+                        });
+                    }
+                }
             }
 
-            // ============================================================
-            // 16. HbA1c TESTS
-            // ============================================================
-            if (!context.HbA1c_Tests.Any())
-            {
-                context.HbA1c_Tests.AddRange(
-                    new HbA1c_Test { LabTestID = hba1cTests[0].LabTestID, HbA1c = 5.4f },
-                    new HbA1c_Test { LabTestID = hba1cTests[1].LabTestID, HbA1c = 5.9f },
-                    new HbA1c_Test { LabTestID = hba1cTests[2].LabTestID, HbA1c = 5.1f },
-                    new HbA1c_Test { LabTestID = hba1cTests[3].LabTestID, HbA1c = 6.2f },
-                    new HbA1c_Test { LabTestID = hba1cTests[4].LabTestID, HbA1c = 6.8f }
-                );
-                await context.SaveChangesAsync();
-            }
+            await context.SaveChangesAsync();
+        }
 
-            // ============================================================
-            // 17. URINALYSIS TESTS
-            // ============================================================
-            if (!context.Urinalysis_Tests.Any())
-            {
-                context.Urinalysis_Tests.AddRange(
-                    new Urinalysis_Test { LabTestID = uriTests[0].LabTestID, Color = "Yellow",       PH = 6.0f, Specific_Gravity = 1.015f, Protein = "Negative", Glucose = "Negative", Nitrite = "Negative", Ketones = "Negative", Blood = "Negative", RBCs = "0-2", Leukocytes = "Negative" },
-                    new Urinalysis_Test { LabTestID = uriTests[1].LabTestID, Color = "Light Yellow", PH = 6.5f, Specific_Gravity = 1.018f, Protein = "Trace",    Glucose = "Negative", Nitrite = "Negative", Ketones = "Negative", Blood = "Negative", RBCs = "0-2", Leukocytes = "Negative" },
-                    new Urinalysis_Test { LabTestID = uriTests[2].LabTestID, Color = "Yellow",       PH = 5.5f, Specific_Gravity = 1.012f, Protein = "Negative", Glucose = "Negative", Nitrite = "Negative", Ketones = "Negative", Blood = "Negative", RBCs = "0-2", Leukocytes = "Negative" },
-                    new Urinalysis_Test { LabTestID = uriTests[3].LabTestID, Color = "Dark Yellow",  PH = 7.0f, Specific_Gravity = 1.022f, Protein = "Trace",    Glucose = "Negative", Nitrite = "Negative", Ketones = "Trace",    Blood = "Negative", RBCs = "2-5", Leukocytes = "Trace"     },
-                    new Urinalysis_Test { LabTestID = uriTests[4].LabTestID, Color = "Yellow",       PH = 6.0f, Specific_Gravity = 1.016f, Protein = "Negative", Glucose = "Negative", Nitrite = "Negative", Ketones = "Negative", Blood = "Negative", RBCs = "0-2", Leukocytes = "Negative" }
-                );
-                await context.SaveChangesAsync();
-            }
+        // ============================================================
+        // 13. PATIENT DRUGS (self-reported medication history)
+        // ============================================================
+        private static async Task SeedPatientDrugsAsync(AppDbContext context, Cast cast)
+        {
+            if (context.PatientDrugs.Any())
+                return;
 
-            // ============================================================
-            // 18. HBsAg TESTS
-            // ============================================================
-            if (!context.HBsAg_Tests.Any())
-            {
-                context.HBsAg_Tests.AddRange(
-                    new HBsAg_Test { LabTestID = hbsagTests[0].LabTestID, HBsAg = "Negative" },
-                    new HBsAg_Test { LabTestID = hbsagTests[1].LabTestID, HBsAg = "Negative" },
-                    new HBsAg_Test { LabTestID = hbsagTests[2].LabTestID, HBsAg = "Negative" },
-                    new HBsAg_Test { LabTestID = hbsagTests[3].LabTestID, HBsAg = "Negative" },
-                    new HBsAg_Test { LabTestID = hbsagTests[4].LabTestID, HBsAg = "Negative" }
-                );
-                await context.SaveChangesAsync();
-            }
+            void Drug(string patientKey, string name, int months, string reason, double dose) =>
+                context.PatientDrugs.Add(new PatientDrug
+                {
+                    PatientID = cast.Patients[patientKey].PatientID,
+                    DrugName = name,
+                    DurationMonths = months,
+                    Reason = reason,
+                    DoseMgPerDay = dose
+                });
 
-            // ============================================================
-            // 19. HCV TESTS
-            // ============================================================
-            if (!context.HCV_Tests.Any())
-            {
-                context.HCV_Tests.AddRange(
-                    new HCV_Test { LabTestID = hcvTests[0].LabTestID, HCV = "Negative" },
-                    new HCV_Test { LabTestID = hcvTests[1].LabTestID, HCV = "Negative" },
-                    new HCV_Test { LabTestID = hcvTests[2].LabTestID, HCV = "Negative" },
-                    new HCV_Test { LabTestID = hcvTests[3].LabTestID, HCV = "Negative" },
-                    new HCV_Test { LabTestID = hcvTests[4].LabTestID, HCV = "Negative" }
-                );
-                await context.SaveChangesAsync();
-            }
+            Drug("sarah", "Folic Acid", 9, "Neural tube defect prevention", 0.4);
+            Drug("sarah", "Iron Supplement", 6, "Iron-deficiency anaemia", 30.0);
+            Drug("fatima", "Labetalol", 5, "Gestational hypertension", 200.0);
+            Drug("fatima", "Calcium Carbonate", 7, "Calcium supplementation", 1000.0);
+            Drug("yasmine", "Folic Acid", 9, "Neural tube defect prevention", 0.4);
+            Drug("yasmine", "Iron Supplement", 4, "Mild anaemia", 20.0);
+            Drug("hana", "Methyldopa", 4, "Chronic hypertension", 500.0);
+            Drug("hana", "Aspirin Low-Dose", 6, "Pre-eclampsia prevention", 81.0);
+            Drug("reem", "Vitamin D3", 9, "Vitamin D deficiency", 1000.0);
+            Drug("reem", "Magnesium", 3, "Leg cramps in pregnancy", 350.0);
+            Drug("nour", "Folic Acid", 9, "Neural tube defect prevention", 0.4);
 
-            // ============================================================
-            // 20. TSH TESTS
-            // ============================================================
-            if (!context.TSH_Tests.Any())
-            {
-                context.TSH_Tests.AddRange(
-                    new TSH_Test { LabTestID = tshTests[0].LabTestID, TSH = 1.8f, TSH_Unit = "mIU/L" },
-                    new TSH_Test { LabTestID = tshTests[1].LabTestID, TSH = 4.5f, TSH_Unit = "mIU/L" },
-                    new TSH_Test { LabTestID = tshTests[2].LabTestID, TSH = 2.1f, TSH_Unit = "mIU/L" },
-                    new TSH_Test { LabTestID = tshTests[3].LabTestID, TSH = 1.5f, TSH_Unit = "mIU/L" },
-                    new TSH_Test { LabTestID = tshTests[4].LabTestID, TSH = 3.2f, TSH_Unit = "mIU/L" }
-                );
-                await context.SaveChangesAsync();
-            }
+            await context.SaveChangesAsync();
+        }
 
-            // ============================================================
-            // 21. FERRITIN TESTS
-            // ============================================================
-            if (!context.Ferritin_Tests.Any())
-            {
-                context.Ferritin_Tests.AddRange(
-                    new Ferritin_Test { LabTestID = ferritinTests[0].LabTestID, Ferritin_Value = 18.0f },
-                    new Ferritin_Test { LabTestID = ferritinTests[1].LabTestID, Ferritin_Value = 25.0f },
-                    new Ferritin_Test { LabTestID = ferritinTests[2].LabTestID, Ferritin_Value = 30.0f },
-                    new Ferritin_Test { LabTestID = ferritinTests[3].LabTestID, Ferritin_Value = 8.0f  },
-                    new Ferritin_Test { LabTestID = ferritinTests[4].LabTestID, Ferritin_Value = 22.0f }
-                );
-                await context.SaveChangesAsync();
-            }
+        // ============================================================
+        // 14. VITALS — blood pressure, blood sugar, weight
+        // ============================================================
+        private static async Task SeedVitalsAsync(AppDbContext context, Cast cast)
+        {
+            var today = DateTime.Today;
 
-            // ============================================================
-            // 22. ULTRASOUND IMAGES
-            // ===========================================================
-            if (!context.UltrasoundImages.Any())
-            {
-                context.UltrasoundImages.AddRange(
-                    new UltrasoundImage { PatientID = pSarah.PatientID,   DoctorID = dAhmed.DoctorID, ModelID = aiUs.ModelID, ImagePath = "/uploads/ultrasound/us_p1_1.jpg", UploadDate = new DateTime(2025, 3, 15), DetectedAnomaly = "None",                  DoctorComments = "Normal fetal development at week 24.",            AI_Result_JSON = "{\"anomaly\":\"none\",\"confidence\":97.2}"              },
-                    new UltrasoundImage { PatientID = pFatima.PatientID,  DoctorID = dAhmed.DoctorID, ModelID = aiUs.ModelID, ImagePath = "/uploads/ultrasound/us_p2_1.jpg", UploadDate = new DateTime(2025, 3, 9),  DetectedAnomaly = "Mild Placenta Previa", DoctorComments = "Scheduled follow-up scan in 4 weeks.",             AI_Result_JSON = "{\"anomaly\":\"placenta_previa\",\"confidence\":88.5}" },
-                    new UltrasoundImage { PatientID = pYasmine.PatientID, DoctorID = dMona.DoctorID,  ModelID = aiUs.ModelID, ImagePath = "/uploads/ultrasound/us_p3_1.jpg", UploadDate = new DateTime(2025, 2, 27), DetectedAnomaly = "None",                  DoctorComments = "First trimester scan looks normal.",               AI_Result_JSON = "{\"anomaly\":\"none\",\"confidence\":98.1}"              },
-                    new UltrasoundImage { PatientID = pHana.PatientID,    DoctorID = dKarim.DoctorID, ModelID = aiUs.ModelID, ImagePath = "/uploads/ultrasound/us_p4_1.jpg", UploadDate = new DateTime(2025, 2, 28), DetectedAnomaly = "None",                  DoctorComments = "Third trimester scan. Baby in cephalic position.", AI_Result_JSON = "{\"anomaly\":\"none\",\"confidence\":96.0}"              },
-                    new UltrasoundImage { PatientID = pReem.PatientID,    DoctorID = dNadia.DoctorID, ModelID = aiUs.ModelID, ImagePath = "/uploads/ultrasound/us_p5_1.jpg", UploadDate = new DateTime(2025, 3, 4),  DetectedAnomaly = "None",                  DoctorComments = "Normal fetal growth at week 20.",                 AI_Result_JSON = "{\"anomaly\":\"none\",\"confidence\":95.3}"              },
-                    new UltrasoundImage { PatientID = pSarah.PatientID,   DoctorID = dAhmed.DoctorID, ModelID = aiUs.ModelID, ImagePath = "/uploads/ultrasound/us_p1_2.jpg", UploadDate = new DateTime(2025, 2, 10), DetectedAnomaly = "None",                  DoctorComments = "Week 20 anatomy scan completed.",                  AI_Result_JSON = "{\"anomaly\":\"none\",\"confidence\":96.8}"              }
-                );
-                await context.SaveChangesAsync();
-            }
-
-            var usImages = context.UltrasoundImages.OrderBy(u => u.ImageID).ToList();
-
-            // ============================================================
-            // 23. MEDICAL HISTORY
-            // ============================================================
-            if (!context.MedicalHistories.Any())
-            {
-                context.MedicalHistories.AddRange(
-                    new MedicalHistory { PatientID = pSarah.PatientID,   DoctorID = dAhmed.DoctorID, LabTestID = cbcTests[0].LabTestID,  ImageID = usImages[0].ImageID, EventType = "LabTest",     Summary = "CBC test analyzed. Mild anemia detected.",                                  DateRecorded = new DateTime(2025, 3, 16), Date = new DateTime(2025, 3, 16) },
-                    new MedicalHistory { PatientID = pSarah.PatientID,   DoctorID = dAhmed.DoctorID, LabTestID = null,                   ImageID = usImages[0].ImageID, EventType = "Ultrasound",  Summary = "Week 24 anatomy scan. No anomalies found.",                                 DateRecorded = new DateTime(2025, 3, 15), Date = new DateTime(2025, 3, 15) },
-                    new MedicalHistory { PatientID = pFatima.PatientID,  DoctorID = dAhmed.DoctorID, LabTestID = cbcTests[1].LabTestID,  ImageID = usImages[1].ImageID, EventType = "LabTest",     Summary = "CBC shows elevated WBC. Blood pressure trending high.",                     DateRecorded = new DateTime(2025, 3, 10), Date = new DateTime(2025, 3, 10) },
-                    new MedicalHistory { PatientID = pFatima.PatientID,  DoctorID = dAhmed.DoctorID, LabTestID = null,                   ImageID = usImages[1].ImageID, EventType = "Ultrasound",  Summary = "Mild placenta previa detected. Follow-up scheduled.",                       DateRecorded = new DateTime(2025, 3, 9),  Date = new DateTime(2025, 3, 9)  },
-                    new MedicalHistory { PatientID = pYasmine.PatientID, DoctorID = dMona.DoctorID,  LabTestID = cbcTests[2].LabTestID,  ImageID = usImages[2].ImageID, EventType = "LabTest",     Summary = "First trimester panel all normal.",                                          DateRecorded = new DateTime(2025, 2, 28), Date = new DateTime(2025, 2, 28) },
-                    new MedicalHistory { PatientID = pHana.PatientID,    DoctorID = dKarim.DoctorID, LabTestID = cbcTests[3].LabTestID,  ImageID = usImages[3].ImageID, EventType = "LabTest",     Summary = "Iron deficiency anemia confirmed. IV iron therapy initiated.",               DateRecorded = new DateTime(2025, 3, 1),  Date = new DateTime(2025, 3, 1)  },
-                    new MedicalHistory { PatientID = pReem.PatientID,    DoctorID = dNadia.DoctorID, LabTestID = cbcTests[4].LabTestID,  ImageID = usImages[4].ImageID, EventType = "LabTest",     Summary = "HbA1c above target for gestational diabetes. Diet plan adjusted.",           DateRecorded = new DateTime(2025, 3, 5),  Date = new DateTime(2025, 3, 5)  },
-                    new MedicalHistory { PatientID = pSarah.PatientID,   DoctorID = dAhmed.DoctorID, LabTestID = null,                   ImageID = null,                EventType = "Appointment", Summary = "Routine prenatal visit. Blood pressure 118/76. Weight gain normal.",         DateRecorded = new DateTime(2025, 3, 5),  Date = new DateTime(2025, 3, 5)  },
-                    new MedicalHistory { PatientID = pYasmine.PatientID, DoctorID = dMona.DoctorID,  LabTestID = null,                   ImageID = usImages[2].ImageID, EventType = "Ultrasound",  Summary = "Week 12 dating scan. Crown-rump length within normal range.",                DateRecorded = new DateTime(2025, 2, 10), Date = new DateTime(2025, 2, 10) },
-                    new MedicalHistory { PatientID = pHana.PatientID,    DoctorID = dKarim.DoctorID, LabTestID = null,                   ImageID = usImages[3].ImageID, EventType = "Appointment", Summary = "Third trimester consultation. Birth plan discussed.",                        DateRecorded = new DateTime(2025, 3, 1),  Date = new DateTime(2025, 3, 1)  }
-                );
-                await context.SaveChangesAsync();
-            }
-
-            // ============================================================
-            // 24. ALERTS (clinical health alerts only)
-            // ============================================================
-            if (!context.Alerts.Any())
-            {
-                context.Alerts.AddRange(
-                    new Alert { PatientID = pSarah.PatientID,   Title = "Low Hemoglobin Detected",  Message = "Your CBC shows hemoglobin of 10.8 g/dL. Consider increasing iron supplementation.",             AlertType = "warning",  DateCreated = new DateTime(2025, 3, 16), IsRead = false },
-                    new Alert { PatientID = pFatima.PatientID,  Title = "Elevated Blood Pressure",   Message = "Your blood pressure has been consistently elevated. Follow up with your doctor immediately.",    AlertType = "danger", DateCreated = new DateTime(2025, 3, 11), IsRead = false },
-                    new Alert { PatientID = pFatima.PatientID,  Title = "Elevated WBC Count",        Message = "Your CBC shows an elevated WBC count of 12,000. This may indicate an infection.",               AlertType = "warning",  DateCreated = new DateTime(2025, 3, 10), IsRead = false },
-                    new Alert { PatientID = pHana.PatientID,    Title = "Iron Deficiency Anemia",    Message = "Your ferritin level is critically low at 8 ng/mL. IV iron therapy has been prescribed.",         AlertType = "danger", DateCreated = new DateTime(2025, 3, 1),  IsRead = false },
-                    new Alert { PatientID = pReem.PatientID,    Title = "HbA1c Above Target",        Message = "Your HbA1c is 6.8%, above the gestational diabetes target. Dietary adjustments recommended.",    AlertType = "warning",  DateCreated = new DateTime(2025, 3, 5),  IsRead = false },
-                    new Alert { PatientID = pReem.PatientID,    Title = "Blood Sugar Alert",         Message = "Your recent blood sugar readings are above target. Please follow the adjusted dietary plan.",      AlertType = "danger", DateCreated = DateTime.Today,             IsRead = false },
-                    // Upcoming appointment reminders (shown on the Alerts page)
-                    new Alert { PatientID = pSarah.PatientID,   Title = "Appointment Tomorrow",      Message = "You have an appointment with Dr. Ahmed Hassan tomorrow at 10:00 AM.",                              AlertType = "info",     DateCreated = new DateTime(2025, 3, 19), IsRead = false },
-                    new Alert { PatientID = pHana.PatientID,    Title = "Appointment Tomorrow",      Message = "Your appointment with Dr. Karim Mostafa is on March 25 at 2:00 PM.",                               AlertType = "info",     DateCreated = new DateTime(2025, 3, 20), IsRead = false }
-                );
-                await context.SaveChangesAsync();
-            }
-
-            // ============================================================
-            // 24b. PATIENT NOTIFICATIONS (reminders / status / operational)
-            // ============================================================
-            if (!context.PatientNotifications.Any())
-            {
-                context.PatientNotifications.AddRange(
-                    // Patient-facing notifications (shown in the bell)
-                    new PatientNotification { PatientID = pReem.PatientID,    Title = "Medication Reminder",       Message = "Remember to take your daily prenatal vitamin and folic acid supplement.",             NotificationType = "medication",  Severity = "info", DateCreated = new DateTime(2025, 3, 18), IsRead = false, ActionUrl = "/Patient/Medications" },
-                    new PatientNotification { PatientID = pYasmine.PatientID, Title = "Ultrasound Analysis Ready",  Message = "Dr. Mona analyzed your week 12 dating scan. Result: normal. View it in your Medical History.", NotificationType = "ultrasound", Severity = "info", DateCreated = new DateTime(2025, 2, 28), IsRead = true,  ActionUrl = "/PatientMedicalHistory/MedicalHistory/" + pYasmine.PatientID },
-                    new PatientNotification { PatientID = pSarah.PatientID,   Title = "Medication Reminder",       Message = "It's time to take your iron supplement (60mg).",                                       NotificationType = "medication",  Severity = "info", DateCreated = DateTime.Today,             IsRead = false, ActionUrl = "/Patient/Medications" },
-                    // Operational notifications (clinic-facing — shown to assistants)
-                    new PatientNotification { PatientID = pSarah.PatientID,   Title = "Patient Checked In",        Message = "Sarah has checked in for her appointment with Dr. Ahmed Hassan today.",               NotificationType = "operational", Severity = "info",    DateCreated = DateTime.Today,            IsRead = false, ActionUrl = "/Assistant/Alerts" },
-                    new PatientNotification { PatientID = pFatima.PatientID,  Title = "Appointment Rescheduled",   Message = "Appointment for Fatima with Dr. Mona has been rescheduled to Mar 28, 2025 at 11:00.",  NotificationType = "operational", Severity = "warning", DateCreated = DateTime.Today,            IsRead = false, ActionUrl = "/Assistant/Alerts" }
-                );
-                await context.SaveChangesAsync();
-            }
-
-            // ============================================================
-            // 25. NOTES
-            // ============================================================
-            if (!context.Notes.Any())
-            {
-                context.Notes.AddRange(
-                    new Note { DoctorID = dAhmed.DoctorID, PatientID = pSarah.PatientID,   CreatedDate = new DateTime(2025, 3, 16), Content = "Patient reports occasional dizziness. Likely related to mild anemia. Iron supplement dosage increased to 60mg/day." },
-                    new Note { DoctorID = dAhmed.DoctorID, PatientID = pFatima.PatientID,  CreatedDate = new DateTime(2025, 3, 10), Content = "Blood pressure monitoring needs to continue. Patient educated on warning signs of preeclampsia." },
-                    new Note { DoctorID = dMona.DoctorID,  PatientID = pYasmine.PatientID, CreatedDate = new DateTime(2025, 2, 28), Content = "First consultation. Patient is in good health. Standard prenatal vitamins prescribed. Anatomy scan booked for week 20." },
-                    new Note { DoctorID = dKarim.DoctorID, PatientID = pHana.PatientID,    CreatedDate = new DateTime(2025, 3, 1),  Content = "Iron deficiency confirmed. IV iron infusion scheduled. Patient advised to increase dietary iron intake." },
-                    new Note { DoctorID = dNadia.DoctorID, PatientID = pReem.PatientID,    CreatedDate = new DateTime(2025, 3, 5),  Content = "Gestational diabetes management. HbA1c trending high. Dietitian referral given. Blood sugar monitored 4x daily." },
-                    new Note { DoctorID = dAhmed.DoctorID, PatientID = pSarah.PatientID,   CreatedDate = new DateTime(2025, 2, 15), Content = "Week 20 anatomy scan normal. Fetal measurements appropriate for gestational age. Patient reassured." },
-                    new Note { DoctorID = dMona.DoctorID,  PatientID = pYasmine.PatientID, CreatedDate = new DateTime(2025, 3, 5),  Content = "Week 12 nuchal translucency measurement normal. Low risk for chromosomal abnormalities." },
-                    new Note { DoctorID = dKarim.DoctorID, PatientID = pHana.PatientID,    CreatedDate = new DateTime(2025, 2, 20), Content = "Patient experiencing back pain. Physiotherapy referral provided. Continue aspirin 81mg for preeclampsia prevention." }
-                );
-                await context.SaveChangesAsync();
-            }
-
-            // ============================================================
-            // 26. PRESCRIPTIONS
-            // ============================================================
-            if (!context.Prescriptions.Any())
-            {
-                context.Prescriptions.AddRange(
-                    new Prescription { DoctorID = dAhmed.DoctorID, PatientID = pSarah.PatientID,   PrescriptionDate = new DateTime(2025, 3, 16), Notes = "Continue prenatal vitamins. Increase iron supplementation." },
-                    new Prescription { DoctorID = dAhmed.DoctorID, PatientID = pFatima.PatientID,  PrescriptionDate = new DateTime(2025, 3, 10), Notes = "Blood pressure management plan. Monitor daily."             },
-                    new Prescription { DoctorID = dMona.DoctorID,  PatientID = pYasmine.PatientID, PrescriptionDate = new DateTime(2025, 2, 28), Notes = "Standard first trimester prescription."                      },
-                    new Prescription { DoctorID = dKarim.DoctorID, PatientID = pHana.PatientID,    PrescriptionDate = new DateTime(2025, 3, 1),  Notes = "Iron deficiency anemia treatment plan."                      },
-                    new Prescription { DoctorID = dNadia.DoctorID, PatientID = pReem.PatientID,    PrescriptionDate = new DateTime(2025, 3, 5),  Notes = "Gestational diabetes management."                            }
-                );
-                await context.SaveChangesAsync();
-            }
-
-            // ============================================================
-            // 27. PRESCRIPTION ITEMS
-            // ============================================================
-            if (!context.PrescriptionItems.Any())
-            {
-                var prescriptions = context.Prescriptions.OrderBy(p => p.PrescriptionID).ToList();
-                var pr1 = prescriptions[0]; var pr2 = prescriptions[1];
-                var pr3 = prescriptions[2]; var pr4 = prescriptions[3]; var pr5 = prescriptions[4];
-
-                context.PrescriptionItems.AddRange(
-                    new PrescriptionItem { PrescriptionID = pr1.PrescriptionID, MedicineName = "Ferrous Sulfate",      Dosage = "325mg",    Frequency = "Twice daily",       DurationDays = 90,  Instructions = "Take with vitamin C for better absorption"   },
-                    new PrescriptionItem { PrescriptionID = pr1.PrescriptionID, MedicineName = "Folic Acid",            Dosage = "5mg",      Frequency = "Once daily",         DurationDays = 180, Instructions = "Take in the morning with food"                },
-                    new PrescriptionItem { PrescriptionID = pr1.PrescriptionID, MedicineName = "Vitamin D3",            Dosage = "1000 IU",  Frequency = "Once daily",         DurationDays = 180, Instructions = "Take with main meal"                           },
-                    new PrescriptionItem { PrescriptionID = pr2.PrescriptionID, MedicineName = "Labetalol",             Dosage = "100mg",    Frequency = "Twice daily",        DurationDays = 60,  Instructions = "Do not stop abruptly; monitor BP twice daily" },
-                    new PrescriptionItem { PrescriptionID = pr2.PrescriptionID, MedicineName = "Calcium Carbonate",     Dosage = "500mg",    Frequency = "Twice daily",        DurationDays = 90,  Instructions = "Take with food"                                },
-                    new PrescriptionItem { PrescriptionID = pr2.PrescriptionID, MedicineName = "Aspirin",               Dosage = "81mg",     Frequency = "Once daily",         DurationDays = 90,  Instructions = "Take at bedtime"                               },
-                    new PrescriptionItem { PrescriptionID = pr3.PrescriptionID, MedicineName = "Prenatal Multivitamin", Dosage = "1 tablet", Frequency = "Once daily",         DurationDays = 270, Instructions = "Take with food"                                },
-                    new PrescriptionItem { PrescriptionID = pr3.PrescriptionID, MedicineName = "Folic Acid",            Dosage = "0.4mg",    Frequency = "Once daily",         DurationDays = 270, Instructions = "Take in the morning"                           },
-                    new PrescriptionItem { PrescriptionID = pr4.PrescriptionID, MedicineName = "Iron Sucrose IV",       Dosage = "200mg",    Frequency = "Weekly infusion",    DurationDays = 42,  Instructions = "Administered in clinic under supervision"      },
-                    new PrescriptionItem { PrescriptionID = pr4.PrescriptionID, MedicineName = "Methyldopa",            Dosage = "250mg",    Frequency = "Three times daily",  DurationDays = 60,  Instructions = "Monitor BP regularly"                          },
-                    new PrescriptionItem { PrescriptionID = pr5.PrescriptionID, MedicineName = "Metformin",             Dosage = "500mg",    Frequency = "Twice daily",        DurationDays = 90,  Instructions = "Take with meals. Monitor blood sugar 4x daily."},
-                    new PrescriptionItem { PrescriptionID = pr5.PrescriptionID, MedicineName = "Folic Acid",            Dosage = "5mg",      Frequency = "Once daily",         DurationDays = 180, Instructions = "Take in the morning"                           }
-                );
-                await context.SaveChangesAsync();
-            }
-
-            // ============================================================
-            // 28. PATIENT BLOOD PRESSURE
-            // ============================================================
             if (!context.PatientBloodPressure.Any())
             {
-                context.PatientBloodPressure.AddRange(
-                    new PatientBloodPressure { PatientID = pSarah.PatientID,   BloodPressure = "118/76",  DateTime = new DateTime(2025, 3, 17, 9,  30, 0) },
-                    new PatientBloodPressure { PatientID = pSarah.PatientID,   BloodPressure = "122/82",  DateTime = new DateTime(2025, 3, 16, 10, 15, 0) },
-                    new PatientBloodPressure { PatientID = pSarah.PatientID,   BloodPressure = "135/88",  DateTime = new DateTime(2025, 3, 15, 8,  45, 0) },
-                    new PatientBloodPressure { PatientID = pSarah.PatientID,   BloodPressure = "115/75",  DateTime = new DateTime(2025, 3, 14, 9,  0,  0) },
-                    new PatientBloodPressure { PatientID = pSarah.PatientID,   BloodPressure = "120/80",  DateTime = new DateTime(2025, 3, 18, 8,  0,  0) },
-                    new PatientBloodPressure { PatientID = pFatima.PatientID,  BloodPressure = "145/92",  DateTime = new DateTime(2025, 3, 17, 8,  0,  0) },
-                    new PatientBloodPressure { PatientID = pFatima.PatientID,  BloodPressure = "148/95",  DateTime = new DateTime(2025, 3, 16, 9,  0,  0) },
-                    new PatientBloodPressure { PatientID = pFatima.PatientID,  BloodPressure = "142/90",  DateTime = new DateTime(2025, 3, 15, 8,  30, 0) },
-                    new PatientBloodPressure { PatientID = pYasmine.PatientID, BloodPressure = "110/70",  DateTime = new DateTime(2025, 3, 15, 9,  0,  0) },
-                    new PatientBloodPressure { PatientID = pYasmine.PatientID, BloodPressure = "112/72",  DateTime = new DateTime(2025, 3, 14, 9,  30, 0) },
-                    new PatientBloodPressure { PatientID = pHana.PatientID,    BloodPressure = "150/98",  DateTime = new DateTime(2025, 3, 17, 7,  45, 0) },
-                    new PatientBloodPressure { PatientID = pHana.PatientID,    BloodPressure = "155/100", DateTime = new DateTime(2025, 3, 16, 8,  0,  0) },
-                    new PatientBloodPressure { PatientID = pReem.PatientID,    BloodPressure = "116/74",  DateTime = new DateTime(2025, 3, 17, 10, 0,  0) },
-                    new PatientBloodPressure { PatientID = pReem.PatientID,    BloodPressure = "118/76",  DateTime = new DateTime(2025, 3, 16, 10, 30, 0) },
-                    new PatientBloodPressure { PatientID = pReem.PatientID,    BloodPressure = "120/78",  DateTime = new DateTime(2025, 3, 15, 9,  0,  0) }
-                );
+                // systolic/diastolic baselines per patient; readings drift slightly day to day.
+                var baselines = new Dictionary<string, (int Sys, int Dia)>
+                {
+                    ["sarah"] = (118, 76),
+                    ["fatima"] = (145, 92),
+                    ["yasmine"] = (110, 70),
+                    ["hana"] = (150, 98),
+                    ["reem"] = (117, 75),
+                    ["nour"] = (112, 72)
+                };
+
+                foreach (var (key, baseline) in baselines)
+                {
+                    for (int dayOffset = 13; dayOffset >= 0; dayOffset--)
+                    {
+                        var drift = (dayOffset % 5) - 2;               // -2 .. +2
+                        var systolic = baseline.Sys + drift * 3;
+                        var diastolic = baseline.Dia + drift * 2;
+
+                        context.PatientBloodPressure.Add(new PatientBloodPressure
+                        {
+                            PatientID = cast.Patients[key].PatientID,
+                            BloodPressure = $"{systolic}/{diastolic}",
+                            DateTime = today.AddDays(-dayOffset).AddHours(8).AddMinutes(30),
+                            MeasurementTime = "Morning"
+                        });
+                    }
+                }
                 await context.SaveChangesAsync();
             }
 
-            // ============================================================
-            // 29. PATIENT BLOOD SUGAR
-            // ============================================================
             if (!context.PatientBloodSugar.Any())
             {
-                context.PatientBloodSugar.AddRange(
-                    new PatientBloodSugar { PatientID = pSarah.PatientID,   BloodSugar = 92.0,  DateTime = new DateTime(2025, 3, 17, 8,  0,  0) },
-                    new PatientBloodSugar { PatientID = pSarah.PatientID,   BloodSugar = 128.0, DateTime = new DateTime(2025, 3, 17, 14, 15, 0) },
-                    new PatientBloodSugar { PatientID = pSarah.PatientID,   BloodSugar = 88.0,  DateTime = new DateTime(2025, 3, 16, 7,  45, 0) },
-                    new PatientBloodSugar { PatientID = pSarah.PatientID,   BloodSugar = 145.0, DateTime = new DateTime(2025, 3, 15, 20, 30, 0) },
-                    new PatientBloodSugar { PatientID = pSarah.PatientID,   BloodSugar = 95.0,  DateTime = new DateTime(2025, 3, 18, 8,  0,  0) },
-                    new PatientBloodSugar { PatientID = pFatima.PatientID,  BloodSugar = 105.0, DateTime = new DateTime(2025, 3, 17, 7,  30, 0) },
-                    new PatientBloodSugar { PatientID = pFatima.PatientID,  BloodSugar = 155.0, DateTime = new DateTime(2025, 3, 17, 14, 0,  0) },
-                    new PatientBloodSugar { PatientID = pYasmine.PatientID, BloodSugar = 85.0,  DateTime = new DateTime(2025, 3, 16, 8,  0,  0) },
-                    new PatientBloodSugar { PatientID = pYasmine.PatientID, BloodSugar = 120.0, DateTime = new DateTime(2025, 3, 16, 14, 0,  0) },
-                    new PatientBloodSugar { PatientID = pHana.PatientID,    BloodSugar = 98.0,  DateTime = new DateTime(2025, 3, 17, 7,  0,  0) },
-                    new PatientBloodSugar { PatientID = pHana.PatientID,    BloodSugar = 135.0, DateTime = new DateTime(2025, 3, 17, 14, 30, 0) },
-                    new PatientBloodSugar { PatientID = pReem.PatientID,    BloodSugar = 115.0, DateTime = new DateTime(2025, 3, 17, 8,  0,  0) },
-                    new PatientBloodSugar { PatientID = pReem.PatientID,    BloodSugar = 165.0, DateTime = new DateTime(2025, 3, 17, 14, 0,  0) },
-                    new PatientBloodSugar { PatientID = pReem.PatientID,    BloodSugar = 118.0, DateTime = new DateTime(2025, 3, 16, 8,  30, 0) },
-                    new PatientBloodSugar { PatientID = pReem.PatientID,    BloodSugar = 170.0, DateTime = new DateTime(2025, 3, 16, 20, 0,  0) }
-                );
+                // fasting / post-meal baselines — Reem and Hana run high (gestational diabetes).
+                var baselines = new Dictionary<string, (double Fasting, double PostMeal)>
+                {
+                    ["sarah"] = (92, 128),
+                    ["fatima"] = (105, 150),
+                    ["yasmine"] = (85, 120),
+                    ["hana"] = (98, 135),
+                    ["reem"] = (118, 168),
+                    ["nour"] = (88, 118)
+                };
+
+                foreach (var (key, baseline) in baselines)
+                {
+                    for (int dayOffset = 13; dayOffset >= 0; dayOffset--)
+                    {
+                        var drift = (dayOffset % 4) - 1.5;
+
+                        context.PatientBloodSugar.Add(new PatientBloodSugar
+                        {
+                            PatientID = cast.Patients[key].PatientID,
+                            BloodSugar = Math.Round(baseline.Fasting + drift * 3, 1),
+                            DateTime = today.AddDays(-dayOffset).AddHours(8),
+                            MeasurementTime = "Fasting"
+                        });
+
+                        context.PatientBloodSugar.Add(new PatientBloodSugar
+                        {
+                            PatientID = cast.Patients[key].PatientID,
+                            BloodSugar = Math.Round(baseline.PostMeal + drift * 4, 1),
+                            DateTime = today.AddDays(-dayOffset).AddHours(14),
+                            MeasurementTime = "After Meal"
+                        });
+                    }
+                }
                 await context.SaveChangesAsync();
             }
 
-            // ============================================================
-            // 30. WEIGHT TRACKING
-            // ============================================================
             if (!context.WeightTrackings.Any())
             {
-                context.WeightTrackings.AddRange(
-                    new WeightTracking { PatientID = pSarah.PatientID,   RecordedDate = new DateTime(2025, 1, 1),  WeightKg = 63.0, Notes = "Pre-pregnancy baseline weight"          },
-                    new WeightTracking { PatientID = pSarah.PatientID,   RecordedDate = new DateTime(2025, 2, 1),  WeightKg = 65.5, Notes = "Week 16 - weight within expected range"  },
-                    new WeightTracking { PatientID = pSarah.PatientID,   RecordedDate = new DateTime(2025, 3, 1),  WeightKg = 68.0, Notes = "Week 24 - gaining ~1 kg/month"            },
-                    new WeightTracking { PatientID = pSarah.PatientID,   RecordedDate = new DateTime(2025, 3, 18), WeightKg = 68.5, Notes = "Latest reading"                           },
-                    new WeightTracking { PatientID = pFatima.PatientID,  RecordedDate = new DateTime(2025, 1, 1),  WeightKg = 67.0, Notes = "Pre-pregnancy weight"                     },
-                    new WeightTracking { PatientID = pFatima.PatientID,  RecordedDate = new DateTime(2025, 2, 1),  WeightKg = 70.0, Notes = "Week 24 weight"                           },
-                    new WeightTracking { PatientID = pFatima.PatientID,  RecordedDate = new DateTime(2025, 3, 1),  WeightKg = 72.0, Notes = "Week 32 - slightly above expected gain"   },
-                    new WeightTracking { PatientID = pYasmine.PatientID, RecordedDate = new DateTime(2025, 1, 10), WeightKg = 58.0, Notes = "Week 4 - early pregnancy baseline"        },
-                    new WeightTracking { PatientID = pYasmine.PatientID, RecordedDate = new DateTime(2025, 2, 15), WeightKg = 59.5, Notes = "Week 10"                                  },
-                    new WeightTracking { PatientID = pYasmine.PatientID, RecordedDate = new DateTime(2025, 3, 10), WeightKg = 60.0, Notes = "Week 12 - normal gain"                    },
-                    new WeightTracking { PatientID = pHana.PatientID,    RecordedDate = new DateTime(2024, 9, 1),  WeightKg = 74.0, Notes = "Pre-pregnancy baseline"                   },
-                    new WeightTracking { PatientID = pHana.PatientID,    RecordedDate = new DateTime(2025, 1, 1),  WeightKg = 78.0, Notes = "Week 20"                                  },
-                    new WeightTracking { PatientID = pHana.PatientID,    RecordedDate = new DateTime(2025, 3, 1),  WeightKg = 80.0, Notes = "Week 36 - normal late pregnancy weight"   },
-                    new WeightTracking { PatientID = pReem.PatientID,    RecordedDate = new DateTime(2024, 12, 5), WeightKg = 62.0, Notes = "Early pregnancy baseline"                 },
-                    new WeightTracking { PatientID = pReem.PatientID,    RecordedDate = new DateTime(2025, 2, 1),  WeightKg = 64.0, Notes = "Week 16"                                  },
-                    new WeightTracking { PatientID = pReem.PatientID,    RecordedDate = new DateTime(2025, 3, 18), WeightKg = 65.0, Notes = "Week 20"                                  }
-                );
+                foreach (var p in PatientDefinitions)
+                {
+                    var patientId = cast.Patients[p.Key].PatientID;
+                    var pregnancyStart = today.AddDays(-7 * p.Week);
+                    // Roughly 0.4 kg/week of gain from a pre-pregnancy baseline up to today's weight.
+                    var baseline = p.Weight - 0.4 * p.Week;
+
+                    for (int week = 0; week <= p.Week; week += 4)
+                    {
+                        var recordedDate = pregnancyStart.AddDays(7 * week);
+                        if (recordedDate > today)
+                            break;
+
+                        context.WeightTrackings.Add(new WeightTracking
+                        {
+                            PatientID = patientId,
+                            RecordedDate = recordedDate,
+                            WeightKg = Math.Round(baseline + 0.4 * week, 1),
+                            Notes = week == 0 ? "Pre-pregnancy baseline" : $"Week {week} check-in"
+                        });
+                    }
+
+                    // Always finish on today's actual weight.
+                    context.WeightTrackings.Add(new WeightTracking
+                    {
+                        PatientID = patientId,
+                        RecordedDate = today,
+                        WeightKg = p.Weight,
+                        Notes = "Latest reading"
+                    });
+                }
+                await context.SaveChangesAsync();
+            }
+        }
+
+        // ============================================================
+        // 15. MEDICAL HISTORY
+        // ============================================================
+        private static async Task SeedMedicalHistoryAsync(AppDbContext context, Cast cast)
+        {
+            if (context.MedicalHistories.Any())
+                return;
+
+            var today = DateTime.Today;
+
+            void Event(string patientKey, string doctorKey, int daysAgo, string eventType, string summary,
+                int? labTestId = null, int? imageId = null)
+            {
+                var date = today.AddDays(-daysAgo);
+                context.MedicalHistories.Add(new MedicalHistory
+                {
+                    PatientID = cast.Patients[patientKey].PatientID,
+                    DoctorID = cast.Doctors[doctorKey].DoctorID,
+                    LabTestID = labTestId,
+                    ImageID = imageId,
+                    EventType = eventType,
+                    Summary = summary,
+                    DateRecorded = date,
+                    Date = date
+                });
+            }
+
+            int? CbcIdFor(string patientKey)
+            {
+                var patientId = cast.Patients[patientKey].PatientID;
+                return context.LabTests.FirstOrDefault(l => l.PatientID == patientId && l.TestType == "CBC")?.LabTestID;
+            }
+
+            int? ScanIdFor(string patientKey)
+            {
+                var patientId = cast.Patients[patientKey].PatientID;
+                return context.UltrasoundImages
+                    .Where(u => u.PatientID == patientId && !u.IsPatientUploaded)
+                    .OrderByDescending(u => u.UploadDate)
+                    .FirstOrDefault()?.ImageID;
+            }
+
+            Event("sarah", "ahmed", 6, MedicalHistoryEventTypes.LabTest, "Full blood panel analysed. Mild anaemia detected.", CbcIdFor("sarah"));
+            Event("sarah", "ahmed", 6, MedicalHistoryEventTypes.Ultrasound, "Growth scan — no anomalies found.", null, ScanIdFor("sarah"));
+            Event("sarah", "ahmed", 20, MedicalHistoryEventTypes.Appointment, "Routine prenatal visit. BP 118/76, weight gain normal.");
+            Event("fatima", "ahmed", 9, MedicalHistoryEventTypes.LabTest, "CBC shows elevated WBC. Blood pressure trending high.", CbcIdFor("fatima"));
+            Event("fatima", "ahmed", 9, MedicalHistoryEventTypes.Ultrasound, "Mild placenta previa detected. Follow-up scheduled.", null, ScanIdFor("fatima"));
+            Event("fatima", "ahmed", 9, MedicalHistoryEventTypes.Alert, "Blood pressure consistently above 140/90 — pre-eclampsia watch.");
+            Event("yasmine", "mona", 12, MedicalHistoryEventTypes.LabTest, "First-trimester panel all normal.", CbcIdFor("yasmine"));
+            Event("yasmine", "mona", 12, MedicalHistoryEventTypes.Ultrasound, "Dating scan. Crown-rump length within the normal range.", null, ScanIdFor("yasmine"));
+            Event("hana", "karim", 4, MedicalHistoryEventTypes.LabTest, "Iron-deficiency anaemia confirmed. IV iron therapy started.", CbcIdFor("hana"));
+            Event("hana", "karim", 4, MedicalHistoryEventTypes.DoctorNote, "Third-trimester consultation. Birth plan discussed.");
+            Event("reem", "nadia", 7, MedicalHistoryEventTypes.LabTest, "HbA1c above the gestational-diabetes target. Diet plan adjusted.", CbcIdFor("reem"));
+            Event("reem", "nadia", 7, MedicalHistoryEventTypes.Medication, "Metformin 500mg twice daily started.");
+
+            await context.SaveChangesAsync();
+        }
+
+        // ============================================================
+        // 16. DOCTOR NOTES
+        // ============================================================
+        private static async Task SeedNotesAsync(AppDbContext context, Cast cast)
+        {
+            if (context.Notes.Any())
+                return;
+
+            var today = DateTime.Today;
+
+            void Note(string doctorKey, string patientKey, int daysAgo, string content) =>
+                context.Notes.Add(new Note
+                {
+                    DoctorID = cast.Doctors[doctorKey].DoctorID,
+                    PatientID = cast.Patients[patientKey].PatientID,
+                    CreatedDate = today.AddDays(-daysAgo),
+                    Content = content
+                });
+
+            Note("ahmed", "sarah", 6, "Patient reports occasional dizziness, likely from mild anaemia. Iron increased to 60mg/day.");
+            Note("ahmed", "sarah", 34, "Anatomy scan normal. Fetal measurements appropriate for gestational age. Patient reassured.");
+            Note("ahmed", "fatima", 9, "Blood-pressure monitoring must continue. Patient educated on pre-eclampsia warning signs.");
+            Note("mona", "yasmine", 12, "First consultation. Good general health. Prenatal vitamins prescribed; anatomy scan booked for week 20.");
+            Note("mona", "yasmine", 3, "Nuchal translucency measurement normal. Low risk of chromosomal abnormalities.");
+            Note("karim", "hana", 4, "Iron deficiency confirmed. IV iron infusion scheduled. Advised to increase dietary iron.");
+            Note("karim", "hana", 25, "Patient reports back pain. Physiotherapy referral given. Continue aspirin 81mg.");
+            Note("nadia", "reem", 7, "Gestational diabetes management. HbA1c trending high. Dietitian referral; sugar monitored 4x daily.");
+
+            await context.SaveChangesAsync();
+        }
+
+        // ============================================================
+        // 17. ALERTS (clinical only — reminders live in PatientNotifications)
+        // ============================================================
+        private static async Task SeedAlertsAsync(AppDbContext context, Cast cast)
+        {
+            if (context.Alerts.Any())
+                return;
+
+            var today = DateTime.Today;
+
+            void Alert(string patientKey, string title, string message, string type, int daysAgo, bool isRead = false) =>
+                context.Alerts.Add(new Alert
+                {
+                    PatientID = cast.Patients[patientKey].PatientID,
+                    Title = title,
+                    Message = message,
+                    AlertType = type,
+                    Category = "Clinical",
+                    DateCreated = today.AddDays(-daysAgo),
+                    IsRead = isRead
+                });
+
+            Alert("sarah", "Low Haemoglobin Detected", "Your CBC shows haemoglobin of 10.8 g/dL. Consider increasing iron supplementation.", "warning", 6);
+            Alert("sarah", "Lab Results Ready", "Your latest blood panel has been reviewed by Dr. Ahmed Hassan.", "info", 5, isRead: true);
+            Alert("fatima", "Elevated Blood Pressure", "Your blood pressure has been consistently elevated. Contact your doctor immediately.", "danger", 1);
+            Alert("fatima", "Elevated WBC Count", "Your CBC shows a WBC count of 12,000 — this may indicate an infection.", "warning", 9);
+            Alert("hana", "Iron Deficiency Anaemia", "Your ferritin level is critically low at 8 ng/mL. IV iron therapy has been prescribed.", "danger", 4);
+            Alert("hana", "Protein In Urine", "Trace protein was found in your urinalysis. Your doctor is monitoring for pre-eclampsia.", "warning", 4);
+            Alert("reem", "HbA1c Above Target", "Your HbA1c is 6.8%, above the gestational-diabetes target. Dietary adjustments recommended.", "warning", 7);
+            Alert("reem", "Blood Sugar Alert", "Your recent readings are above target. Please follow the adjusted dietary plan.", "danger", 0);
+            Alert("yasmine", "All Clear", "Your first-trimester screening came back completely normal.", "success", 12, isRead: true);
+
+            await context.SaveChangesAsync();
+        }
+
+        // ============================================================
+        // 18. NOTIFICATIONS (patient bell, doctor bell, admin bell)
+        // ============================================================
+        private static async Task SeedNotificationsAsync(AppDbContext context, Cast cast)
+        {
+            var today = DateTime.Today;
+
+            if (!context.PatientNotifications.Any())
+            {
+                void Notify(string patientKey, string title, string message, string type, string severity, int daysAgo, string? actionUrl, bool isRead = false) =>
+                    context.PatientNotifications.Add(new PatientNotification
+                    {
+                        PatientID = cast.Patients[patientKey].PatientID,
+                        Title = title,
+                        Message = message,
+                        NotificationType = type,
+                        Severity = severity,
+                        DateCreated = today.AddDays(-daysAgo),
+                        IsRead = isRead,
+                        ActionUrl = actionUrl
+                    });
+
+                var sarahId = cast.Patients["sarah"].PatientID;
+                var yasmineId = cast.Patients["yasmine"].PatientID;
+
+                Notify("sarah", "Medication Reminder", "It's time to take your iron supplement (325mg).", PatientNotificationTypes.Medication, "info", 0, $"/Patient/Medications/{sarahId}");
+                Notify("sarah", "Appointment Reminder", "You have an appointment with Dr. Ahmed Hassan tomorrow.", PatientNotificationTypes.Appointment, "info", 0, $"/PatientAppointments/Appointments/{sarahId}");
+                Notify("sarah", "Lab Results Ready", "Your blood panel results are now available to view.", PatientNotificationTypes.LabResult, "success", 5, $"/PatientMedicalHistory/MedicalHistory/{sarahId}", isRead: true);
+                Notify("fatima", "New Prescription", "Dr. Ahmed Hassan added a new prescription to your record.", PatientNotificationTypes.Prescription, "info", 9, null);
+                Notify("yasmine", "Ultrasound Analysis Ready", "Dr. Mona Ibrahim analysed your dating scan. Result: normal.", PatientNotificationTypes.Ultrasound, "success", 12, $"/PatientMedicalHistory/MedicalHistory/{yasmineId}", isRead: true);
+                Notify("reem", "Medication Reminder", "Remember to take your evening Metformin dose.", PatientNotificationTypes.Medication, "info", 0, null);
+                Notify("hana", "New Message", "Dr. Karim Mostafa sent you a message.", PatientNotificationTypes.Message, "info", 0, null);
+                Notify("nour", "Welcome to NABD", "Send a request to a doctor to start your pregnancy care plan.", PatientNotificationTypes.Account, "info", 1, null);
+
+                // Operational notifications are surfaced to clinic assistants, not to the patient.
+                Notify("sarah", "Patient Checked In", "Sarah Ahmed has checked in for her appointment with Dr. Ahmed Hassan.", PatientNotificationTypes.Operational, "info", 0, "/Assistant/Alerts");
+                Notify("fatima", "Appointment Rescheduled", "Fatima Ali's appointment with Dr. Mona Ibrahim was moved to a later slot.", PatientNotificationTypes.Operational, "warning", 0, "/Assistant/Alerts");
+
                 await context.SaveChangesAsync();
             }
 
-            // ============================================================
-            // 31. PLACES
-            // ============================================================
-            if (!context.Places.Any())
+            if (!context.DoctorNotifications.Any())
             {
-                context.Places.AddRange(
-                    new Place { PatientID = pSarah.PatientID,   Name = "MamaCare Central Clinic",      Type = "Clinic",   Address = "15 Tahrir St, Cairo",      Phone = "0222345678", ImageURL = "/uploads/places/mamacare_central.jpg" },
-                    new Place { PatientID = pSarah.PatientID,   Name = "Cairo Pharmacy",                Type = "Pharmacy", Address = "10 Tahrir Square, Cairo",   Phone = "0223456789", ImageURL = "/uploads/places/cairo_pharmacy.jpg"   },
-                    new Place { PatientID = pSarah.PatientID,   Name = "Cairo Diagnostic Lab",          Type = "Lab",      Address = "5 Ramses St, Cairo",        Phone = "0224567890", ImageURL = "/uploads/places/cairo_lab.jpg"        },
-                    new Place { PatientID = pFatima.PatientID,  Name = "Fetal Health Clinic",           Type = "Clinic",   Address = "22 Nasr City, Cairo",       Phone = "0225678901", ImageURL = "/uploads/places/fetal_clinic.jpg"     },
-                    new Place { PatientID = pFatima.PatientID,  Name = "Nasr City Hospital",            Type = "Hospital", Address = "33 Nasr City, Cairo",       Phone = "0226789012", ImageURL = "/uploads/places/nasr_hospital.jpg"    },
-                    new Place { PatientID = pYasmine.PatientID, Name = "New Cairo OBG Center",          Type = "Clinic",   Address = "18 New Cairo",              Phone = "0227890123", ImageURL = "/uploads/places/newcairo_obg.jpg"     },
-                    new Place { PatientID = pYasmine.PatientID, Name = "El-Salam Pharmacy",             Type = "Pharmacy", Address = "20 New Cairo Blvd",          Phone = "0228901234", ImageURL = "/uploads/places/elsalam_pharmacy.jpg" },
-                    new Place { PatientID = pHana.PatientID,    Name = "Alexandria OBG Center",         Type = "Clinic",   Address = "7 Corniche, Alexandria",    Phone = "0345678901", ImageURL = "/uploads/places/alex_obg.jpg"         },
-                    new Place { PatientID = pHana.PatientID,    Name = "Shubra General Hospital",       Type = "Hospital", Address = "12 Shubra St, Cairo",       Phone = "0229012345", ImageURL = "/uploads/places/shubra_hospital.jpg"  },
-                    new Place { PatientID = pReem.PatientID,    Name = "Endocrine & Maternal Clinic",   Type = "Clinic",   Address = "30 Heliopolis, Cairo",      Phone = "0230123456", ImageURL = "/uploads/places/endocrine_clinic.jpg" },
-                    new Place { PatientID = pReem.PatientID,    Name = "Mohandessin Diagnostic Center", Type = "Lab",      Address = "15 Mohandessin, Giza",      Phone = "0231234567", ImageURL = "/uploads/places/mohandessin_lab.jpg"  }
-                );
+                void Notify(string doctorKey, string title, string message, string type, int daysAgo, string? actionUrl, bool isRead = false) =>
+                    context.DoctorNotifications.Add(new DoctorNotification
+                    {
+                        DoctorID = cast.Doctors[doctorKey].DoctorID,
+                        Title = title,
+                        Message = message,
+                        NotificationType = type,
+                        DateCreated = today.AddDays(-daysAgo),
+                        IsRead = isRead,
+                        ActionUrl = actionUrl
+                    });
+
+                Notify("ahmed", "Account Approved", "Your NABD registration has been approved. You now have access to all doctor features.", "admin_approved", 200, null, isRead: true);
+                Notify("ahmed", "New Patient Request", "Nour Adel has requested to join your patient list.", "patient_request", 1, "/Doctor/Patients");
+                Notify("ahmed", "High-Risk Patient", "Fatima Ali's blood pressure readings are consistently above 140/90.", "patient_risk", 1, "/Doctor/Patients");
+                Notify("mona", "New Patient Request", "Sarah Ahmed has requested to join your patient list.", "patient_request", 2, "/Doctor/Patients");
+                Notify("mona", "Assistant Joined Your Team", "Dina Samir accepted your clinic invitation and joined your team.", "invitation_accepted", 30, null, isRead: true);
+                Notify("karim", "High-Risk Patient", "Hana Khaled's ferritin is critically low (8 ng/mL).", "patient_risk", 4, "/Doctor/Patients");
+                Notify("karim", "Clinic Invitation", "Dr. Mona Ibrahim invited you to join Fetal Health Clinic.", "clinic_invitation", 20, "/Doctor/Clinics", isRead: true);
+                Notify("nadia", "High-Risk Patient", "Reem Nasser's HbA1c is above the gestational-diabetes target.", "patient_risk", 7, "/Doctor/Patients");
+
                 await context.SaveChangesAsync();
             }
+
+            if (!context.AdminNotifications.Any())
+            {
+                void Notify(string title, string message, string type, string severity, int daysAgo, string? actionUrl, bool isRead = false) =>
+                    context.AdminNotifications.Add(new AdminNotification
+                    {
+                        Title = title,
+                        Message = message,
+                        NotificationType = type,
+                        Severity = severity,
+                        DateCreated = today.AddDays(-daysAgo),
+                        IsRead = isRead,
+                        ActionUrl = actionUrl
+                    });
+
+                Notify("New doctor awaiting review", "Dr. Omar Fathy registered and is waiting for licence verification.", "doctor_registered", "warning", 3, $"/Admin/DoctorDetail/{cast.Doctors["omar"].DoctorID}");
+                Notify("New clinic created", $"{cast.Clinics["endocrine"].Name} was created by Dr. Nadia Salem.", "clinic_created", "info", 40, $"/Admin/ClinicDetail/{cast.Clinics["endocrine"].ClinicID}", isRead: true);
+                Notify("Doctor registration rejected", "Dr. Sami Gaber's licence image was unreadable and the application was rejected.", "doctor_rejected", "danger", 30, $"/Admin/DoctorDetail/{cast.Doctors["sami"].DoctorID}", isRead: true);
+                Notify("New patient registered", "Nour Adel created a patient account.", "patient_registered", "info", 1, null);
+
+                await context.SaveChangesAsync();
+            }
+        }
+
+        // ============================================================
+        // 19. PLACES (patient's saved clinics / pharmacies / labs)
+        // ============================================================
+        private static async Task SeedPlacesAsync(AppDbContext context, Cast cast)
+        {
+            if (context.Places.Any())
+                return;
+
+            void Place(string patientKey, string name, string type, string address, string phone, string image) =>
+                context.Places.Add(new Place
+                {
+                    PatientID = cast.Patients[patientKey].PatientID,
+                    Name = name,
+                    Type = type,
+                    Address = address,
+                    Phone = phone,
+                    ImageURL = image
+                });
+
+            Place("sarah", "MamaCare Central", "Clinic", "15 Tahrir St, Cairo", "0222345678", "/uploads/places/mamacare_central.jpg");
+            Place("sarah", "Cairo Pharmacy", "Pharmacy", "10 Tahrir Square, Cairo", "0223456789", "/uploads/places/cairo_pharmacy.jpg");
+            Place("sarah", "Cairo Diagnostic Lab", "Lab", "5 Ramses St, Cairo", "0224567890", "/uploads/places/cairo_lab.jpg");
+            Place("fatima", "Fetal Health Clinic", "Clinic", "22 Nasr City, Cairo", "0225678901", "/uploads/places/fetal_clinic.jpg");
+            Place("fatima", "Nasr City Hospital", "Hospital", "33 Nasr City, Cairo", "0226789012", "/uploads/places/nasr_hospital.jpg");
+            Place("yasmine", "New Cairo OBG Center", "Clinic", "18 New Cairo", "0227890123", "/uploads/places/newcairo_obg.jpg");
+            Place("yasmine", "El-Salam Pharmacy", "Pharmacy", "20 New Cairo Blvd", "0228901234", "/uploads/places/elsalam_pharmacy.jpg");
+            Place("hana", "Alexandria OBG Center", "Clinic", "7 Corniche, Alexandria", "0345678901", "/uploads/places/alex_obg.jpg");
+            Place("hana", "Shubra General Hospital", "Hospital", "12 Shubra St, Cairo", "0229012345", "/uploads/places/shubra_hospital.jpg");
+            Place("reem", "Endocrine & Maternal Clinic", "Clinic", "30 Heliopolis, Cairo", "0230123456", "/uploads/places/endocrine_clinic.jpg");
+            Place("reem", "Mohandessin Diagnostic Center", "Lab", "15 Mohandessin, Giza", "0231234567", "/uploads/places/mohandessin_lab.jpg");
+            Place("nour", "Sheikh Zayed Pharmacy", "Pharmacy", "44 Sheikh Zayed, Giza", "0232345678", "/uploads/places/zayed_pharmacy.jpg");
+
+            await context.SaveChangesAsync();
+        }
+
+        // ============================================================
+        // 20. COMMUNITY (posts, comments, likes)
+        // ============================================================
+        private static async Task SeedCommunityAsync(AppDbContext context, Cast cast)
+        {
+            if (context.CommunityPosts.Any())
+                return;
+
+            var now = DateTime.UtcNow;
+
+            var posts = new List<CommunityPost>
+            {
+                new()
+                {
+                    PatientID = cast.Patients["sarah"].PatientID,
+                    Title = "Morning sickness in the second trimester — normal?",
+                    Content = "I'm 24 weeks and still getting nausea in the mornings. Has anyone else had this last past the first trimester? What helped you?",
+                    Category = "Pregnancy",
+                    CreatedAt = now.AddDays(-5),
+                    UpdatedAt = now.AddDays(-5)
+                },
+                new()
+                {
+                    DoctorID = cast.Doctors["mona"].DoctorID,
+                    Title = "Iron-rich foods every pregnant woman should know",
+                    Content = "Iron-deficiency anaemia is one of the most common issues we see in pregnancy. Lentils, spinach, red meat and fortified cereals are excellent sources. Pair them with vitamin C (orange juice, peppers) to nearly double absorption, and avoid drinking tea or coffee with meals — they block it.",
+                    Category = "Nutrition",
+                    CreatedAt = now.AddDays(-4),
+                    UpdatedAt = now.AddDays(-4)
+                },
+                new()
+                {
+                    PatientID = cast.Patients["fatima"].PatientID,
+                    Title = "Managing anxiety before delivery",
+                    Content = "I'm 32 weeks and the closer I get to my due date, the more anxious I feel. How did you all cope with the last few weeks?",
+                    Category = "Mental Health",
+                    CreatedAt = now.AddDays(-3),
+                    UpdatedAt = now.AddDays(-3)
+                },
+                new()
+                {
+                    DoctorID = cast.Doctors["ahmed"].DoctorID,
+                    Title = "Safe exercise during pregnancy",
+                    Content = "Walking, swimming and prenatal yoga are safe for most pregnancies right up to delivery. Aim for about 150 minutes a week. Stop immediately and call your doctor if you have bleeding, contractions, dizziness or fluid leakage.",
+                    Category = "Exercise",
+                    CreatedAt = now.AddDays(-2),
+                    UpdatedAt = now.AddDays(-2)
+                },
+                new()
+                {
+                    PatientID = cast.Patients["reem"].PatientID,
+                    Title = "Gestational diabetes — what actually worked for me",
+                    Content = "After my HbA1c came back high, my doctor put me on Metformin plus a diet plan. Splitting meals into six smaller ones and walking for 20 minutes after eating brought my numbers right down.",
+                    Category = "Medication",
+                    CreatedAt = now.AddDays(-1),
+                    UpdatedAt = now.AddDays(-1)
+                },
+                new()
+                {
+                    PatientID = cast.Patients["yasmine"].PatientID,
+                    Title = "First-time mum — what do I actually need for the hospital bag?",
+                    Content = "I'm only 12 weeks but I like to plan ahead. What did you actually use from your hospital bag, and what was a waste of space?",
+                    Category = "General",
+                    CreatedAt = now.AddHours(-8),
+                    UpdatedAt = now.AddHours(-8)
+                }
+            };
+
+            context.CommunityPosts.AddRange(posts);
+            await context.SaveChangesAsync();
+
+            var sicknessPost = posts[0];
+            var ironPost = posts[1];
+            var anxietyPost = posts[2];
+            var exercisePost = posts[3];
+            var diabetesPost = posts[4];
+
+            context.CommunityComments.AddRange(
+                new CommunityComment { CommunityPostId = sicknessPost.CommunityPostId, DoctorID = cast.Doctors["ahmed"].DoctorID, Content = "It can persist beyond the first trimester in a minority of pregnancies. Small frequent meals and ginger help. If you can't keep fluids down, contact me.", CreatedAt = now.AddDays(-5).AddHours(2) },
+                new CommunityComment { CommunityPostId = sicknessPost.CommunityPostId, PatientID = cast.Patients["hana"].PatientID, Content = "Mine lasted until week 28 with my first. Dry crackers before getting out of bed were the only thing that worked for me.", CreatedAt = now.AddDays(-4) },
+                new CommunityComment { CommunityPostId = ironPost.CommunityPostId, PatientID = cast.Patients["sarah"].PatientID, Content = "This explains so much — I've been drinking tea with every meal and my haemoglobin is low. Stopping that today.", CreatedAt = now.AddDays(-3) },
+                new CommunityComment { CommunityPostId = anxietyPost.CommunityPostId, PatientID = cast.Patients["reem"].PatientID, Content = "Totally normal. Breathing exercises and talking to other mums here helped me a lot.", CreatedAt = now.AddDays(-2) },
+                new CommunityComment { CommunityPostId = anxietyPost.CommunityPostId, DoctorID = cast.Doctors["mona"].DoctorID, Content = "Antenatal anxiety is common and treatable. Please raise it at your next appointment — you don't have to manage it alone.", CreatedAt = now.AddDays(-2).AddHours(3) },
+                new CommunityComment { CommunityPostId = exercisePost.CommunityPostId, PatientID = cast.Patients["yasmine"].PatientID, Content = "Is swimming still fine in the third trimester?", CreatedAt = now.AddDays(-1) },
+                new CommunityComment { CommunityPostId = diabetesPost.CommunityPostId, PatientID = cast.Patients["fatima"].PatientID, Content = "The post-meal walk tip is gold. Thank you for sharing.", CreatedAt = now.AddHours(-6) }
+            );
+
+            // One like per (post, patient) and per (post, doctor) — the unique indexes forbid duplicates.
+            context.CommunityLikes.AddRange(
+                new CommunityLike { CommunityPostId = ironPost.CommunityPostId, PatientID = cast.Patients["sarah"].PatientID, CreatedAt = now.AddDays(-3) },
+                new CommunityLike { CommunityPostId = ironPost.CommunityPostId, PatientID = cast.Patients["hana"].PatientID, CreatedAt = now.AddDays(-3) },
+                new CommunityLike { CommunityPostId = ironPost.CommunityPostId, PatientID = cast.Patients["reem"].PatientID, CreatedAt = now.AddDays(-2) },
+                new CommunityLike { CommunityPostId = ironPost.CommunityPostId, DoctorID = cast.Doctors["ahmed"].DoctorID, CreatedAt = now.AddDays(-2) },
+                new CommunityLike { CommunityPostId = exercisePost.CommunityPostId, PatientID = cast.Patients["yasmine"].PatientID, CreatedAt = now.AddDays(-1) },
+                new CommunityLike { CommunityPostId = exercisePost.CommunityPostId, PatientID = cast.Patients["fatima"].PatientID, CreatedAt = now.AddDays(-1) },
+                new CommunityLike { CommunityPostId = diabetesPost.CommunityPostId, PatientID = cast.Patients["sarah"].PatientID, CreatedAt = now.AddHours(-5) },
+                new CommunityLike { CommunityPostId = diabetesPost.CommunityPostId, DoctorID = cast.Doctors["nadia"].DoctorID, CreatedAt = now.AddHours(-4) },
+                new CommunityLike { CommunityPostId = anxietyPost.CommunityPostId, PatientID = cast.Patients["yasmine"].PatientID, CreatedAt = now.AddDays(-2) }
+            );
+
+            await context.SaveChangesAsync();
+        }
+
+        // ============================================================
+        // 21. DOCTOR <-> PATIENT CHAT (stored encrypted, exactly as ChatHub writes it)
+        // ============================================================
+        private static async Task SeedChatMessagesAsync(AppDbContext context, Cast cast, IChatMessageCrypto? crypto)
+        {
+            if (context.ChatMessages.Any())
+                return;
+
+            var now = DateTime.UtcNow;
+
+            string Protect(string text) => crypto?.Encrypt(text) ?? text;
+
+            void Message(string fromKey, string toKey, string text, double hoursAgo, bool isRead,
+                string? attachmentUrl = null, string? attachmentType = null, string? attachmentName = null)
+            {
+                var sentAt = now.AddHours(-hoursAgo);
+                context.ChatMessages.Add(new ChatMessage
+                {
+                    SenderUserId = cast.Users[fromKey].Id,
+                    ReceiverUserId = cast.Users[toKey].Id,
+                    Message = Protect(text),
+                    SentAtUtc = sentAt,
+                    IsRead = isRead,
+                    ReadAtUtc = isRead ? sentAt.AddMinutes(12) : null,
+                    AttachmentUrl = attachmentUrl,
+                    AttachmentType = attachmentType,
+                    AttachmentName = attachmentName
+                });
+            }
+
+            // Sarah <-> Dr. Ahmed
+            Message("sarah", "ahmed", "Good morning doctor, I've been feeling dizzy when I stand up quickly. Should I be worried?", 30, true);
+            Message("ahmed", "sarah", "Morning Sarah. That's common with the mild anaemia your last CBC showed. Stand up slowly, stay hydrated, and keep taking the iron.", 29, true);
+            Message("sarah", "ahmed", "Understood. I've started taking it with orange juice like you suggested.", 28, true);
+            Message("ahmed", "sarah", "Perfect — that boosts absorption. We'll recheck your haemoglobin at your next visit.", 27, true);
+            Message("sarah", "ahmed", "Thank you! See you at the appointment.", 2, false);
+
+            // Fatima <-> Dr. Ahmed
+            Message("fatima", "ahmed", "My BP this morning was 148/95. Is that too high?", 6, true);
+            Message("ahmed", "fatima", "That is above target. Please take the Labetalol on schedule and log every reading. If you get a headache or blurred vision, go to the clinic immediately.", 5, false);
+
+            // Yasmine <-> Dr. Mona
+            Message("yasmine", "mona", "Doctor, are the scan results in?", 20, true);
+            Message("mona", "yasmine", "Yes — everything is completely normal. I've published the report to your medical history.", 19, true);
+
+            // Hana <-> Dr. Karim (with an attached report — exercises the attachment bubble)
+            Message("karim", "hana", "Hana, your ferritin came back at 8 ng/mL. I've prescribed IV iron — please book the infusion this week.", 3, false);
+            Message("karim", "hana", "Here is the full blood panel for your records.", 3, false,
+                attachmentUrl: "/uploads/tests/cbc_hana.jpg", attachmentType: "image/jpeg", attachmentName: "CBC-Report.jpg");
+
+            // Reem <-> Dr. Nadia
+            Message("reem", "nadia", "My fasting sugar was 118 today, still high.", 10, true);
+            Message("nadia", "reem", "Keep to the six-small-meals plan and walk for 20 minutes after eating. We'll review at your appointment.", 9, true);
+
+            await context.SaveChangesAsync();
+        }
+
+        // ============================================================
+        // 22. CHATBOT HISTORY
+        // ============================================================
+        private static async Task SeedChatbotMessagesAsync(AppDbContext context, Cast cast)
+        {
+            if (context.ChatbotMessages.Any())
+                return;
+
+            var now = DateTime.UtcNow;
+
+            void Ask(string patientKey, string question, string answer, string riskLevel, string recommendation, double hoursAgo)
+            {
+                var patientId = cast.Patients[patientKey].PatientID;
+                context.ChatbotMessages.Add(new ChatbotMessage
+                {
+                    PatientID = patientId,
+                    Role = "User",
+                    Message = question,
+                    SentAtUtc = now.AddHours(-hoursAgo)
+                });
+                context.ChatbotMessages.Add(new ChatbotMessage
+                {
+                    PatientID = patientId,
+                    Role = "Bot",
+                    Message = answer,
+                    RiskLevel = riskLevel,
+                    Recommendation = recommendation,
+                    SentAtUtc = now.AddHours(-hoursAgo).AddSeconds(4)
+                });
+            }
+
+            Ask("sarah", "Is it safe to drink coffee while pregnant?",
+                "Up to about 200mg of caffeine a day — roughly one cup of coffee — is generally considered safe in pregnancy.",
+                "Low", "Keep caffeine under 200mg per day.", 26);
+            Ask("sarah", "What foods help with iron deficiency?",
+                "Red meat, lentils, spinach and fortified cereals are rich in iron. Pair them with vitamin C to improve absorption.",
+                "Low", "Continue your prescribed iron supplement.", 24);
+            Ask("fatima", "I have a headache and my vision is blurry. What should I do?",
+                "Headache with visual changes in the third trimester can be a sign of pre-eclampsia and needs urgent assessment.",
+                "High", "Contact your doctor or go to the nearest clinic immediately.", 4);
+            Ask("yasmine", "When will I feel the baby move?",
+                "Most first-time mothers feel movement between weeks 18 and 22.",
+                "Low", "No action needed — this is a normal question at 12 weeks.", 14);
+            Ask("reem", "Can I still eat fruit with gestational diabetes?",
+                "Yes, in controlled portions. Whole fruit with a protein source keeps the sugar spike lower than juice.",
+                "Moderate", "Keep monitoring your post-meal readings.", 8);
+
+            await context.SaveChangesAsync();
+        }
+
+        // ============================================================
+        // 23. INVITATIONS + ASSISTANT LEAVE WORKFLOW
+        // ============================================================
+        private static async Task SeedInvitationsAsync(AppDbContext context, Cast cast)
+        {
+            var now = DateTime.UtcNow;
+
+            if (!context.ClinicInvitations.Any())
+            {
+                // Accepted history.
+                context.ClinicInvitations.Add(new ClinicInvitation
+                {
+                    DoctorID = cast.Doctors["mona"].DoctorID,
+                    ClinicID = cast.Clinics["fetal"].ClinicID,
+                    AssistantID = cast.Assistants["dina"].AssistantID,
+                    AssistantEmail = cast.Users["dina"].Email!,
+                    Status = "Accepted",
+                    SentAtUtc = now.AddDays(-40),
+                    RespondedAtUtc = now.AddDays(-39),
+                    ResponseMessage = "Happy to join the team."
+                });
+
+                // Pending — Heba is invited to Endocrine & Maternal; she must approve/decline,
+                // and because she already works at Dokki this also drives the leave-request flow.
+                context.ClinicInvitations.Add(new ClinicInvitation
+                {
+                    DoctorID = cast.Doctors["nadia"].DoctorID,
+                    ClinicID = cast.Clinics["endocrine"].ClinicID,
+                    AssistantID = cast.Assistants["heba"].AssistantID,
+                    AssistantEmail = cast.Users["heba"].Email!,
+                    Status = "Pending",
+                    SentAtUtc = now.AddDays(-1)
+                });
+
+                await context.SaveChangesAsync();
+            }
+
+            if (!context.ClinicDoctorInvitations.Any())
+            {
+                // Pending doctor-to-doctor invitation — lands in Karim's notifications.
+                context.ClinicDoctorInvitations.Add(new ClinicDoctorInvitation
+                {
+                    ClinicID = cast.Clinics["central"].ClinicID,
+                    InviterDoctorID = cast.Doctors["ahmed"].DoctorID,
+                    InviteeDoctorID = cast.Doctors["karim"].DoctorID,
+                    InviteeEmail = cast.Users["karim"].Email!,
+                    Status = "Pending",
+                    SentAtUtc = now.AddDays(-2)
+                });
+
+                // Accepted history — how Mona joined MamaCare Central.
+                context.ClinicDoctorInvitations.Add(new ClinicDoctorInvitation
+                {
+                    ClinicID = cast.Clinics["central"].ClinicID,
+                    InviterDoctorID = cast.Doctors["ahmed"].DoctorID,
+                    InviteeDoctorID = cast.Doctors["mona"].DoctorID,
+                    InviteeEmail = cast.Users["mona"].Email!,
+                    Status = "Accepted",
+                    SentAtUtc = now.AddDays(-60),
+                    RespondedAtUtc = now.AddDays(-59)
+                });
+
+                await context.SaveChangesAsync();
+            }
+
+            if (!context.AssistantLeaveRequests.Any())
+            {
+                var pendingInvitation = context.ClinicInvitations
+                    .FirstOrDefault(i => i.Status == "Pending" && i.AssistantID == cast.Assistants["heba"].AssistantID);
+
+                if (pendingInvitation != null)
+                {
+                    var leaveRequest = new AssistantLeaveRequest
+                    {
+                        AssistantID = cast.Assistants["heba"].AssistantID,
+                        OldClinicID = cast.Clinics["dokki"].ClinicID,
+                        NewClinicID = cast.Clinics["endocrine"].ClinicID,
+                        NewDoctorID = cast.Doctors["nadia"].DoctorID,
+                        ClinicInvitationID = pendingInvitation.ClinicInvitationID,
+                        Status = "Pending",
+                        CreatedAtUtc = now.AddHours(-20)
+                    };
+
+                    context.AssistantLeaveRequests.Add(leaveRequest);
+                    await context.SaveChangesAsync();
+
+                    // Every doctor at the old clinic must sign off before she can leave.
+                    context.AssistantLeaveApprovals.Add(new AssistantLeaveApproval
+                    {
+                        AssistantLeaveRequestID = leaveRequest.AssistantLeaveRequestID,
+                        DoctorID = cast.Doctors["omar"].DoctorID,
+                        Status = "Pending"
+                    });
+
+                    await context.SaveChangesAsync();
+                }
+            }
+        }
+
+        // ============================================================
+        // 24. APPOINTMENTS + BOOKINGS  (rolling window around today)
+        // ============================================================
+        /// <summary>The assistant who staffs each clinic's front desk (Endocrine &amp; Maternal has none).</summary>
+        private static readonly Dictionary<string, string> ClinicDeskAssistant = new()
+        {
+            ["central"] = "layla",
+            ["fetal"] = "dina",
+            ["alex"] = "noura",
+            ["dokki"] = "heba"
+        };
+
+        /// <summary>
+        /// Each doctor books at times no other doctor uses, so a shared patient can never be
+        /// double-booked, and a doctor is never in two clinics at the same minute.
+        /// </summary>
+        private static readonly (string DoctorKey, string[] ClinicRotation, TimeSpan[] BookedTimes, string[] PatientRotation)[] ScheduleDefinitions =
+        {
+            ("ahmed", new[] { "central", "helio" },     new[] { new TimeSpan(9, 0, 0),  new TimeSpan(10, 30, 0) }, new[] { "sarah", "fatima" }),
+            ("mona",  new[] { "fetal", "central" },     new[] { new TimeSpan(9, 30, 0), new TimeSpan(11, 0, 0) },  new[] { "yasmine", "fatima" }),
+            ("karim", new[] { "alex", "fetal" },        new[] { new TimeSpan(12, 0, 0), new TimeSpan(14, 30, 0) }, new[] { "hana", "reem" }),
+            ("nadia", new[] { "endocrine", "alex" },    new[] { new TimeSpan(14, 0, 0), new TimeSpan(15, 30, 0) }, new[] { "reem" }),
+            // Omar is still pending verification and has no approved patients — his clinic is all free slots.
+            ("omar",  new[] { "dokki" },                Array.Empty<TimeSpan>(),                                   Array.Empty<string>())
+        };
+
+        /// <summary>
+        /// Regenerates the appointment window whenever nothing is scheduled between today and
+        /// two weeks out. A fresh database gets the full window; a database seeded weeks ago gets
+        /// a new one; restarting the app on the same day changes nothing, so bookings made by hand
+        /// while testing survive.
+        /// </summary>
+        private static async Task SeedAppointmentWindowAsync(AppDbContext context, Cast cast)
+        {
+            var today = DateTime.Today;
+            var windowEnd = today.AddDays(FutureWindowDays - 1);
+
+            if (context.Appointments.Any(a => a.Date >= today && a.Date <= windowEnd))
+                return;
+
+            var now = DateTime.Now;
+            var appointments = new List<Appointment>();
+            var bookings = new List<Booking>();
+
+            for (int dayOffset = -PastWindowDays; dayOffset < FutureWindowDays; dayOffset++)
+            {
+                var date = today.AddDays(dayOffset);
+                var isPast = date < today;
+                var isToday = date == today;
+
+                foreach (var schedule in ScheduleDefinitions)
+                {
+                    var doctorId = cast.Doctors[schedule.DoctorKey].DoctorID;
+
+                    // Rotate the doctor through their clinics so multi-clinic doctors are exercised
+                    // without ever landing two appointments on the same minute.
+                    var clinicKey = schedule.ClinicRotation[Math.Abs(dayOffset) % schedule.ClinicRotation.Length];
+                    var clinicId = cast.Clinics[clinicKey].ClinicID;
+
+                    var bookedTimes = new Dictionary<TimeSpan, (int PatientId, string Status, bool CheckedIn)>();
+
+                    for (int i = 0; i < schedule.BookedTimes.Length && schedule.PatientRotation.Length > 0; i++)
+                    {
+                        var time = schedule.BookedTimes[i];
+                        // Alternate which patient takes which slot day to day.
+                        var patientKey = schedule.PatientRotation[(i + Math.Abs(dayOffset)) % schedule.PatientRotation.Length];
+                        var patientId = cast.Patients[patientKey].PatientID;
+
+                        var (status, checkedIn) = ResolveBookingState(dayOffset, i, date.Add(time), now);
+                        bookedTimes[time] = (patientId, status, checkedIn);
+                    }
+
+                    // Roughly half of the bookings at a staffed clinic were made at the desk by
+                    // its assistant, rather than by the patient online.
+                    int? deskAssistantId = ClinicDeskAssistant.TryGetValue(clinicKey, out var assistantKey)
+                                        && cast.Assistants.TryGetValue(assistantKey, out var deskAssistant)
+                        ? deskAssistant.AssistantID
+                        : null;
+
+                    foreach (var time in SlotTimes)
+                    {
+                        var isBookedSlot = bookedTimes.TryGetValue(time, out var booking);
+
+                        // A cancelled booking releases the slot but keeps its (cancelled) booking row —
+                        // exactly what the assistant's cancel action does.
+                        var isCancelled = isBookedSlot && booking.Status == "Cancelled";
+
+                        var appointment = new Appointment
+                        {
+                            DoctorID = doctorId,
+                            ClinicID = clinicId,
+                            PatientID = isBookedSlot ? booking.PatientId : null,
+                            Date = date,
+                            Time = time,
+                            isBooked = isBookedSlot && !isCancelled,
+                            CreatedByAssistantID = isBookedSlot && dayOffset % 2 == 0 ? deskAssistantId : null
+                        };
+
+                        appointments.Add(appointment);
+
+                        if (isBookedSlot)
+                        {
+                            bookings.Add(new Booking
+                            {
+                                Appointment = appointment,
+                                PatientID = booking.PatientId,
+                                DoctorID = doctorId,
+                                ClinicID = clinicId,
+                                IsActive = true,
+                                Status = booking.Status,
+                                Reason = ReasonFor(booking.Status, isPast),
+                                Notes = NotesFor(booking.Status, isPast),
+                                IsCheckedIn = booking.CheckedIn,
+                                CheckedInAt = booking.CheckedIn ? date.Add(time).AddMinutes(-10) : null
+                            });
+                        }
+                    }
+                }
+            }
+
+            context.Appointments.AddRange(appointments);
+            context.Bookings.AddRange(bookings);
+            await context.SaveChangesAsync();
+        }
+
+        /// <summary>Decides what a booking looks like based on where its slot sits relative to now.</summary>
+        private static (string Status, bool CheckedIn) ResolveBookingState(int dayOffset, int slotIndex, DateTime slotStart, DateTime now)
+        {
+            // Past: attended and completed, except one day left un-checked-in so the
+            // assistant's virtual "Missed" status has something to show.
+            if (dayOffset < 0)
+            {
+                if (dayOffset == -3)
+                    return ("Confirmed", false);   // never checked in → shows as Missed
+
+                return ("Completed", true);
+            }
+
+            // Today: confirmed; slots whose time has already passed are checked in.
+            if (dayOffset == 0)
+            {
+                if (slotIndex == 1)
+                    return ("Confirmed", false);
+
+                return ("Confirmed", slotStart <= now);
+            }
+
+            // One cancellation two days out, and a rescheduled ("Modified") booking every third day.
+            if (dayOffset == 2 && slotIndex == 1)
+                return ("Cancelled", false);
+
+            if (dayOffset % 3 == 0)
+                return ("Modified", false);
+
+            return ("Confirmed", false);
+        }
+
+        private static string ReasonFor(string status, bool isPast) => status switch
+        {
+            "Cancelled" => "Patient requested cancellation",
+            "Modified" => "Rescheduled follow-up",
+            _ => isPast ? "Routine prenatal check-up" : "Prenatal follow-up"
+        };
+
+        private static string NotesFor(string status, bool isPast) => status switch
+        {
+            "Cancelled" => "Patient will rebook for a later date.",
+            "Modified" => "Moved from an earlier slot at the patient's request.",
+            _ => isPast ? "Visit completed. Vitals recorded." : "Patient should bring previous test results."
+        };
+
+        /// <summary>Resolved entities, keyed by the short names used throughout this file.</summary>
+        private sealed class Cast
+        {
+            public Dictionary<string, ApplicationUser> Users { get; } = new();
+            public Dictionary<string, Doctor> Doctors { get; } = new();
+            public Dictionary<string, Patient> Patients { get; } = new();
+            public Dictionary<string, Assistant> Assistants { get; } = new();
+            public Dictionary<string, Clinic> Clinics { get; } = new();
+            public Dictionary<string, AIModel> Models { get; } = new();
         }
     }
 }
