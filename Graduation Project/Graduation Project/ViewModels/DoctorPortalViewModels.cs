@@ -106,6 +106,60 @@ namespace Graduation_Project.ViewModels
         public List<PendingInvitationViewModel> PendingInvitations { get; set; } = new();
         public List<Clinic> LinkedClinics { get; set; } = new();
         public List<DoctorLeaveRequestViewModel> LeaveRequests { get; set; } = new();
+
+        // Clinic administration (owner-only)
+        public List<ClinicManagementViewModel> ManagedClinics { get; set; } = new();
+        public List<IncomingClinicDoctorInvitationViewModel> IncomingDoctorInvitations { get; set; } = new();
+        public List<PendingDoctorInvitationViewModel> PendingDoctorInvitations { get; set; } = new();
+    }
+
+    // One clinic the doctor is linked to, plus its members. IsOwner decides whether
+    // the management controls (invite / remove) are rendered at all.
+    public class ClinicManagementViewModel
+    {
+        public int ClinicID { get; set; }
+        public string ClinicName { get; set; } = string.Empty;
+        public string ClinicLocation { get; set; } = string.Empty;
+        public bool IsOwner { get; set; }
+        public int? OwnerDoctorID { get; set; }
+        public string OwnerName { get; set; } = string.Empty;
+        public List<ClinicMemberViewModel> Doctors { get; set; } = new();
+        public List<ClinicMemberViewModel> Assistants { get; set; } = new();
+    }
+
+    public class ClinicMemberViewModel
+    {
+        public int MemberID { get; set; }          // DoctorID or AssistantID
+        public string Name { get; set; } = string.Empty;
+        public string? Email { get; set; }
+        public string? Phone { get; set; }
+        public string? Specialization { get; set; }
+        public bool IsOwner { get; set; }
+        public bool IsSelf { get; set; }
+        public bool CanRemove { get; set; }
+        public int UpcomingAppointments { get; set; }
+    }
+
+    // A clinic invitation addressed to the signed-in doctor, awaiting their response.
+    public class IncomingClinicDoctorInvitationViewModel
+    {
+        public int InvitationID { get; set; }
+        public int ClinicID { get; set; }
+        public string ClinicName { get; set; } = string.Empty;
+        public string ClinicLocation { get; set; } = string.Empty;
+        public string InviterName { get; set; } = string.Empty;
+        public DateTime SentAt { get; set; }
+    }
+
+    // A doctor invitation this doctor sent that is still awaiting a response.
+    public class PendingDoctorInvitationViewModel
+    {
+        public int InvitationID { get; set; }
+        public int ClinicID { get; set; }
+        public string ClinicName { get; set; } = string.Empty;
+        public string DoctorName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public DateTime SentAt { get; set; }
     }
 
     public class DoctorLeaveRequestViewModel

@@ -866,3 +866,198 @@
 .cl-tab-pane.is-active {
   display: block;
 }
+
+/* ── Clinic administration (owner only) ──────────────── */
+
+/* Card actions get their own row: the shared .cl-form-actions never wraps,
+   so two pill buttons overflow the fixed-width card and get clipped. */
+.cl-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.cl-card-actions .btn {
+  /* Basis is wide enough to hold the longest label ("Manage Members"), so a row
+     that keeps both buttons is a row where both labels fit. Otherwise they wrap. */
+  flex: 1 1 165px;
+  justify-content: center;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.cl-card-actions .cl-owner-note {
+  flex: 1 1 100%;
+}
+
+.cl-badge.is-owner {
+  color: #7c4a03;
+  background: linear-gradient(135deg, #fdefc9, #fdf6e6);
+  border-color: rgba(217, 155, 24, 0.35);
+}
+
+.cl-owner-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.cl-modal-wide {
+  width: min(760px, calc(100% - 2rem));
+}
+
+.cl-manage-invite {
+  padding: 0.85rem 0.9rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  margin-bottom: 1.1rem;
+}
+
+.cl-manage-invite label {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.cl-manage-invite label i {
+  color: var(--doctor-primary);
+  margin-right: 0.3rem;
+}
+
+.cl-manage-invite-row {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.cl-manage-invite-row .form-input {
+  flex: 1;
+}
+
+.cl-manage-hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.cl-manage-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 1.1rem 0 0.6rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.cl-manage-heading i {
+  color: var(--doctor-primary);
+}
+
+.cl-member-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.cl-member-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+.cl-member-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  min-width: 0;
+}
+
+.cl-member-name {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cl-member-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #7c4a03;
+  background: #fdefc9;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.cl-member-tag.is-muted {
+  color: var(--text-secondary);
+  background: #e2e8f0;
+}
+
+.cl-member-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  font-size: 0.79rem;
+  color: var(--text-secondary);
+}
+
+.cl-member-meta i {
+  color: var(--doctor-primary);
+  margin-right: 0.25rem;
+}
+
+.cl-member-warn {
+  font-size: 0.76rem;
+  color: #b45309;
+}
+
+.cl-member-warn i {
+  margin-right: 0.25rem;
+}
+
+.cl-member-locked {
+  color: var(--text-secondary);
+  opacity: 0.6;
+  padding: 0 0.5rem;
+}
+
+.cl-btn-danger {
+  flex-shrink: 0;
+  color: #c62828;
+  border-color: rgba(198, 40, 40, 0.35);
+}
+
+.cl-btn-danger:hover {
+  background: #fef2f2;
+  border-color: #c62828;
+}
+
+@media (max-width: 620px) {
+  .cl-member-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .cl-manage-invite-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

@@ -51,6 +51,7 @@ namespace Graduation_Project.Data
         public DbSet<WeightTracking> WeightTrackings { get; set; }
         public DbSet<ChatMessage> ChatMessages { get; set; }
         public DbSet<ClinicInvitation> ClinicInvitations { get; set; }
+        public DbSet<ClinicDoctorInvitation> ClinicDoctorInvitations { get; set; }
         public DbSet<AssistantLeaveRequest> AssistantLeaveRequests { get; set; }
         public DbSet<AssistantLeaveApproval> AssistantLeaveApprovals { get; set; }
         public DbSet<CommunityPost> CommunityPosts { get; set; }
@@ -135,6 +136,11 @@ namespace Graduation_Project.Data
             modelBuilder.Entity<Clinic>(entity =>
             {
                 entity.HasKey(e => e.ClinicID);
+
+                entity.HasOne(c => c.Owner)
+                    .WithMany()
+                    .HasForeignKey(c => c.OwnerDoctorID)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<ClinicDoctor>(entity =>
@@ -882,6 +888,40 @@ namespace Graduation_Project.Data
                     .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasIndex(e => new { e.DoctorID, e.ClinicID, e.AssistantID, e.Status });
+            });
+
+            // ============================================================
+            // CLINIC DOCTOR INVITATIONS (owner invites another doctor)
+            // ============================================================
+            modelBuilder.Entity<ClinicDoctorInvitation>(entity =>
+            {
+                entity.HasKey(e => e.ClinicDoctorInvitationID);
+
+                entity.Property(e => e.InviteeEmail)
+                    .HasMaxLength(256)
+                    .IsRequired();
+
+                entity.Property(e => e.Status)
+                    .HasMaxLength(32)
+                    .IsRequired();
+
+                entity.HasOne(e => e.Clinic)
+                    .WithMany()
+                    .HasForeignKey(e => e.ClinicID)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.Inviter)
+                    .WithMany()
+                    .HasForeignKey(e => e.InviterDoctorID)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.Invitee)
+                    .WithMany()
+                    .HasForeignKey(e => e.InviteeDoctorID)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => new { e.InviteeDoctorID, e.Status });
+                entity.HasIndex(e => new { e.ClinicID, e.InviteeDoctorID, e.Status });
             });
 
             // ============================================================

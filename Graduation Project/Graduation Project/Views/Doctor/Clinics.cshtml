@@ -14,6 +14,9 @@
     var totalDoctorsInClinics = clinicList.Sum(c => c.ClinicDoctors?.Count ?? 0);
     var hasError = TempData["ClinicError"] != null;
 
+    var manageByClinic = Model.ManagedClinics.ToDictionary(m => m.ClinicID);
+    var ownedCount = Model.ManagedClinics.Count(m => m.IsOwner);
+
     // When a team action (invite / remove / cancel) just ran, open the Team tab on load.
     var openTeamTab = TempData["InviteSuccess"] != null || TempData["InviteError"] != null;
 }
@@ -47,6 +50,48 @@
 
 <div class="cl-tab-pane @(openTeamTab ? "" : "is-active")" id="tab-clinics">
 
+@if (Model.IncomingDoctorInvitations.Any())
+{
+    <section class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-envelope-open-text"></i> Clinic Invitations For You</h3>
+            <span class="cl-count-chip">@Model.IncomingDoctorInvitations.Count pending</span>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:.6rem;">
+            @foreach (var inv in Model.IncomingDoctorInvitations)
+            {
+                <div class="schedule-item" style="border-left-color:var(--dr-primary);">
+                    <div class="schedule-content">
+                        <h4>@inv.ClinicName</h4>
+                        <p>
+                            <i class="fas fa-map-marker-alt"></i> @inv.ClinicLocation
+                            &nbsp;&middot;&nbsp;
+                            Invited by <strong>@inv.InviterName</strong> on @inv.SentAt.ToString("MMM dd, yyyy")
+                        </p>
+                    </div>
+                    <div class="schedule-status" style="display:flex;align-items:center;gap:.5rem;">
+                        @using (Html.BeginForm("AcceptClinicDoctorInvitation", "Doctor", FormMethod.Post))
+                        {
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Doctor.DoctorID" />
+                            <input type="hidden" name="invitationId" value="@inv.InvitationID" />
+                            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-check"></i> Accept</button>
+                        }
+                        @using (Html.BeginForm("DeclineClinicDoctorInvitation", "Doctor", FormMethod.Post))
+                        {
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Doctor.DoctorID" />
+                            <input type="hidden" name="invitationId" value="@inv.InvitationID" />
+                            <button type="submit" class="btn btn-outline btn-sm"><i class="fas fa-times"></i> Decline</button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </section>
+}
+
 <section class="cl-stats-row" id="statsRow">
     <article class="cl-stat-card">
         <div class="cl-stat-icon blue"><i class="fas fa-hospital"></i></div>
@@ -58,11 +103,13 @@
     </article>
 
     <article class="cl-stat-card">
-        <div class="cl-stat-icon green"><i class="fas fa-link"></i></div>
+        <div class="cl-stat-icon green"><i class="fas fa-user-shield"></i></div>
         <div style="flex:1">
-            <h3><span class="count-num" data-target="@linkedClinics">0</span></h3>
-            <p>Linked to You</p>
-            <div class="cl-stat-progress"><div class="cl-stat-progress-fill is-linked" data-w="100%"></div></div>
+            <h3><span class="count-num" data-target="@ownedCount">0</span></h3>
+            <p>You Manage</p>
+            <div class="cl-stat-progress">
+                <div class="cl-stat-progress-fill is-linked" data-w="@(totalClinics == 0 ? "0%" : $"{ownedCount * 100 / totalClinics}%")"></div>
+            </div>
         </div>
     </article>
 
@@ -169,10 +216,20 @@
                 var doctorNames = allDoctorNames.Take(2).ToList();
                 var assistantNames = allAssistantNames.Take(2).ToList();
 
+                var manage = manageByClinic.TryGetValue(clinic.ClinicID, out var m) ? m : null;
+                var isOwner = manage?.IsOwner ?? false;
+
                 <article class="cl-card" data-name="@clinic.Name" data-location="@clinic.Location" style="animation-delay:@(i * 0.06)s">
                     <div class="cl-card-top">
                         <div class="cl-icon"><i class="fas fa-clinic-medical"></i></div>
-                        <span class="cl-badge"><i class="fas fa-check-circle"></i> Linked to you</span>
+                        @if (isOwner)
+                        {
+                            <span class="cl-badge is-owner"><i class="fas fa-user-shield"></i> You manage this</span>
+                        }
+                        else
+                        {
+                            <span class="cl-badge"><i class="fas fa-check-circle"></i> Linked to you</span>
+                        }
                     </div>
 
                     <h4>@clinic.Name</h4>
@@ -220,14 +277,28 @@
                         </button>
                     </div>
 
-                    <div class="cl-form-actions" style="margin-top:.75rem;">
-                        <button type="button"
-                                class="btn btn-outline btn-pill js-open-edit-modal"
-                                data-clinic-id="@clinic.ClinicID"
-                                data-clinic-name="@clinic.Name"
-                                data-clinic-location="@clinic.Location">
-                            <i class="fas fa-pen"></i> Edit Clinic
-                        </button>
+                    <div class="cl-card-actions">
+                        @if (isOwner)
+                        {
+                            <button type="button"
+                                    class="btn btn-outline btn-pill js-open-edit-modal"
+                                    data-clinic-id="@clinic.ClinicID"
+                                    data-clinic-name="@clinic.Name"
+                                    data-clinic-location="@clinic.Location">
+                                <i class="fas fa-pen"></i> Edit Clinic
+                            </button>
+                            <button type="button"
+                                    class="btn btn-primary btn-pill js-open-manage"
+                                    data-manage-target="manageClinic_@clinic.ClinicID">
+                                <i class="fas fa-users-cog"></i> Manage Members
+                            </button>
+                        }
+                        else
+                        {
+                            <span class="cl-owner-note">
+                                <i class="fas fa-user-shield"></i> Managed by @(manage?.OwnerName ?? "the clinic owner")
+                            </span>
+                        }
                     </div>
                 </article>
             }
@@ -354,6 +425,43 @@
             </div>
         }
     </section>
+
+    @if (Model.PendingDoctorInvitations.Any())
+    {
+        <section class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-user-md"></i> Doctor Invitations You Sent</h3>
+                <span style="font-size:.8rem;color:var(--dr-muted);">@Model.PendingDoctorInvitations.Count pending</span>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:.6rem;">
+                @foreach (var inv in Model.PendingDoctorInvitations)
+                {
+                    <div class="schedule-item" style="border-left-color:var(--dr-warning);">
+                        <div class="schedule-content">
+                            <h4>@inv.DoctorName <span style="color:#64748b;font-weight:500;">(@inv.Email)</span></h4>
+                            <p>
+                                <strong>Clinic:</strong> @inv.ClinicName &nbsp;&middot;&nbsp;
+                                <strong>Sent:</strong> @inv.SentAt.ToString("MMM dd, yyyy hh:mm tt")
+                            </p>
+                        </div>
+                        <div class="schedule-status" style="display:flex;align-items:center;gap:.5rem;">
+                            <span class="status-tag pending">Pending</span>
+                            @using (Html.BeginForm("CancelDoctorInvitation", "Doctor", FormMethod.Post))
+                            {
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="doctorId" value="@Model.Doctor.DoctorID" />
+                                <input type="hidden" name="invitationId" value="@inv.InvitationID" />
+                                <button type="submit" class="action-btn" title="Cancel invitation" style="color:#c62828;">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </section>
+    }
 
     <section class="card">
         <div class="card-header">
@@ -497,6 +605,149 @@
     </div>
 </div>
 
+@foreach (var mc in Model.ManagedClinics.Where(x => x.IsOwner))
+{
+    <div id="manageClinic_@mc.ClinicID" class="cl-modal" aria-hidden="true">
+        <div class="cl-modal-backdrop" data-close="manageClinic_@mc.ClinicID"></div>
+        <div class="cl-modal-content cl-modal-wide" role="dialog" aria-modal="true">
+            <div class="cl-modal-header">
+                <h4><i class="fas fa-users-cog"></i> Manage @mc.ClinicName</h4>
+                <button type="button" class="cl-modal-close" data-close="manageClinic_@mc.ClinicID"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="cl-modal-body">
+                <div class="cl-manage-invite">
+                    @using (Html.BeginForm("InviteDoctorToClinic", "Doctor", FormMethod.Post))
+                    {
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="doctorId" value="@Model.Doctor.DoctorID" />
+                        <input type="hidden" name="clinicId" value="@mc.ClinicID" />
+
+                        <label for="doctorEmail_@mc.ClinicID"><i class="fas fa-user-md"></i> Invite a doctor to this clinic</label>
+                        <div class="cl-manage-invite-row">
+                            <input type="email"
+                                   id="doctorEmail_@mc.ClinicID"
+                                   name="doctorEmail"
+                                   class="form-input"
+                                   placeholder="doctor@@nabd.com"
+                                   required />
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane"></i> Invite</button>
+                        </div>
+                        <p class="cl-manage-hint">The doctor must accept the invitation before joining.</p>
+                    }
+                </div>
+
+                <h5 class="cl-manage-heading"><i class="fas fa-user-md"></i> Doctors (@mc.Doctors.Count)</h5>
+                <ul class="cl-member-rows">
+                    @foreach (var member in mc.Doctors)
+                    {
+                        <li class="cl-member-row">
+                            <div class="cl-member-info">
+                                <span class="cl-member-name">
+                                    @member.Name
+                                    @if (member.IsOwner)
+                                    {
+                                        <span class="cl-member-tag">Owner</span>
+                                    }
+                                    @if (member.IsSelf && !member.IsOwner)
+                                    {
+                                        <span class="cl-member-tag is-muted">You</span>
+                                    }
+                                </span>
+                                <span class="cl-member-meta">
+                                    @if (!string.IsNullOrWhiteSpace(member.Specialization))
+                                    {
+                                        <span><i class="fas fa-stethoscope"></i> @member.Specialization</span>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(member.Email))
+                                    {
+                                        <span><i class="fas fa-envelope"></i> @member.Email</span>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(member.Phone))
+                                    {
+                                        <span><i class="fas fa-phone"></i> @member.Phone</span>
+                                    }
+                                </span>
+                                @if (member.UpcomingAppointments > 0 && member.CanRemove)
+                                {
+                                    <span class="cl-member-warn">
+                                        <i class="fas fa-triangle-exclamation"></i>
+                                        @member.UpcomingAppointments upcoming appointment@(member.UpcomingAppointments != 1 ? "s" : "") at this clinic
+                                    </span>
+                                }
+                            </div>
+
+                            @if (member.CanRemove)
+                            {
+                                @using (Html.BeginForm("RemoveDoctorFromClinic", "Doctor", FormMethod.Post))
+                                {
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="doctorId" value="@Model.Doctor.DoctorID" />
+                                    <input type="hidden" name="clinicId" value="@mc.ClinicID" />
+                                    <input type="hidden" name="targetDoctorId" value="@member.MemberID" />
+                                    <button type="submit"
+                                            class="btn btn-sm btn-outline cl-btn-danger"
+                                            onclick="return confirm('Remove @member.Name from @mc.ClinicName?');">
+                                        <i class="fas fa-user-minus"></i> Remove
+                                    </button>
+                                }
+                            }
+                            else
+                            {
+                                <span class="cl-member-locked" title="The clinic owner cannot be removed">
+                                    <i class="fas fa-lock"></i>
+                                </span>
+                            }
+                        </li>
+                    }
+                </ul>
+
+                <h5 class="cl-manage-heading"><i class="fas fa-user-nurse"></i> Assistants (@mc.Assistants.Count)</h5>
+                @if (!mc.Assistants.Any())
+                {
+                    <p class="cl-manage-hint">No assistants in this clinic yet. Invite one from the Clinic Team tab.</p>
+                }
+                else
+                {
+                    <ul class="cl-member-rows">
+                        @foreach (var member in mc.Assistants)
+                        {
+                            <li class="cl-member-row">
+                                <div class="cl-member-info">
+                                    <span class="cl-member-name">@member.Name</span>
+                                    <span class="cl-member-meta">
+                                        @if (!string.IsNullOrWhiteSpace(member.Email))
+                                        {
+                                            <span><i class="fas fa-envelope"></i> @member.Email</span>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(member.Phone))
+                                        {
+                                            <span><i class="fas fa-phone"></i> @member.Phone</span>
+                                        }
+                                    </span>
+                                </div>
+
+                                @using (Html.BeginForm("RemoveAssistantFromClinic", "Doctor", FormMethod.Post))
+                                {
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="doctorId" value="@Model.Doctor.DoctorID" />
+                                    <input type="hidden" name="clinicId" value="@mc.ClinicID" />
+                                    <input type="hidden" name="assistantId" value="@member.MemberID" />
+                                    <button type="submit"
+                                            class="btn btn-sm btn-outline cl-btn-danger"
+                                            onclick="return confirm('Remove @member.Name from @mc.ClinicName? They will lose access until they join another clinic.');">
+                                        <i class="fas fa-user-minus"></i> Remove
+                                    </button>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+}
+
 @section Scripts {
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -629,6 +880,12 @@
                 });
             });
 
+            document.querySelectorAll('.js-open-manage').forEach((btn) => {
+                btn.addEventListener('click', function () {
+                    openModal(this.dataset.manageTarget);
+                });
+            });
+
             const editClinicId = document.getElementById('editClinicId');
             const editClinicName = document.getElementById('editClinicName');
             const editClinicLocation = document.getElementById('editClinicLocation');
@@ -643,8 +900,7 @@
 
             document.addEventListener('keydown', function (e) {
                 if (e.key === 'Escape') {
-                    closeModal('membersModal');
-                    closeModal('editClinicModal');
+                    document.querySelectorAll('.cl-modal.is-open').forEach(m => closeModal(m.id));
                 }
             });
         });

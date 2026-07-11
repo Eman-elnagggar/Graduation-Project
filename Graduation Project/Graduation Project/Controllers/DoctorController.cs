@@ -919,6 +919,42 @@ namespace Graduation_Project.Controllers
                 })
                 .ToList();
 
+            var managedClinics = BuildClinicManagement(clinics, doctor!.DoctorID);
+
+            // Clinic invitations addressed to THIS doctor, awaiting a response.
+            var incomingDoctorInvitations = _context.ClinicDoctorInvitations
+                .Include(i => i.Clinic)
+                .Include(i => i.Inviter).ThenInclude(d => d.User)
+                .Where(i => i.InviteeDoctorID == doctor.DoctorID && i.Status == "Pending")
+                .OrderByDescending(i => i.SentAtUtc)
+                .Select(i => new IncomingClinicDoctorInvitationViewModel
+                {
+                    InvitationID = i.ClinicDoctorInvitationID,
+                    ClinicID = i.ClinicID,
+                    ClinicName = i.Clinic.Name,
+                    ClinicLocation = i.Clinic.Location,
+                    InviterName = ("Dr. " + (i.Inviter.User.FirstName ?? string.Empty) + " " + (i.Inviter.User.LastName ?? string.Empty)).Trim(),
+                    SentAt = i.SentAtUtc.ToLocalTime()
+                })
+                .ToList();
+
+            // Doctor invitations THIS doctor sent that are still pending.
+            var pendingDoctorInvitations = _context.ClinicDoctorInvitations
+                .Include(i => i.Clinic)
+                .Include(i => i.Invitee).ThenInclude(d => d.User)
+                .Where(i => i.InviterDoctorID == doctor.DoctorID && i.Status == "Pending")
+                .OrderByDescending(i => i.SentAtUtc)
+                .Select(i => new PendingDoctorInvitationViewModel
+                {
+                    InvitationID = i.ClinicDoctorInvitationID,
+                    ClinicID = i.ClinicID,
+                    ClinicName = i.Clinic.Name,
+                    DoctorName = ("Dr. " + (i.Invitee.User.FirstName ?? string.Empty) + " " + (i.Invitee.User.LastName ?? string.Empty)).Trim(),
+                    Email = i.InviteeEmail,
+                    SentAt = i.SentAtUtc.ToLocalTime()
+                })
+                .ToList();
+
             var vm = new DoctorClinicsViewModel
             {
                 Doctor = doctor!,
@@ -928,10 +964,436 @@ namespace Graduation_Project.Controllers
                 Assistants = assistants,
                 PendingInvitations = pendingInvitations,
                 LinkedClinics = linkedClinics,
-                LeaveRequests = leaveRequests
+                LeaveRequests = leaveRequests,
+                ManagedClinics = managedClinics,
+                IncomingDoctorInvitations = incomingDoctorInvitations,
+                PendingDoctorInvitations = pendingDoctorInvitations
             };
 
             return View(vm);
+        }
+
+        // Projects the doctor's clinics into member lists. Only the owner gets
+        // CanRemove on anyone, and the owner can never be removed from their own clinic.
+        private List<ClinicManagementViewModel> BuildClinicManagement(List<Clinic> clinics, int viewerDoctorId)
+        {
+            var clinicIds = clinics.Select(c => c.ClinicID).ToList();
+            var today = DateTime.Today;
+
+            // Upcoming appointments per (clinic, doctor) — surfaced as a warning before removal.
+            var upcomingByDoctor = _context.Appointments
+                .Where(a => clinicIds.Contains(a.ClinicID) && a.Date >= today)
+                .GroupBy(a => new { a.ClinicID, a.DoctorID })
+                .Select(g => new { g.Key.ClinicID, g.Key.DoctorID, Count = g.Count() })
+                .ToDictionary(x => (x.ClinicID, x.DoctorID), x => x.Count);
+
+            var result = new List<ClinicManagementViewModel>();
+
+            foreach (var clinic in clinics)
+            {
+                var isOwner = clinic.OwnerDoctorID == viewerDoctorId;
+
+                var doctors = (clinic.ClinicDoctors ?? new List<ClinicDoctor>())
+                    .Where(cd => cd.Doctor?.User != null)
+                    .Select(cd =>
+                    {
+                        var isClinicOwner = clinic.OwnerDoctorID == cd.DoctorID;
+                        upcomingByDoctor.TryGetValue((clinic.ClinicID, cd.DoctorID), out var upcoming);
+
+                        return new ClinicMemberViewModel
+                        {
+                            MemberID = cd.DoctorID,
+                            Name = $"Dr. {cd.Doctor.User.FirstName} {cd.Doctor.User.LastName}".Trim(),
+                            Email = cd.Doctor.User.Email,
+                            Phone = cd.Doctor.User.PhoneNumber,
+                            Specialization = cd.Doctor.Specialization,
+                            IsOwner = isClinicOwner,
+                            IsSelf = cd.DoctorID == viewerDoctorId,
+                            // The owner is the admin and cannot be removed from their own clinic.
+                            CanRemove = isOwner && !isClinicOwner,
+                            UpcomingAppointments = upcoming
+                        };
+                    })
+                    .OrderByDescending(m => m.IsOwner)
+                    .ThenBy(m => m.Name)
+                    .ToList();
+
+                var clinicAssistants = (clinic.Assistants ?? new List<Assistant>())
+                    .Where(a => a.User != null)
+                    .Select(a => new ClinicMemberViewModel
+                    {
+                        MemberID = a.AssistantID,
+                        Name = $"{a.User.FirstName} {a.User.LastName}".Trim(),
+                        Email = a.User.Email,
+                        Phone = a.User.PhoneNumber,
+                        CanRemove = isOwner
+                    })
+                    .OrderBy(m => m.Name)
+                    .ToList();
+
+                var owner = doctors.FirstOrDefault(d => d.IsOwner);
+
+                result.Add(new ClinicManagementViewModel
+                {
+                    ClinicID = clinic.ClinicID,
+                    ClinicName = clinic.Name,
+                    ClinicLocation = clinic.Location,
+                    IsOwner = isOwner,
+                    OwnerDoctorID = clinic.OwnerDoctorID,
+                    OwnerName = owner?.Name ?? "Unassigned",
+                    Doctors = doctors,
+                    Assistants = clinicAssistants
+                });
+            }
+
+            return result;
+        }
+
+        // Resolves a clinic only if the given doctor owns it. Returns null otherwise.
+        private Clinic? ResolveOwnedClinic(int clinicId, int doctorId) =>
+            _context.Clinics.FirstOrDefault(c => c.ClinicID == clinicId && c.OwnerDoctorID == doctorId);
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> InviteDoctorToClinic(int doctorId, int clinicId, string doctorEmail)
+        {
+            var accessResult = TryResolveDoctor(doctorId, out var doctor);
+            if (accessResult != null)
+                return accessResult;
+
+            var clinic = ResolveOwnedClinic(clinicId, doctor!.DoctorID);
+            if (clinic == null)
+            {
+                TempData["ClinicError"] = "Only the clinic owner can invite doctors.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor.DoctorID });
+            }
+
+            if (string.IsNullOrWhiteSpace(doctorEmail))
+            {
+                TempData["ClinicError"] = "Doctor email is required.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor.DoctorID });
+            }
+
+            var normalizedEmail = doctorEmail.Trim().ToLowerInvariant();
+
+            var invitee = _context.Doctors
+                .Include(d => d.User)
+                .FirstOrDefault(d => d.User.Email != null && d.User.Email.ToLower() == normalizedEmail);
+
+            if (invitee == null)
+            {
+                TempData["ClinicError"] = "No doctor account found with this email.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor.DoctorID });
+            }
+
+            if (invitee.DoctorID == doctor.DoctorID)
+            {
+                TempData["ClinicError"] = "You are already a member of this clinic.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor.DoctorID });
+            }
+
+            var alreadyLinked = _context.ClinicDoctors
+                .Any(cd => cd.ClinicID == clinicId && cd.DoctorID == invitee.DoctorID);
+            if (alreadyLinked)
+            {
+                TempData["ClinicError"] = "That doctor is already a member of this clinic.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor.DoctorID });
+            }
+
+            var pendingExists = _context.ClinicDoctorInvitations
+                .Any(i => i.ClinicID == clinicId
+                       && i.InviteeDoctorID == invitee.DoctorID
+                       && i.Status == "Pending");
+            if (pendingExists)
+            {
+                TempData["ClinicError"] = "That doctor already has a pending invitation to this clinic.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor.DoctorID });
+            }
+
+            _context.ClinicDoctorInvitations.Add(new ClinicDoctorInvitation
+            {
+                ClinicID = clinicId,
+                InviterDoctorID = doctor.DoctorID,
+                InviteeDoctorID = invitee.DoctorID,
+                InviteeEmail = invitee.User.Email ?? normalizedEmail,
+                Status = "Pending",
+                SentAtUtc = DateTime.UtcNow
+            });
+            _context.SaveChanges();
+
+            await _doctorNotificationService.NotifyAsync(
+                invitee.DoctorID,
+                "Clinic Invitation",
+                $"{BuildDoctorName(doctor)} invited you to join {clinic.Name}.",
+                "clinic_invitation",
+                $"/Doctor/Clinics/{invitee.DoctorID}");
+
+            TempData["ClinicSuccess"] = "Invitation sent. The doctor must accept it before joining the clinic.";
+            return RedirectToAction(nameof(Clinics), new { id = doctor.DoctorID });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult CancelDoctorInvitation(int doctorId, int invitationId)
+        {
+            var accessResult = TryResolveDoctor(doctorId, out var doctor);
+            if (accessResult != null)
+                return accessResult;
+
+            var invitation = _context.ClinicDoctorInvitations
+                .FirstOrDefault(i => i.ClinicDoctorInvitationID == invitationId
+                                  && i.InviterDoctorID == doctor!.DoctorID
+                                  && i.Status == "Pending");
+
+            if (invitation == null)
+            {
+                TempData["ClinicError"] = "Pending invitation not found.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor!.DoctorID });
+            }
+
+            invitation.Status = "Cancelled";
+            invitation.RespondedAtUtc = DateTime.UtcNow;
+            _context.SaveChanges();
+
+            TempData["ClinicSuccess"] = "Doctor invitation cancelled.";
+            return RedirectToAction(nameof(Clinics), new { id = doctor!.DoctorID });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AcceptClinicDoctorInvitation(int id, int invitationId)
+        {
+            var accessResult = TryResolveDoctor(id, out var doctor);
+            if (accessResult != null)
+                return accessResult;
+
+            var invitation = _context.ClinicDoctorInvitations
+                .Include(i => i.Clinic)
+                .FirstOrDefault(i => i.ClinicDoctorInvitationID == invitationId
+                                  && i.InviteeDoctorID == doctor!.DoctorID);
+
+            if (invitation == null || !string.Equals(invitation.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+            {
+                TempData["ClinicError"] = "Invitation not found or already processed.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor!.DoctorID });
+            }
+
+            invitation.Status = "Accepted";
+            invitation.RespondedAtUtc = DateTime.UtcNow;
+
+            var alreadyLinked = _context.ClinicDoctors
+                .Any(cd => cd.ClinicID == invitation.ClinicID && cd.DoctorID == doctor!.DoctorID);
+
+            if (!alreadyLinked)
+            {
+                _context.ClinicDoctors.Add(new ClinicDoctor
+                {
+                    ClinicID = invitation.ClinicID,
+                    DoctorID = doctor!.DoctorID
+                });
+            }
+
+            _context.SaveChanges();
+
+            await _doctorNotificationService.NotifyAsync(
+                invitation.InviterDoctorID,
+                "Clinic Invitation Accepted",
+                $"{BuildDoctorName(doctor!)} joined {invitation.Clinic.Name}.",
+                "invitation_accepted",
+                $"/Doctor/Clinics/{invitation.InviterDoctorID}");
+
+            TempData["ClinicSuccess"] = $"You joined {invitation.Clinic.Name}.";
+            return RedirectToAction(nameof(Clinics), new { id = doctor!.DoctorID });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeclineClinicDoctorInvitation(int id, int invitationId)
+        {
+            var accessResult = TryResolveDoctor(id, out var doctor);
+            if (accessResult != null)
+                return accessResult;
+
+            var invitation = _context.ClinicDoctorInvitations
+                .Include(i => i.Clinic)
+                .FirstOrDefault(i => i.ClinicDoctorInvitationID == invitationId
+                                  && i.InviteeDoctorID == doctor!.DoctorID);
+
+            if (invitation == null || !string.Equals(invitation.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+            {
+                TempData["ClinicError"] = "Invitation not found or already processed.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor!.DoctorID });
+            }
+
+            invitation.Status = "Declined";
+            invitation.RespondedAtUtc = DateTime.UtcNow;
+            _context.SaveChanges();
+
+            await _doctorNotificationService.NotifyAsync(
+                invitation.InviterDoctorID,
+                "Clinic Invitation Declined",
+                $"{BuildDoctorName(doctor!)} declined your invitation to join {invitation.Clinic.Name}.",
+                "invitation_declined",
+                $"/Doctor/Clinics/{invitation.InviterDoctorID}");
+
+            TempData["ClinicSuccess"] = "Invitation declined.";
+            return RedirectToAction(nameof(Clinics), new { id = doctor!.DoctorID });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RemoveDoctorFromClinic(int doctorId, int clinicId, int targetDoctorId)
+        {
+            var accessResult = TryResolveDoctor(doctorId, out var doctor);
+            if (accessResult != null)
+                return accessResult;
+
+            var clinic = ResolveOwnedClinic(clinicId, doctor!.DoctorID);
+            if (clinic == null)
+            {
+                TempData["ClinicError"] = "Only the clinic owner can remove doctors.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor.DoctorID });
+            }
+
+            if (targetDoctorId == clinic.OwnerDoctorID)
+            {
+                TempData["ClinicError"] = "The clinic owner cannot be removed from their own clinic.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor.DoctorID });
+            }
+
+            var link = _context.ClinicDoctors
+                .FirstOrDefault(cd => cd.ClinicID == clinicId && cd.DoctorID == targetDoctorId);
+
+            if (link == null)
+            {
+                TempData["ClinicError"] = "That doctor is not a member of this clinic.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor.DoctorID });
+            }
+
+            _context.ClinicDoctors.Remove(link);
+
+            // Drop the doctor's links to assistants of this clinic — they no longer share one.
+            var clinicAssistantIds = _context.Assistants
+                .Where(a => a.ClinicID == clinicId)
+                .Select(a => a.AssistantID)
+                .ToList();
+
+            var assistantLinks = _context.AssistantDoctors
+                .Where(ad => ad.DoctorID == targetDoctorId && clinicAssistantIds.Contains(ad.AssistantID))
+                .ToList();
+            _context.AssistantDoctors.RemoveRange(assistantLinks);
+
+            // Cancel assistant invitations this doctor still has open for this clinic,
+            // so nobody can accept an invite from a doctor who has left.
+            var openInvites = _context.ClinicInvitations
+                .Where(ci => ci.ClinicID == clinicId
+                          && ci.DoctorID == targetDoctorId
+                          && ci.Status == "Pending")
+                .ToList();
+            foreach (var invite in openInvites)
+            {
+                invite.Status = "Cancelled";
+                invite.RespondedAtUtc = DateTime.UtcNow;
+                invite.ResponseMessage = "The inviting doctor left the clinic.";
+            }
+
+            _context.SaveChanges();
+
+            await _doctorNotificationService.NotifyAsync(
+                targetDoctorId,
+                "Removed From Clinic",
+                $"You were removed from {clinic.Name} by its owner.",
+                "clinic_removal",
+                $"/Doctor/Clinics/{targetDoctorId}");
+
+            TempData["ClinicSuccess"] = "Doctor removed from the clinic.";
+            return RedirectToAction(nameof(Clinics), new { id = doctor.DoctorID });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RemoveAssistantFromClinic(int doctorId, int clinicId, int assistantId)
+        {
+            var accessResult = TryResolveDoctor(doctorId, out var doctor);
+            if (accessResult != null)
+                return accessResult;
+
+            var clinic = ResolveOwnedClinic(clinicId, doctor!.DoctorID);
+            if (clinic == null)
+            {
+                TempData["ClinicError"] = "Only the clinic owner can remove assistants.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor.DoctorID });
+            }
+
+            var assistant = _context.Assistants
+                .FirstOrDefault(a => a.AssistantID == assistantId && a.ClinicID == clinicId);
+
+            if (assistant == null)
+            {
+                TempData["ClinicError"] = "That assistant is not a member of this clinic.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor.DoctorID });
+            }
+
+            // Detach from the clinic. The assistant's controller guard sends them back
+            // to their invitations page until they join another clinic.
+            assistant.ClinicID = null;
+
+            var clinicDoctorIds = _context.ClinicDoctors
+                .Where(cd => cd.ClinicID == clinicId)
+                .Select(cd => cd.DoctorID)
+                .ToList();
+
+            var doctorLinks = _context.AssistantDoctors
+                .Where(ad => ad.AssistantID == assistantId && clinicDoctorIds.Contains(ad.DoctorID))
+                .ToList();
+            _context.AssistantDoctors.RemoveRange(doctorLinks);
+
+            // Cancel invitations still open for this assistant in this clinic.
+            var openInvites = _context.ClinicInvitations
+                .Where(ci => ci.ClinicID == clinicId
+                          && ci.AssistantID == assistantId
+                          && (ci.Status == "Pending" || ci.Status == "PendingLeaveApproval"))
+                .ToList();
+            foreach (var invite in openInvites)
+            {
+                invite.Status = "Cancelled";
+                invite.RespondedAtUtc = DateTime.UtcNow;
+                invite.ResponseMessage = "The assistant was removed from the clinic.";
+            }
+
+            // A pending clinic switch out of this clinic is moot now that they've been
+            // removed — leaving it Pending would block them from accepting a new invite.
+            var pendingLeaves = _context.AssistantLeaveRequests
+                .Include(r => r.Approvals)
+                .Where(r => r.AssistantID == assistantId
+                         && r.OldClinicID == clinicId
+                         && r.Status == "Pending")
+                .ToList();
+            foreach (var leave in pendingLeaves)
+            {
+                leave.Status = "Cancelled";
+                leave.ResolvedAtUtc = DateTime.UtcNow;
+                leave.ResolutionMessage = "The assistant was removed from the clinic.";
+                foreach (var approval in leave.Approvals.Where(a => a.Status == "Pending"))
+                {
+                    approval.Status = "Cancelled";
+                    approval.RespondedAtUtc = DateTime.UtcNow;
+                }
+            }
+
+            _context.SaveChanges();
+
+            var assistantUserId = assistant.UserID;
+            if (!string.IsNullOrEmpty(assistantUserId))
+            {
+                await _push.SendToUserAsync(assistantUserId,
+                    "Removed From Clinic",
+                    $"You were removed from {clinic.Name}. You can accept a new clinic invitation to continue.",
+                    $"/Assistant/ClinicInvitations/{assistantId}");
+            }
+
+            TempData["ClinicSuccess"] = "Assistant removed from the clinic.";
+            return RedirectToAction(nameof(Clinics), new { id = doctor.DoctorID });
         }
 
         [HttpPost]
@@ -1107,6 +1569,61 @@ namespace Graduation_Project.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        public IActionResult CreateClinic(int doctorId, string clinicName, string clinicLocation)
+        {
+            var accessResult = TryResolveDoctor(doctorId, out var doctor);
+            if (accessResult != null)
+                return accessResult;
+
+            var normalizedName = (clinicName ?? string.Empty).Trim();
+            var normalizedLocation = (clinicLocation ?? string.Empty).Trim();
+
+            if (string.IsNullOrWhiteSpace(normalizedName) || string.IsNullOrWhiteSpace(normalizedLocation))
+            {
+                TempData["ClinicError"] = "Clinic name and location are required.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor!.DoctorID });
+            }
+
+            var clinic = _context.Clinics.FirstOrDefault(c =>
+                c.Name.ToLower() == normalizedName.ToLower() &&
+                c.Location.ToLower() == normalizedLocation.ToLower());
+
+            if (clinic == null)
+            {
+                clinic = new Clinic
+                {
+                    Name = normalizedName,
+                    Location = normalizedLocation,
+                    OwnerDoctorID = doctor!.DoctorID
+                };
+
+                _context.Clinics.Add(clinic);
+                _context.SaveChanges();
+            }
+
+            var alreadyLinked = _context.ClinicDoctors.Any(cd =>
+                cd.ClinicID == clinic.ClinicID && cd.DoctorID == doctor!.DoctorID);
+
+            if (alreadyLinked)
+            {
+                TempData["ClinicSuccess"] = "Clinic already exists and is already linked to your account.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor!.DoctorID });
+            }
+
+            _context.ClinicDoctors.Add(new ClinicDoctor
+            {
+                ClinicID = clinic.ClinicID,
+                DoctorID = doctor!.DoctorID
+            });
+
+            _context.SaveChanges();
+
+            TempData["ClinicSuccess"] = "Clinic saved and linked to your account successfully.";
+            return RedirectToAction(nameof(Clinics), new { id = doctor!.DoctorID });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult UpdateClinicDetails(int doctorId, int clinicId, string clinicName, string clinicLocation)
         {
             var accessResult = TryResolveDoctor(doctorId, out var doctor);
@@ -1122,15 +1639,12 @@ namespace Graduation_Project.Controllers
                 return RedirectToAction(nameof(Clinics), new { id = doctor!.DoctorID });
             }
 
-            var clinic = _context.ClinicDoctors
-                .Where(cd => cd.DoctorID == doctor!.DoctorID && cd.ClinicID == clinicId)
-                .Select(cd => cd.Clinic)
-                .FirstOrDefault();
+            var clinic = _context.Clinics.FirstOrDefault(c => c.ClinicID == clinicId);
 
-            if (clinic == null)
+            if (clinic == null || clinic.OwnerDoctorID != doctor!.DoctorID)
             {
-                TempData["ClinicError"] = "Clinic not found or not linked to your account.";
-                return RedirectToAction(nameof(Clinics), new { id = doctor.DoctorID });
+                TempData["ClinicError"] = "Only the clinic owner can edit its details.";
+                return RedirectToAction(nameof(Clinics), new { id = doctor!.DoctorID });
             }
 
             clinic.Name = normalizedName;
