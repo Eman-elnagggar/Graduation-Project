@@ -1,6 +1,6 @@
 using Graduation_Project.Data;
+using Graduation_Project.Helpers;
 using Graduation_Project.Interfaces;
-using Graduation_Project.Data;
 using Graduation_Project.Models;
 using Graduation_Project.Services;
 using Graduation_Project.ViewModels;
@@ -340,7 +340,7 @@ namespace Graduation_Project.Controllers
                     senderId = m.SenderUserId,
                     receiverId = m.ReceiverUserId,
                     content = _chatMessageCrypto.Decrypt(m.Message),
-                    timestamp = m.SentAtUtc,
+                    timestamp = m.SentAtUtc.AsUtcOffset(),
                     attachmentUrl = m.AttachmentUrl,
                     attachmentType = m.AttachmentType,
                     attachmentName = m.AttachmentName
@@ -355,7 +355,7 @@ namespace Graduation_Project.Controllers
 
             if (unreadIncoming.Count > 0)
             {
-                var now = DateTime.Now;
+                var now = DateTime.UtcNow;
                 foreach (var msg in unreadIncoming)
                 {
                     msg.IsRead = true;

@@ -20,7 +20,7 @@ namespace Graduation_Project.Models
         [StringLength(2000)]
         public string Message { get; set; } = string.Empty;
 
-        public DateTime SentAtUtc { get; set; } = DateTime.Now;
+        public DateTime SentAtUtc { get; set; } = DateTime.UtcNow;
 
         public bool IsRead { get; set; }
 

@@ -228,14 +228,14 @@
                             }
                             else
                             {
-                                var diff = DateTime.Now - msg.LastMessageTime.Value;
+                                var diff = DateTime.UtcNow - msg.LastMessageTime.Value;
                                 timeLabel = diff.TotalMinutes < 60
                                     ? $"{Math.Max(1, (int)diff.TotalMinutes)} min"
                                     : diff.TotalHours < 24
                                         ? $"{Math.Max(1, (int)diff.TotalHours)} hrs"
                                         : diff.TotalDays < 2
                                             ? "Yesterday"
-                                            : msg.LastMessageTime.Value.ToString("MMM d");
+                                            : msg.LastMessageTime.Value.ToLocalTime().ToString("MMM d");
                             }
 
                             <div class="msg-item" onclick="window.location.href='/Doctor/Messages/@Model.Doctor.DoctorID?patient=@msg.PatientId'" style="cursor:pointer;">

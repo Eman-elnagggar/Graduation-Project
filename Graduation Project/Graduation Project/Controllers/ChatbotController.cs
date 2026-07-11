@@ -1,4 +1,5 @@
 using Graduation_Project.Data;
+using Graduation_Project.Helpers;
 using Graduation_Project.Interfaces;
 using Graduation_Project.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -105,16 +106,12 @@ namespace Graduation_Project.Controllers
                     userMessage = new
                     {
                         id = userMessage?.ChatbotMessageId ?? 0,
-                        sentAtUtc = userMessage == null
-                            ? (DateTimeOffset?)null
-                            : ToUtcOffset(userMessage.SentAtUtc)
+                        sentAtUtc = userMessage?.SentAtUtc.AsUtcOffset()
                     },
                     botMessage = new
                     {
                         id = botMessage?.ChatbotMessageId ?? 0,
-                        sentAtUtc = botMessage == null
-                            ? (DateTimeOffset?)null
-                            : ToUtcOffset(botMessage.SentAtUtc)
+                        sentAtUtc = botMessage?.SentAtUtc.AsUtcOffset()
                     }
                 });
             }
@@ -149,7 +146,7 @@ namespace Graduation_Project.Controllers
                     message = m.Message,
                     risk_level = m.RiskLevel,
                     recommendation = m.Recommendation,
-                    sentAtUtc = ToUtcOffset(m.SentAtUtc)
+                    sentAtUtc = m.SentAtUtc.AsUtcOffset()
                 });
 
                 return Json(payload);
@@ -215,14 +212,6 @@ namespace Graduation_Project.Controllers
             }
 
             return (0, false);
-        }
-
-        private static DateTimeOffset ToUtcOffset(DateTime value)
-        {
-            var utcValue = value.Kind == DateTimeKind.Utc
-                ? value
-                : DateTime.SpecifyKind(value, DateTimeKind.Utc);
-            return new DateTimeOffset(utcValue);
         }
     }
 }
