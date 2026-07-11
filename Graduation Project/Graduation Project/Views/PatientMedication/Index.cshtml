@@ -366,6 +366,13 @@
                                         <div class="pm-detail-lbl">Frequency</div>
                                         <div class="pm-detail-val">@(string.IsNullOrWhiteSpace(med.Frequency) ? "Not specified" : med.Frequency)</div>
                                     </div>
+                                    @if (!string.IsNullOrWhiteSpace(med.Form))
+                                    {
+                                        <div class="pm-detail-item">
+                                            <div class="pm-detail-lbl">Type</div>
+                                            <div class="pm-detail-val">@med.Form</div>
+                                        </div>
+                                    }
                                     <div class="pm-detail-item">
                                         <div class="pm-detail-lbl">Period</div>
                                         <div class="pm-detail-val">@periodText</div>
@@ -401,7 +408,25 @@
 
                             @* Schedule *@
                             <div class="pm-med-tab-panel" data-panel="schedule">
+                                @{
+                                    var doseTimes = med.Schedules.OrderBy(s => s.TimeOfDay).ToList();
+                                    var repeatText = med.TimesPerDay == 0
+                                        ? "Only as needed"
+                                        : med.IntervalDays <= 1
+                                            ? "Every day"
+                                            : med.IntervalDays == 7
+                                                ? "Once a week"
+                                                : $"Every {med.IntervalDays} days";
+                                }
                                 <div class="pm-detail-grid">
+                                    <div class="pm-detail-item">
+                                        <div class="pm-detail-lbl">Repeats</div>
+                                        <div class="pm-detail-val">@repeatText</div>
+                                    </div>
+                                    <div class="pm-detail-item">
+                                        <div class="pm-detail-lbl">Doses per day</div>
+                                        <div class="pm-detail-val">@(med.TimesPerDay == 0 ? "—" : med.TimesPerDay.ToString())</div>
+                                    </div>
                                     <div class="pm-detail-item">
                                         <div class="pm-detail-lbl">Start Date</div>
                                         <div class="pm-detail-val">@med.StartDate.ToString("MMM dd, yyyy")</div>
@@ -421,6 +446,26 @@
                                         </div>
                                     }
                                 </div>
+
+                                @if (doseTimes.Any())
+                                {
+                                    <div class="pm-dose-time-chips">
+                                        @foreach (var slot in doseTimes)
+                                        {
+                                            <span class="pm-dose-time-chip">
+                                                <i class="fas fa-clock"></i> @DateTime.Today.Add(slot.TimeOfDay).ToString("h:mm tt")
+                                            </span>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="pm-med-note-box">
+                                        <i class="fas fa-circle-info"></i>
+                                        <span>No scheduled dose times — this medication is taken only as needed.</span>
+                                    </div>
+                                }
+
                                 <div class="pm-lead-slot">
                                     <label><i class="fas fa-bell" style="color:var(--pm-primary)"></i> Custom reminder (mins)</label>
                                     <input type="number" class="pm-lead-input-v2 pm-lead-input"

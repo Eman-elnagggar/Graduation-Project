@@ -4,6 +4,7 @@ using Graduation_Project.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Graduation_Project.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260711233046_AddStructuredMedicationFrequency")]
+    partial class AddStructuredMedicationFrequency
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -55,44 +58,6 @@ namespace Graduation_Project.Migrations
                     b.HasKey("ModelID");
 
                     b.ToTable("AIModels");
-                });
-
-            modelBuilder.Entity("Graduation_Project.Models.AdminNotification", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ActionUrl")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("DateCreated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsRead")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("NotificationType")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Severity")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("AdminNotifications");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.Alert", b =>
@@ -614,12 +579,7 @@ namespace Graduation_Project.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("OwnerDoctorID")
-                        .HasColumnType("int");
-
                     b.HasKey("ClinicID");
-
-                    b.HasIndex("OwnerDoctorID");
 
                     b.ToTable("Clinics");
                 });
@@ -639,50 +599,6 @@ namespace Graduation_Project.Migrations
                     b.HasIndex("DoctorID");
 
                     b.ToTable("ClinicDoctors");
-                });
-
-            modelBuilder.Entity("Graduation_Project.Models.ClinicDoctorInvitation", b =>
-                {
-                    b.Property<int>("ClinicDoctorInvitationID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ClinicDoctorInvitationID"));
-
-                    b.Property<int>("ClinicID")
-                        .HasColumnType("int");
-
-                    b.Property<int>("InviteeDoctorID")
-                        .HasColumnType("int");
-
-                    b.Property<string>("InviteeEmail")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<int>("InviterDoctorID")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("RespondedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("SentAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
-
-                    b.HasKey("ClinicDoctorInvitationID");
-
-                    b.HasIndex("InviterDoctorID");
-
-                    b.HasIndex("InviteeDoctorID", "Status");
-
-                    b.HasIndex("ClinicID", "InviteeDoctorID", "Status");
-
-                    b.ToTable("ClinicDoctorInvitations");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.ClinicInvitation", b =>
@@ -2288,16 +2204,6 @@ namespace Graduation_Project.Migrations
                     b.Navigation("Patient");
                 });
 
-            modelBuilder.Entity("Graduation_Project.Models.Clinic", b =>
-                {
-                    b.HasOne("Graduation_Project.Models.Doctor", "Owner")
-                        .WithMany()
-                        .HasForeignKey("OwnerDoctorID")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Owner");
-                });
-
             modelBuilder.Entity("Graduation_Project.Models.ClinicDoctor", b =>
                 {
                     b.HasOne("Graduation_Project.Models.Clinic", "Clinic")
@@ -2315,33 +2221,6 @@ namespace Graduation_Project.Migrations
                     b.Navigation("Clinic");
 
                     b.Navigation("Doctor");
-                });
-
-            modelBuilder.Entity("Graduation_Project.Models.ClinicDoctorInvitation", b =>
-                {
-                    b.HasOne("Graduation_Project.Models.Clinic", "Clinic")
-                        .WithMany()
-                        .HasForeignKey("ClinicID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Graduation_Project.Models.Doctor", "Invitee")
-                        .WithMany()
-                        .HasForeignKey("InviteeDoctorID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Graduation_Project.Models.Doctor", "Inviter")
-                        .WithMany()
-                        .HasForeignKey("InviterDoctorID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Clinic");
-
-                    b.Navigation("Invitee");
-
-                    b.Navigation("Inviter");
                 });
 
             modelBuilder.Entity("Graduation_Project.Models.ClinicInvitation", b =>

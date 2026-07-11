@@ -29,7 +29,8 @@ namespace Graduation_Project.Services
                 .Include(m => m.Schedules)
                 .Where(m => m.PatientID == patientId
                             && m.IsActive
-                            && (m.EndDate == null || m.EndDate.Value.Date >= date.Date))
+                            && m.StartDate.Date <= start
+                            && (m.EndDate == null || m.EndDate.Value.Date >= start))
                 .ToList();
 
             var logs = _logRepository.GetByPatientId(patientId, start, end).ToList();
@@ -37,6 +38,9 @@ namespace Graduation_Project.Services
 
             foreach (var med in medications)
             {
+                if (!IsDueOn(med, start))
+                    continue;
+
                 foreach (var schedule in med.Schedules)
                 {
                     var scheduledAt = start.Add(schedule.TimeOfDay);
@@ -57,6 +61,24 @@ namespace Graduation_Project.Services
             return slots
                 .OrderBy(s => s.ScheduledAt)
                 .ToList();
+        }
+
+        /// <summary>
+        /// True when <paramref name="date"/> falls on one of the medication's active
+        /// days. A weekly medication started on a Monday is only due on Mondays; an
+        /// every-other-day one only on alternate days from its start date.
+        /// </summary>
+        private static bool IsDueOn(Medication medication, DateTime date)
+        {
+            if (medication.TimesPerDay == 0)
+                return false; // taken only as needed — never scheduled
+
+            var interval = Math.Max(medication.IntervalDays, 1);
+            if (interval == 1)
+                return true;
+
+            var daysSinceStart = (date.Date - medication.StartDate.Date).Days;
+            return daysSinceStart >= 0 && daysSinceStart % interval == 0;
         }
 
         public void EvaluateReminders(DateTime date)

@@ -1632,6 +1632,95 @@
 .pm-fchip:hover { border-color: var(--pm-primary); color: var(--pm-primary); background: rgba(27, 174, 190,0.05); }
 .pm-fchip.active { background: var(--pm-primary); border-color: transparent; color: #fff; box-shadow: 0 3px 10px rgba(27, 174, 190,0.28); }
 
+/* ── Frequency picker ───────────────────────────────────── */
+.pm-freq-custom {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-top: 12px;
+  padding: 14px;
+  border: 1.5px dashed var(--pm-border);
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.pm-freq-custom[hidden] { display: none; }
+
+.pm-freq-times {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.pm-freq-times:empty { margin-top: 0; }
+
+.pm-time-list-lbl {
+  flex: 0 0 100%;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--pm-text-2);
+}
+
+.pm-time-slot { display: flex; flex-direction: column; gap: 4px; }
+
+.pm-time-slot > span {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--pm-text-2);
+}
+
+.pm-time-input { width: auto; min-width: 128px; }
+
+.pm-freq-summary {
+  margin-top: 10px;
+  padding: 9px 13px;
+  border-radius: 10px;
+  background: rgba(27, 174, 190, 0.08);
+  color: var(--pm-primary-dk);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.pm-freq-summary:empty { display: none; }
+
+.pm-dose-time-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+
+.pm-dose-time-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--pm-border);
+  background: #f8fafc;
+  color: var(--pm-text-2);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.pm-dose-time-chip i { color: var(--pm-primary); font-size: 0.7rem; }
+
+/* ── Field hints & validation ───────────────────────────── */
+.pm-fhint { margin-top: 5px; font-size: 0.72rem; color: var(--pm-text-2); }
+
+.pm-ferror {
+  display: none;
+  margin-top: 5px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #dc2626;
+}
+
+.pm-ferror.show { display: block; }
+
+.pm-finput.has-error,
+.pm-fselect.has-error {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
 .pm-example-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
 
 .pm-echip {
