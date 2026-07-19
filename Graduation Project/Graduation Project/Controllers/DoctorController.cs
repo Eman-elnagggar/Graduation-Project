@@ -672,13 +672,22 @@ namespace Graduation_Project.Controllers
                 _context.SaveChanges();
             }
 
+            // Load booked appointments in a calendar-relevant window.
+            // Do not Take(N) over all slots ordered by oldest date — seeded empty
+            // slots alone exceed 250 per doctor, so newer bookings never reached the UI.
+            var scheduleFrom = DateTime.Today.AddMonths(-2);
+            var scheduleTo = DateTime.Today.AddMonths(3);
+
             var appointments = _context.Appointments
                 .Include(a => a.Patient).ThenInclude(p => p.User)
                 .Include(a => a.Bookings)
-                .Where(a => a.DoctorID == doctor.DoctorID)
+                .Where(a => a.DoctorID == doctor.DoctorID
+                         && a.isBooked
+                         && a.PatientID.HasValue
+                         && a.Date >= scheduleFrom
+                         && a.Date <= scheduleTo)
                 .OrderBy(a => a.Date)
                 .ThenBy(a => a.Time)
-                .Take(250)
                 .ToList();
 
             var vm = new DoctorScheduleViewModel
